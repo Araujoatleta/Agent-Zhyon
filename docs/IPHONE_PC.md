@@ -29,8 +29,9 @@ installer from the **Windows installer** workflow's artifacts, or build it from
 
 ## On the iPhone
 
-1. Scan the code with the **Camera** app and tap the Coucou banner. Or press **Copy link** on the computer, send it to
-   the iPhone, and paste it in **Coucou → ⚙︎ → Windows or Linux computer**.
+1. In **Coucou → ⚙︎ → Windows or Linux computer**, tap **Scan the code** (**Scan the pairing code** on first launch)
+   and point at the computer's code. The iPhone's own Camera app cannot open Coucou codes ("No usable data found").
+   Or press **Copy link** on the computer, send it to the iPhone, and tap it or paste it in the same screen.
 2. Coucou names the computer it found: tap **Pair**. When iOS asks, allow Coucou on the **local network**.
 3. The computer's sessions show up in **Agents**. The 🖥 button at the top left opens the chat with Mochi on the
    computer; the ⋯ menu there picks the model and turns his hands on or off for the chat.

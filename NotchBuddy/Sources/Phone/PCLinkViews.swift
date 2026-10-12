@@ -65,6 +65,7 @@ struct PCLinkSettingsView: View {
     @State private var link = ""
     @State private var pending: PCPairing?
     @State private var error: String?
+    @State private var scanning = false
 
     var body: some View {
         List {
@@ -119,6 +120,11 @@ struct PCLinkSettingsView: View {
             }
 
             Section {
+                Button {
+                    scanning = true
+                } label: {
+                    Label("Scan the code", systemImage: "qrcode.viewfinder")
+                }
                 TextField("coucou://pair?…", text: $link, axis: .vertical)
                     .font(.callout.monospaced())
                     .lineLimit(1...4)
@@ -136,7 +142,7 @@ struct PCLinkSettingsView: View {
             } header: {
                 Text(pc.isPaired ? "Pair again" : "Pair")
             } footer: {
-                Text("On the computer: Coucou → Settings → Phone (Android and iPhone) → turn the link on and show the pairing code. Scan it with the iPhone's Camera app and tap the Coucou banner, or copy the link and paste it here.")
+                Text("On the computer: Coucou → Settings → Phone (Android and iPhone) → turn the link on and show the pairing code, then scan it here. Or copy the link there and paste it here. (The iPhone's Camera app can't open Coucou codes.)")
             }
 
             if pc.isPaired {
@@ -161,6 +167,9 @@ struct PCLinkSettingsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $pending) { pairing in
             PCPairingConfirm(pairing: pairing, pc: pc) { link = "" }
+        }
+        .sheet(isPresented: $scanning) {
+            PCScanSheet(pc: pc) { link = "" }
         }
     }
 
@@ -489,6 +498,7 @@ struct PCOnboardingView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var pending: PCPairing?
     @State private var error: String?
+    @State private var scanning = false
 
     var body: some View {
         ScrollView {
@@ -509,7 +519,7 @@ struct PCOnboardingView: View {
                      "On the computer: Coucou Settings → Phone (Android and iPhone) → turn it on and show the pairing code. Same Wi-Fi as this iPhone.",
                      icon: "switch.2")
                 step(3, "Scan the code",
-                     "With the iPhone's Camera app, then tap the Coucou banner. Or copy the link on the computer and paste it below.",
+                     "Tap Scan the pairing code below and point the camera at the computer's screen. Or copy the link on the computer and paste it here.",
                      icon: "qrcode.viewfinder")
                 if let error {
                     Text(error).font(.footnote).foregroundStyle(.red)
@@ -521,24 +531,33 @@ struct PCOnboardingView: View {
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: 10) {
                 Button {
-                    guard let pairing = PCPairing.parse(UIPasteboard.general.string ?? "") else {
-                        error = "No pairing link to paste. Copy it on the computer first (Settings → Phone)."
-                        Haptics.warning()
-                        return
-                    }
-                    pending = pairing
+                    scanning = true
                 } label: {
-                    Text("Paste the pairing link").font(.headline).frame(maxWidth: .infinity).padding(.vertical, 6)
+                    Label("Scan the pairing code", systemImage: "qrcode.viewfinder")
+                        .font(.headline).frame(maxWidth: .infinity).padding(.vertical, 6)
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
-                Button("Later") { dismiss() }
+                HStack(spacing: 24) {
+                    Button("Paste the link") {
+                        guard let pairing = PCPairing.parse(UIPasteboard.general.string ?? "") else {
+                            error = "No pairing link to paste. Copy it on the computer first (Settings → Phone)."
+                            Haptics.warning()
+                            return
+                        }
+                        pending = pairing
+                    }
+                    Button("Later") { dismiss() }
+                }
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 12)
         }
         .sheet(item: $pending) { pairing in
             PCPairingConfirm(pairing: pairing, pc: pc) { dismiss() }
+        }
+        .sheet(isPresented: $scanning) {
+            PCScanSheet(pc: pc) { dismiss() }
         }
         .preferredColorScheme(.dark)
     }

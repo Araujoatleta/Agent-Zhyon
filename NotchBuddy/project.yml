@@ -299,6 +299,7 @@ targets:
           - UIInterfaceOrientationLandscapeRight
         ITSAppUsesNonExemptEncryption: NO
         NSFaceIDUsageDescription: "Coucou asks for Face ID before allowing a command from your iPhone."
+        NSCameraUsageDescription: "Coucou uses the camera only to scan the pairing code of Coucou on your Windows or Linux computer."
         # The link to a Windows or Linux computer (PCLink): TLS on the local network, and the computer's
         # announcement to find it again when its address changes.
         NSLocalNetworkUsageDescription: "Coucou connects to Coucou on your Windows or Linux computer, on your local network, to show your agents and answer their requests."

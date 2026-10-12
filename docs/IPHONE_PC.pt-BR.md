@@ -77,8 +77,10 @@ a Live Activity do Mac não se aplica; o resto funciona.
 
 ### Parear
 
-1. Aponte a **Câmera** do iPhone para o QR code do PC e toque no aviso do Coucou. Ou, no PC, **Copiar link**, mande
-   para o iPhone e cole em **Coucou → ⚙︎ → Windows or Linux computer**.
+1. Abra o **Coucou no iPhone → ⚙︎ → Windows or Linux computer → Scan the code** (na primeira abertura, o botão
+   **Scan the pairing code**) e aponte para o QR code do PC. Use o leitor do próprio Coucou: a **Câmera do iPhone não
+   abre códigos do Coucou** e responde "No usable data found". Outra opção: no PC, **Copiar link**, mande para o
+   iPhone (WhatsApp, e-mail…) e toque no link, ou cole em **Coucou → ⚙︎ → Windows or Linux computer**.
 2. O Coucou mostra o nome do PC: toque em **Pair**. Quando o iOS pedir, permita o acesso à **rede local**.
 3. As sessões do PC aparecem em **Agents**. O botão 🖥 no canto superior esquerdo abre o **chat com o Mochi do PC**;
    no menu ⋯ você escolhe o modelo e liga ou desliga os braços dele.
