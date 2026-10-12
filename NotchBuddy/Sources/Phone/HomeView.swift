@@ -545,7 +545,7 @@ struct EmptySessionsView: View {
         if !PhoneLink.cloudAvailable {
             return "Pair with Coucou on your Windows or Linux computer: ⚙︎ → Windows or Linux computer."
         }
-        switch status {
+        return switch status {
         case .starting: "Connecting to iCloud…"
         case .noAccount(let reason): "\(reason) Sign in to iCloud with the same account as your Mac."
         case .zoneMissing: "Open Coucou on your Mac: your sessions will show up here."

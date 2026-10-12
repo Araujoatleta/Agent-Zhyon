@@ -75,12 +75,14 @@ final class PCLink {
     private static let chatHandsKey = "pcLinkChatHands"
 
     private init() {
-        computer = PCLinkStore.computer()
-        status = computer == nil ? .unpaired : .offline("")
+        // Locals first: an @Observable property cannot be read before every stored property is set.
+        let paired = PCLinkStore.computer()
+        let recent = UserDefaults.standard.dictionary(forKey: Self.notifiedKey) as? [String: Date] ?? [:]
+        computer = paired
+        status = paired == nil ? .unpaired : .offline("")
         chatModel = UserDefaults.standard.string(forKey: Self.chatModelKey) ?? ""
         chatHands = UserDefaults.standard.object(forKey: Self.chatHandsKey) as? Bool ?? true
-        let saved = UserDefaults.standard.dictionary(forKey: Self.notifiedKey) as? [String: Date] ?? [:]
-        notified = saved.filter { Date.now.timeIntervalSince($0.value) < 600 }
+        notified = recent.filter { Date.now.timeIntervalSince($0.value) < 600 }
     }
 
     var isPaired: Bool { computer != nil }
