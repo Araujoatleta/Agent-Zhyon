@@ -82,6 +82,10 @@ pub trait Features: Send + Sync {
     fn services(&self) -> Vec<String> {
         Vec::new()
     }
+    /// Mochi's hands from the phone's chat: on this computer and allowed for the phone.
+    fn agent(&self) -> bool {
+        false
+    }
 }
 
 /// Nothing extra: how the link behaved before capabilities existed.
@@ -283,9 +287,14 @@ where
     let usage = asked("usage") && shared.features.usage();
     let relay = asked("relay") && shared.features.relay();
     let services: Vec<String> = if asked("services") { shared.features.services() } else { Vec::new() };
+    // Mochi's hands ride on the chat: never without it.
+    let agent = chat.is_some() && asked("agent") && shared.features.agent();
     let mut offered: Vec<&str> = Vec::new();
     if chat.is_some() {
         offered.push("chat");
+    }
+    if agent {
+        offered.push("agent");
     }
     if details {
         offered.push("details");
@@ -360,7 +369,7 @@ where
             Some("bye") => break,
             Some(t) if t.starts_with("chat") => {
                 if let Some(chat) = &chat {
-                    chat.handle(id, &tx, &msg, (shared.clock)());
+                    chat.handle(id, &tx, &msg, (shared.clock)(), agent);
                 }
             }
             _ => {} // unknown types are ignored

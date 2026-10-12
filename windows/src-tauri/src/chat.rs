@@ -107,6 +107,20 @@ impl Chat {
         c.plain.push(json!({ "role": "user", "content": user_text }));
         c.plain.push(json!({ "role": "assistant", "content": answer }));
     }
+
+    /// Records a finished turn of Mochi with hands: every message of it in the provider's format (the user's, the
+    /// tool calls, their results and the answer, in order), and the question and answer as plain text. The tool
+    /// work stays in this provider's history only; another provider, or the chat without hands, starts from the
+    /// plain turns.
+    pub fn commit_turn(&self, turn: &Turn, messages: Vec<Value>, user_text: &str, answer: &str) {
+        let mut c = self.inner.lock().unwrap();
+        if c.epoch != turn.epoch || c.owner.as_deref() != Some(turn.provider.as_str()) {
+            return;
+        }
+        c.native.extend(messages);
+        c.plain.push(json!({ "role": "user", "content": user_text }));
+        c.plain.push(json!({ "role": "assistant", "content": answer }));
+    }
 }
 
 // ── System prompt ─────────────────────────────────────────────────────────────
@@ -175,7 +189,7 @@ pub fn model_for(settings: &Settings, provider: &str) -> String {
 /// A file rides along only if it is one of Coucou's own copies of a dropped
 /// file (files.rs puts them in the inbox). The page names the path, so without
 /// this any file the user can read could be sent to a chat provider.
-fn checked_context(context: ChatContext) -> Result<ChatContext, String> {
+pub(crate) fn checked_context(context: ChatContext) -> Result<ChatContext, String> {
     match context {
         ChatContext::File { name, path } => {
             let inbox = crate::files::inbox_dir();
@@ -314,6 +328,32 @@ mod tests {
         assert_eq!(t.history.len(), 4);
         assert_eq!(t.history[3], json!({"role":"assistant","content":"Sure."}));
         assert!(!serde_json::to_string(&t.history).unwrap().contains("web_search"));
+    }
+
+    #[test]
+    fn a_turn_with_hands_keeps_its_tool_messages_for_the_same_provider_only() {
+        let chat = Chat::default();
+        let t = chat.begin("openrouter+hands");
+        let turn = vec![
+            json!({"role":"user","content":"list my files"}),
+            json!({"role":"assistant","content":null,"tool_calls":[{"id":"a","type":"function","function":{"name":"list_directory","arguments":"{}"}}]}),
+            json!({"role":"tool","tool_call_id":"a","content":"src/\nREADME.md"}),
+            json!({"role":"assistant","content":"You have src and a README."}),
+        ];
+        chat.commit_turn(&t, turn.clone(), "list my files", "You have src and a README.");
+        let again = chat.begin("openrouter+hands");
+        assert_eq!(again.history, turn);
+        // The same provider without hands gets the plain turns: no tool message reaches a request without tools.
+        let plain = chat.begin("openrouter");
+        assert_eq!(
+            turn_texts(&plain.history),
+            vec![("user".into(), json!("list my files")), ("assistant".into(), json!("You have src and a README."))]
+        );
+        // An answer that lands after a reset is dropped.
+        let t = chat.begin("anthropic+hands");
+        chat.reset();
+        chat.commit_turn(&t, vec![json!({"role":"user","content":"x"})], "x", "y");
+        assert!(chat.begin("anthropic+hands").first);
     }
 
     #[test]

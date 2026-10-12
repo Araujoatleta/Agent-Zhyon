@@ -1366,6 +1366,191 @@ input[type="range"]::-webkit-slider-thumb {
   transform: scale(0.94);
 }
 
+/* ── Mochi's hands in the chat (views/chat.ts) ───────────────────────────── */
+
+.hands-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin-right: 6px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #5c6370;
+  cursor: default;
+}
+
+.hands-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.hands-btn.on {
+  color: #a5b4fc;
+  background: rgba(99, 102, 241, 0.18);
+}
+
+.hands-btn:disabled {
+  opacity: 0.6;
+}
+
+.hands-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+}
+
+.hands-step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 2px 6px;
+  border-radius: 8px;
+  font: 400 11.5px var(--font);
+  color: #8e939c;
+}
+
+.hands-step.openable:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.hands-mark {
+  flex: 0 0 12px;
+  display: grid;
+  place-items: center;
+  color: var(--dim-3);
+}
+
+.hands-step.ok .hands-mark {
+  color: var(--green);
+}
+
+.hands-step.error .hands-mark {
+  color: var(--red);
+}
+
+.hands-step.denied .hands-mark {
+  color: var(--amber);
+}
+
+.hands-verb {
+  flex: 0 0 auto;
+  font-weight: 500;
+  color: #b0b5be;
+}
+
+.hands-what {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 400 11px var(--mono);
+  color: #8e939c;
+}
+
+.hands-detail {
+  flex: 0 0 auto;
+  font: 500 10px var(--mono);
+  color: var(--dim-3);
+}
+
+.hands-spin {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  border-top-color: #a5b4fc;
+  animation: hands-spin 0.8s linear infinite;
+}
+
+@keyframes hands-spin {
+  to { transform: rotate(360deg); }
+}
+
+.hands-output {
+  margin: 0 0 2px 18px;
+  padding: 8px 10px;
+  max-height: 140px;
+  overflow: auto;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: #0d0e12;
+  font: 400 10.5px/1.4 var(--mono);
+  color: #c8cdd4;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+.hands-card {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(245, 165, 36, 0.07);
+  border: 1px solid rgba(245, 165, 36, 0.35);
+}
+
+.hands-card-title {
+  font: 600 12.5px var(--font);
+  color: var(--amber);
+}
+
+.hands-card .hands-code {
+  max-height: 92px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.hands-note {
+  font: 400 10.5px var(--font);
+  color: var(--dim-3);
+  overflow-wrap: anywhere;
+}
+
+.hands-warn {
+  font: 500 11px var(--font);
+  color: var(--red-text);
+}
+
+.hands-diff {
+  max-height: 120px;
+  overflow-y: auto;
+  padding: 4px 0;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  background: #0d0e12;
+  user-select: text;
+}
+
+.hands-diff-counts {
+  display: flex;
+  gap: 8px;
+  padding: 0 8px 2px;
+  font: 500 10px var(--mono);
+}
+
+.hands-diff-counts .plus {
+  color: var(--green);
+}
+
+.hands-diff-counts .minus {
+  color: var(--red);
+}
+
+.hands-diff .diff-line {
+  padding: 0 8px;
+}
+
 /* ── Drop zone ──────────────────────────────────────────────────────────── */
 
 .drop-card {

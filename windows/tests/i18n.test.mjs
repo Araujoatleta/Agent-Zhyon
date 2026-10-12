@@ -257,6 +257,8 @@ const NOT_TEXT = new Set([
   "finished", // a task state and a pill badge
   "unknown", // a CI state
   "Resend", // the service's name (the Mac's "Resend" is a button: send again)
+  "Stop", // a Claude Code hook event (island/hooks.ts)
+  "running", // the state of a step of Mochi's hands (island/hands.ts)
 ]);
 
 test("no known user-facing English literal outside t() in the views and settings", () => {

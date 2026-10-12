@@ -8,6 +8,7 @@ import { getCurrentWebview } from "@tauri-apps/api/webview";
 import type { Settings } from "./state";
 import type { RecapHistory, RecapPrefs } from "../recap/summary";
 import type { SpotifyState } from "./spotify";
+import type { HandsStatusReport } from "./hands";
 
 export const IS_TAURI =
   typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -326,9 +327,25 @@ export const Bridge = {
   phoneLinkPublishPrefs: (outfit: string) => call<void>("phone_link_publish_prefs", { outfit }),
 
   // ── Chat, files, secrets ──────────────────────────────────────────────────
-  /** One chat turn. The API key and any file bytes never leave Rust. */
-  chatSend: (query: string, context: ChatContext | null) =>
-    callOrThrow<{ text: string }>("chat_send", { query, context }),
+  /**
+   * One chat turn. The API key and any file bytes never leave Rust. `hands`: Mochi may act on this computer
+   * (only if his hands are on in Settings; every change still waits for a click).
+   */
+  chatSend: (query: string, context: ChatContext | null, hands = false) =>
+    callOrThrow<{ text: string }>("chat_send", { query, context, hands }),
+
+  // ── Mochi's hands (src-tauri/src/agent) ───────────────────────────────────
+  agentStatus: () => call<HandsStatusReport>("agent_status"),
+  /** Allow or Deny on the card of an action waiting for a click. Only the island may answer. */
+  agentDecide: (id: string, allow: boolean) => call<boolean>("agent_decide", { id, allow }),
+  /** The chat's stop button: the running command ends and the turn stops. */
+  agentCancel: () => call<boolean>("agent_cancel"),
+  /** Settings → Mochi's hands. Throws with the reason (no folder, a folder that does not exist). */
+  agentSettingsSet: (enabled: boolean, folder: string, level: string) =>
+    callOrThrow<HandsStatusReport>("agent_settings_set", { enabled, folder, level }),
+  phoneAgentStatus: () => call<{ enabled: boolean }>("phone_agent_status"),
+  /** Off by default; only from the switch in Settings. Phones are reconnected so they learn about it. */
+  phoneAgentSetEnabled: (enabled: boolean) => callOrThrow<{ enabled: boolean }>("phone_agent_set_enabled", { enabled }),
   chatReset: () => call<void>("chat_reset"),
   /**
    * The models a provider offers, for the picker in the chat view. Rust asks

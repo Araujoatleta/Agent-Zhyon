@@ -9,6 +9,7 @@ import {
 import type { CodexPlanUsage, PlanUsage } from "./plan";
 import type { ProviderId } from "./providers";
 import type { FileDiff } from "./diff";
+import type { HandsRequest, HandsStep } from "./hands";
 import type { Bindings } from "./shortcuts";
 import { DEFAULT_OUTFIT, type Outfit } from "../mochi/wardrobe";
 import { pillColor } from "./pill-colors";
@@ -61,8 +62,10 @@ export interface AskedQuestion {
 
 export interface ChatMessage {
   id: number;
-  role: "user" | "assistant";
+  /** "action": one thing Mochi did on this computer with his hands (core/hands.ts), shown as a step row. */
+  role: "user" | "assistant" | "action";
   content: string;
+  action?: HandsStep;
 }
 
 export type PromptContext =
@@ -157,6 +160,17 @@ export interface Settings {
   phoneDetails?: boolean;
   /** Which models the phone may use, "provider/model". Rust owns it too. */
   phoneChatModels?: string[];
+  /** The phone may use Mochi's hands through its chat. Rust owns it too. */
+  phoneAgent?: boolean;
+  /**
+   * Mochi's hands (src-tauri/src/agent): the chat may act on this computer. Rust owns these three: only
+   * Settings → Mochi's hands changes them, whatever the page sends back.
+   */
+  agentEnabled?: boolean;
+  agentFolder?: string;
+  agentLevel?: string;
+  /** The chat's hands toggle: use Mochi's hands in the chat when they are on. The island's own choice. */
+  chatHands: boolean;
   /** Mochi on the desktop. Rust owns it: whatever the page sends back is ignored. */
   desktopMochi?: {
     onDesktop: boolean;
@@ -190,6 +204,7 @@ export const DEFAULT_SETTINGS: Settings = {
   mochiOutfit: DEFAULT_OUTFIT,
   pillColors: {},
   language: "",
+  chatHands: true,
 };
 
 type Listener = () => void;
@@ -225,6 +240,10 @@ class AppState {
   noteMessage: string | null = null;
   searchResult: SearchResult | null = null;
   chatHistory: ChatMessage[] = [];
+  /** An action of Mochi's hands waiting for a click (from the island's chat or the phone's). */
+  handsRequest: HandsRequest | null = null;
+  /** The turn with hands the island's chat is running, as Rust numbered it; null when none. */
+  handsRun: number | null = null;
   pendingApproval: ApprovalInfo | null = null;
   /** The pill that was in front when the card came up; it comes back after. */
   focusBeforeApproval: string | null = null;
@@ -507,6 +526,8 @@ class AppState {
    */
   defaultView(): IslandViewName {
     if (this.pendingApproval) return this.pendingApproval.questions ? "question" : "approval";
+    // Mochi waits for a click on something he wants to do: the chat shows it.
+    if (this.handsRequest) return "prompt";
     return this.tasks.length === 0 ? "empty" : "overview";
   }
 }

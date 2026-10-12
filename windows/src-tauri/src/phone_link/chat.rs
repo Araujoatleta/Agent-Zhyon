@@ -60,6 +60,22 @@ pub enum ChatFail {
     Auth,
     Provider,
     Internal,
+    /// Mochi's hands are already at work for someone else (the island's chat).
+    Busy,
+    /// Mochi's hands are off on the computer (or the folder they work in is gone).
+    HandsOff,
+    /// The user stopped it on the computer.
+    Canceled,
+}
+
+/// One thing Mochi did in a turn with hands, for the phone's chat: its place in the turn (a step's later states
+/// replace its earlier ones), how it is going and what it is ("Bash · npm test").
+#[derive(Debug, Clone, PartialEq)]
+pub struct StepLine {
+    pub index: usize,
+    /// running, waiting, ok, error or denied.
+    pub status: String,
+    pub text: String,
 }
 
 /// The computer's chat. The real one calls the same provider code as the island's chat.
@@ -70,6 +86,11 @@ pub trait ChatBackend: Send + Sync {
     fn send(&self, model_id: &str, text: String, deltas: mpsc::UnboundedSender<String>) -> BoxFuture<Result<String, ChatFail>>;
     /// Forget the phone's conversation.
     fn reset(&self);
+    /// One turn with Mochi's hands (cap `agent`): the model may act on the computer, every change after a click.
+    /// `steps` receives each step as it changes. Returns the final answer.
+    fn send_agent(&self, _model_id: &str, _text: String, _steps: mpsc::UnboundedSender<StepLine>) -> BoxFuture<Result<String, ChatFail>> {
+        Box::pin(async { Err(ChatFail::HandsOff) })
+    }
 }
 
 /// The fixed code and message for a failure; never anything a provider wrote.
@@ -86,6 +107,7 @@ pub fn reason(code: &str) -> &'static str {
         "auth" => "The provider refused the computer's key.",
         "provider" => "The provider returned an error.",
         "canceled" => "Canceled.",
+        "hands_off" => "Mochi's hands are off on the computer.",
         _ => "Something went wrong on the computer.",
     }
 }
@@ -97,6 +119,9 @@ fn fail_code(f: ChatFail) -> &'static str {
         ChatFail::Auth => "auth",
         ChatFail::Provider => "provider",
         ChatFail::Internal => "internal",
+        ChatFail::Busy => "busy",
+        ChatFail::HandsOff => "hands_off",
+        ChatFail::Canceled => "canceled",
     }
 }
 
@@ -249,8 +274,8 @@ impl ChatLink {
     }
 
     /// One chat message from a phone that negotiated the capability. Never blocks; answers are written
-    /// by a task that stops when the connection's channel closes.
-    pub fn handle(self: &Arc<Self>, conn: u64, tx: &mpsc::Sender<Out>, msg: &Value, now: u64) {
+    /// by a task that stops when the connection's channel closes. `agent`: the phone negotiated Mochi's hands.
+    pub fn handle(self: &Arc<Self>, conn: u64, tx: &mpsc::Sender<Out>, msg: &Value, now: u64, agent: bool) {
         let say = |o: Out| {
             let _ = tx.try_send(o);
         };
@@ -268,12 +293,12 @@ impl ChatLink {
                     say(error_line(&r.id, "canceled"));
                 }
             }
-            Some("chatSend") => self.send(conn, tx, msg, now),
+            Some("chatSend") => self.send(conn, tx, msg, now, agent),
             _ => {}
         }
     }
 
-    fn send(self: &Arc<Self>, conn: u64, tx: &mpsc::Sender<Out>, msg: &Value, now: u64) {
+    fn send(self: &Arc<Self>, conn: u64, tx: &mpsc::Sender<Out>, msg: &Value, now: u64, agent_ok: bool) {
         // Without a usable id there is nothing to answer to.
         let Some(id) = msg["id"].as_str().filter(|i| !i.is_empty() && i.len() <= MAX_ID && i.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')) else {
             return;
@@ -296,6 +321,11 @@ impl ChatLink {
         if !cfg.allowed.iter().any(|m| m.id == model) {
             return refuse("not_allowed");
         }
+        // Mochi's hands only for a phone that negotiated them (both switches on when it connected).
+        let agent = msg["agent"].as_bool() == Some(true);
+        if agent && !agent_ok {
+            return refuse("hands_off");
+        }
 
         let mut g = self.gate.lock().unwrap();
         if g.running.is_some() {
@@ -317,14 +347,17 @@ impl ChatLink {
         let task_id = id_owned.clone();
         let join = tokio::spawn(async move {
             let _slot = Slot { link: link.clone(), token };
-            answer(&link, &tx, &task_id, &model, text).await;
+            answer(&link, &tx, &task_id, &model, text, agent).await;
         });
         g.running = Some(Run { token, id: id_owned, conn, abort: join.abort_handle() });
     }
 }
 
 /// Runs one turn and writes its lines. Ends quietly if the phone's channel is gone.
-async fn answer(link: &ChatLink, tx: &mpsc::Sender<Out>, id: &str, model: &str, text: String) {
+async fn answer(link: &ChatLink, tx: &mpsc::Sender<Out>, id: &str, model: &str, text: String, agent: bool) {
+    if agent {
+        return answer_with_hands(link, tx, id, model, text).await;
+    }
     let (dtx, mut drx) = mpsc::unbounded_channel::<String>();
     let forward = {
         let (tx, id) = (tx.clone(), id.to_string());
@@ -358,6 +391,40 @@ async fn answer(link: &ChatLink, tx: &mpsc::Sender<Out>, id: &str, model: &str, 
                 done["text"] = Value::String(full);
             }
             let _ = tx.send(fit(done, "text")).await;
+        }
+        Err(f) => {
+            let _ = tx.send(error_line(id, fail_code(f))).await;
+        }
+    }
+}
+
+/// A turn with Mochi's hands: each thing he does is a `chatStep` line, then the answer comes whole, as `chatDelta`
+/// pieces and a `chatDone`.
+async fn answer_with_hands(link: &ChatLink, tx: &mpsc::Sender<Out>, id: &str, model: &str, text: String) {
+    let (stx, mut srx) = mpsc::unbounded_channel::<StepLine>();
+    let forward = {
+        let (tx, id) = (tx.clone(), id.to_string());
+        tokio::spawn(async move {
+            while let Some(step) = srx.recv().await {
+                let line = json!({ "type": "chatStep", "id": id, "index": step.index, "status": step.status, "text": cut(&step.text, 400) });
+                if tx.send(Out::Line(line.to_string().into())).await.is_err() {
+                    return;
+                }
+            }
+        })
+    };
+    let result = link.backend.send_agent(model, text, stx).await;
+    let _ = forward.await;
+    match result {
+        Ok(full) => {
+            let mut splitter = DeltaSplitter::default();
+            for piece in splitter.feed(cut(&full, DONE_TEXT_MAX)) {
+                let line = json!({ "type": "chatDelta", "id": id, "text": piece }).to_string();
+                if tx.send(Out::Line(line.into())).await.is_err() {
+                    return;
+                }
+            }
+            let _ = tx.send(Out::Line(json!({ "type": "chatDone", "id": id }).to_string().into())).await;
         }
         Err(f) => {
             let _ = tx.send(error_line(id, fail_code(f))).await;
@@ -411,7 +478,7 @@ mod tests {
 
     #[test]
     fn every_reason_has_a_fixed_message_and_none_looks_like_a_key() {
-        for code in ["off", "not_allowed", "busy", "rate", "too_long", "empty", "no_key", "unreachable", "auth", "provider", "canceled", "internal", "whatever"] {
+        for code in ["off", "not_allowed", "busy", "rate", "too_long", "empty", "no_key", "unreachable", "auth", "provider", "canceled", "hands_off", "internal", "whatever"] {
             let m = reason(code);
             assert!(!m.is_empty() && !m.contains("sk-") && m.len() < 80, "{code}");
         }

@@ -97,6 +97,21 @@ pub struct Settings {
     pub phone_relay: bool,
     /// The relay's address (`wss://…`), empty until the user enters it. Not a secret. Owned by Rust.
     pub phone_relay_url: String,
+    /// Mochi's hands (agent/): the chat may read files, change them and run commands on this computer, each change
+    /// after a click. Off until the user turns it on in Settings → Mochi's hands; owned by Rust like the phone
+    /// switches, so what a webview sends back is ignored.
+    pub agent_enabled: bool,
+    /// The folder Mochi works in: reading there needs no click. Empty until the user picks one. Owned by Rust.
+    pub agent_folder: String,
+    /// "read" (look only), "ask" (every change waits for a click, the default) or "edits" (file edits inside the
+    /// folder are applied without a click; commands still ask). Owned by Rust.
+    pub agent_level: String,
+    /// The chat's hands toggle, next to the model button: use Mochi's hands in this chat when they are on.
+    /// The island's own choice (it is saved with the other island settings).
+    pub chat_hands: bool,
+    /// The paired phone may use Mochi's hands through its chat (cap `agent`). Off by default; owned by Rust like
+    /// the other phone switches.
+    pub phone_agent: bool,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -162,6 +177,11 @@ impl Default for Settings {
             phone_services: Vec::new(),
             phone_relay: false,
             phone_relay_url: String::new(),
+            agent_enabled: false,
+            agent_folder: String::new(),
+            agent_level: "ask".into(),
+            chat_hands: true,
+            phone_agent: false,
         }
     }
 }
@@ -448,7 +468,12 @@ mod tests {
   "phoneUsage": true,
   "phoneServices": ["integration_stripe"],
   "phoneRelay": true,
-  "phoneRelayUrl": "wss://relay.example.workers.dev"
+  "phoneRelayUrl": "wss://relay.example.workers.dev",
+  "agentEnabled": true,
+  "agentFolder": "C:\\Users\\me\\work",
+  "agentLevel": "edits",
+  "chatHands": false,
+  "phoneAgent": true
 }"##;
 
     fn custom() -> Value {
@@ -626,6 +651,25 @@ mod tests {
         assert!(parse(&custom_with("phoneRelay", Some(serde_json::json!(true)))).unwrap().phone_relay);
         assert!(!parse(&custom_with("phoneRelay", Some(serde_json::json!("yes")))).unwrap().phone_relay, "a wrong type does not switch it on");
         assert!(parse(&custom_with("phoneRelayUrl", Some(serde_json::json!(5)))).unwrap().phone_relay_url.is_empty());
+    }
+
+    #[test]
+    fn a_file_from_before_mochis_hands_keeps_them_off() {
+        // Mochi acting on the computer is never on by default, and an older file is not consent.
+        let d = Settings::default();
+        assert!(!d.agent_enabled && !d.phone_agent);
+        assert!(d.agent_folder.is_empty());
+        assert_eq!(d.agent_level, "ask");
+        assert!(d.chat_hands, "the chat uses the hands once the user has turned them on");
+        for key in ["agentEnabled", "phoneAgent"] {
+            let loaded = parse(&custom_with(key, None)).unwrap();
+            assert!(!(if key == "agentEnabled" { loaded.agent_enabled } else { loaded.phone_agent }), "{key}");
+            let odd = parse(&custom_with(key, Some(serde_json::json!("yes")))).unwrap();
+            assert!(!(if key == "agentEnabled" { odd.agent_enabled } else { odd.phone_agent }), "a wrong type does not switch {key} on");
+            assert_eq!(odd.mochi_outfit, "witchHat");
+        }
+        assert_eq!(parse(&custom_with("agentLevel", None)).unwrap().agent_level, "ask");
+        assert!(parse(&custom_with("agentFolder", Some(serde_json::json!(5)))).unwrap().agent_folder.is_empty());
     }
 
     #[test]
@@ -956,6 +1000,11 @@ mod tests {
                 "phoneServices",
                 "phoneRelay",
                 "phoneRelayUrl",
+                "agentEnabled",
+                "agentFolder",
+                "agentLevel",
+                "chatHands",
+                "phoneAgent",
             ]
         );
         let _ = std::fs::remove_dir_all(&dir);

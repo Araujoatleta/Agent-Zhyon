@@ -1819,3 +1819,206 @@ fn every_command_that_changes_something_checks_the_calling_window() {
     }
     assert!(seen >= 25, "the test must see the commands (saw {seen})");
 }
+
+// ── Mochi's hands (agent/): his own session and action on the phone, and the chat with hands ──────────────
+
+mod agent_tests {
+    use super::*;
+    use crate::phone_link::chat::{BoxFuture, ChatBackend, ChatConfig, ChatFail, ChatLink, ModelOption, StepLine};
+    use crate::phone_link::hub::{Out, APPROVAL_TTL_MS};
+    use tokio::sync::mpsc;
+    use tokio::sync::mpsc::UnboundedSender;
+
+    fn mochi(state: &str) -> SessionIn {
+        SessionIn {
+            pill_id: "agent_mochi".into(),
+            agent: "Mochi".into(),
+            state: state.into(),
+            status_text: "Bash · npm test".into(),
+            step_index: 0,
+            step_count: 1,
+            steps: vec!["Bash · npm test".into()],
+            color: Some("#A5B4FC".into()),
+            ..Default::default()
+        }
+    }
+
+    fn mochi_action(id: &str) -> ApprovalIn {
+        ApprovalIn { request_id: id.into(), session_id: "mochi-1".into(), pill_id: "agent_mochi".into(), tool: "Bash".into(), command: "npm test".into() }
+    }
+
+    fn claude_action(id: &str) -> ApprovalIn {
+        ApprovalIn { request_id: id.into(), session_id: "s1".into(), pill_id: "integration_claude".into(), tool: "Bash".into(), command: "rm -rf build".into() }
+    }
+
+    fn lines(rx: &mut mpsc::Receiver<Out>) -> Vec<Value> {
+        let mut v = Vec::new();
+        while let Ok(o) = rx.try_recv() {
+            if let Out::Line(l) = o {
+                v.push(serde_json::from_str(&l).unwrap());
+            }
+        }
+        v
+    }
+
+    fn recorder_hub() -> (Arc<Hub>, Arc<Recorder>) {
+        let host = Arc::new(Recorder::default());
+        (Hub::new(host.clone()), host)
+    }
+
+    #[test]
+    fn mochis_session_and_action_sit_next_to_the_islands_and_never_replace_them() {
+        let (hub, host) = recorder_hub();
+        hub.publish(vec![SessionIn { pill_id: "integration_claude".into(), agent: "Claude Code".into(), state: "working".into(), ..Default::default() }], Some(claude_action("r1")), 1_000);
+        hub.publish_agent(Some(mochi("approval")), Some(mochi_action("agent-7")), 1_000);
+
+        // A phone that connects now gets both sessions and both requests.
+        let (tx, mut rx) = mpsc::channel(32);
+        hub.subscribe(tx, 1_001, false);
+        let got = lines(&mut rx);
+        let pills: Vec<&str> = got[0]["sessions"].as_array().unwrap().iter().map(|s| s["pillId"].as_str().unwrap()).collect();
+        assert_eq!(pills, ["integration_claude", "agent_mochi"]);
+        let approvals: Vec<&Value> = got.iter().filter(|l| l["type"] == "approval").collect();
+        assert_eq!(approvals.len(), 2);
+        assert_eq!(approvals[1]["pillId"], "agent_mochi");
+        assert_eq!(approvals[1]["command"], "npm test");
+        let mochi_fp = approvals[1]["fingerprint"].as_str().unwrap().to_string();
+        let claude_fp = approvals[0]["fingerprint"].as_str().unwrap().to_string();
+
+        // Allowing Mochi's action answers Mochi, and leaves Claude Code's request waiting.
+        assert_eq!(hub.decide(&mochi_fp, "allow", 2_000), super::super::hub::Outcome::Applied);
+        assert_eq!(*host.0.lock().unwrap(), vec![("agent-7".to_string(), true)]);
+        let got = lines(&mut rx);
+        assert!(got.iter().any(|l| l["type"] == "approvalResolved" && l["fingerprint"] == mochi_fp.as_str()));
+        assert_eq!(hub.decide(&mochi_fp, "allow", 2_001), super::super::hub::Outcome::NoMatch, "answered once");
+        assert_eq!(hub.decide(&claude_fp, "deny", 2_002), super::super::hub::Outcome::Applied);
+        assert_eq!(host.0.lock().unwrap()[1], ("r1".to_string(), false));
+
+        // The island publishing again (no request any more) does not take Mochi's session away.
+        hub.publish(vec![], None, 3_000);
+        let got = lines(&mut rx);
+        let last_sessions = got.iter().rev().find(|l| l["type"] == "sessions").unwrap();
+        assert_eq!(last_sessions["sessions"].as_array().unwrap().len(), 1);
+        assert_eq!(last_sessions["sessions"][0]["pillId"], "agent_mochi");
+        // And Mochi going away leaves the island's alone.
+        hub.publish_agent(None, None, 4_000);
+        let got = lines(&mut rx);
+        assert_eq!(got.last().unwrap()["sessions"].as_array().unwrap().len(), 0);
+    }
+
+    #[test]
+    fn mochis_action_expires_for_the_phone_like_any_request() {
+        let (hub, host) = recorder_hub();
+        hub.publish_agent(Some(mochi("approval")), Some(mochi_action("agent-3")), 1_000);
+        let (tx, mut rx) = mpsc::channel(32);
+        hub.subscribe(tx, 1_001, false);
+        let fp = lines(&mut rx).iter().find(|l| l["type"] == "approval").unwrap()["fingerprint"].as_str().unwrap().to_string();
+        assert_eq!(hub.decide(&fp, "allow", 1_000 + APPROVAL_TTL_MS + 1), super::super::hub::Outcome::Late);
+        assert!(host.0.lock().unwrap().is_empty(), "a late answer changes nothing");
+        // A new action replaces the old one: the old one is resolved for the phones.
+        hub.publish_agent(Some(mochi("approval")), Some(mochi_action("agent-4")), 5_000);
+        hub.publish_agent(Some(mochi("approval")), Some(mochi_action("agent-5")), 6_000);
+        let got = lines(&mut rx);
+        assert!(got.iter().any(|l| l["type"] == "approvalResolved"));
+        assert_eq!(got.iter().filter(|l| l["type"] == "approval").count(), 2);
+    }
+
+    /// A provider that "acts": two steps, then an answer.
+    struct Hands {
+        agent_calls: Mutex<Vec<(String, String)>>,
+    }
+
+    impl ChatBackend for Hands {
+        fn config(&self) -> ChatConfig {
+            ChatConfig { enabled: true, allowed: vec![ModelOption { id: "openrouter/kimi".into(), provider: "openrouter".into(), label: "Kimi".into() }] }
+        }
+        fn send(&self, _model_id: &str, _text: String, _deltas: UnboundedSender<String>) -> BoxFuture<Result<String, ChatFail>> {
+            Box::pin(async { Ok("plain chat".to_string()) })
+        }
+        fn reset(&self) {}
+        fn send_agent(&self, model_id: &str, text: String, steps: UnboundedSender<StepLine>) -> BoxFuture<Result<String, ChatFail>> {
+            self.agent_calls.lock().unwrap().push((model_id.to_string(), text));
+            Box::pin(async move {
+                let _ = steps.send(StepLine { index: 0, status: "running".into(), text: "LS · C:\\work".into() });
+                let _ = steps.send(StepLine { index: 0, status: "ok".into(), text: "LS · C:\\work".into() });
+                let _ = steps.send(StepLine { index: 1, status: "waiting".into(), text: "Bash · npm test".into() });
+                Ok("Tests pass.".to_string())
+            })
+        }
+    }
+
+    struct AgentFeatures(bool);
+    impl server::Features for AgentFeatures {
+        fn details(&self) -> bool {
+            false
+        }
+        fn agent(&self) -> bool {
+            self.0
+        }
+    }
+
+    async fn phone(rig: &Rig, caps: Value) -> (Client, Value) {
+        let mut c = Client::connect(rig.port, &rig.fingerprint).await.unwrap();
+        c.send(json!({ "type": "hello", "v": 1, "token": TOKEN, "device": "Test phone", "caps": caps })).await;
+        let welcome = c.expect("welcome").await;
+        (c, welcome)
+    }
+
+    #[test]
+    fn a_phone_with_hands_sees_each_step_and_then_the_answer() {
+        block_on(async {
+            let backend = Arc::new(Hands { agent_calls: Mutex::new(Vec::new()) });
+            let rig = Rig::start_full(Some(ChatLink::new(backend.clone())), Arc::new(AgentFeatures(true))).await;
+            let (mut c, welcome) = phone(&rig, json!(["chat", "agent"])).await;
+            assert_eq!(welcome["caps"], json!(["chat", "agent"]));
+            c.send(json!({ "type": "chatSend", "id": "h1", "model": "openrouter/kimi", "text": "run the tests", "agent": true })).await;
+            let mut steps = Vec::new();
+            let mut answer = String::new();
+            loop {
+                let m = c.recv().await.expect("an answer");
+                match m["type"].as_str().unwrap() {
+                    "chatStep" => {
+                        assert_eq!(m["id"], "h1");
+                        steps.push((m["index"].as_u64().unwrap(), m["status"].as_str().unwrap().to_string(), m["text"].as_str().unwrap().to_string()));
+                    }
+                    "chatDelta" => answer.push_str(m["text"].as_str().unwrap()),
+                    "chatDone" => break,
+                    "chatError" => panic!("{m}"),
+                    _ => {}
+                }
+            }
+            assert_eq!(answer, "Tests pass.");
+            assert_eq!(steps.len(), 3);
+            assert_eq!(steps[2], (1, "waiting".to_string(), "Bash · npm test".to_string()));
+            assert_eq!(*backend.agent_calls.lock().unwrap(), vec![("openrouter/kimi".to_string(), "run the tests".to_string())]);
+        });
+    }
+
+    #[test]
+    fn hands_are_neither_offered_nor_used_without_both_switches() {
+        block_on(async {
+            // The computer does not offer them: a phone asking anyway is refused, and the plain chat still works.
+            let backend = Arc::new(Hands { agent_calls: Mutex::new(Vec::new()) });
+            let rig = Rig::start_full(Some(ChatLink::new(backend.clone())), Arc::new(AgentFeatures(false))).await;
+            let (mut c, welcome) = phone(&rig, json!(["chat", "agent"])).await;
+            assert_eq!(welcome["caps"], json!(["chat"]));
+            c.send(json!({ "type": "chatSend", "id": "h2", "model": "openrouter/kimi", "text": "delete it all", "agent": true })).await;
+            let m = c.expect("chatError").await;
+            assert_eq!(m["reason"], "hands_off");
+            assert!(backend.agent_calls.lock().unwrap().is_empty());
+            c.send(json!({ "type": "chatSend", "id": "h3", "model": "openrouter/kimi", "text": "hi" })).await;
+            loop {
+                let m = c.recv().await.unwrap();
+                if m["type"] == "chatDone" {
+                    break;
+                }
+                assert_ne!(m["type"], "chatStep");
+            }
+
+            // Hands without the chat are never offered (they ride on it).
+            let rig = Rig::start_full(None, Arc::new(AgentFeatures(true))).await;
+            let (_c, welcome) = phone(&rig, json!(["chat", "agent"])).await;
+            assert!(welcome.get("caps").is_none(), "{welcome}");
+        });
+    }
+}

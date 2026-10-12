@@ -1,5 +1,6 @@
-// Settings → Android phone: the switch for the phone link and the code that
-// pairs a phone with this computer. Off until the user turns it on.
+// Settings → Phone: the switch for the phone link and the code that pairs a
+// phone with this computer — Coucou for Android, or Coucou on iPhone through
+// its Windows and Linux link. Off until the user turns it on.
 
 import { Bridge, type PhoneChatStatus, type PhoneLinkPairing, type PhoneLinkStatus, type PhoneRelayState, type PhoneRelayStatus } from "../core/bridge";
 import { modelId, modelsOf, toggleModel, usableProviders } from "../core/phone-chat";
@@ -71,6 +72,7 @@ export function phoneSection(on: boolean, makeToggle: Toggle, settings: Settings
       usageBlock(makeToggle),
       servicesBlock(),
       chatBlock(makeToggle, settings),
+      agentBlock(makeToggle),
     );
   };
 
@@ -103,9 +105,9 @@ export function phoneSection(on: boolean, makeToggle: Toggle, settings: Settings
   const section = h(
     "section",
     {},
-    h("h2", {}, h("span", { text: t("Android phone") })),
-    h("div", { class: "hint", text: t("Send your agents' sessions to Coucou for Android and answer permission requests from the phone. Off by default; it only listens on your local network.") }),
-    h("div", { class: "hint", text: t("Allow on the phone asks for the fingerprint or the screen lock. Deny does not.") }),
+    h("h2", {}, h("span", { text: t("Phone (Android and iPhone)") })),
+    h("div", { class: "hint", text: t("Send your agents' sessions to Coucou on your phone and answer permission requests from it: Coucou for Android, or Coucou on iPhone with its link to Windows and Linux. Off by default; it only listens on your local network.") }),
+    h("div", { class: "hint", text: t("Allow on the phone asks for Face ID, the fingerprint or the screen lock. Deny does not.") }),
     h("div", { class: "row" }, h("label", { text: t("Phone link") }), switchEl),
     note,
     detail,
@@ -467,6 +469,39 @@ function chatBlock(makeToggle: Toggle, settings: Settings): HTMLElement {
   );
 }
 
+/**
+ * Mochi's hands from the phone's chat: off until the user turns it on, and offered only while Mochi's hands are on
+ * (Settings → Mochi's hands) and the chat above is on. Every change still waits for Allow, behind the phone's own
+ * lock. Rust re-reads this for every connection.
+ */
+function agentBlock(makeToggle: Toggle): HTMLElement {
+  const note = h("div", { class: "hint" });
+  const switchEl = makeToggle(false, (next) => {
+    void (async () => {
+      note.textContent = "";
+      try {
+        await Bridge.phoneAgentSetEnabled(next);
+      } catch (err) {
+        switchEl.classList.remove("on");
+        switchEl.setAttribute("aria-pressed", "false");
+        note.textContent = String(err);
+      }
+    })();
+  });
+  void Bridge.phoneAgentStatus().then((status) => {
+    if (!status) return;
+    switchEl.classList.toggle("on", status.enabled);
+    switchEl.setAttribute("aria-pressed", String(status.enabled));
+  });
+  return h(
+    "div",
+    {},
+    h("div", { class: "row" }, h("label", { text: t("Let the phone use Mochi's hands") }), switchEl),
+    h("div", { class: "hint", text: t("From the phone's chat, Mochi can act on this computer as set in Settings → Mochi's hands. It needs the chat above. Every change still waits for Allow, behind the phone's Face ID or fingerprint.") }),
+    note,
+  );
+}
+
 function usableProvidersCandidates(): ProviderDef[] {
   return PROVIDERS.filter((p) => p.key !== null);
 }
@@ -506,7 +541,7 @@ function pairingRows(pairing: PhoneLinkPairing, again: () => void): HTMLElement[
   repair.addEventListener("click", again);
 
   return [
-    h("div", { class: "hint", text: t("In Coucou for Android, scan this code with the camera or paste the link.") }),
+    h("div", { class: "hint", text: t("In Coucou on your phone, scan this code with the camera or paste the link.") }),
     qr,
     h("div", { class: "row" }, link, copy),
     copied,
