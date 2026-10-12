@@ -4,6 +4,9 @@ Your Mac does the work, your iPhone keeps you in the loop when you step away: yo
 
 <p align="center"><img src="media/iphone-live-activity.jpg" width="520" alt="Mochi on the Lock Screen, waiting for your OK with Deny and Allow"></p>
 
+> **No Mac?** The iPhone app also pairs with Coucou on **Windows or Linux**, directly over your Wi-Fi: see
+> [IPHONE_PC.md](IPHONE_PC.md) (Português: [IPHONE_PC.pt-BR.md](IPHONE_PC.pt-BR.md)).
+
 ## What you need
 
 | | |

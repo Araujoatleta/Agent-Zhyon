@@ -4,7 +4,8 @@ import UserNotifications
 import CloudKit
 
 // Coucou on iPhone: the agent sessions your Mac publishes to iCloud
-// (SessionPublisher on the Mac, PhoneLink here).
+// (SessionPublisher on the Mac, PhoneLink here), and those of a Windows or
+// Linux computer paired on the local network (PCLink).
 
 @main
 struct CoucouPhoneApp: App {
@@ -17,7 +18,15 @@ struct CoucouPhoneApp: App {
                 .preferredColorScheme(.dark)
         }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active { Task { await PhoneLink.shared.refresh() } }
+            switch phase {
+            case .active:
+                PCLink.shared.appBecameActive()
+                Task { await PhoneLink.shared.refresh() }
+            case .background:
+                PCLink.shared.appWentAway()
+            default:
+                break
+            }
         }
     }
 }
@@ -28,14 +37,15 @@ final class PhoneAppDelegate: NSObject, UIApplicationDelegate, UNUserNotificatio
         UNUserNotificationCenter.current().delegate = self
         NotificationActions.register()
         LiveActivityLink.shared.start()
-        application.registerForRemoteNotifications()
+        // Apple's push comes through iCloud; a build without it has none to register for.
+        if PhoneLink.cloudAvailable { application.registerForRemoteNotifications() }
         Task { await PhoneLink.shared.start() }
         return true
     }
 
     func application(_ application: UIApplication,
                      didReceiveRemoteNotification userInfo: [AnyHashable: Any]) async -> UIBackgroundFetchResult {
-        guard CKNotification(fromRemoteNotificationDictionary: userInfo) != nil else { return .noData }
+        guard PhoneLink.cloudAvailable, CKNotification(fromRemoteNotificationDictionary: userInfo) != nil else { return .noData }
         let gotNew = await PhoneLink.shared.handlePush()
         return gotNew ? .newData : .noData
     }

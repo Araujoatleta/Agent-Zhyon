@@ -230,8 +230,8 @@ add their keys in **Settings… → Chat providers**, then click the model name
 above the chat box to switch provider and model, as on the Mac. The model list
 is fetched from the provider only once you pick it and it has a key. Switching
 mid-conversation carries the conversation over as plain text, so nothing in one
-provider's format is ever sent to another. These providers get no web search
-and no tools — they answer, they never act on your PC.
+provider's format is ever sent to another. These providers get no web search;
+they only act on your PC when you turn on Mochi's hands (below).
 
 **Local models**: **Settings… → Local models** connects **Ollama** or **LM
 Studio** (leave the address empty for the usual one on this PC; Ollama's
@@ -258,6 +258,45 @@ once; the key never is.
 
 No telemetry. The only network requests Coucou makes are to the services you
 configure yourself.
+
+## Mochi's hands
+
+**Settings… → Mochi's hands** lets the chat act on this PC, Codex-style, with
+whichever provider the chat uses (Anthropic, Google, OpenAI, OpenRouter, Ollama,
+LM Studio): look through your files, change them, run commands (PowerShell on
+Windows, bash on Linux), fetch or open web pages. Off by default; only the
+Settings window can turn it on.
+
+- **Working folder**: looking (listing, reading, searching) inside it needs no
+  click. Anywhere else, and any file that looks like it holds keys or passwords
+  (`.env`, `.ssh`, `*.pem`, password vaults, browser profiles…), waits for one.
+  A text search never opens those files.
+- **Without asking**: *Ask before every change* (the default), *Edit files in
+  the folder without asking*, or *Read only*, which offers no tool that changes
+  anything. Commands, web requests and opening a page **always** wait for Allow.
+- In the chat, the hand button next to the model turns the hands on or off for
+  that chat. Each step shows as Mochi works (a click shows what a command
+  printed); an action waiting for a click is a card with **Allow / Deny** and,
+  for a file, its diff. The send button becomes **Stop**, which ends the running
+  command and everything it started.
+- A file changed since its card was shown is not overwritten. A turn stops after
+  30 rounds, a command after its time limit. One turn runs at a time.
+- What Mochi reads is sent to the chat's provider, as anything you type is.
+- A paired phone can answer the cards too (Face ID or fingerprint for Allow),
+  and, with **Settings → Phone → Let the phone use Mochi's hands**, start a turn
+  from its own chat (see [docs/IPHONE_PC.md](../docs/IPHONE_PC.md)).
+
+## Your phone
+
+**Settings… → Phone (Android and iPhone)** is an opt-in server on your local
+network, off by default, paired with a QR code and a pinned certificate: your
+sessions, Allow and Deny, answers and the chat on
+[Coucou for Android](../android/README.md) or on **Coucou for iPhone**, which
+now pairs with Windows and Linux too — see
+[docs/IPHONE_PC.md](../docs/IPHONE_PC.md) (in Portuguese:
+[docs/IPHONE_PC.pt-BR.md](../docs/IPHONE_PC.pt-BR.md)), including how to
+install the iPhone app without a Mac. The protocol is
+[docs/ANDROID_LINK.md](../docs/ANDROID_LINK.md).
 
 ## GitHub
 
@@ -440,7 +479,8 @@ own window.
   never the file itself. Counts and diffs come from Claude Code's Edit,
   MultiEdit and Write, on whichever pill its session is on (VS Code, Cursor,
   Claude Desktop); other agents' edits show as plain steps.
-- There is no iPhone to keep fetching the GitHub lists while the pill is off.
+- There is no iCloud iPhone to keep fetching the GitHub lists while the pill is
+  off (the iPhone's link to Windows and Linux carries sessions, not services).
 - Keyboard shortcuts use `Ctrl+Alt` where the Mac uses `⌃⌥`, with different
   keys (see [Keyboard shortcuts](#keyboard-shortcuts)), and `Ctrl` where the
   Mac uses `⌘` inside the island. "Bring the terminal forward" is "Open
@@ -483,6 +523,8 @@ own window.
   to the chat. While he
   sleeps, the transparent square around him (120 px) takes the first mouse
   move, which wakes him and gives the rest back to the desktop.
+- **Mochi's hands** (the chat acting on the computer, [above](#mochis-hands))
+  are Windows and Linux only for now.
 
 ## Linux
 

@@ -1,5 +1,6 @@
 // Coucou for Windows — app wiring and the commands the island calls.
 
+mod agent;
 mod agent_hooks;
 mod agents;
 mod chat;
@@ -104,6 +105,11 @@ fn save_settings(app: AppHandle, shared: State<Shared>, settings: Settings) {
         settings.phone_relay = current.phone_relay;
         settings.phone_relay_url = current.phone_relay_url.clone();
         settings.phone_chat_models = current.phone_chat_models.clone();
+        settings.phone_agent = current.phone_agent;
+        // Mochi's hands too: only Settings → Mochi's hands changes them (agent::agent_settings_set).
+        settings.agent_enabled = current.agent_enabled;
+        settings.agent_folder = current.agent_folder.clone();
+        settings.agent_level = current.agent_level.clone();
         *current = settings;
         (screen_changed, autostart_changed, shortcuts_changed)
     };
@@ -457,7 +463,8 @@ fn approval_decline(app: AppHandle, request_id: String) {
 // ── Chat, files and secrets ───────────────────────────────────────────────────
 
 /// One chat turn with the provider picked in the chat view. API keys and any
-/// file bytes stay on the Rust side.
+/// file bytes stay on the Rust side. `hands`: the chat's hands toggle is on, so
+/// Mochi may act on this computer (agent/), if his hands are on in Settings.
 #[tauri::command]
 async fn chat_send(
     app: AppHandle,
@@ -465,8 +472,13 @@ async fn chat_send(
     chat: State<'_, Chat>,
     query: String,
     context: Option<ChatContext>,
+    hands: Option<bool>,
 ) -> Result<ChatReply, String> {
     let settings = shared.settings.lock().unwrap().clone();
+    if hands == Some(true) && settings.agent_enabled {
+        let context = context.map(chat::checked_context).transpose()?;
+        return agent::run_island(&app, &chat, &settings, query, context).await;
+    }
     chat::send(&app, &chat, &settings, query, context).await
 }
 
@@ -677,6 +689,7 @@ pub fn run() {
         })
         .manage(Pending::default())
         .manage(Chat::default())
+        .manage(agent::Agent::default())
         .manage(shortcuts::Registry::default())
         .manage(recap::load())
         .invoke_handler(tauri::generate_handler![
@@ -751,6 +764,12 @@ pub fn run() {
             phone_link::phone_chat_status,
             phone_link::phone_chat_set_enabled,
             phone_link::phone_chat_set_models,
+            phone_link::phone_agent_status,
+            phone_link::phone_agent_set_enabled,
+            agent::agent_status,
+            agent::agent_decide,
+            agent::agent_cancel,
+            agent::agent_settings_set,
             recap::recap_history,
             recap::recap_prefs,
             recap::recap_set_enabled,

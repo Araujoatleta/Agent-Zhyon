@@ -72,6 +72,31 @@ impl ChatBackend for AppChat {
     fn reset(&self) {
         self.chat.reset();
     }
+
+    fn send_agent(&self, model_id: &str, text: String, steps: UnboundedSender<super::chat::StepLine>) -> BoxFuture<Result<String, ChatFail>> {
+        let settings = self.settings();
+        let (app, chat, id) = (self.app.clone(), self.chat.clone(), model_id.to_string());
+        Box::pin(async move {
+            let Some((provider, model)) = parse_model_id(&id) else { return Err(ChatFail::Internal) };
+            if let Some(key) = key_name(provider) {
+                if secrets::get(key).is_none() {
+                    return Err(ChatFail::NoKey);
+                }
+            }
+            match crate::agent::run_for_phone(&app, &chat, &settings, provider, model, text, steps).await {
+                Ok(answer) => Ok(answer),
+                Err(crate::agent::PhoneError::HandsOff) => Err(ChatFail::HandsOff),
+                Err(crate::agent::PhoneError::Busy) => Err(ChatFail::Busy),
+                Err(crate::agent::PhoneError::Canceled) => Err(ChatFail::Canceled),
+                Err(crate::agent::PhoneError::Failed(err)) => {
+                    let kind = classify(is_local(provider), &err);
+                    // The kind only: the text may echo a key.
+                    log::line(format!("phone link: Mochi's hands via {provider} failed ({kind:?})"));
+                    Err(kind)
+                }
+            }
+        })
+    }
 }
 
 // ── Pure helpers (tested below) ───────────────────────────────────────────────

@@ -39,6 +39,7 @@ Meet **Mochi**: a soft little squircle with big eyes that pops out of your notch
 - See what Claude is editing, live in the notch: each file modification shows the file name and +N −M counts in the ticker, tap to read the full diff
 - ✅ **Approve and answer from the notch** — Claude Code permission requests show up with **Allow / Deny / Always**; `AskUserQuestion` prompts show the choices right in the notch (single or multi-select, up to 4 questions). One click, or "Reply in terminal" to fall back to the CLI. Codex also gets Allow / Deny.
 - 🧑‍💻 **Jump to the right terminal** — open the exact terminal window of a session *(macOS)*.
+- 🦾 **Mochi's hands** *(Windows and Linux)* — turn them on in Settings → Mochi's hands and the chat acts on your PC, Codex-style, with whichever AI it uses: it looks through your files, changes them, runs commands and reads web pages. Every change, command and web request waits for your Allow (on the island or your phone); looking inside the folder you chose is the only thing it does on its own. See [windows/README.md](windows/README.md#mochis-hands).
 - 💬 **Chat with Claude, Gemini, OpenAI, or a local model (Ollama / LM Studio)** — click the model name above the chat box to switch provider and pick a model. Cloud providers use your own API key; local providers connect to a server running on your Mac. *(Gemini, OpenAI and local models: macOS)*
 - 📊 **Claude plan usage** *(macOS, GitHub build)* — a small pill in the notch header shows your 5-hour and weekly Claude plan limits. Enable it from Settings → Agents → Plan usage. Pro and Max plans only.
 - 📊 **Codex plan usage** *(macOS, GitHub build)* — a Codex pill next to it shows your Codex limits and how many free resets you have left, read from the Codex CLI. Turn it on in Settings → Agents → Plan usage.
@@ -57,7 +58,7 @@ Meet **Mochi**: a soft little squircle with big eyes that pops out of your notch
 - 🎙️ **Dictate in the chat** *(macOS, GitHub build)* — click the mic next to the chat field and talk in any of your languages (Coucou picks the one you spoke, or right-click the mic to choose); speech recognition runs on your Mac when it supports it.
 - 🫥 **Invisible when idle** — hides away when nothing is running, peeks out when you hover the notch (the top edge of the screen on Windows and Linux).
 - 🖥️ **Any Mac, notch or not** — on an iMac, a Mac mini, or a MacBook with its lid closed on an external display, Mochi sits in a small bar at the top of the screen. With several displays, pick his screen in Settings → General, or let him follow your mouse *(macOS)*.
-- 📱 **Coucou on iPhone** — your sessions, approvals and services in your pocket, with Live Activities, widgets and Siri. See [Coucou on iPhone](#coucou-on-iphone).
+- 📱 **Coucou on iPhone** — your sessions, approvals and services in your pocket, with Live Activities, widgets and Siri. See [Coucou on iPhone](#coucou-on-iphone). It also pairs with Coucou on **Windows or Linux** over your Wi-Fi, chat and Mochi's hands included: [docs/IPHONE_PC.md](docs/IPHONE_PC.md).
 - 🤖 **Coucou for Android** — your agents, approvals with your fingerprint, questions and chat on an Android phone, linked to Coucou on Windows or Linux over your Wi-Fi. By [@Rhytam23](https://github.com/Rhytam23). See [Coucou for Android](#coucou-for-android).
 - 📅 **Weekly recap** *(macOS)* — every Monday morning Coucou shows a summary of the past week: time coding, sessions, files, lines changed, commands, permissions, top agent and project, busiest day and longest session. Share it as a 1080 × 1920 image with Mochi — project names optional. All local, no sync.
 - 🌍 **10 languages** — English, 中文, हिन्दी, Español, العربية, Français, বাংলা, Português, Русский, Bahasa Indonesia. Pick one in Settings → General → Language; community translations welcome.
@@ -89,6 +90,8 @@ The Mac app does the work; the iPhone app keeps you in the loop when you step aw
 - 🔒 **Through your own iCloud** — sessions sync through your private CloudKit database; project names, commands and questions are encrypted with your iCloud keys. No Coucou server sees your projects, commands or keys. Turn it on in the Mac app: Settings → General → iPhone.
 
 **Get it on your iPhone in 3 steps:** install Coucou on your iPhone ([Join the TestFlight beta](https://testflight.apple.com/join/3GpeHv2b) — free, App Store coming soon), turn on **Settings → General → iPhone** in the Mac app (0.1.9 or later), and use the same Apple Account in iCloud on both. Full guide, troubleshooting and build-it-yourself: [docs/IPHONE.md](docs/IPHONE.md).
+
+**With Windows or Linux instead of a Mac:** turn on **Settings → Phone (Android and iPhone)** in Coucou for Windows or Linux and scan its pairing code with the iPhone's Camera. The iPhone connects to the computer directly over your Wi-Fi (no iCloud), and a sideload build for a free Apple Account is built by GitHub Actions. Guide: [docs/IPHONE_PC.md](docs/IPHONE_PC.md) (Português: [docs/IPHONE_PC.pt-BR.md](docs/IPHONE_PC.pt-BR.md)).
 
 ## Coucou for Android
 
@@ -173,7 +176,7 @@ Everything else, troubleshooting included, is in [docs/IPHONE.md](docs/IPHONE.md
 The first signed APK is on its way. Until then:
 
 1. **Build the app** from [`android/`](android/) (see [Build from source](#build-from-source)) and install it on your phone (Android 11 or later).
-2. **On your computer**, install Coucou **0.4.0 or later** for [Windows](#windows) or [Linux](#linux): **Settings → Android phone**, turn on **Phone link**. If Windows asks about the firewall, allow Coucou on private networks.
+2. **On your computer**, install Coucou **0.4.0 or later** for [Windows](#windows) or [Linux](#linux): **Settings → Phone (Android and iPhone)** (called **Android phone** up to 0.4.0), turn on **Phone link**. If Windows asks about the firewall, allow Coucou on private networks.
 3. **Show pairing code** and scan it with the app. The phone and the computer must be on the same Wi-Fi.
 
 Everything else, troubleshooting included, is in [`android/README.md`](android/README.md).

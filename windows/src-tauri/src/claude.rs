@@ -67,7 +67,7 @@ fn models_endpoint(messages: &Url) -> Url {
 
 /// The user's content blocks for one turn. File / window context rides along
 /// with the first message only, exactly like ClaudeService.chat().
-fn user_content(first: bool, context: Option<&ChatContext>, query: &str) -> Vec<Value> {
+pub(crate) fn user_content(first: bool, context: Option<&ChatContext>, query: &str) -> Vec<Value> {
     let mut content: Vec<Value> = Vec::new();
     if first {
         match context {
@@ -150,7 +150,7 @@ pub async fn send(
     let user = json!({ "role": "user", "content": user_content(turn.first, context.as_ref(), &query) });
     let body = request_body(model, &chat::system_prompt(true), &turn.history, &user);
 
-    let response = call(&endpoint, &key, &body).await?;
+    let response = call(&endpoint, &key, &body, Duration::from_secs(90)).await?;
     let (blocks, text) = interpret(&response)?;
 
     // Store the whole content — tool_use / tool_result blocks included — so the
@@ -160,8 +160,14 @@ pub async fn send(
     Ok(ChatReply { text })
 }
 
-async fn call(endpoint: &Url, key: &str, body: &Value) -> Result<Value, String> {
-    let response = net::client(endpoint, Duration::from_secs(90))?
+/// One Messages request with the stored key, for Mochi's hands (agent/), which build their own body.
+pub(crate) async fn post(body: &Value, timeout: Duration) -> Result<Value, String> {
+    let key = secrets::get(KEY).ok_or_else(|| t("API key missing. Open settings."))?;
+    call(&endpoint()?, &key, body, timeout).await
+}
+
+async fn call(endpoint: &Url, key: &str, body: &Value, timeout: Duration) -> Result<Value, String> {
+    let response = net::client(endpoint, timeout)?
         .post(endpoint.clone())
         .header("x-api-key", key)
         .header("anthropic-version", ANTHROPIC_VERSION)

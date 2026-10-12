@@ -38,9 +38,19 @@ struct AboutView: View {
             }
 
             Section("Connection") {
-                LabeledContent("iCloud") {
-                    Label(iCloudText, systemImage: link.status == .ready ? "checkmark.icloud" : "exclamationmark.icloud")
-                        .foregroundStyle(link.status == .ready ? .green : .orange)
+                if PhoneLink.cloudAvailable {
+                    LabeledContent("iCloud") {
+                        Label(iCloudText, systemImage: link.status == .ready ? "checkmark.icloud" : "exclamationmark.icloud")
+                            .foregroundStyle(link.status == .ready ? .green : .orange)
+                    }
+                }
+                NavigationLink {
+                    PCLinkSettingsView(pc: PCLink.shared)
+                } label: {
+                    LabeledContent("Windows or Linux computer") {
+                        Text(PCLink.shared.status.shortText)
+                            .foregroundStyle(PCLink.shared.status == .connected ? Color.green : Color.secondary)
+                    }
                 }
                 LabeledContent("Notifications") {
                     Text(link.notificationsAllowed == false ? "Off" : "On")
@@ -55,7 +65,7 @@ struct AboutView: View {
                         if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
                     }
                 }
-                Button("How to connect your Mac") { showGuide = true }
+                Button(PhoneLink.cloudAvailable ? "How to connect your Mac" : "How to connect your computer") { showGuide = true }
             }
 
             Section {
@@ -116,13 +126,21 @@ struct AboutView: View {
             }
 
             Section {
-                Text("No account, no analytics, no ads. Your sessions travel through your own private iCloud, encrypted with your keys.")
+                Text(PhoneLink.cloudAvailable
+                     ? "No account, no analytics, no ads. Your sessions travel through your own private iCloud, encrypted with your keys."
+                     : "No account, no analytics, no ads. Your sessions come straight from your computer, encrypted, on your local network.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
         }
         .navigationTitle("Settings")
-        .sheet(isPresented: $showGuide) { OnboardingView() }
+        .sheet(isPresented: $showGuide) {
+            if PhoneLink.cloudAvailable {
+                OnboardingView()
+            } else {
+                PCOnboardingView(pc: PCLink.shared)
+            }
+        }
     }
 
     /// Minutes after midnight, as a time for the pickers.

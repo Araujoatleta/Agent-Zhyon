@@ -84,7 +84,7 @@ fn url(p: &Provider, tail: &str) -> Result<Url, String> {
 
 /// The user's message for one turn: plain text, or text and an image part
 /// when the first turn carries a dropped picture.
-fn user_message(first: bool, context: Option<&ChatContext>, query: &str) -> Value {
+pub(crate) fn user_message(first: bool, context: Option<&ChatContext>, query: &str) -> Value {
     let mut prefix = String::new();
     let mut image = None;
     match context.filter(|_| first) {
@@ -167,11 +167,26 @@ pub async fn send(
     let user = user_message(turn.first, context.as_ref(), &query);
     let body = request_body(p, model, &chat::system_prompt(false), &turn.history, &user);
 
+    let json = call(p, &key, &body, Duration::from_secs(90)).await?;
+    let text = reply_text(p, &json)?;
+
+    let plain = chat::plain_question(turn.first, context.as_ref(), &query);
+    chat.commit(&turn, user, json!({ "role": "assistant", "content": text }), &plain, &text);
+    Ok(ChatReply { text })
+}
+
+/// One chat completions request with the stored key, for Mochi's hands (agent/), which build their own body.
+pub(crate) async fn post(p: &Provider, body: &Value, timeout: Duration) -> Result<Value, String> {
+    let key = secrets::get(p.key).ok_or_else(|| tf("{name} API key missing. Add it in Settings.", &[("name", p.name)]))?;
+    call(p, &key, body, timeout).await
+}
+
+async fn call(p: &Provider, key: &str, body: &Value, timeout: Duration) -> Result<Value, String> {
     let endpoint = url(p, "chat/completions")?;
-    let response = net::client(&endpoint, Duration::from_secs(90))?
+    let response = net::client(&endpoint, timeout)?
         .post(endpoint)
-        .bearer_auth(&key)
-        .json(&body)
+        .bearer_auth(key)
+        .json(body)
         .send()
         .await
         .map_err(|e| tf("Network error: {error}", &[("error", &e.to_string())]))?;
@@ -181,12 +196,7 @@ pub async fn send(
         return Err(status_error(p, status.as_u16(), &net::error_detail(&body)));
     }
     let bytes = net::read_capped(response, net::MAX_BODY).await?;
-    let json: Value = serde_json::from_slice(&bytes).map_err(|e| tf("Bad API response: {error}", &[("error", &e.to_string())]))?;
-    let text = reply_text(p, &json)?;
-
-    let plain = chat::plain_question(turn.first, context.as_ref(), &query);
-    chat.commit(&turn, user, json!({ "role": "assistant", "content": text }), &plain, &text);
-    Ok(ChatReply { text })
+    serde_json::from_slice(&bytes).map_err(|e| tf("Bad API response: {error}", &[("error", &e.to_string())]))
 }
 
 /// The provider's chat models. Only ever asked with the user's key, once they

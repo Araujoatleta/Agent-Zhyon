@@ -35,7 +35,9 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, State, WebviewWindow};
 
 use crate::{island, log, pipe, recap, secrets, settings, Shared};
-use hub::{ApprovalIn, Host, Hub, SessionIn};
+pub(crate) use chat::StepLine;
+pub(crate) use hub::{ApprovalIn, SessionIn};
+use hub::{Host, Hub};
 use pairing::SecretStore;
 
 /// The port the pairing link offers; another is taken if it is busy.
@@ -74,6 +76,12 @@ impl Host for TauriHost {
 
     fn decide(&self, request_id: &str, allow: bool) {
         let word = if allow { "allow" } else { "deny" };
+        // An action of Mochi's own (agent/): answered there, not to a waiting hook.
+        if crate::agent::is_request(request_id) {
+            log::line(format!("phone link: Mochi's action {request_id} {word}"));
+            crate::agent::decide_from_phone(&self.app, request_id, allow);
+            return;
+        }
         log::line(format!("phone link: decision id={request_id} {word}"));
         recap::record_decision(&self.app, request_id, word);
         pipe::answer(&self.app, request_id, word);
@@ -114,6 +122,12 @@ impl server::Features for TauriFeatures {
         // Only ids the link knows, whatever the file held.
         let ticked = self.app.state::<Shared>().settings.lock().unwrap().phone_services.clone();
         hub::SERVICE_IDS.iter().filter(|id| ticked.iter().any(|t| t == *id)).map(|id| id.to_string()).collect()
+    }
+    fn agent(&self) -> bool {
+        // Both switches: Mochi's hands on this computer, and the phone allowed to use them.
+        let s = self.app.state::<Shared>();
+        let s = s.settings.lock().unwrap();
+        s.agent_enabled && s.phone_agent
     }
 }
 
@@ -224,6 +238,15 @@ impl PhoneLink {
             })?
         };
         Ok(Running { handle, shared, port, identity })
+    }
+
+    /// What Mochi is doing with his hands (agent/), for the phones: his session and the action waiting for a click.
+    /// Nothing is sent while the link is off.
+    pub fn publish_agent(&self, session: Option<hub::SessionIn>, approval: Option<ApprovalIn>) {
+        if self.running.lock().unwrap().is_none() {
+            return;
+        }
+        self.hub.publish_agent(session, approval, server::now_ms());
     }
 
     pub fn stop(&self) {
@@ -724,7 +747,7 @@ fn caller_allowed(label: &str, who: Caller) -> bool {
     }
 }
 
-fn only_settings(window: &WebviewWindow) -> Result<(), String> {
+pub(crate) fn only_settings(window: &WebviewWindow) -> Result<(), String> {
     if caller_allowed(window.label(), Caller::Settings) {
         Ok(())
     } else {
@@ -734,7 +757,7 @@ fn only_settings(window: &WebviewWindow) -> Result<(), String> {
 
 /// The island is the one window that knows the sessions and the pending request; what it publishes goes to phones, so no other
 /// window may publish.
-fn only_island(window: &WebviewWindow) -> Result<(), String> {
+pub(crate) fn only_island(window: &WebviewWindow) -> Result<(), String> {
     if caller_allowed(window.label(), Caller::Island) {
         Ok(())
     } else {
@@ -798,6 +821,52 @@ pub fn phone_chat_set_models(
     };
     let _ = app.emit("settings-changed", updated);
     Ok(status)
+}
+
+// ── Mochi's hands from the phone: the switch (Settings → Phone) ──
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentStatus {
+    pub enabled: bool,
+}
+
+#[tauri::command]
+pub fn phone_agent_status(shared: State<Shared>) -> AgentStatus {
+    AgentStatus { enabled: shared.settings.lock().unwrap().phone_agent }
+}
+
+/// "Let the phone use Mochi's hands". Off by default, and offered only while Mochi's hands are on too. Every action
+/// that changes something still waits for a click (Face ID or the fingerprint on the phone). A change disconnects the
+/// phones once so they reconnect and are told (or not) about the capability.
+#[tauri::command]
+pub fn phone_agent_set_enabled(
+    app: AppHandle,
+    window: WebviewWindow,
+    link: State<PhoneLink>,
+    shared: State<Shared>,
+    enabled: bool,
+) -> Result<AgentStatus, String> {
+    only_settings(&window)?;
+    let updated = {
+        let mut current = shared.settings.lock().unwrap();
+        current.phone_agent = enabled;
+        if let Err(err) = settings::save(&current) {
+            log::line(format!("could not save settings: {err}"));
+        }
+        current.clone()
+    };
+    link.hub.kick_all("closed", "agent setting changed");
+    log::line(format!("phone link: Mochi's hands from the phone {}", if enabled { "on" } else { "off" }));
+    let _ = app.emit("settings-changed", updated);
+    Ok(AgentStatus { enabled })
+}
+
+/// Mochi's hands were switched on or off on this computer: phones learn whether they may use them.
+pub fn agent_setting_changed(app: &AppHandle) {
+    if let Some(link) = app.try_state::<PhoneLink>() {
+        link.hub.kick_all("closed", "agent setting changed");
+    }
 }
 
 /// The question Claude Code is waiting on (None: none), for phones that may answer it.

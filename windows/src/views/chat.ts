@@ -11,12 +11,15 @@ import { ICONS } from "./icons";
 import { renderMarkdown } from "./markdown";
 import { Bridge, onEvent, type ChatContext, type ModelInfo } from "../core/bridge";
 import {
+  changePreview, requestTitle, requestWarning, stepDetail, stepVerb, type HandsRequest, type HandsStep,
+} from "../core/hands";
+import {
   activeModel, pickModel, providerDef, visibleProviders, withModel, type ProviderDef,
 } from "../core/providers";
 import { Sound } from "../core/sound";
 import { State, type ChatMessage } from "../core/state";
 import type { ViewHost } from "./views";
-import { N_, t, tl } from "../i18n/i18n";
+import { N_, t, tl, tn } from "../i18n/i18n";
 
 const STRINGS = {
   placeholderFirst: N_("Ask me anything…"),
@@ -27,11 +30,111 @@ const STRINGS = {
   loading: N_("Loading models…"),
   noKey: N_("No API key — add it in Settings."),
   openSettings: N_("Open Settings"),
+  stop: N_("Stop"),
+  handsOn: N_("Mochi's hands are on: he can act on this computer. Click to chat without them."),
+  handsOff: N_("Mochi's hands are off in this chat. Click to let him act on this computer."),
+  fromPhone: N_("Asked from your phone"),
+  inFolder: N_("in {folder}"),
+  allow: N_("Allow"),
+  deny: N_("Deny"),
 };
+
+/** A click this soon after a card shows is not taken: it was meant for what was there before. */
+const CLICK_GUARD_MS = 600;
 
 let nextId = 1;
 
+/** A step of Mochi's hands: what he did, on what, and how it went. A click shows what a command printed. */
+function actionRow(step: HandsStep): HTMLElement {
+  const mark =
+    step.status === "ok" ? svg(ICONS.check, 10, { stroke: 2.6 })
+    : step.status === "error" ? svg(ICONS.xmark, 9)
+    : step.status === "denied" ? svg(ICONS.xmark, 9)
+    : h("i", { class: "hands-spin" });
+  const detail = stepDetail(step);
+  const line = h(
+    "div",
+    { class: `hands-step ${step.status}`, title: step.summary },
+    h("span", { class: "hands-mark" }, mark),
+    h("span", { class: "hands-verb", text: stepVerb(step.tool) }),
+    h("span", { class: "hands-what", text: step.summary }),
+    detail ? h("span", { class: "hands-detail", text: detail }) : null,
+  );
+  const row = h("div", { class: "hands-row" }, line);
+  if (step.output) {
+    const output = h("pre", { class: "hands-output", text: step.output });
+    output.hidden = true;
+    line.classList.add("openable");
+    line.addEventListener("click", () => {
+      output.hidden = !output.hidden;
+    });
+    row.append(output);
+  }
+  return h("div", { class: "chat-row" }, row);
+}
+
+/** The few lines of a file change, as the island's diff card draws them. */
+function previewBox(r: HandsRequest): HTMLElement | null {
+  const preview = changePreview(r);
+  if (!preview) return null;
+  const box = h(
+    "div",
+    { class: "hands-diff" },
+    h(
+      "div",
+      { class: "hands-diff-counts" },
+      preview.added > 0 ? h("span", { class: "plus", text: `+${preview.added}` }) : null,
+      preview.removed > 0 ? h("span", { class: "minus", text: `−${preview.removed}` }) : null,
+    ),
+  );
+  for (const line of preview.lines) {
+    const sym = line.kind === "added" ? "+" : line.kind === "removed" ? "−" : line.kind === "gap" ? "⋯" : " ";
+    box.append(
+      h(
+        "div",
+        { class: `diff-line ${line.kind === "gap" ? "context" : line.kind}` },
+        h("span", { class: "sym", text: sym }),
+        h("span", { class: "txt", text: line.text }),
+      ),
+    );
+  }
+  if (preview.more > 0) box.append(h("div", { class: "hands-note", text: tn("{count} more line", "{count} more lines", preview.more) }));
+  return box;
+}
+
+/** The card of an action waiting for a click: what, where, the change itself when it is a file, Deny and Allow. */
+function requestCard(r: HandsRequest): HTMLElement {
+  const shownAt = performance.now();
+  const decide = (allow: boolean) => () => {
+    if (performance.now() - shownAt < CLICK_GUARD_MS) return;
+    Sound.play(allow ? "approve" : "pop");
+    void Bridge.agentDecide(r.id, allow);
+  };
+  const warning = requestWarning(r);
+  return h(
+    "div",
+    { class: "chat-row" },
+    h(
+      "div",
+      { class: "hands-card" },
+      h("div", { class: "hands-card-title", text: requestTitle(r) }),
+      r.origin === "phone" ? h("div", { class: "hands-note", text: t(STRINGS.fromPhone) }) : null,
+      h("div", { class: "code hands-code", text: r.summary, title: r.summary }),
+      r.cwd ? h("div", { class: "hands-note", text: t(STRINGS.inFolder, { folder: r.cwd }) }) : null,
+      previewBox(r),
+      warning ? h("div", { class: "hands-warn", text: warning }) : null,
+      h(
+        "div",
+        { class: "actions" },
+        h("button", { class: "btn secondary", onclick: decide(false) }, h("span", { text: tl(STRINGS.deny) })),
+        h("button", { class: "btn primary", onclick: decide(true) }, h("span", { text: tl(STRINGS.allow) })),
+      ),
+    ),
+  );
+}
+
 function bubble(message: ChatMessage): HTMLElement {
+  if (message.role === "action" && message.action) return actionRow(message.action);
   if (message.role === "user") {
     return h(
       "div",
@@ -210,7 +313,9 @@ export function buildPrompt(onHeightChange: () => void): ViewHost {
     placeholder: t(STRINGS.placeholderFirst),
     spellcheck: "false",
   }) as HTMLInputElement;
-  const send = h("button", { class: "send-btn", title: tl(STRINGS.send) }, svg(ICONS.arrowUp, 11));
+  const sendIcon = svg(ICONS.arrowUp, 11);
+  const stopIcon = svg(ICONS.stop, 9);
+  const send = h("button", { class: "send-btn", title: tl(STRINGS.send) }, sendIcon);
   const bar = h("div", { class: "chat-bar" }, input, send);
 
   const modelDot = h("i", { class: "model-dot" });
@@ -222,7 +327,9 @@ export function buildPrompt(onHeightChange: () => void): ViewHost {
     modelName,
     svg(ICONS.chevronUpDown, 9, { stroke: 2 }),
   );
-  const modelRow = h("div", { class: "model-row" }, modelBtn);
+  // Mochi's hands in this chat, when they are on in Settings: on (the default) or off for plain chat.
+  const handsBtn = h("button", { class: "hands-btn" }, svg(ICONS.hand, 11, { stroke: 1.7 }));
+  const modelRow = h("div", { class: "model-row" }, handsBtn, modelBtn);
 
   const body = h("div", { class: "chat-body" });
   const picker = buildPicker(() => {
@@ -235,9 +342,14 @@ export function buildPrompt(onHeightChange: () => void): ViewHost {
   (el.querySelector(".card") as HTMLElement).style.setProperty("--wash", "rgba(99,102,241,0.5)");
 
   let sending = false;
-  let renderedCount = -1;
+  /** The turn being written uses Mochi's hands: the send button stops it. */
+  let withHands = false;
+  let renderedKey = "";
   // A local model answers token by token: where its text so far is shown.
   let live: HTMLElement | null = null;
+
+  /** Mochi's hands are on in Settings, and on in this chat. */
+  const handsActive = () => State.settings.agentEnabled === true && State.settings.chatHands !== false;
 
   function drawModelButton() {
     const p = providerDef(State.settings.chatProvider);
@@ -245,7 +357,25 @@ export function buildPrompt(onHeightChange: () => void): ViewHost {
     modelName.textContent = activeModel(State.settings) || t(STRINGS.noModel);
     modelBtn.classList.toggle("open", picker.isOpen);
     modelBtn.disabled = sending;
+    // The hands toggle only exists while the hands are on in Settings.
+    handsBtn.hidden = State.settings.agentEnabled !== true;
+    handsBtn.classList.toggle("on", handsActive());
+    handsBtn.disabled = sending;
+    handsBtn.title = t(handsActive() ? STRINGS.handsOn : STRINGS.handsOff);
+    // While a turn with hands runs, the send button is its stop button.
+    const stopping = sending && withHands;
+    send.classList.toggle("stop", stopping);
+    send.title = t(stopping ? STRINGS.stop : STRINGS.send);
+    send.replaceChildren(stopping ? stopIcon : sendIcon);
   }
+
+  handsBtn.addEventListener("click", () => {
+    if (sending) return;
+    State.settings = { ...State.settings, chatHands: !handsActive() };
+    saveSettings();
+    Sound.play("blip");
+    drawModelButton();
+  });
 
   modelBtn.addEventListener("click", () => {
     if (sending) return;
@@ -270,6 +400,7 @@ export function buildPrompt(onHeightChange: () => void): ViewHost {
     if (picker.isOpen) picker.close();
     input.value = "";
     sending = true;
+    withHands = handsActive();
     drawModelButton();
     Sound.play("send");
 
@@ -280,10 +411,10 @@ export function buildPrompt(onHeightChange: () => void): ViewHost {
 
     const file = State.droppedFile;
     const context: ChatContext | null =
-      State.chatHistory.length === 1 && file ? { kind: "file", name: file.name, path: file.path } : null;
+      State.chatHistory.filter((m) => m.role === "user").length === 1 && file ? { kind: "file", name: file.name, path: file.path } : null;
 
     try {
-      const reply = await Bridge.chatSend(query, context);
+      const reply = await Bridge.chatSend(query, context, withHands);
       State.chatHistory.push({ id: nextId++, role: "assistant", content: reply.text });
       State.stateOverride = null;
       Sound.play("finish");
@@ -294,8 +425,9 @@ export function buildPrompt(onHeightChange: () => void): ViewHost {
       Sound.play("error");
     } finally {
       sending = false;
+      withHands = false;
       live = null;
-      renderedCount = -1; // the finished answer replaces the streamed one
+      renderedKey = ""; // the finished answer replaces the streamed one
       drawModelButton();
       State.notify();
       onHeightChange();
@@ -303,7 +435,13 @@ export function buildPrompt(onHeightChange: () => void): ViewHost {
     }
   }
 
-  send.addEventListener("click", () => void submit());
+  send.addEventListener("click", () => {
+    if (sending && withHands) {
+      void Bridge.agentCancel();
+      return;
+    }
+    void submit();
+  });
   input.addEventListener("keydown", (e) => {
     const key = (e as KeyboardEvent).key;
     if (key === "Enter") {
@@ -327,13 +465,16 @@ export function buildPrompt(onHeightChange: () => void): ViewHost {
         if (wantChip) chipRow.append(contextChip(wantChip));
       }
 
-      const thinking = State.stateOverride === "thinking";
-      const count = State.chatHistory.length + (thinking ? 0.5 : 0);
-      if (count !== renderedCount && !live) {
-        renderedCount = count;
+      // Redrawn when a message comes, a step of Mochi's hands changes, or an action starts or stops waiting.
+      const thinking = sending && (State.stateOverride === "thinking" || State.stateOverride === "working");
+      const steps = State.chatHistory.map((m) => (m.action ? `${m.action.index}${m.action.status}` : "")).join(",");
+      const key = `${State.chatHistory.length}|${thinking}|${steps}|${State.handsRequest?.id ?? ""}`;
+      if (key !== renderedKey && !live) {
+        renderedKey = key;
         clear(log);
         for (const m of State.chatHistory) log.append(bubble(m));
-        if (thinking) log.append(typingDots());
+        if (thinking && State.stateOverride === "thinking") log.append(typingDots());
+        if (State.handsRequest) log.append(requestCard(State.handsRequest));
         log.scrollTop = log.scrollHeight;
       }
 

@@ -443,6 +443,10 @@ pub struct Caps {
 struct Inner {
     sessions: Vec<Session>,
     approval: Option<Approval>,
+    /// Mochi's own work (agent/): its session while it works, and the action waiting for a click. Kept apart from the
+    /// island's, which they never replace: a phone sees both.
+    agent_session: Option<Session>,
+    agent_approval: Option<Approval>,
     question: Option<Question>,
     /// What Mochi wears on the computer: one of [`OUTFIT_CHOICES`]; None until the island has said.
     outfit: Option<&'static str>,
@@ -487,28 +491,7 @@ impl Hub {
             .into_iter()
             .filter(|s| !s.pill_id.is_empty())
             .take(MAX_SESSIONS)
-            .map(|s| {
-                let mut fresh = Session {
-                    state: if STATES.contains(&s.state.as_str()) { s.state } else { "idle".into() },
-                    pill_id: s.pill_id,
-                    agent: clip(&s.agent, 64),
-                    status_text: clip(&s.status_text, MAX_TEXT_CHARS),
-                    step_index: s.step_index,
-                    step_count: s.step_count,
-                    updated_at: now,
-                    steps: clean_steps(&s.steps),
-                    final_line: s.final_line.as_deref().map(|l| clip(l, MAX_TEXT_CHARS)).filter(|l| !l.trim().is_empty()),
-                    project: s.project.as_deref().and_then(project_name),
-                    color: s.color.filter(|c| is_color(c)),
-                    files: clean_files(&s.files),
-                };
-                if let Some(old) = inner.sessions.iter().find(|o| o.pill_id == fresh.pill_id) {
-                    if old.same_content(&fresh) {
-                        fresh.updated_at = old.updated_at;
-                    }
-                }
-                fresh
-            })
+            .map(|s| clean_session(s, now, &inner.sessions))
             .collect();
         let sessions_changed = next != inner.sessions;
         inner.sessions = next;
@@ -530,20 +513,41 @@ impl Hub {
             broadcast(&mut inner, &line);
         }
         if let Some(a) = approval.filter(|a| !a.request_id.is_empty()) {
-            let tool = clip(&a.tool, 64);
-            let truncated = a.command.chars().count() > MAX_COMMAND_CHARS;
-            let command = clip(&a.command, MAX_COMMAND_CHARS);
-            let approval = Approval {
-                fingerprint: fingerprint(&a.pill_id, &a.session_id, &tool, &command, &a.request_id),
-                request_id: a.request_id,
-                pill_id: a.pill_id,
-                tool,
-                command,
-                truncated,
-                created_at: now,
-            };
+            let approval = make_approval(a, now);
             let line = approval_line(&approval);
             inner.approval = Some(approval);
+            broadcast(&mut inner, &line);
+        }
+    }
+
+    /// Mochi's own work (agent/): its session (None: it is not working) and the action waiting for a click (None:
+    /// nothing waits). Same rules as the island's: sessions are sent to every phone in the `sessions` line, an
+    /// approval as an `approval` line any phone can answer, and a decision is applied only to the action still
+    /// waiting. They sit next to the island's session and request, never in their place.
+    pub fn publish_agent(&self, session: Option<SessionIn>, approval: Option<ApprovalIn>, now: u64) {
+        let mut inner = self.inner.lock().unwrap();
+        let previous: Vec<Session> = inner.agent_session.iter().cloned().collect();
+        let next = session.filter(|s| !s.pill_id.is_empty()).map(|s| clean_session(s, now, &previous));
+        if next != inner.agent_session {
+            inner.agent_session = next;
+            broadcast_sessions(&mut inner);
+        }
+        let same = match (&inner.agent_approval, &approval) {
+            (Some(a), Some(b)) => a.request_id == b.request_id,
+            (None, None) => true,
+            _ => false,
+        };
+        if same {
+            return;
+        }
+        if let Some(old) = inner.agent_approval.take() {
+            let line = resolved_line(&old.fingerprint);
+            broadcast(&mut inner, &line);
+        }
+        if let Some(a) = approval.filter(|a| !a.request_id.is_empty()) {
+            let approval = make_approval(a, now);
+            let line = approval_line(&approval);
+            inner.agent_approval = Some(approval);
             broadcast(&mut inner, &line);
         }
     }
@@ -562,9 +566,9 @@ impl Hub {
         expire(&mut inner, now);
         let id = inner.next_sub;
         inner.next_sub += 1;
-        let first = session_line(&inner.sessions, details, diffs);
+        let first = session_line(&all_sessions(&inner), details, diffs);
         let _ = tx.try_send(Out::Line(first.into()));
-        if let Some(a) = &inner.approval {
+        for a in inner.approval.iter().chain(inner.agent_approval.iter()) {
             let _ = tx.try_send(Out::Line(approval_line(a).into()));
         }
         if answers {
@@ -637,18 +641,23 @@ impl Hub {
         };
         let request_id = {
             let mut inner = self.inner.lock().unwrap();
-            let late = match &inner.approval {
-                Some(a) if constant_eq(a.fingerprint.as_bytes(), fingerprint.as_bytes()) => {
-                    // A command the phone could not show in full is never allowed from the phone, whatever the phone says.
-                    if allow && a.truncated {
-                        return Outcome::TooLong;
-                    }
-                    now.saturating_sub(a.created_at) > APPROVAL_TTL_MS
-                }
-                _ => return Outcome::NoMatch,
+            let matches = |a: &Option<Approval>| a.as_ref().is_some_and(|a| constant_eq(a.fingerprint.as_bytes(), fingerprint.as_bytes()));
+            let agent = if matches(&inner.approval) {
+                false
+            } else if matches(&inner.agent_approval) {
+                true
+            } else {
+                return Outcome::NoMatch;
             };
+            let slot = if agent { &mut inner.agent_approval } else { &mut inner.approval };
+            let pending = slot.as_ref().expect("checked above");
+            // A command the phone could not show in full is never allowed from the phone, whatever the phone says.
+            if allow && pending.truncated {
+                return Outcome::TooLong;
+            }
+            let late = now.saturating_sub(pending.created_at) > APPROVAL_TTL_MS;
             // Taken in every case: a request is answered once, or dismissed.
-            let a = inner.approval.take().expect("checked above");
+            let a = slot.take().expect("checked above");
             let line = resolved_line(&a.fingerprint);
             broadcast(&mut inner, &line);
             if late {
@@ -923,6 +932,60 @@ fn expire(inner: &mut Inner, now: u64) {
         let line = resolved_line(&a.fingerprint);
         broadcast(inner, &line);
     }
+    if inner.agent_approval.as_ref().is_some_and(|a| now.saturating_sub(a.created_at) > APPROVAL_TTL_MS) {
+        let a = inner.agent_approval.take().expect("checked above");
+        let line = resolved_line(&a.fingerprint);
+        broadcast(inner, &line);
+    }
+}
+
+/// One session as the phone gets it: cut to the limits, its state one the phone draws, `updatedAt` kept when nothing
+/// changed since `previous` had it.
+fn clean_session(s: SessionIn, now: u64, previous: &[Session]) -> Session {
+    let mut fresh = Session {
+        state: if STATES.contains(&s.state.as_str()) { s.state } else { "idle".into() },
+        pill_id: s.pill_id,
+        agent: clip(&s.agent, 64),
+        status_text: clip(&s.status_text, MAX_TEXT_CHARS),
+        step_index: s.step_index,
+        step_count: s.step_count,
+        updated_at: now,
+        steps: clean_steps(&s.steps),
+        final_line: s.final_line.as_deref().map(|l| clip(l, MAX_TEXT_CHARS)).filter(|l| !l.trim().is_empty()),
+        project: s.project.as_deref().and_then(project_name),
+        color: s.color.filter(|c| is_color(c)),
+        files: clean_files(&s.files),
+    };
+    if let Some(old) = previous.iter().find(|o| o.pill_id == fresh.pill_id) {
+        if old.same_content(&fresh) {
+            fresh.updated_at = old.updated_at;
+        }
+    }
+    fresh
+}
+
+/// A request as the phone gets it: the command cut to MAX_COMMAND_CHARS (and marked when it was), its fingerprint
+/// computed over what is sent.
+fn make_approval(a: ApprovalIn, now: u64) -> Approval {
+    let tool = clip(&a.tool, 64);
+    let truncated = a.command.chars().count() > MAX_COMMAND_CHARS;
+    let command = clip(&a.command, MAX_COMMAND_CHARS);
+    Approval {
+        fingerprint: fingerprint(&a.pill_id, &a.session_id, &tool, &command, &a.request_id),
+        request_id: a.request_id,
+        pill_id: a.pill_id,
+        tool,
+        command,
+        truncated,
+        created_at: now,
+    }
+}
+
+/// The island's sessions, then Mochi's own when it works.
+fn all_sessions(inner: &Inner) -> Vec<Session> {
+    let mut all = inner.sessions.clone();
+    all.extend(inner.agent_session.iter().cloned());
+    all
 }
 
 /// Sends one line to every subscriber; one that cannot keep up (a full queue) or
@@ -1004,11 +1067,10 @@ fn session_line(sessions: &[Session], details: bool, diffs: bool) -> String {
 /// Every phone gets the picture it asked for: the v1 line, or the one with details and/or file changes.
 fn broadcast_sessions(inner: &mut Inner) {
     let mut lines: std::collections::HashMap<(bool, bool), Arc<str>> = std::collections::HashMap::new();
-    let sessions = std::mem::take(&mut inner.sessions);
+    let sessions = all_sessions(inner);
     for s in &inner.subs {
         lines.entry((s.details, s.diffs)).or_insert_with(|| session_line(&sessions, s.details, s.diffs).into());
     }
-    inner.sessions = sessions;
     inner.subs.retain(|s| {
         let line = lines[&(s.details, s.diffs)].clone();
         let kept = s.tx.try_send(Out::Line(line)).is_ok();

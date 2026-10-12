@@ -82,7 +82,8 @@ struct SessionDetailView: View {
         }
         // The composer stays at the bottom, like a chat.
         .safeAreaInset(edge: .bottom) {
-            if let session, session.id == "integration_claude" || session.id == "agent_cursor" {
+            // The Mac runs instructions sent from here; a Windows or Linux computer does not.
+            if let session, !session.fromComputer, session.id == "integration_claude" || session.id == "agent_cursor" {
                 InstructionComposer(link: link, session: session)
             }
         }

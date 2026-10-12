@@ -3394,39 +3394,6 @@
    "ru": "Телефон показывает каждый вопрос с вариантами. Каждый ответ подтверждается отпечатком пальца или блокировкой экрана телефона.",
    "id": "Ponsel menampilkan setiap pertanyaan beserta pilihannya. Setiap jawaban dikonfirmasi dengan sidik jari atau kunci layar ponsel."
   },
-  "Android phone": {
-   "zh-Hans": "Android 手机",
-   "hi": "Android फ़ोन",
-   "es": "Teléfono Android",
-   "ar": "هاتف Android",
-   "fr": "Téléphone Android",
-   "bn": "Android ফোন",
-   "pt-BR": "Celular Android",
-   "ru": "Телефон Android",
-   "id": "Ponsel Android"
-  },
-  "Send your agents' sessions to Coucou for Android and answer permission requests from the phone. Off by default; it only listens on your local network.": {
-   "zh-Hans": "把你的智能体会话发送到 Coucou for Android，并在手机上回应权限请求。默认关闭；仅在本地网络中监听。",
-   "hi": "अपने एजेंट के सत्र Coucou for Android को भेजें और फ़ोन से अनुमति के अनुरोधों का जवाब दें। डिफ़ॉल्ट रूप से बंद; यह केवल आपके स्थानीय नेटवर्क पर सुनता है।",
-   "es": "Envía las sesiones de tus agentes a Coucou for Android y responde a las solicitudes de permiso desde el teléfono. Desactivado por defecto; solo escucha en tu red local.",
-   "ar": "أرسل جلسات وكلائك إلى Coucou for Android وردّ على طلبات الإذن من الهاتف. معطّل افتراضيًا؛ ويستمع فقط على شبكتك المحلية.",
-   "fr": "Envoie les sessions de tes agents à Coucou for Android et réponds aux demandes d'autorisation depuis le téléphone. Désactivé par défaut ; il n'écoute que sur ton réseau local.",
-   "bn": "আপনার এজেন্টদের সেশন Coucou for Android-এ পাঠান এবং ফোন থেকে অনুমতির অনুরোধের উত্তর দিন। ডিফল্টে বন্ধ; এটি শুধু আপনার লোকাল নেটওয়ার্কে শোনে।",
-   "pt-BR": "Envie as sessões dos seus agentes ao Coucou for Android e responda a pedidos de permissão pelo celular. Desativado por padrão; só escuta na sua rede local.",
-   "ru": "Отправляйте сессии ваших агентов в Coucou for Android и отвечайте на запросы разрешений с телефона. По умолчанию выключено; слушает только в вашей локальной сети.",
-   "id": "Kirim sesi agen Anda ke Coucou for Android dan jawab permintaan izin dari ponsel. Nonaktif secara default; hanya mendengarkan di jaringan lokal Anda."
-  },
-  "Allow on the phone asks for the fingerprint or the screen lock. Deny does not.": {
-   "zh-Hans": "在手机上点“允许”需要指纹或锁屏验证；“拒绝”则不需要。",
-   "hi": "फ़ोन पर अनुमति देने के लिए फ़िंगरप्रिंट या स्क्रीन लॉक माँगा जाता है। अस्वीकार के लिए नहीं।",
-   "es": "Permitir en el teléfono pide la huella o el bloqueo de pantalla. Denegar no.",
-   "ar": "السماح على الهاتف يتطلب بصمة الإصبع أو قفل الشاشة. أما الرفض فلا يتطلبها.",
-   "fr": "Autoriser sur le téléphone demande l'empreinte ou le verrouillage d'écran. Refuser, non.",
-   "bn": "ফোনে অনুমতি দিতে ফিঙ্গারপ্রিন্ট বা স্ক্রিন লক লাগে। প্রত্যাখ্যানে লাগে না।",
-   "pt-BR": "Permitir no celular pede a digital ou o bloqueio de tela. Negar não pede.",
-   "ru": "Чтобы разрешить на телефоне, нужен отпечаток пальца или блокировка экрана. Для отказа — не нужен.",
-   "id": "Mengizinkan di ponsel meminta sidik jari atau kunci layar. Menolak tidak."
-  },
   "Phone link": {
    "zh-Hans": "手机连接",
    "hi": "फ़ोन लिंक",
@@ -3470,17 +3437,6 @@
    "pt-BR": "Celulares conectados: {count}",
    "ru": "Подключённые телефоны: {count}",
    "id": "Ponsel terhubung: {count}"
-  },
-  "In Coucou for Android, scan this code with the camera or paste the link.": {
-   "zh-Hans": "在 Coucou for Android 中，用相机扫描此码，或粘贴链接。",
-   "hi": "Coucou for Android में कैमरे से यह कोड स्कैन करें या लिंक पेस्ट करें।",
-   "es": "En Coucou for Android, escanea este código con la cámara o pega el enlace.",
-   "ar": "في Coucou for Android، امسح هذا الرمز بالكاميرا أو الصق الرابط.",
-   "fr": "Dans Coucou for Android, scanne ce code avec l'appareil photo ou colle le lien.",
-   "bn": "Coucou for Android-এ ক্যামেরা দিয়ে এই কোড স্ক্যান করুন বা লিংক পেস্ট করুন।",
-   "pt-BR": "No Coucou for Android, escaneie este código com a câmera ou cole o link.",
-   "ru": "В Coucou for Android отсканируйте этот код камерой или вставьте ссылку.",
-   "id": "Di Coucou for Android, pindai kode ini dengan kamera atau tempel tautannya."
   },
   "Copy link": {
    "zh-Hans": "复制链接",
@@ -3899,6 +3855,711 @@
    "pt-BR": "Este código também inclui a chave de acesso e a chave de ponta a ponta do relay {host}. «Parear de novo» cria uma chave e uma sala novas.",
    "ru": "Этот код также содержит ключ доступа и сквозной ключ для ретранслятора {host}. «Сопрячь заново» создаёт новый ключ и новую комнату.",
    "id": "Kode ini juga memuat kunci akses dan kunci ujung ke ujung untuk relay {host}. «Sandingkan ulang» membuat kunci dan ruang baru."
+  },
+  "Opens": {
+   "zh-Hans": "打开",
+   "hi": "खोलता है",
+   "es": "Abre",
+   "ar": "يفتح",
+   "fr": "Ouvre",
+   "bn": "খোলে",
+   "pt-BR": "Abre",
+   "ru": "Открывает",
+   "id": "Membuka"
+  },
+  "Looks at this computer": {
+   "zh-Hans": "查看这台电脑",
+   "hi": "इस कंप्यूटर को देखता है",
+   "es": "Mira este equipo",
+   "ar": "يلقي نظرة على هذا الحاسوب",
+   "fr": "Regarde cet ordinateur",
+   "bn": "এই কম্পিউটারটি দেখে",
+   "pt-BR": "Olha este computador",
+   "ru": "Смотрит на этот компьютер",
+   "id": "Melihat komputer ini"
+  },
+  "time limit": {
+   "zh-Hans": "超时",
+   "hi": "समय सीमा",
+   "es": "tiempo límite",
+   "ar": "انتهت المهلة",
+   "fr": "délai dépassé",
+   "bn": "সময়সীমা",
+   "pt-BR": "tempo esgotado",
+   "ru": "лимит времени",
+   "id": "batas waktu"
+  },
+  "stopped": {
+   "zh-Hans": "已停止",
+   "hi": "रोका गया",
+   "es": "detenido",
+   "ar": "أُوقف",
+   "fr": "arrêté",
+   "bn": "থামানো হয়েছে",
+   "pt-BR": "interrompido",
+   "ru": "остановлено",
+   "id": "dihentikan"
+  },
+  "Mochi wants to run a command": {
+   "zh-Hans": "Mochi 想运行一个命令",
+   "hi": "Mochi एक कमांड चलाना चाहता है",
+   "es": "Mochi quiere ejecutar un comando",
+   "ar": "يريد Mochi تشغيل أمر",
+   "fr": "Mochi veut lancer une commande",
+   "bn": "Mochi একটি কমান্ড চালাতে চায়",
+   "pt-BR": "O Mochi quer executar um comando",
+   "ru": "Mochi хочет выполнить команду",
+   "id": "Mochi ingin menjalankan perintah"
+  },
+  "Mochi wants to create a file": {
+   "zh-Hans": "Mochi 想创建一个文件",
+   "hi": "Mochi एक फ़ाइल बनाना चाहता है",
+   "es": "Mochi quiere crear un archivo",
+   "ar": "يريد Mochi إنشاء ملف",
+   "fr": "Mochi veut créer un fichier",
+   "bn": "Mochi একটি ফাইল তৈরি করতে চায়",
+   "pt-BR": "O Mochi quer criar um arquivo",
+   "ru": "Mochi хочет создать файл",
+   "id": "Mochi ingin membuat berkas"
+  },
+  "Mochi wants to replace a file": {
+   "zh-Hans": "Mochi 想替换一个文件",
+   "hi": "Mochi एक फ़ाइल बदलना चाहता है",
+   "es": "Mochi quiere reemplazar un archivo",
+   "ar": "يريد Mochi استبدال ملف",
+   "fr": "Mochi veut remplacer un fichier",
+   "bn": "Mochi একটি ফাইল প্রতিস্থাপন করতে চায়",
+   "pt-BR": "O Mochi quer substituir um arquivo",
+   "ru": "Mochi хочет заменить файл",
+   "id": "Mochi ingin mengganti berkas"
+  },
+  "Mochi wants to edit a file": {
+   "zh-Hans": "Mochi 想编辑一个文件",
+   "hi": "Mochi एक फ़ाइल संपादित करना चाहता है",
+   "es": "Mochi quiere editar un archivo",
+   "ar": "يريد Mochi تعديل ملف",
+   "fr": "Mochi veut modifier un fichier",
+   "bn": "Mochi একটি ফাইল সম্পাদনা করতে চায়",
+   "pt-BR": "O Mochi quer editar um arquivo",
+   "ru": "Mochi хочет изменить файл",
+   "id": "Mochi ingin mengedit berkas"
+  },
+  "Mochi wants to fetch a web page": {
+   "zh-Hans": "Mochi 想获取一个网页",
+   "hi": "Mochi एक वेब पेज लाना चाहता है",
+   "es": "Mochi quiere descargar una página web",
+   "ar": "يريد Mochi جلب صفحة ويب",
+   "fr": "Mochi veut récupérer une page web",
+   "bn": "Mochi একটি ওয়েব পেজ আনতে চায়",
+   "pt-BR": "O Mochi quer buscar uma página da web",
+   "ru": "Mochi хочет загрузить веб-страницу",
+   "id": "Mochi ingin mengambil halaman web"
+  },
+  "Mochi wants to open a web page": {
+   "zh-Hans": "Mochi 想打开一个网页",
+   "hi": "Mochi एक वेब पेज खोलना चाहता है",
+   "es": "Mochi quiere abrir una página web",
+   "ar": "يريد Mochi فتح صفحة ويب",
+   "fr": "Mochi veut ouvrir une page web",
+   "bn": "Mochi একটি ওয়েব পেজ খুলতে চায়",
+   "pt-BR": "O Mochi quer abrir uma página da web",
+   "ru": "Mochi хочет открыть веб-страницу",
+   "id": "Mochi ingin membuka halaman web"
+  },
+  "Mochi wants to read a file that may hold secrets": {
+   "zh-Hans": "Mochi 想读取一个可能包含机密的文件",
+   "hi": "Mochi ऐसी फ़ाइल पढ़ना चाहता है जिसमें गोपनीय जानकारी हो सकती है",
+   "es": "Mochi quiere leer un archivo que puede contener secretos",
+   "ar": "يريد Mochi قراءة ملف قد يحتوي على أسرار",
+   "fr": "Mochi veut lire un fichier qui peut contenir des secrets",
+   "bn": "Mochi এমন একটি ফাইল পড়তে চায় যাতে গোপন তথ্য থাকতে পারে",
+   "pt-BR": "O Mochi quer ler um arquivo que pode conter segredos",
+   "ru": "Mochi хочет прочитать файл, который может содержать секреты",
+   "id": "Mochi ingin membaca berkas yang mungkin berisi rahasia"
+  },
+  "Mochi wants to look outside his folder": {
+   "zh-Hans": "Mochi 想查看他的文件夹之外的内容",
+   "hi": "Mochi अपने फ़ोल्डर के बाहर देखना चाहता है",
+   "es": "Mochi quiere mirar fuera de su carpeta",
+   "ar": "يريد Mochi الاطلاع خارج مجلده",
+   "fr": "Mochi veut regarder en dehors de son dossier",
+   "bn": "Mochi তার ফোল্ডারের বাইরে দেখতে চায়",
+   "pt-BR": "O Mochi quer olhar fora da pasta dele",
+   "ru": "Mochi хочет заглянуть за пределы своей папки",
+   "id": "Mochi ingin melihat di luar foldernya"
+  },
+  "This file looks like it holds keys or passwords.": {
+   "zh-Hans": "这个文件看起来包含密钥或密码。",
+   "hi": "यह फ़ाइल कुंजियाँ या पासवर्ड रखती हुई लगती है।",
+   "es": "Este archivo parece contener claves o contraseñas.",
+   "ar": "يبدو أن هذا الملف يحتوي على مفاتيح أو كلمات مرور.",
+   "fr": "Ce fichier semble contenir des clés ou des mots de passe.",
+   "bn": "এই ফাইলে কী বা পাসওয়ার্ড আছে বলে মনে হচ্ছে।",
+   "pt-BR": "Este arquivo parece conter chaves ou senhas.",
+   "ru": "Похоже, в этом файле хранятся ключи или пароли.",
+   "id": "Berkas ini tampaknya berisi kunci atau kata sandi."
+  },
+  "Outside the folder Mochi works in.": {
+   "zh-Hans": "在 Mochi 的工作文件夹之外。",
+   "hi": "उस फ़ोल्डर के बाहर जिसमें Mochi काम करता है।",
+   "es": "Fuera de la carpeta en la que trabaja Mochi.",
+   "ar": "خارج المجلد الذي يعمل فيه Mochi.",
+   "fr": "En dehors du dossier où travaille Mochi.",
+   "bn": "Mochi যে ফোল্ডারে কাজ করে তার বাইরে।",
+   "pt-BR": "Fora da pasta em que o Mochi trabalha.",
+   "ru": "За пределами папки, в которой работает Mochi.",
+   "id": "Di luar folder tempat Mochi bekerja."
+  },
+  "Ask before every change": {
+   "zh-Hans": "每次更改前都询问",
+   "hi": "हर बदलाव से पहले पूछें",
+   "es": "Preguntar antes de cada cambio",
+   "ar": "السؤال قبل كل تغيير",
+   "fr": "Demander avant chaque modification",
+   "bn": "প্রতিটি পরিবর্তনের আগে জিজ্ঞেস করুন",
+   "pt-BR": "Perguntar antes de cada alteração",
+   "ru": "Спрашивать перед каждым изменением",
+   "id": "Tanya sebelum setiap perubahan"
+  },
+  "Edit files in the folder without asking": {
+   "zh-Hans": "无需询问即可编辑文件夹中的文件",
+   "hi": "फ़ोल्डर में फ़ाइलें बिना पूछे संपादित करें",
+   "es": "Editar archivos de la carpeta sin preguntar",
+   "ar": "تعديل ملفات المجلد دون سؤال",
+   "fr": "Modifier les fichiers du dossier sans demander",
+   "bn": "জিজ্ঞেস না করেই ফোল্ডারের ফাইল সম্পাদনা করুন",
+   "pt-BR": "Editar arquivos da pasta sem perguntar",
+   "ru": "Изменять файлы в папке без вопросов",
+   "id": "Edit berkas di folder tanpa bertanya"
+  },
+  "Read only: look, never change": {
+   "zh-Hans": "只读：只看，从不更改",
+   "hi": "केवल पढ़ना: देखें, कभी न बदलें",
+   "es": "Solo lectura: mirar, nunca cambiar",
+   "ar": "قراءة فقط: الاطلاع دون أي تغيير",
+   "fr": "Lecture seule : regarder, jamais modifier",
+   "bn": "শুধু পড়া: দেখবে, কখনো বদলাবে না",
+   "pt-BR": "Somente leitura: olhar, nunca alterar",
+   "ru": "Только чтение: смотреть, ничего не менять",
+   "id": "Hanya baca: melihat, tidak pernah mengubah"
+  },
+  "Use this folder": {
+   "zh-Hans": "使用此文件夹",
+   "hi": "यह फ़ोल्डर इस्तेमाल करें",
+   "es": "Usar esta carpeta",
+   "ar": "استخدام هذا المجلد",
+   "fr": "Utiliser ce dossier",
+   "bn": "এই ফোল্ডারটি ব্যবহার করুন",
+   "pt-BR": "Usar esta pasta",
+   "ru": "Использовать эту папку",
+   "id": "Gunakan folder ini"
+  },
+  "Commands run in {shell}.": {
+   "zh-Hans": "命令在 {shell} 中运行。",
+   "hi": "कमांड {shell} में चलती हैं।",
+   "es": "Los comandos se ejecutan en {shell}.",
+   "ar": "تعمل الأوامر في {shell}.",
+   "fr": "Les commandes s'exécutent dans {shell}.",
+   "bn": "কমান্ডগুলো {shell}-এ চলে।",
+   "pt-BR": "Os comandos rodam no {shell}.",
+   "ru": "Команды выполняются в {shell}.",
+   "id": "Perintah dijalankan di {shell}."
+  },
+  "Mochi's hands": {
+   "zh-Hans": "Mochi 的双手",
+   "hi": "Mochi के हाथ",
+   "es": "Las manos de Mochi",
+   "ar": "يدا Mochi",
+   "fr": "Les mains de Mochi",
+   "bn": "Mochi-র হাত",
+   "pt-BR": "Braços do Mochi",
+   "ru": "Руки Mochi",
+   "id": "Tangan Mochi"
+  },
+  "Let Mochi act on this computer from the chat: look through your files, change them, run commands, and read or open web pages — with whichever AI the chat uses. Off by default.": {
+   "zh-Hans": "让 Mochi 在聊天中操作这台电脑：浏览你的文件、修改它们、运行命令，以及读取或打开网页——使用聊天所用的任意 AI。默认关闭。",
+   "hi": "चैट से Mochi को इस कंप्यूटर पर काम करने दें: आपकी फ़ाइलें देखना, उन्हें बदलना, कमांड चलाना और वेब पेज पढ़ना या खोलना — चैट जिस भी AI का उपयोग करे उसके साथ। डिफ़ॉल्ट रूप से बंद।",
+   "es": "Deja que Mochi actúe en este equipo desde el chat: revisar tus archivos, cambiarlos, ejecutar comandos y leer o abrir páginas web, con la IA que use el chat. Desactivado por defecto.",
+   "ar": "اسمح لـ Mochi بالعمل على هذا الحاسوب من المحادثة: تصفح ملفاتك وتغييرها وتشغيل الأوامر وقراءة صفحات الويب أو فتحها — بأي ذكاء اصطناعي تستخدمه المحادثة. متوقف افتراضيًا.",
+   "fr": "Laisse Mochi agir sur cet ordinateur depuis le chat : parcourir tes fichiers, les modifier, lancer des commandes, lire ou ouvrir des pages web — avec l'IA qu'utilise le chat. Désactivé par défaut.",
+   "bn": "চ্যাট থেকে Mochi-কে এই কম্পিউটারে কাজ করতে দিন: আপনার ফাইল দেখা, সেগুলো বদলানো, কমান্ড চালানো এবং ওয়েব পেজ পড়া বা খোলা — চ্যাট যে AI ব্যবহার করে তা দিয়েই। ডিফল্টভাবে বন্ধ।",
+   "pt-BR": "Deixe o Mochi agir neste computador pelo chat: olhar seus arquivos, alterá-los, executar comandos e ler ou abrir páginas da web — com a IA que o chat estiver usando. Desligado por padrão.",
+   "ru": "Разрешите Mochi действовать на этом компьютере из чата: просматривать ваши файлы, менять их, выполнять команды, читать и открывать веб-страницы — с той ИИ, которую использует чат. По умолчанию выключено.",
+   "id": "Biarkan Mochi bertindak di komputer ini dari obrolan: menelusuri berkas Anda, mengubahnya, menjalankan perintah, serta membaca atau membuka halaman web — dengan AI apa pun yang dipakai obrolan. Nonaktif secara bawaan."
+  },
+  "Every change, command and web request waits for your click (Allow or Deny), on the island or on your paired phone. Only looking inside the folder below needs no click.": {
+   "zh-Hans": "每次更改、命令和网页请求都要等你点击（允许或拒绝），可在灵动岛或已配对的手机上操作。只有查看下方文件夹内的内容无需点击。",
+   "hi": "हर बदलाव, कमांड और वेब अनुरोध आपके क्लिक (अनुमति दें या अस्वीकार) का इंतज़ार करता है, आइलैंड पर या आपके जोड़े गए फ़ोन पर। केवल नीचे दिए फ़ोल्डर के अंदर देखने के लिए क्लिक की ज़रूरत नहीं।",
+   "es": "Cada cambio, comando y solicitud web espera tu clic (Permitir o Denegar), en la isla o en tu teléfono vinculado. Solo mirar dentro de la carpeta de abajo no necesita clic.",
+   "ar": "كل تغيير وأمر وطلب ويب ينتظر نقرتك (السماح أو الرفض)، على الجزيرة أو على هاتفك المقترن. وحده الاطلاع داخل المجلد أدناه لا يحتاج إلى نقرة.",
+   "fr": "Chaque modification, commande et requête web attend ton clic (Autoriser ou Refuser), sur l'île ou sur ton téléphone appairé. Seul le fait de regarder dans le dossier ci-dessous ne demande aucun clic.",
+   "bn": "প্রতিটি পরিবর্তন, কমান্ড ও ওয়েব অনুরোধ আপনার ক্লিকের (অনুমতি দিন বা প্রত্যাখ্যান) অপেক্ষা করে, আইল্যান্ডে বা আপনার যুক্ত ফোনে। শুধু নিচের ফোল্ডারের ভেতরে দেখতে কোনো ক্লিক লাগে না।",
+   "pt-BR": "Cada alteração, comando e requisição web espera o seu clique (Permitir ou Negar), na ilha ou no celular pareado. Só olhar dentro da pasta abaixo não precisa de clique.",
+   "ru": "Каждое изменение, команда и веб-запрос ждут вашего нажатия («Разрешить» или «Отклонить») на острове или на сопряжённом телефоне. Без нажатия можно только смотреть внутри папки ниже.",
+   "id": "Setiap perubahan, perintah, dan permintaan web menunggu klik Anda (Izinkan atau Tolak), di pulau atau di ponsel yang dipasangkan. Hanya melihat isi folder di bawah yang tidak perlu klik."
+  },
+  "Working folder": {
+   "zh-Hans": "工作文件夹",
+   "hi": "कार्य फ़ोल्डर",
+   "es": "Carpeta de trabajo",
+   "ar": "مجلد العمل",
+   "fr": "Dossier de travail",
+   "bn": "কাজের ফোল্ডার",
+   "pt-BR": "Pasta de trabalho",
+   "ru": "Рабочая папка",
+   "id": "Folder kerja"
+  },
+  "Without asking": {
+   "zh-Hans": "无需询问",
+   "hi": "बिना पूछे",
+   "es": "Sin preguntar",
+   "ar": "دون سؤال",
+   "fr": "Sans demander",
+   "bn": "জিজ্ঞেস না করে",
+   "pt-BR": "Sem perguntar",
+   "ru": "Без вопросов",
+   "id": "Tanpa bertanya"
+  },
+  "What Mochi reads is sent to the AI provider you chat with, as anything you type is. Files that look like keys or passwords always wait for a click.": {
+   "zh-Hans": "Mochi 读取的内容会像你输入的内容一样发送给你聊天所用的 AI 服务商。看起来像密钥或密码的文件总是要等你点击。",
+   "hi": "Mochi जो पढ़ता है वह उस AI प्रदाता को भेजा जाता है जिससे आप चैट करते हैं, जैसे आपका लिखा हुआ। कुंजियों या पासवर्ड जैसी दिखने वाली फ़ाइलें हमेशा क्लिक का इंतज़ार करती हैं।",
+   "es": "Lo que Mochi lee se envía al proveedor de IA con el que chateas, igual que lo que escribes. Los archivos que parecen claves o contraseñas siempre esperan un clic.",
+   "ar": "ما يقرؤه Mochi يُرسل إلى مزود الذكاء الاصطناعي الذي تحادثه، مثل أي شيء تكتبه. الملفات التي تبدو كمفاتيح أو كلمات مرور تنتظر نقرة دائمًا.",
+   "fr": "Ce que Mochi lit est envoyé au fournisseur d'IA avec qui tu discutes, comme tout ce que tu tapes. Les fichiers qui ressemblent à des clés ou des mots de passe attendent toujours un clic.",
+   "bn": "Mochi যা পড়ে তা আপনি যে AI প্রদানকারীর সঙ্গে চ্যাট করেন তাকে পাঠানো হয়, আপনার লেখা যেকোনো কিছুর মতোই। কী বা পাসওয়ার্ডের মতো দেখতে ফাইলগুলো সবসময় ক্লিকের অপেক্ষা করে।",
+   "pt-BR": "O que o Mochi lê é enviado ao provedor de IA com quem você conversa, como tudo o que você digita. Arquivos que parecem chaves ou senhas sempre esperam um clique.",
+   "ru": "То, что читает Mochi, отправляется поставщику ИИ, с которым вы общаетесь, как и всё, что вы печатаете. Файлы, похожие на ключи или пароли, всегда ждут нажатия.",
+   "id": "Apa yang dibaca Mochi dikirim ke penyedia AI yang Anda ajak mengobrol, seperti semua yang Anda ketik. Berkas yang tampak seperti kunci atau kata sandi selalu menunggu klik."
+  },
+  "Phone (Android and iPhone)": {
+   "zh-Hans": "手机（Android 和 iPhone）",
+   "hi": "फ़ोन (Android और iPhone)",
+   "es": "Teléfono (Android y iPhone)",
+   "ar": "الهاتف (Android وiPhone)",
+   "fr": "Téléphone (Android et iPhone)",
+   "bn": "ফোন (Android ও iPhone)",
+   "pt-BR": "Celular (Android e iPhone)",
+   "ru": "Телефон (Android и iPhone)",
+   "id": "Ponsel (Android dan iPhone)"
+  },
+  "Send your agents' sessions to Coucou on your phone and answer permission requests from it: Coucou for Android, or Coucou on iPhone with its link to Windows and Linux. Off by default; it only listens on your local network.": {
+   "zh-Hans": "把你的代理会话发送到手机上的 Coucou，并在手机上回复权限请求：Coucou for Android，或通过连接 Windows 和 Linux 的 iPhone 版 Coucou。默认关闭；只在你的本地网络上监听。",
+   "hi": "अपने एजेंट सत्र अपने फ़ोन पर Coucou को भेजें और वहीं से अनुमति अनुरोधों का जवाब दें: Coucou for Android, या Windows और Linux से जुड़ने वाला iPhone का Coucou। डिफ़ॉल्ट रूप से बंद; यह केवल आपके स्थानीय नेटवर्क पर सुनता है।",
+   "es": "Envía las sesiones de tus agentes a Coucou en tu teléfono y responde desde ahí a las solicitudes de permiso: Coucou for Android, o Coucou en iPhone con su enlace a Windows y Linux. Desactivado por defecto; solo escucha en tu red local.",
+   "ar": "أرسل جلسات وكلائك إلى Coucou على هاتفك وأجب منه على طلبات الإذن: Coucou for Android، أو Coucou على iPhone مع رابطه إلى Windows وLinux. متوقف افتراضيًا؛ ولا يستمع إلا على شبكتك المحلية.",
+   "fr": "Envoie les sessions de tes agents à Coucou sur ton téléphone et réponds-y aux demandes de permission : Coucou for Android, ou Coucou sur iPhone avec son lien vers Windows et Linux. Désactivé par défaut ; il n'écoute que sur ton réseau local.",
+   "bn": "আপনার এজেন্টদের সেশন আপনার ফোনের Coucou-তে পাঠান এবং সেখান থেকে অনুমতির অনুরোধের উত্তর দিন: Coucou for Android, অথবা Windows ও Linux-এর সঙ্গে সংযোগসহ iPhone-এর Coucou। ডিফল্টভাবে বন্ধ; এটি শুধু আপনার স্থানীয় নেটওয়ার্কে শোনে।",
+   "pt-BR": "Envie as sessões dos seus agentes para o Coucou no celular e responda dali aos pedidos de permissão: Coucou for Android, ou Coucou no iPhone com a conexão para Windows e Linux. Desligado por padrão; só escuta na sua rede local.",
+   "ru": "Отправляйте сеансы своих агентов в Coucou на телефоне и отвечайте оттуда на запросы разрешений: Coucou for Android или Coucou на iPhone со связью с Windows и Linux. По умолчанию выключено; слушает только локальную сеть.",
+   "id": "Kirim sesi agen Anda ke Coucou di ponsel dan jawab permintaan izin dari sana: Coucou for Android, atau Coucou di iPhone dengan tautannya ke Windows dan Linux. Nonaktif secara bawaan; hanya mendengarkan di jaringan lokal Anda."
+  },
+  "Allow on the phone asks for Face ID, the fingerprint or the screen lock. Deny does not.": {
+   "zh-Hans": "在手机上点“允许”需要 Face ID、指纹或锁屏验证。“拒绝”不需要。",
+   "hi": "फ़ोन पर ‘अनुमति दें’ के लिए Face ID, फ़िंगरप्रिंट या स्क्रीन लॉक चाहिए। ‘अस्वीकार’ के लिए नहीं।",
+   "es": "Permitir en el teléfono pide Face ID, la huella o el bloqueo de pantalla. Denegar no.",
+   "ar": "السماح على الهاتف يطلب Face ID أو البصمة أو قفل الشاشة. الرفض لا يطلب ذلك.",
+   "fr": "Autoriser sur le téléphone demande Face ID, l'empreinte ou le verrouillage de l'écran. Refuser, non.",
+   "bn": "ফোনে ‘অনুমতি দিন’ চাপলে Face ID, আঙুলের ছাপ বা স্ক্রিন লক চায়। ‘প্রত্যাখ্যান’ চায় না।",
+   "pt-BR": "Permitir no celular pede Face ID, a digital ou o bloqueio de tela. Negar não.",
+   "ru": "«Разрешить» на телефоне требует Face ID, отпечаток пальца или блокировку экрана. «Отклонить» — нет.",
+   "id": "Izinkan di ponsel meminta Face ID, sidik jari, atau kunci layar. Tolak tidak."
+  },
+  "Let the phone use Mochi's hands": {
+   "zh-Hans": "让手机使用 Mochi 的双手",
+   "hi": "फ़ोन को Mochi के हाथ इस्तेमाल करने दें",
+   "es": "Dejar que el teléfono use las manos de Mochi",
+   "ar": "السماح للهاتف باستخدام يدي Mochi",
+   "fr": "Laisser le téléphone utiliser les mains de Mochi",
+   "bn": "ফোনকে Mochi-র হাত ব্যবহার করতে দিন",
+   "pt-BR": "Deixar o celular usar os braços do Mochi",
+   "ru": "Разрешить телефону пользоваться руками Mochi",
+   "id": "Izinkan ponsel memakai tangan Mochi"
+  },
+  "From the phone's chat, Mochi can act on this computer as set in Settings → Mochi's hands. It needs the chat above. Every change still waits for Allow, behind the phone's Face ID or fingerprint.": {
+   "zh-Hans": "在手机的聊天中，Mochi 可以按“设置 → Mochi 的双手”中的设定操作这台电脑。需要先开启上面的聊天。每次更改仍然要等你点“允许”，并经过手机的 Face ID 或指纹验证。",
+   "hi": "फ़ोन की चैट से, Mochi इस कंप्यूटर पर सेटिंग्स → Mochi के हाथ में तय तरीके से काम कर सकता है। इसके लिए ऊपर वाली चैट चालू होनी चाहिए। हर बदलाव फिर भी ‘अनुमति दें’ का इंतज़ार करता है, फ़ोन के Face ID या फ़िंगरप्रिंट के पीछे।",
+   "es": "Desde el chat del teléfono, Mochi puede actuar en este equipo según lo ajustado en Ajustes → Las manos de Mochi. Necesita el chat de arriba. Cada cambio sigue esperando Permitir, tras el Face ID o la huella del teléfono.",
+   "ar": "من محادثة الهاتف، يستطيع Mochi العمل على هذا الحاسوب وفق ما ضُبط في الإعدادات ← يدا Mochi. يتطلب ذلك المحادثة أعلاه. ويبقى كل تغيير بانتظار «السماح»، خلف Face ID أو بصمة الهاتف.",
+   "fr": "Depuis le chat du téléphone, Mochi peut agir sur cet ordinateur comme réglé dans Réglages → Les mains de Mochi. Il faut le chat ci-dessus. Chaque modification attend toujours Autoriser, derrière Face ID ou l'empreinte du téléphone.",
+   "bn": "ফোনের চ্যাট থেকে Mochi এই কম্পিউটারে সেটিংস → Mochi-র হাত-এ যেভাবে ঠিক করা আছে সেভাবে কাজ করতে পারে। এর জন্য উপরের চ্যাট চালু থাকতে হবে। প্রতিটি পরিবর্তন তবুও ‘অনুমতি দিন’-এর অপেক্ষা করে, ফোনের Face ID বা আঙুলের ছাপের পেছনে।",
+   "pt-BR": "Pelo chat do celular, o Mochi pode agir neste computador como definido em Configurações → Braços do Mochi. Precisa do chat acima. Cada alteração continua esperando Permitir, protegida pelo Face ID ou pela digital do celular.",
+   "ru": "Из чата на телефоне Mochi может действовать на этом компьютере так, как задано в «Настройки → Руки Mochi». Нужен чат выше. Каждое изменение по-прежнему ждёт «Разрешить» с подтверждением Face ID или отпечатком на телефоне.",
+   "id": "Dari obrolan di ponsel, Mochi dapat bertindak di komputer ini sesuai pengaturan di Pengaturan → Tangan Mochi. Perlu obrolan di atas. Setiap perubahan tetap menunggu Izinkan, di balik Face ID atau sidik jari ponsel."
+  },
+  "In Coucou on your phone, scan this code with the camera or paste the link.": {
+   "zh-Hans": "在手机上的 Coucou 中用相机扫描此代码，或粘贴链接。",
+   "hi": "अपने फ़ोन के Coucou में, यह कोड कैमरे से स्कैन करें या लिंक पेस्ट करें।",
+   "es": "En Coucou en tu teléfono, escanea este código con la cámara o pega el enlace.",
+   "ar": "في Coucou على هاتفك، امسح هذا الرمز بالكاميرا أو الصق الرابط.",
+   "fr": "Dans Coucou sur ton téléphone, scanne ce code avec l'appareil photo ou colle le lien.",
+   "bn": "আপনার ফোনের Coucou-তে ক্যামেরা দিয়ে এই কোডটি স্ক্যান করুন বা লিংকটি পেস্ট করুন।",
+   "pt-BR": "No Coucou do celular, escaneie este código com a câmera ou cole o link.",
+   "ru": "В Coucou на телефоне отсканируйте этот код камерой или вставьте ссылку.",
+   "id": "Di Coucou pada ponsel Anda, pindai kode ini dengan kamera atau tempel tautannya."
+  },
+  "Stop": {
+   "zh-Hans": "停止",
+   "hi": "रोकें",
+   "es": "Detener",
+   "ar": "إيقاف",
+   "fr": "Arrêter",
+   "bn": "থামান",
+   "pt-BR": "Parar",
+   "ru": "Остановить",
+   "id": "Hentikan"
+  },
+  "Mochi's hands are on: he can act on this computer. Click to chat without them.": {
+   "zh-Hans": "Mochi 的双手已开启：他可以操作这台电脑。点击可不用双手聊天。",
+   "hi": "Mochi के हाथ चालू हैं: वह इस कंप्यूटर पर काम कर सकता है। उनके बिना चैट करने के लिए क्लिक करें।",
+   "es": "Las manos de Mochi están activadas: puede actuar en este equipo. Haz clic para chatear sin ellas.",
+   "ar": "يدا Mochi مفعّلتان: يستطيع العمل على هذا الحاسوب. انقر للمحادثة من دونهما.",
+   "fr": "Les mains de Mochi sont activées : il peut agir sur cet ordinateur. Clique pour discuter sans elles.",
+   "bn": "Mochi-র হাত চালু: সে এই কম্পিউটারে কাজ করতে পারে। হাত ছাড়া চ্যাট করতে ক্লিক করুন।",
+   "pt-BR": "Os braços do Mochi estão ligados: ele pode agir neste computador. Clique para conversar sem eles.",
+   "ru": "Руки Mochi включены: он может действовать на этом компьютере. Нажмите, чтобы общаться без них.",
+   "id": "Tangan Mochi aktif: ia bisa bertindak di komputer ini. Klik untuk mengobrol tanpa itu."
+  },
+  "Mochi's hands are off in this chat. Click to let him act on this computer.": {
+   "zh-Hans": "此聊天中 Mochi 的双手已关闭。点击让他可以操作这台电脑。",
+   "hi": "इस चैट में Mochi के हाथ बंद हैं। उसे इस कंप्यूटर पर काम करने देने के लिए क्लिक करें।",
+   "es": "Las manos de Mochi están desactivadas en este chat. Haz clic para dejarle actuar en este equipo.",
+   "ar": "يدا Mochi متوقفتان في هذه المحادثة. انقر للسماح له بالعمل على هذا الحاسوب.",
+   "fr": "Les mains de Mochi sont désactivées dans ce chat. Clique pour le laisser agir sur cet ordinateur.",
+   "bn": "এই চ্যাটে Mochi-র হাত বন্ধ। তাকে এই কম্পিউটারে কাজ করতে দিতে ক্লিক করুন।",
+   "pt-BR": "Os braços do Mochi estão desligados neste chat. Clique para deixá-lo agir neste computador.",
+   "ru": "В этом чате руки Mochi выключены. Нажмите, чтобы позволить ему действовать на этом компьютере.",
+   "id": "Tangan Mochi nonaktif di obrolan ini. Klik agar ia bisa bertindak di komputer ini."
+  },
+  "Asked from your phone": {
+   "zh-Hans": "来自你的手机",
+   "hi": "आपके फ़ोन से पूछा गया",
+   "es": "Pedido desde tu teléfono",
+   "ar": "طُلب من هاتفك",
+   "fr": "Demandé depuis ton téléphone",
+   "bn": "আপনার ফোন থেকে চাওয়া হয়েছে",
+   "pt-BR": "Pedido pelo seu celular",
+   "ru": "Запрошено с вашего телефона",
+   "id": "Diminta dari ponsel Anda"
+  },
+  "in {folder}": {
+   "zh-Hans": "位于 {folder}",
+   "hi": "{folder} में",
+   "es": "en {folder}",
+   "ar": "في {folder}",
+   "fr": "dans {folder}",
+   "bn": "{folder}-এ",
+   "pt-BR": "em {folder}",
+   "ru": "в {folder}",
+   "id": "di {folder}"
+  },
+  "Mochi's hands are off. Turn them on in Settings → Mochi's hands.": {
+   "zh-Hans": "Mochi 的双手已关闭。请在“设置 → Mochi 的双手”中开启。",
+   "hi": "Mochi के हाथ बंद हैं। उन्हें सेटिंग्स → Mochi के हाथ में चालू करें।",
+   "es": "Las manos de Mochi están desactivadas. Actívalas en Ajustes → Las manos de Mochi.",
+   "ar": "يدا Mochi متوقفتان. فعّلهما من الإعدادات ← يدا Mochi.",
+   "fr": "Les mains de Mochi sont désactivées. Active-les dans Réglages → Les mains de Mochi.",
+   "bn": "Mochi-র হাত বন্ধ। সেটিংস → Mochi-র হাত থেকে চালু করুন।",
+   "pt-BR": "Os braços do Mochi estão desligados. Ligue-os em Configurações → Braços do Mochi.",
+   "ru": "Руки Mochi выключены. Включите их в «Настройки → Руки Mochi».",
+   "id": "Tangan Mochi nonaktif. Aktifkan di Pengaturan → Tangan Mochi."
+  },
+  "Choose the folder Mochi works in, in Settings → Mochi's hands.": {
+   "zh-Hans": "请在“设置 → Mochi 的双手”中选择 Mochi 的工作文件夹。",
+   "hi": "सेटिंग्स → Mochi के हाथ में वह फ़ोल्डर चुनें जिसमें Mochi काम करता है।",
+   "es": "Elige la carpeta en la que trabaja Mochi en Ajustes → Las manos de Mochi.",
+   "ar": "اختر المجلد الذي يعمل فيه Mochi من الإعدادات ← يدا Mochi.",
+   "fr": "Choisis le dossier où travaille Mochi dans Réglages → Les mains de Mochi.",
+   "bn": "সেটিংস → Mochi-র হাত থেকে Mochi যে ফোল্ডারে কাজ করবে তা বেছে নিন।",
+   "pt-BR": "Escolha a pasta em que o Mochi trabalha em Configurações → Braços do Mochi.",
+   "ru": "Выберите папку, в которой работает Mochi, в «Настройки → Руки Mochi».",
+   "id": "Pilih folder tempat Mochi bekerja di Pengaturan → Tangan Mochi."
+  },
+  "Mochi is already busy with another task. Stop it first.": {
+   "zh-Hans": "Mochi 正忙于另一项任务。请先停止它。",
+   "hi": "Mochi पहले से किसी दूसरे काम में व्यस्त है। पहले उसे रोकें।",
+   "es": "Mochi ya está ocupado con otra tarea. Detenla primero.",
+   "ar": "Mochi مشغول بالفعل بمهمة أخرى. أوقفها أولًا.",
+   "fr": "Mochi est déjà occupé à autre chose. Arrête-le d'abord.",
+   "bn": "Mochi ইতিমধ্যে অন্য একটি কাজে ব্যস্ত। আগে সেটি থামান।",
+   "pt-BR": "O Mochi já está ocupado com outra tarefa. Pare-a primeiro.",
+   "ru": "Mochi уже занят другой задачей. Сначала остановите её.",
+   "id": "Mochi sedang sibuk dengan tugas lain. Hentikan dulu."
+  },
+  "Stopped.": {
+   "zh-Hans": "已停止。",
+   "hi": "रोक दिया गया।",
+   "es": "Detenido.",
+   "ar": "تم الإيقاف.",
+   "fr": "Arrêté.",
+   "bn": "থামানো হয়েছে।",
+   "pt-BR": "Interrompido.",
+   "ru": "Остановлено.",
+   "id": "Dihentikan."
+  },
+  "Enter the full path of a folder.": {
+   "zh-Hans": "请输入文件夹的完整路径。",
+   "hi": "किसी फ़ोल्डर का पूरा पथ दर्ज करें।",
+   "es": "Escribe la ruta completa de una carpeta.",
+   "ar": "أدخل المسار الكامل لمجلد.",
+   "fr": "Saisis le chemin complet d'un dossier.",
+   "bn": "একটি ফোল্ডারের পূর্ণ পথ লিখুন।",
+   "pt-BR": "Digite o caminho completo de uma pasta.",
+   "ru": "Введите полный путь к папке.",
+   "id": "Masukkan jalur lengkap sebuah folder."
+  },
+  "This folder does not exist.": {
+   "zh-Hans": "此文件夹不存在。",
+   "hi": "यह फ़ोल्डर मौजूद नहीं है।",
+   "es": "Esta carpeta no existe.",
+   "ar": "هذا المجلد غير موجود.",
+   "fr": "Ce dossier n'existe pas.",
+   "bn": "এই ফোল্ডারটি নেই।",
+   "pt-BR": "Esta pasta não existe.",
+   "ru": "Этой папки не существует.",
+   "id": "Folder ini tidak ada."
+  },
+  "Choose the folder Mochi works in first.": {
+   "zh-Hans": "请先选择 Mochi 的工作文件夹。",
+   "hi": "पहले वह फ़ोल्डर चुनें जिसमें Mochi काम करता है।",
+   "es": "Primero elige la carpeta en la que trabaja Mochi.",
+   "ar": "اختر أولًا المجلد الذي يعمل فيه Mochi.",
+   "fr": "Choisis d'abord le dossier où travaille Mochi.",
+   "bn": "আগে Mochi যে ফোল্ডারে কাজ করবে তা বেছে নিন।",
+   "pt-BR": "Escolha primeiro a pasta em que o Mochi trabalha.",
+   "ru": "Сначала выберите папку, в которой работает Mochi.",
+   "id": "Pilih dulu folder tempat Mochi bekerja."
+  },
+  "I stopped here: that was a lot of steps in one go. Tell me to go on if you want more.": {
+   "zh-Hans": "我先停在这里：一次做的步骤太多了。如果还要继续，请告诉我。",
+   "hi": "मैं यहीं रुक गया: एक बार में बहुत सारे कदम हो गए। और चाहिए तो मुझे आगे बढ़ने को कहें।",
+   "es": "Me detuve aquí: eran demasiados pasos de una vez. Dime que siga si quieres más.",
+   "ar": "توقفت هنا: كانت خطوات كثيرة دفعة واحدة. اطلب مني المتابعة إن أردت المزيد.",
+   "fr": "Je me suis arrêté ici : ça faisait beaucoup d'étapes d'un coup. Dis-moi de continuer si tu en veux plus.",
+   "bn": "আমি এখানে থেমেছি: একবারে অনেকগুলো ধাপ হয়ে গেছে। আরও চাইলে আমাকে এগোতে বলুন।",
+   "pt-BR": "Parei por aqui: foram muitos passos de uma vez. Peça para eu continuar se quiser mais.",
+   "ru": "Я остановился здесь: слишком много шагов за раз. Скажите продолжать, если нужно ещё.",
+   "id": "Saya berhenti di sini: terlalu banyak langkah sekaligus. Minta saya lanjut jika ingin lebih."
+  },
+  "The provider's content filter stopped the answer.": {
+   "zh-Hans": "服务商的内容过滤器拦截了这个回答。",
+   "hi": "प्रदाता के कंटेंट फ़िल्टर ने जवाब रोक दिया।",
+   "es": "El filtro de contenido del proveedor detuvo la respuesta.",
+   "ar": "أوقف مرشح المحتوى لدى المزود الإجابة.",
+   "fr": "Le filtre de contenu du fournisseur a arrêté la réponse.",
+   "bn": "প্রদানকারীর কনটেন্ট ফিল্টার উত্তরটি থামিয়ে দিয়েছে।",
+   "pt-BR": "O filtro de conteúdo do provedor interrompeu a resposta.",
+   "ru": "Фильтр содержимого поставщика остановил ответ.",
+   "id": "Filter konten penyedia menghentikan jawabannya."
+  },
+  "{count} lines": {
+   "zh-Hans": {
+    "other": "{count} 行"
+   },
+   "hi": {
+    "one": "{count} पंक्ति",
+    "other": "{count} पंक्तियाँ"
+   },
+   "es": {
+    "one": "{count} línea",
+    "other": "{count} líneas"
+   },
+   "ar": {
+    "zero": "{count} سطر",
+    "one": "سطر واحد",
+    "two": "سطران",
+    "few": "{count} أسطر",
+    "many": "{count} سطرًا",
+    "other": "{count} سطر"
+   },
+   "fr": {
+    "one": "{count} ligne",
+    "other": "{count} lignes"
+   },
+   "bn": {
+    "one": "{count}টি লাইন",
+    "other": "{count}টি লাইন"
+   },
+   "pt-BR": {
+    "one": "{count} linha",
+    "other": "{count} linhas"
+   },
+   "ru": {
+    "one": "{count} строка",
+    "few": "{count} строки",
+    "many": "{count} строк",
+    "other": "{count} строки"
+   },
+   "id": {
+    "other": "{count} baris"
+   }
+  },
+  "{count} items": {
+   "zh-Hans": {
+    "other": "{count} 项"
+   },
+   "hi": {
+    "one": "{count} आइटम",
+    "other": "{count} आइटम"
+   },
+   "es": {
+    "one": "{count} elemento",
+    "other": "{count} elementos"
+   },
+   "ar": {
+    "zero": "{count} عنصر",
+    "one": "عنصر واحد",
+    "two": "عنصران",
+    "few": "{count} عناصر",
+    "many": "{count} عنصرًا",
+    "other": "{count} عنصر"
+   },
+   "fr": {
+    "one": "{count} élément",
+    "other": "{count} éléments"
+   },
+   "bn": {
+    "one": "{count}টি আইটেম",
+    "other": "{count}টি আইটেম"
+   },
+   "pt-BR": {
+    "one": "{count} item",
+    "other": "{count} itens"
+   },
+   "ru": {
+    "one": "{count} элемент",
+    "few": "{count} элемента",
+    "many": "{count} элементов",
+    "other": "{count} элемента"
+   },
+   "id": {
+    "other": "{count} item"
+   }
+  },
+  "{count} files": {
+   "zh-Hans": {
+    "other": "{count} 个文件"
+   },
+   "hi": {
+    "one": "{count} फ़ाइल",
+    "other": "{count} फ़ाइलें"
+   },
+   "es": {
+    "one": "{count} archivo",
+    "other": "{count} archivos"
+   },
+   "ar": {
+    "zero": "{count} ملف",
+    "one": "ملف واحد",
+    "two": "ملفان",
+    "few": "{count} ملفات",
+    "many": "{count} ملفًا",
+    "other": "{count} ملف"
+   },
+   "fr": {
+    "one": "{count} fichier",
+    "other": "{count} fichiers"
+   },
+   "bn": {
+    "one": "{count}টি ফাইল",
+    "other": "{count}টি ফাইল"
+   },
+   "pt-BR": {
+    "one": "{count} arquivo",
+    "other": "{count} arquivos"
+   },
+   "ru": {
+    "one": "{count} файл",
+    "few": "{count} файла",
+    "many": "{count} файлов",
+    "other": "{count} файла"
+   },
+   "id": {
+    "other": "{count} berkas"
+   }
+  },
+  "{count} matches": {
+   "zh-Hans": {
+    "other": "{count} 处匹配"
+   },
+   "hi": {
+    "one": "{count} मिलान",
+    "other": "{count} मिलान"
+   },
+   "es": {
+    "one": "{count} coincidencia",
+    "other": "{count} coincidencias"
+   },
+   "ar": {
+    "zero": "{count} تطابق",
+    "one": "تطابق واحد",
+    "two": "تطابقان",
+    "few": "{count} تطابقات",
+    "many": "{count} تطابقًا",
+    "other": "{count} تطابق"
+   },
+   "fr": {
+    "one": "{count} résultat",
+    "other": "{count} résultats"
+   },
+   "bn": {
+    "one": "{count}টি মিল",
+    "other": "{count}টি মিল"
+   },
+   "pt-BR": {
+    "one": "{count} ocorrência",
+    "other": "{count} ocorrências"
+   },
+   "ru": {
+    "one": "{count} совпадение",
+    "few": "{count} совпадения",
+    "many": "{count} совпадений",
+    "other": "{count} совпадения"
+   },
+   "id": {
+    "other": "{count} kecocokan"
+   }
+  },
+  "{count} more lines": {
+   "zh-Hans": {
+    "other": "还有 {count} 行"
+   },
+   "hi": {
+    "one": "{count} और पंक्ति",
+    "other": "{count} और पंक्तियाँ"
+   },
+   "es": {
+    "one": "{count} línea más",
+    "other": "{count} líneas más"
+   },
+   "ar": {
+    "zero": "{count} سطر إضافي",
+    "one": "سطر إضافي واحد",
+    "two": "سطران إضافيان",
+    "few": "{count} أسطر إضافية",
+    "many": "{count} سطرًا إضافيًا",
+    "other": "{count} سطر إضافي"
+   },
+   "fr": {
+    "one": "{count} ligne de plus",
+    "other": "{count} lignes de plus"
+   },
+   "bn": {
+    "one": "আরও {count}টি লাইন",
+    "other": "আরও {count}টি লাইন"
+   },
+   "pt-BR": {
+    "one": "mais {count} linha",
+    "other": "mais {count} linhas"
+   },
+   "ru": {
+    "one": "ещё {count} строка",
+    "few": "ещё {count} строки",
+    "many": "ещё {count} строк",
+    "other": "ещё {count} строки"
+   },
+   "id": {
+    "other": "{count} baris lagi"
+   }
   }
  }
 }

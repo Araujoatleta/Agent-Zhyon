@@ -37,6 +37,10 @@ struct SessionItem: Identifiable {
     let cwd: String
     let updatedAt: Date
     let macName: String
+    /// From the paired Windows or Linux computer (PCLink), not from the Mac through iCloud.
+    let fromComputer: Bool
+    /// The agent's name as the computer sends it, for a pill the catalog has not (Mochi's hands).
+    let agentName: String
 
     init(record: CKRecord) {
         id = record["pillId"] as? String ?? record.recordID.recordName
@@ -56,9 +60,11 @@ struct SessionItem: Identifiable {
         cwd = record.encryptedValues["cwd"] as? String ?? ""
         updatedAt = record["updatedAt"] as? Date ?? record.modificationDate ?? .now
         macName = record["macName"] as? String ?? ""
+        fromComputer = false
+        agentName = ""
     }
 
-    var pillName: String { PillCatalog.definition(for: id)?.name ?? id }
+    var pillName: String { PillCatalog.definition(for: id)?.name ?? (agentName.isEmpty ? id : agentName) }
     var currentStep: String? { steps.indices.contains(stepIndex) ? steps[stepIndex] : steps.last }
 }
 
@@ -76,6 +82,15 @@ final class PhoneLink {
     }
 
     static let containerID = "iCloud.fr.louisraille.Coucou"
+
+    /// iCloud is part of this build. A sideloaded build (signed with a free Apple Account: no iCloud, no push) has
+    /// only the link to a Windows or Linux computer (PCLink), and must never touch CloudKit, which stops the app
+    /// when the entitlement is missing.
+    #if SIDELOAD
+    nonisolated static let cloudAvailable = false
+    #else
+    nonisolated static let cloudAvailable = true
+    #endif
     static let zoneID = CKRecordZone.ID(zoneName: "Coucou", ownerName: CKCurrentUserDefaultName)
     private static let subscriptionID = "coucou-zone-phone-silent"
     /// Step 1's subscription showed a "Ping from your Mac" banner. A saved
@@ -86,7 +101,16 @@ final class PhoneLink {
     /// The first look at iCloud is over (whatever came of it): the intro can end.
     var firstSyncDone = false
     var pings: [PingItem] = []
-    var sessions: [SessionItem] = []
+    /// The Mac's sessions, from iCloud.
+    var cloudSessions: [SessionItem] = []
+
+    /// Every session on screen: the Mac's and the paired computer's (one per pill; the computer's wins a tie).
+    var sessions: [SessionItem] {
+        let computer = PCLink.shared.items
+        guard !computer.isEmpty else { return cloudSessions }
+        let pills = Set(computer.map(\.id))
+        return (cloudSessions.filter { !pills.contains($0.id) } + computer).sorted { $0.updatedAt > $1.updatedAt }
+    }
     /// Service Mochi (GitHub, Stripe…) the Mac publishes, by pill ID.
     var services: [String: ServiceSnapshot] = [:]
     /// A service up close (figures, lists, actions), fetched by the Mac when its screen opens.
@@ -101,8 +125,8 @@ final class PhoneLink {
     /// A session to open, from a notification, a shortcut or the Control Center.
     var openPillId: String?
 
-    @ObservationIgnored private let container = CKContainer(identifier: PhoneLink.containerID)
-    @ObservationIgnored private var database: CKDatabase { container.privateCloudDatabase }
+    // Made when first needed, never in a build without iCloud.
+    @ObservationIgnored private var database: CKDatabase { CKContainer(identifier: PhoneLink.containerID).privateCloudDatabase }
     @ObservationIgnored private var changeToken: CKServerChangeToken?
     @ObservationIgnored private var firstFetchDone = false
     @ObservationIgnored private var subscribed = false
@@ -123,8 +147,14 @@ final class PhoneLink {
 
     /// Checks the account, makes sure the subscription exists, then fetches new records.
     func refresh() async {
+        PCLink.shared.reconnectIfNeeded()
+        guard Self.cloudAvailable else {
+            status = .ready
+            firstSyncDone = true
+            return
+        }
         do {
-            let accountStatus = try await container.accountStatus()
+            let accountStatus = try await CKContainer(identifier: PhoneLink.containerID).accountStatus()
             guard accountStatus == .available else {
                 status = .noAccount(describe(accountStatus))
                 firstSyncDone = true
@@ -144,6 +174,7 @@ final class PhoneLink {
 
     /// Called on a CloudKit push. Returns true when new records arrived.
     func handlePush() async -> Bool {
+        guard Self.cloudAvailable else { return false }
         let gotNew = await fetchChanges()
         await notifyNewApprovals()
         await postEvents()
@@ -212,6 +243,10 @@ final class PhoneLink {
 
     @discardableResult
     private func fetchChanges() async -> Bool {
+        guard Self.cloudAvailable else {
+            firstSyncDone = true
+            return false
+        }
         guard !fetching else { return false }
         fetching = true
         defer { fetching = false }
@@ -224,7 +259,7 @@ final class PhoneLink {
                     if case .success(let mod) = result, add(mod.record) { gotNew = true }
                 }
                 for deletion in changes.deletions where deletion.recordType == "Session" {
-                    sessions.removeAll { "session-\($0.id)" == deletion.recordID.recordName }
+                    cloudSessions.removeAll { "session-\($0.id)" == deletion.recordID.recordName }
                     gotNew = true
                 }
                 for deletion in changes.deletions where deletion.recordType == TurnSnapshot.recordType {
@@ -287,9 +322,9 @@ final class PhoneLink {
             // Services used to come as sessions; they have their own records now.
             guard PillCatalog.isSession(item.id) else { return false }
             if let event = AgentNotifier.event(for: item) { events.append(event) }
-            sessions.removeAll { $0.id == item.id }
-            sessions.append(item)
-            sessions.sort { $0.updatedAt > $1.updatedAt }
+            cloudSessions.removeAll { $0.id == item.id }
+            cloudSessions.append(item)
+            cloudSessions.sort { $0.updatedAt > $1.updatedAt }
             return true
         }
         guard record.recordType == "Ping",
@@ -319,7 +354,7 @@ final class PhoneLink {
     /// Notifications for requests no longer pending are removed.
     private func notifyNewApprovals() async {
         await removeAnsweredNotifications()
-        let fresh = sessions.filter {
+        let fresh = cloudSessions.filter {
             $0.needsApproval && !$0.approvalFingerprint.isEmpty && !notifiedFingerprints.contains($0.approvalFingerprint)
         }
         guard !fresh.isEmpty else { return }
@@ -363,7 +398,9 @@ final class PhoneLink {
     /// Clears the banners of requests answered on the Mac, on the iPhone or expired.
     private func removeAnsweredNotifications() async {
         let pending = pendingFingerprints
-        let stale = await Self.shownApprovals().filter { !pending.contains($0.fingerprint) }.map { $0.id }
+        // The computer's requests stay while its link is down (Coucou away from the screen): PCLink clears them.
+        let stale = await Self.shownApprovals()
+            .filter { !pending.contains($0.fingerprint) && !PCLink.shared.owns($0.fingerprint) }.map { $0.id }
         if !stale.isEmpty { UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: stale) }
     }
 
@@ -411,6 +448,23 @@ final class PhoneLink {
     /// Answers the question a session waits on. The Mac takes it within ~2 s,
     /// only if it is still the same question and the picks are among its choices.
     func answer(fingerprint: String, pillId: String, selections: [[String]]) async -> Bool {
+        if PCLink.shared.owns(fingerprint) {
+            // The computer wants the screen lock before an answer, as for Allow (a notification's buttons had the
+            // iPhone unlocked by its owner first).
+            if UIApplication.shared.applicationState == .active {
+                guard await OwnerCheck.confirm(reason: "Send this answer to \(PCLink.shared.name)") else {
+                    lastPong = "Face ID didn't confirm. Nothing was sent."
+                    return false
+                }
+            }
+            let sent = await PCLink.shared.answer(fingerprint: fingerprint, picks: selections)
+            if !sent { lastPong = PCLink.shared.lastError }
+            return sent
+        }
+        guard Self.cloudAvailable else {
+            lastPong = "This question is no longer waiting."
+            return false
+        }
         let record = CKRecord(recordType: "Answer",
                               recordID: CKRecord.ID(recordName: "answer-\(UUID().uuidString)", zoneID: Self.zoneID))
         record["fingerprint"] = fingerprint
@@ -462,6 +516,7 @@ final class PhoneLink {
     }
 
     private func sendServiceRequest(kind: String, target: String, pillId: String) async -> Bool {
+        guard Self.cloudAvailable else { return false }
         let record = CKRecord(recordType: ServiceDetail.requestType,
                               recordID: CKRecord.ID(recordName: "service-request-\(UUID().uuidString)", zoneID: Self.zoneID))
         record["pillId"] = pillId
@@ -482,6 +537,10 @@ final class PhoneLink {
     /// Sends an instruction to continue a session on the Mac. The Mac takes it
     /// within ~15 s and deletes it; it never runs twice.
     func sendInstruction(_ text: String, pillId: String) async -> Bool {
+        guard Self.cloudAvailable else {
+            lastPong = "Instructions go to a Mac through iCloud."
+            return false
+        }
         let record = CKRecord(recordType: "Instruction",
                               recordID: CKRecord.ID(recordName: "instruction-\(UUID().uuidString)", zoneID: Self.zoneID))
         record["pillId"] = pillId
@@ -508,6 +567,15 @@ final class PhoneLink {
     /// Sends allow / deny for one exact request. The Mac applies it only if the
     /// fingerprint still matches the request it is waiting on.
     func decide(_ decision: Decision, fingerprint: String, pillId: String, summary: String) async -> Bool {
+        if PCLink.shared.owns(fingerprint) {
+            let sent = await PCLink.shared.decide(allow: decision == .allow, fingerprint: fingerprint)
+            if sent { log(decision, pillId: pillId, summary: summary) } else { lastPong = PCLink.shared.lastError }
+            return sent
+        }
+        guard Self.cloudAvailable else {
+            lastPong = "This request is no longer waiting."
+            return false
+        }
         let record = CKRecord(recordType: "Decision",
                               recordID: CKRecord.ID(recordName: "decision-\(UUID().uuidString)", zoneID: Self.zoneID))
         record["fingerprint"] = fingerprint
@@ -517,14 +585,18 @@ final class PhoneLink {
         record["deviceName"] = UIDevice.current.name
         do {
             _ = try await database.save(record)
-            history.insert(DecisionLog(decision: decision, pillId: pillId, summary: summary, date: .now), at: 0)
-            history = Array(history.prefix(50))
-            DecisionLog.save(history)
+            log(decision, pillId: pillId, summary: summary)
             return true
         } catch {
             lastPong = "Decision failed: \(error.localizedDescription)"
             return false
         }
+    }
+
+    private func log(_ decision: Decision, pillId: String, summary: String) {
+        history.insert(DecisionLog(decision: decision, pillId: pillId, summary: summary, date: .now), at: 0)
+        history = Array(history.prefix(50))
+        DecisionLog.save(history)
     }
 
     /// Allow from the Live Activity or a notification, without opening the app
@@ -538,6 +610,11 @@ final class PhoneLink {
         return sent
     }
 
+    /// The computer's sessions changed (PCLink): the widgets follow. Its banners are PCLink's to clear.
+    func computerSessionsChanged() {
+        updateWidgets()
+    }
+
     /// Hands the sessions to the widgets and asks them to redraw.
     private func updateWidgets() {
         SharedSessions.save(sessions.map(\.shared) + services.values.map(\.shared))
@@ -547,7 +624,7 @@ final class PhoneLink {
 
     /// Writes a Pong linked to the latest Ping.
     func sendPong() async {
-        guard let ping = pings.first else { return }
+        guard Self.cloudAvailable, let ping = pings.first else { return }
         let record = CKRecord(recordType: "Pong",
                               recordID: CKRecord.ID(recordName: UUID().uuidString, zoneID: Self.zoneID))
         let repliedAt = Date()

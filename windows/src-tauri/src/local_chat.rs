@@ -236,7 +236,7 @@ fn read_prefix(path: &str, limit: usize) -> Option<String> {
     }
 }
 
-fn user_text(first: bool, context: Option<&ChatContext>, query: &str) -> String {
+pub(crate) fn user_text(first: bool, context: Option<&ChatContext>, query: &str) -> String {
     match context.filter(|_| first) {
         Some(ChatContext::File { name, path }) => format!("{}\n\n{query}", file_note(name, path)),
         Some(ChatContext::Window { app_name, title, url }) => {
@@ -292,6 +292,27 @@ pub async fn send_with(
     let plain = chat::plain_question(turn.first, context.as_ref(), &query);
     chat.commit(&turn, user, json!({ "role": "assistant", "content": answer }), &plain, &answer);
     Ok(ChatReply { text: answer })
+}
+
+/// One chat completions request to the server, whole (not streamed), for Mochi's hands (agent/), which build
+/// their own body with tools.
+pub(crate) async fn post(server: &Server, body: &Value, timeout: Duration) -> Result<Value, String> {
+    let base = base_url(server)?;
+    let response = net::client(&base, timeout)?
+        .post(net::join(&base, "v1/chat/completions"))
+        .header("Authorization", bearer(server.key.as_deref()))
+        .json(body)
+        .send()
+        .await
+        .map_err(|_| unreachable(&base))?;
+    let status = response.status();
+    if !status.is_success() {
+        let body = net::read_capped(response, net::MAX_ERROR_BODY).await.unwrap_or_default();
+        let detail = net::error_detail(&body);
+        return Err(if detail.is_empty() { format!("HTTP {}", status.as_u16()) } else { format!("HTTP {}: {detail}", status.as_u16()) });
+    }
+    let bytes = net::read_capped(response, net::MAX_BODY).await?;
+    serde_json::from_slice(&bytes).map_err(|_| unreachable(&base))
 }
 
 // ── Streaming ─────────────────────────────────────────────────────────────────

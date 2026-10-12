@@ -119,6 +119,9 @@ jobs:
       - name: Conversation context tests
         run: bash scripts/test-conversation-context.sh
 
+      - name: Test PC link wire (iPhone ↔ Windows/Linux)
+        run: bash scripts/test-pc-link.sh
+
       - name: Build
         run: |
           set -o pipefail
