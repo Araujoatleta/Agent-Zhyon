@@ -113,6 +113,37 @@ and re-reads that switch for every message. The user also chooses which provider
   sends no files, window context, keys or addresses, and the computer would not accept them.
 - Cloud providers answer all at once (as on the computer's own chat), local models stream.
 
+## Mochi's hands (optional capability `agent`)
+
+On Windows and Linux, Mochi's chat can act on the computer: look through files, change them, run commands, read or open
+web pages (Settings → Mochi's hands, off by default; `windows/src-tauri/src/agent/`). A phone that sends
+`caps: ["chat", "agent"]` is offered `agent` in `welcome.caps` only together with `chat`, and only while both switches
+are on: Mochi's hands on the computer, and "Let the phone use Mochi's hands" in Settings → Phone (off by default;
+re-read for every connection, and changing either switch disconnects the phones once so they learn about it).
+
+| Direction | `type` | fields |
+|---|---|---|
+| phone to computer | `chatSend` | as above, plus `agent: true`: this turn may use Mochi's hands |
+| computer to phone | `chatStep` | `id`, `index` (the step's place in the turn, from 0), `status` (`running waiting ok error denied`), `text` (one line of at most 400 characters, such as `Bash · npm test`) |
+
+- A step's later `chatStep` lines replace its earlier ones (same `index`); an unknown `status` is shown as `running`.
+- The answer comes whole at the end, as `chatDelta` pieces and a `chatDone`, as for a cloud provider.
+- `chatError.reason` gains `hands_off`: the hands are off on the computer, the folder they work in is gone, or the phone
+  sent `agent: true` without having negotiated `agent`. `busy` also means Mochi is already at work for the island's
+  chat (one turn with hands at a time on a computer), and `canceled` that the user stopped him on the computer.
+  `chatCancel`, `chatReset` and the phone leaving stop a turn with hands like any other: the command running is ended
+  (its whole process tree) and the action waiting for a click is withdrawn.
+- What Mochi wants to do that needs a click comes as an ordinary `approval` on the pill `agent_mochi`, so a phone that
+  knows nothing of `agent` can answer it too, with the same biometric check for Allow. `tool` is a Claude Code tool name
+  (`Bash`, `Read`, `Write`, `Edit`, `LS`, `Glob`, `Grep`, `WebFetch`, `Open`); `command` is the command, the path or the
+  address, followed by ` — outside the working folder` or ` — looks like a secret file` when that is why it asks. These
+  approvals are sent whether the turn started on the island or on a phone, and never replace Claude Code's.
+- While Mochi works, `sessions` carries one more session on the pill `agent_mochi` (agent `Mochi`, the step running as
+  its `statusText`); it stays a few minutes after the turn ends, then goes.
+- The phone sends only the text of its request: no files, paths or commands of its own. What Mochi may do is decided on
+  the computer (the working folder and the level chosen there), and every change, command and web request still waits
+  for Allow.
+
 ## Session details (optional capability `details`)
 
 A phone that sends `caps: ["details"]` in its `hello`, while the user has turned on "Show session details on the phone" on the
@@ -187,7 +218,7 @@ same again if it is sent more. The line counts toward the 56 KiB budget of a `se
 ## Service cards (optional capability `services`)
 
 Read-only cards of the island's service pills (Stripe, GitHub, Vercel, n8n, Resend, Notion, Cal.com). **One tick per service**
-in Settings > Android phone on the computer, none ticked by default; a phone that sends `caps: ["services"]` is offered
+in Settings > Phone on the computer, none ticked by default; a phone that sends `caps: ["services"]` is offered
 `services` in `welcome.caps` only if at least one service is ticked (re-read for every connection; a change reconnects the phones).
 Each phone is sent only the services ticked, and nothing is sent for the others, not even their names.
 
@@ -306,7 +337,7 @@ simply keeps using the saved address.**
 
 ## Windows/Linux implementation notes
 
-- Settings → Android phone: off by default (`phoneLink` in settings.json, owned by Rust: the webview
+- Settings → Phone (Android and iPhone): off by default (`phoneLink` in settings.json, owned by Rust: the webview
   cannot switch it on). While off, nothing listens, nothing is published and no timer runs.
 - It listens on `0.0.0.0` (port 47821, else any free port) but drops every peer that is not on the
   local network (private, loopback, link-local). At most 8 connections; 10 s to say hello (3 s when the pool is
@@ -316,7 +347,7 @@ simply keeps using the saved address.**
   does not start.
 - One token at a time: "Pair again" replaces it and disconnects the phone that had the old one. The
   pairing code is shown only after a click, and only to the settings window.
-- Chat (Settings → Android phone → "Let the phone chat with my AI providers"): off by default, owned by Rust like
+- Chat (Settings → Phone → "Let the phone chat with my AI providers"): off by default, owned by Rust like
   `phoneLink` (`phoneChat`, `phoneChatModels` in settings.json; the webview cannot change them). The user ticks the
   provider/model pairs the phone may use (a provider's model list is asked for only when its "Choose models" button is
   pressed). Turning the switch on or off disconnects the phones once so they reconnect and learn about the capability;
@@ -324,8 +355,12 @@ simply keeps using the saved address.**
   separate in-memory `Chat`, not the island's. The provider code is the island's (`chat::send_for_phone`); a provider's
   error text is never forwarded or logged, only a kind (no key, unreachable, auth, provider).
 - Permission requests (Allow/Deny) go to every phone. A question from Claude Code goes only to a phone with the `answers`
-  capability (Settings → Android phone → "Let the phone answer Claude Code's questions", off by default); otherwise its
+  capability (Settings → Phone → "Let the phone answer Claude Code's questions", off by default); otherwise its
   options are picked on the island.
+- Mochi's hands from the phone (Settings → Phone → "Let the phone use Mochi's hands"): off by default, owned by Rust
+  (`phoneAgent`); it needs the chat switch and Mochi's hands on (`agentEnabled`, `agentFolder`, `agentLevel`, which only
+  Settings → Mochi's hands can change). The phone's turns run with the phone's conversation, through the same tools and
+  rules as the island's (`agent::run_for_phone`).
 - New crates: `mdns-sd` (+ `flume`, `if-addrs`, `socket-pktinfo`, `spin`; default features off, so no async runtime or logger) announces the computer on the local network while the link is on (`phone_link/discovery.rs`); `rcgen` (+ `yasna`) makes the certificate once, `qrcode` draws the pairing QR; `rustls`,
   `tokio-rustls` and `ring` were already in the dependency tree (through `reqwest`) and are now named
   directly. Hashing, randomness and the constant-time comparison use `ring`; no other crate.
@@ -349,7 +384,7 @@ simply keeps using the saved address.**
 
 ## Through a relay (optional capability `relay`)
 
-When the user turns on "Away from home Wi-Fi" in Settings > Android phone, the pairing link carries four more fields
+When the user turns on "Away from home Wi-Fi" in Settings > Phone, the pairing link carries four more fields
 (`relay`, `room`, `key`, `access`) and a phone that sends `caps: ["relay"]` is offered `relay` in `welcome.caps` (re-read for
 every connection). The conversation itself is unchanged and runs inside an end-to-end encrypted channel through the user's own
 relay; the wire is in `docs/RELAY_LINK.md`. When the user replaces the relay's access key, each phone that negotiated `relay`
