@@ -1,0 +1,75 @@
+name: iPhone (sideload)
+
+# Coucou for iPhone without iCloud (compiled with SIDELOAD), unsigned, as an .ipa to install with a free Apple Account
+# through Sideloadly or AltStore. That build talks only to Coucou on Windows or Linux, over the local network
+# (PCLink, docs/IPHONE_PC.md): a free account has no iCloud and no push. Nothing is signed or published here;
+# the .ipa is an artifact of the run.
+
+on:
+  push:
+    paths:
+      - 'NotchBuddy/**'
+      - 'tests/PCLinkWireTests.swift'
+      - 'scripts/test-pc-link.sh'
+      - '.github/workflows/iphone-sideload.yml'
+  pull_request:
+    paths:
+      - 'NotchBuddy/**'
+      - 'tests/PCLinkWireTests.swift'
+      - 'scripts/test-pc-link.sh'
+      - '.github/workflows/iphone-sideload.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ipa:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate project
+        run: cd NotchBuddy && xcodegen
+
+      - name: PC link wire tests
+        run: bash scripts/test-pc-link.sh
+
+      # $(inherited) keeps each target's own conditions (WIDGET_EXTENSION for the widgets).
+      - name: Build the iPhone app (unsigned, without iCloud)
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project NotchBuddy/NotchBuddy.xcodeproj \
+            -scheme CoucouPhone \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            'SWIFT_ACTIVE_COMPILATION_CONDITIONS=$(inherited) SIDELOAD' 2>&1 | tee build.log || {
+              # Compiler errors as annotations, readable without downloading the log.
+              grep -E "error:" build.log | sort -u | head -30 | sed 's/^/::error::/'
+              exit 1
+            }
+
+      - name: Package the .ipa
+        run: |
+          APP="build/Build/Products/Release-iphoneos/Coucou.app"
+          test -d "$APP"
+          mkdir Payload
+          cp -R "$APP" Payload/
+          zip -qry Coucou-iPhone-sideload.ipa Payload
+          ls -l Coucou-iPhone-sideload.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Coucou-iPhone-sideload
+          path: Coucou-iPhone-sideload.ipa
+          retention-days: 30

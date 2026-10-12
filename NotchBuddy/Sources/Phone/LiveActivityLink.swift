@@ -76,6 +76,8 @@ final class LiveActivityLink {
     }
 
     private func save() async {
+        // The Mac reads the tokens from iCloud; a build without iCloud has no Mac to start an activity.
+        guard PhoneLink.cloudAvailable else { return }
         let record = CKRecord(recordType: "PhoneToken", recordID: recordID)
         record["env"] = apnsEnvironment
         record["activityId"] = activityID

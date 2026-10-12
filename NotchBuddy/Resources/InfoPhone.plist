@@ -39,8 +39,14 @@
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_coucou._tcp</string>
+	</array>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Coucou asks for Face ID before allowing a command from your iPhone.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Coucou connects to Coucou on your Windows or Linux computer, on your local network, to show your agents and answer their requests.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Coucou uses the microphone when you dictate an instruction for Claude Code.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>

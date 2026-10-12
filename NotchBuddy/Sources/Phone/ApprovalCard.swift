@@ -28,13 +28,13 @@ struct ApprovalCard: View {
                         Image(systemName: "xmark.circle.fill").font(.title).foregroundStyle(.red)
                             .symbolEffect(.bounce, value: sent)
                     }
-                    Text(sent == .allow ? "Allowed, sent to your Mac" : "Denied, sent to your Mac")
+                    Text(sent == .allow ? "Allowed, sent to \(session.hostName)" : "Denied, sent to \(session.hostName)")
                         .font(.callout.weight(.semibold))
                         .foregroundStyle(sent == .allow ? .green : .red)
                 }
                 .transition(.scale(scale: 0.8).combined(with: .opacity))
             } else if session.approvalFingerprint.isEmpty {
-                Text("Answer on your Mac. This request can't be answered from the iPhone.")
+                Text("Answer on \(session.hostName). This request can't be answered from the iPhone.")
                     .font(.caption).foregroundStyle(.secondary)
             } else {
                 ApprovalChoiceButtons(disabled: sending != nil) {
@@ -61,7 +61,7 @@ struct ApprovalCard: View {
         defer { sending = nil }
         error = nil
         if decision == .allow {
-            guard await OwnerCheck.confirm(reason: "Allow this command on your Mac") else {
+            guard await OwnerCheck.confirm(reason: "Allow this command on \(session.hostName)") else {
                 error = "Face ID didn't confirm. Nothing was sent."
                 Haptics.warning()
                 return

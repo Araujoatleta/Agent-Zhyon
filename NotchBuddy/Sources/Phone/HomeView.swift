@@ -11,6 +11,8 @@ struct HomeView: View {
     @State private var agentsPath: [String] = []
     @State private var servicesPath: [String] = []
     @State private var introDone = false
+    /// A pairing link opened from the Camera (the QR code of a Windows or Linux computer), waiting for a yes.
+    @State private var pairing: PCPairing?
     @AppStorage("onboardingDone") private var onboardingDone = false
 
     var body: some View {
@@ -28,9 +30,16 @@ struct HomeView: View {
                 SearchTab(link: link)
             }
         }
-        // A widget tile was tapped: open that Mochi.
+        // A widget tile was tapped: open that Mochi. Or the Camera read a computer's pairing code.
         .onOpenURL { url in
-            if let id = SharedSession.sessionId(from: url) { open(id) }
+            if let id = SharedSession.sessionId(from: url) {
+                open(id)
+            } else if let found = PCPairing.parse(url.absoluteString) {
+                pairing = found
+            }
+        }
+        .sheet(item: $pairing) { found in
+            PCPairingConfirm(pairing: found, pc: PCLink.shared)
         }
         // A notification, Siri, Spotlight or the Control Center asked for a session.
         .onChange(of: link.openPillId) { _, id in
@@ -47,9 +56,13 @@ struct HomeView: View {
                 ReviewSheet(link: link, fingerprint: fingerprint)
             }
         }
-        // First launch: how to connect the Mac.
+        // First launch: how to connect the Mac (or, in a build without iCloud, the Windows or Linux computer).
         .fullScreenCover(isPresented: Binding(get: { !onboardingDone }, set: { if !$0 { onboardingDone = true } })) {
-            OnboardingView()
+            if PhoneLink.cloudAvailable {
+                OnboardingView()
+            } else {
+                PCOnboardingView(pc: PCLink.shared)
+            }
         }
         // The opening: Mochi alone while the app loads, then he flies to his tile.
         .overlay {
@@ -163,6 +176,16 @@ struct AgentsTab: View {
                         Image(systemName: "gearshape")
                     }
                 }
+                // Mochi on the paired Windows or Linux computer.
+                if PCLink.shared.isPaired {
+                    ToolbarItem(placement: .topBarLeading) {
+                        NavigationLink {
+                            PCChatView(pc: PCLink.shared)
+                        } label: {
+                            Image(systemName: "desktopcomputer")
+                        }
+                    }
+                }
                 #if DEBUG
                 // Test screens, in builds run from Xcode only.
                 ToolbarItem(placement: .topBarLeading) {
@@ -205,7 +228,7 @@ struct ServicesTab: View {
 @MainActor
 enum QuickDecision {
     static func allow(_ session: SessionItem, link: PhoneLink) async -> Bool {
-        guard await OwnerCheck.confirm(reason: "Allow this command on your Mac") else {
+        guard await OwnerCheck.confirm(reason: "Allow this command on \(session.hostName)") else {
             Haptics.warning()
             return false
         }
@@ -507,6 +530,21 @@ struct EmptySessionsView: View {
     }
 
     private var message: String {
+        // A paired Windows or Linux computer, or a build that has nothing else to talk to.
+        let pc = PCLink.shared
+        if pc.isPaired && (status == .ready || !PhoneLink.cloudAvailable) {
+            switch pc.status {
+            case .connected:
+                return "No session yet. Start Claude Code on \(pc.name), or chat with Mochi there (the computer button above)."
+            case .connecting, .searching:
+                return "Connecting to \(pc.name)…"
+            default:
+                return pc.status.text
+            }
+        }
+        if !PhoneLink.cloudAvailable {
+            return "Pair with Coucou on your Windows or Linux computer: ⚙︎ → Windows or Linux computer."
+        }
         switch status {
         case .starting: "Connecting to iCloud…"
         case .noAccount(let reason): "\(reason) Sign in to iCloud with the same account as your Mac."

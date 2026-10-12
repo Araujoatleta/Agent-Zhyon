@@ -36,7 +36,7 @@ struct QuestionCard: View {
                 }
             }
             if sent {
-                Label("Answer sent to your Mac", systemImage: "checkmark.circle.fill")
+                Label("Answer sent to \(session.hostName)", systemImage: "checkmark.circle.fill")
                     .font(.callout.weight(.semibold))
                     .foregroundStyle(.green)
             } else {
