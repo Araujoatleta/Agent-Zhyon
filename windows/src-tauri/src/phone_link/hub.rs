@@ -632,6 +632,14 @@ impl Hub {
         self.inner.lock().unwrap().subs.len()
     }
 
+    /// True while `request_id` still waits for an answer: the island's request, Mochi's action or the question.
+    pub fn waiting(&self, request_id: &str) -> bool {
+        let inner = self.inner.lock().unwrap();
+        !request_id.is_empty()
+            && (inner.approval.iter().chain(inner.agent_approval.iter()).any(|a| a.request_id == request_id)
+                || inner.question.as_ref().is_some_and(|q| q.request_id == request_id))
+    }
+
     /// A phone's answer. Applied only for the request that is still pending.
     pub fn decide(&self, fingerprint: &str, decision: &str, now: u64) -> Outcome {
         let allow = match decision {

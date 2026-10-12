@@ -69,6 +69,9 @@ pub const INTERNAL_KEYS: &[&str] = &[
     "phone-relay-room",
     "phone-relay-key",
     "phone-relay-access",
+    // Notifications with Coucou closed (phone_link/push.rs): the push topic, and an access token for a protected one.
+    "phone-push-topic",
+    "phone-push-token",
 ];
 
 /// Whether the keystore would accept this key through `get_internal` / `set_internal`.

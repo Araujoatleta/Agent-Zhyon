@@ -56,6 +56,15 @@ export interface PhoneRelayStatus {
   state: PhoneRelayState;
 }
 
+/** Notifications with Coucou closed (phone_link/push.rs): the topic and the token never come back here. */
+export interface PhonePushStatus {
+  enabled: boolean;
+  /** As entered; "" is ntfy.sh. */
+  server: string;
+  hasTopic: boolean;
+  hasToken: boolean;
+}
+
 /** Session details for the phone: the switch (off by default). */
 export interface PhoneDetailsStatus {
   enabled: boolean;
@@ -346,6 +355,17 @@ export const Bridge = {
   phoneAgentStatus: () => call<{ enabled: boolean }>("phone_agent_status"),
   /** Off by default; only from the switch in Settings. Phones are reconnected so they learn about it. */
   phoneAgentSetEnabled: (enabled: boolean) => callOrThrow<{ enabled: boolean }>("phone_agent_set_enabled", { enabled }),
+  // ── Notifications with Coucou closed (src-tauri/src/phone_link/push.rs) ──
+  phonePushStatus: () => call<PhonePushStatus>("phone_push_status"),
+  /** The switch and the server; turning it on makes the topic. Throws with the reason (an address that is not https). */
+  phonePushSet: (enabled: boolean, server: string) => callOrThrow<PhonePushStatus>("phone_push_set", { enabled, server }),
+  /** The topic to subscribe to in the ntfy app. Only the settings window may read it. */
+  phonePushTopic: () => callOrThrow<string>("phone_push_topic"),
+  phonePushNewTopic: () => callOrThrow<string>("phone_push_new_topic"),
+  /** Write-only; empty forgets it. */
+  phonePushSetToken: (token: string) => callOrThrow<PhonePushStatus>("phone_push_set_token", { token }),
+  /** Sends a test notification now. Throws with what went wrong. */
+  phonePushTest: () => callOrThrow<void>("phone_push_test"),
   chatReset: () => call<void>("chat_reset"),
   /**
    * The models a provider offers, for the picker in the chat view. Rust asks

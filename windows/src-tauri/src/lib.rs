@@ -106,6 +106,8 @@ fn save_settings(app: AppHandle, shared: State<Shared>, settings: Settings) {
         settings.phone_relay_url = current.phone_relay_url.clone();
         settings.phone_chat_models = current.phone_chat_models.clone();
         settings.phone_agent = current.phone_agent;
+        settings.phone_push = current.phone_push;
+        settings.phone_push_server = current.phone_push_server.clone();
         // Mochi's hands too: only Settings → Mochi's hands changes them (agent::agent_settings_set).
         settings.agent_enabled = current.agent_enabled;
         settings.agent_folder = current.agent_folder.clone();
@@ -766,6 +768,12 @@ pub fn run() {
             phone_link::phone_chat_set_models,
             phone_link::phone_agent_status,
             phone_link::phone_agent_set_enabled,
+            phone_link::phone_push_status,
+            phone_link::phone_push_set,
+            phone_link::phone_push_topic,
+            phone_link::phone_push_new_topic,
+            phone_link::phone_push_set_token,
+            phone_link::push::phone_push_test,
             agent::agent_status,
             agent::agent_decide,
             agent::agent_cancel,

@@ -39,6 +39,56 @@ pub fn is_loopback_url(url: &Url) -> bool {
     url.host_str().is_some_and(is_loopback_host)
 }
 
+/// True for an address that can only be on the local network (or this machine): loopback, the private IPv4 ranges
+/// (10/8, 172.16/12, 192.168/16), link-local (169.254/16, fe80::/10) and IPv6 unique local addresses (fc00::/7),
+/// and the names that only resolve at home: `.local` (mDNS), `.lan`, `.home`, `.home.arpa`, `.internal`, and a name
+/// without a dot ("homeassistant"). Any other name may be on the internet: `resolves_locally` looks it up.
+pub fn is_local_host(host: &str) -> bool {
+    let host = host.trim_start_matches('[').trim_end_matches(']').trim_end_matches('.').to_ascii_lowercase();
+    if host.is_empty() {
+        return false;
+    }
+    if is_loopback_host(&host) {
+        return true;
+    }
+    match host.parse::<IpAddr>() {
+        Ok(ip) => is_local_ip(ip),
+        Err(_) => {
+            !host.contains(':')
+                && (!host.contains('.')
+                    || [".local", ".lan", ".home", ".home.arpa", ".internal"].iter().any(|suffix| host.ends_with(suffix)))
+        }
+    }
+}
+
+/// An address of this machine or of the local network (see `is_local_host`).
+pub fn is_local_ip(ip: IpAddr) -> bool {
+    match ip {
+        IpAddr::V4(v4) => v4.is_loopback() || v4.is_private() || v4.is_link_local(),
+        IpAddr::V6(v6) => {
+            if let Some(v4) = v6.to_ipv4_mapped() {
+                return is_local_ip(IpAddr::V4(v4));
+            }
+            let first = v6.segments()[0];
+            v6.is_loopback() || (first & 0xfe00) == 0xfc00 || (first & 0xffc0) == 0xfe80
+        }
+    }
+}
+
+/// True when every address `host` resolves to is on the local network (a name of the user's own DNS that points
+/// inside the house, such as `ha.example.com` → 192.168.1.20). False when it does not resolve, or when one of its
+/// addresses is on the internet.
+pub async fn resolves_locally(host: &str, port: u16) -> bool {
+    if is_local_host(host) {
+        return true;
+    }
+    let Ok(Ok(addresses)) = tokio::time::timeout(Duration::from_secs(5), tokio::net::lookup_host((host, port))).await else {
+        return false;
+    };
+    let addresses: Vec<_> = addresses.collect();
+    !addresses.is_empty() && addresses.iter().all(|a| is_local_ip(a.ip()))
+}
+
 /// The address of a model server as the user typed or pasted it, cleaned up:
 /// a missing scheme becomes `http://`, trailing slashes and the documentation
 /// sub-paths people paste (`/api`, `/v1`) go, and the loopback names become
@@ -179,6 +229,33 @@ pub(crate) mod tests {
         for host in ["example.com", "192.168.1.10", "10.0.0.2", "localhost.example.com", "[2001:db8::1]", "128.0.0.1", ""] {
             assert!(!is_loopback_host(host), "{host}");
         }
+    }
+
+    #[test]
+    fn local_network_addresses_are_told_from_the_internet() {
+        for host in [
+            "localhost", "127.0.0.1", "[::1]", "192.168.1.20", "10.0.0.5", "172.16.4.1", "172.31.255.254", "169.254.10.2",
+            "[fd12:3456::1]", "[fe80::1]", "::ffff:192.168.0.9", "homeassistant", "homeassistant.local", "HA.LOCAL.",
+            "tv-sala.lan", "router.home", "nas.home.arpa", "printer.internal",
+        ] {
+            assert!(is_local_host(host), "{host}");
+        }
+        for host in [
+            "example.com", "8.8.8.8", "172.32.0.1", "100.64.0.1", "[2001:db8::1]", "ntfy.sh", "local.example.com",
+            "evil.com.local.example.org", "",
+        ] {
+            assert!(!is_local_host(host), "{host}");
+        }
+    }
+
+    #[test]
+    fn a_name_counts_as_local_only_when_all_its_addresses_are() {
+        block_on(async {
+            assert!(resolves_locally("localhost", 80).await);
+            assert!(resolves_locally("192.168.0.2", 80).await);
+            assert!(!resolves_locally("8.8.8.8", 80).await);
+            assert!(!resolves_locally("no-such-host.invalid", 80).await);
+        });
     }
 
     #[test]

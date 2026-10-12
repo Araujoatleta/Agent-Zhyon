@@ -112,6 +112,12 @@ pub struct Settings {
     /// The paired phone may use Mochi's hands through its chat (cap `agent`). Off by default; owned by Rust like
     /// the other phone switches.
     pub phone_agent: bool,
+    /// Notifications with Coucou closed (phone_link/push.rs): a request still waiting while no phone is connected is
+    /// announced through ntfy. Off by default; owned by Rust like the other phone switches. The topic and an access
+    /// token live in the OS keystore, never here.
+    pub phone_push: bool,
+    /// The ntfy server ("" is https://ntfy.sh). Not a secret. Owned by Rust.
+    pub phone_push_server: String,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -182,6 +188,8 @@ impl Default for Settings {
             agent_level: "ask".into(),
             chat_hands: true,
             phone_agent: false,
+            phone_push: false,
+            phone_push_server: String::new(),
         }
     }
 }
@@ -473,7 +481,9 @@ mod tests {
   "agentFolder": "C:\\Users\\me\\work",
   "agentLevel": "edits",
   "chatHands": false,
-  "phoneAgent": true
+  "phoneAgent": true,
+  "phonePush": true,
+  "phonePushServer": "https://ntfy.example.com"
 }"##;
 
     fn custom() -> Value {
@@ -670,6 +680,16 @@ mod tests {
         }
         assert_eq!(parse(&custom_with("agentLevel", None)).unwrap().agent_level, "ask");
         assert!(parse(&custom_with("agentFolder", Some(serde_json::json!(5)))).unwrap().agent_folder.is_empty());
+    }
+
+    #[test]
+    fn a_file_from_before_push_notifications_keeps_them_off() {
+        // Sending anything to a push service is never on by default; an older file is not consent.
+        let d = Settings::default();
+        assert!(!d.phone_push && d.phone_push_server.is_empty());
+        assert!(!parse(&custom_with("phonePush", None)).unwrap().phone_push);
+        assert!(!parse(&custom_with("phonePush", Some(serde_json::json!("yes")))).unwrap().phone_push, "a wrong type does not switch it on");
+        assert!(parse(&custom_with("phonePushServer", Some(serde_json::json!(5)))).unwrap().phone_push_server.is_empty());
     }
 
     #[test]
@@ -1005,6 +1025,8 @@ mod tests {
                 "agentLevel",
                 "chatHands",
                 "phoneAgent",
+                "phonePush",
+                "phonePushServer",
             ]
         );
         let _ = std::fs::remove_dir_all(&dir);

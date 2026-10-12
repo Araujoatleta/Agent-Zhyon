@@ -22,6 +22,7 @@ mod hub;
 #[cfg(test)]
 mod interop;
 mod pairing;
+pub mod push;
 mod relay_client;
 mod relay_crypto;
 mod server;
@@ -30,6 +31,7 @@ mod tests;
 
 use std::net::{Ipv4Addr, SocketAddr, TcpListener as StdListener};
 use std::sync::{Arc, Mutex};
+use std::time::Instant;
 
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, State, WebviewWindow};
@@ -143,6 +145,8 @@ pub struct PhoneLink {
     error: Mutex<Option<String>>,
     /// The connection to the user's relay (relay_client.rs): exists only while the link runs AND the relay switch is on.
     relay: Mutex<Option<relay_client::Handle>>,
+    /// Notifications with Coucou closed (push.rs): which requests were pushed, and when.
+    pusher: push::Pusher,
 }
 
 impl PhoneLink {
@@ -156,7 +160,38 @@ impl PhoneLink {
             running: Mutex::new(None),
             error: Mutex::new(None),
             relay: Mutex::new(None),
+            pusher: push::Pusher::default(),
         }
+    }
+
+    /// A request just started waiting. If the user turned on notifications with Coucou closed, and it still waits a
+    /// moment later while no phone is connected, the phone is told through the push service (push.rs). `who` is the
+    /// agent's name when known; never the command.
+    fn push_later(&self, request_id: &str, who: Option<String>, question: bool) {
+        if request_id.is_empty() || !self.app.state::<Shared>().settings.lock().unwrap().phone_push {
+            return;
+        }
+        if !self.pusher.first_time(request_id) {
+            return;
+        }
+        let (app, id) = (self.app.clone(), request_id.to_string());
+        tauri::async_runtime::spawn(async move {
+            tokio::time::sleep(push::DELAY).await;
+            let Some(link) = app.try_state::<PhoneLink>() else { return };
+            // Answered meanwhile, or a phone is there to show it (and notifies by itself when away).
+            let running = link.running.lock().unwrap().is_some();
+            if !running || !link.hub.waiting(&id) || link.hub.clients() > 0 {
+                return;
+            }
+            let Some((server, topic, token)) = push::config(&app.state::<Shared>(), &*link.store) else { return };
+            if !link.pusher.may_send(Instant::now()) {
+                return;
+            }
+            match push::send(&server, &topic, token.as_deref(), &push::words(who.as_deref(), question)).await {
+                Ok(()) => log::line("phone push: sent"),
+                Err(_) => log::line("phone push: not sent"),
+            }
+        });
     }
 
     /// (Re)starts the relay connection from the settings and the keystore, or stops it. Never fails the link: a
@@ -246,7 +281,11 @@ impl PhoneLink {
         if self.running.lock().unwrap().is_none() {
             return;
         }
+        let waiting = approval.as_ref().map(|a| a.request_id.clone());
         self.hub.publish_agent(session, approval, server::now_ms());
+        if let Some(id) = waiting {
+            self.push_later(&id, Some("Mochi".into()), false);
+        }
     }
 
     pub fn stop(&self) {
@@ -862,6 +901,91 @@ pub fn phone_agent_set_enabled(
     Ok(AgentStatus { enabled })
 }
 
+// ── Notifications with Coucou closed: the push service (Settings → Phone) ──
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PushStatus {
+    pub enabled: bool,
+    /// The server as entered ("" is ntfy.sh). Not a secret.
+    pub server: String,
+    /// A topic exists. The topic itself comes only from `phone_push_topic`, to the settings window.
+    pub has_topic: bool,
+    /// An access token is stored. Never sent back to the window.
+    pub has_token: bool,
+}
+
+fn push_status_of(link: &PhoneLink, shared: &Shared) -> PushStatus {
+    let s = shared.settings.lock().unwrap();
+    PushStatus {
+        enabled: s.phone_push,
+        server: s.phone_push_server.clone(),
+        has_topic: push::topic(&*link.store).is_some(),
+        has_token: push::token(&*link.store).is_some(),
+    }
+}
+
+#[tauri::command]
+pub fn phone_push_status(link: State<PhoneLink>, shared: State<Shared>) -> PushStatus {
+    push_status_of(&link, &shared)
+}
+
+/// The switch and the server. Turning it on makes the topic if there is none yet.
+#[tauri::command]
+pub fn phone_push_set(
+    app: AppHandle,
+    window: WebviewWindow,
+    link: State<PhoneLink>,
+    shared: State<Shared>,
+    enabled: bool,
+    server: String,
+) -> Result<PushStatus, String> {
+    only_settings(&window)?;
+    let server = server.trim().to_string();
+    // Checked even when empty (ntfy.sh); kept as typed, empty stays empty.
+    push::server_url(&server)?;
+    if enabled {
+        push::ensure_topic(&*link.store)?;
+    }
+    let updated = {
+        let mut current = shared.settings.lock().unwrap();
+        current.phone_push = enabled;
+        current.phone_push_server = server;
+        if let Err(err) = settings::save(&current) {
+            log::line(format!("could not save settings: {err}"));
+        }
+        current.clone()
+    };
+    log::line(format!("phone push: {}", if enabled { "on" } else { "off" }));
+    let _ = app.emit("settings-changed", updated);
+    Ok(push_status_of(&link, &shared))
+}
+
+/// The topic to subscribe to in the ntfy app. Only the settings window may read it: whoever has it reads the
+/// notifications.
+#[tauri::command]
+pub fn phone_push_topic(window: WebviewWindow, link: State<PhoneLink>) -> Result<String, String> {
+    only_settings(&window)?;
+    push::ensure_topic(&*link.store)
+}
+
+/// A new topic: the phone subscribed to the old one gets nothing more and must subscribe again.
+#[tauri::command]
+pub fn phone_push_new_topic(window: WebviewWindow, link: State<PhoneLink>) -> Result<String, String> {
+    only_settings(&window)?;
+    let topic = push::renew_topic(&*link.store)?;
+    log::line("phone push: new topic");
+    Ok(topic)
+}
+
+/// The access token of a protected topic, write-only: kept in the OS keystore. Empty forgets it.
+#[tauri::command]
+pub fn phone_push_set_token(window: WebviewWindow, link: State<PhoneLink>, shared: State<Shared>, token: String) -> Result<PushStatus, String> {
+    only_settings(&window)?;
+    push::set_token(&*link.store, &token)?;
+    Ok(push_status_of(&link, &shared))
+}
+
 /// Mochi's hands were switched on or off on this computer: phones learn whether they may use them.
 pub fn agent_setting_changed(app: &AppHandle) {
     if let Some(link) = app.try_state::<PhoneLink>() {
@@ -876,7 +1000,13 @@ pub fn phone_link_publish_question(window: WebviewWindow, link: State<PhoneLink>
     if link.running.lock().unwrap().is_none() {
         return Ok(());
     }
+    let waiting = question.as_ref().map(|q| q.request_id.clone());
     link.hub.publish_question(question, server::now_ms());
+    // Only a phone allowed to answer questions is told about one.
+    let answers = link.app.state::<Shared>().settings.lock().unwrap().phone_answers;
+    if let Some(id) = waiting.filter(|_| answers) {
+        link.push_later(&id, None, true);
+    }
     Ok(())
 }
 
@@ -898,7 +1028,15 @@ pub fn phone_link_publish(window: WebviewWindow, link: State<PhoneLink>, session
     if link.running.lock().unwrap().is_none() {
         return Ok(());
     }
+    // The agent's name, from its session: the notification says who waits, never what for.
+    let waiting = approval.as_ref().map(|a| {
+        let who = sessions.iter().find(|s| s.pill_id == a.pill_id).map(|s| s.agent.clone()).filter(|n| !n.trim().is_empty());
+        (a.request_id.clone(), who)
+    });
     link.hub.publish(sessions, approval, server::now_ms());
+    if let Some((id, who)) = waiting {
+        link.push_later(&id, who, false);
+    }
     Ok(())
 }
 

@@ -4560,6 +4560,215 @@
    "id": {
     "other": "{count} baris lagi"
    }
+  },
+  "The push server must use https:// (plain http only on your local network).": {
+   "zh-Hans": "推送服务器必须使用 https://（纯 http 只能用在本地网络上）。",
+   "hi": "पुश सर्वर को https:// का उपयोग करना होगा (सादा http केवल आपके स्थानीय नेटवर्क पर)।",
+   "es": "El servidor de notificaciones debe usar https:// (http sin cifrar solo en tu red local).",
+   "ar": "يجب أن يستخدم خادم الإشعارات https:// (ولا يُقبل http العادي إلا على شبكتك المحلية).",
+   "fr": "Le serveur de notifications doit utiliser https:// (http simple seulement sur votre réseau local).",
+   "bn": "পুশ সার্ভারকে https:// ব্যবহার করতে হবে (সাধারণ http কেবল আপনার স্থানীয় নেটওয়ার্কে)।",
+   "pt-BR": "O servidor de notificações precisa usar https:// (http simples só na sua rede local).",
+   "ru": "Сервер уведомлений должен использовать https:// (обычный http — только в вашей локальной сети).",
+   "id": "Server notifikasi harus memakai https:// (http biasa hanya di jaringan lokal Anda)."
+  },
+  "{agent} is waiting for your OK": {
+   "zh-Hans": "{agent} 正在等待你的确认",
+   "hi": "{agent} आपकी मंज़ूरी का इंतज़ार कर रहा है",
+   "es": "{agent} espera tu visto bueno",
+   "ar": "{agent} ينتظر موافقتك",
+   "fr": "{agent} attend votre feu vert",
+   "bn": "{agent} আপনার অনুমতির অপেক্ষায় আছে",
+   "pt-BR": "{agent} está esperando seu OK",
+   "ru": "{agent} ждёт вашего разрешения",
+   "id": "{agent} menunggu persetujuan Anda"
+  },
+  "An agent is waiting for your OK": {
+   "zh-Hans": "有一个智能体正在等待你的确认",
+   "hi": "एक एजेंट आपकी मंज़ूरी का इंतज़ार कर रहा है",
+   "es": "Un agente espera tu visto bueno",
+   "ar": "وكيل ينتظر موافقتك",
+   "fr": "Un agent attend votre feu vert",
+   "bn": "একটি এজেন্ট আপনার অনুমতির অপেক্ষায় আছে",
+   "pt-BR": "Um agente está esperando seu OK",
+   "ru": "Агент ждёт вашего разрешения",
+   "id": "Sebuah agen menunggu persetujuan Anda"
+  },
+  "{agent} has a question for you": {
+   "zh-Hans": "{agent} 有个问题要问你",
+   "hi": "{agent} आपसे एक सवाल पूछ रहा है",
+   "es": "{agent} tiene una pregunta para ti",
+   "ar": "لدى {agent} سؤال لك",
+   "fr": "{agent} a une question pour vous",
+   "bn": "{agent} আপনাকে একটি প্রশ্ন করেছে",
+   "pt-BR": "{agent} tem uma pergunta para você",
+   "ru": "У {agent} есть вопрос к вам",
+   "id": "{agent} punya pertanyaan untuk Anda"
+  },
+  "An agent has a question for you": {
+   "zh-Hans": "有一个智能体有问题要问你",
+   "hi": "एक एजेंट आपसे एक सवाल पूछ रहा है",
+   "es": "Un agente tiene una pregunta para ti",
+   "ar": "لدى وكيل سؤال لك",
+   "fr": "Un agent a une question pour vous",
+   "bn": "একটি এজেন্ট আপনাকে একটি প্রশ্ন করেছে",
+   "pt-BR": "Um agente tem uma pergunta para você",
+   "ru": "У агента есть вопрос к вам",
+   "id": "Sebuah agen punya pertanyaan untuk Anda"
+  },
+  "Make a topic first.": {
+   "zh-Hans": "请先生成一个主题。",
+   "hi": "पहले एक टॉपिक बनाएँ।",
+   "es": "Crea primero un tema.",
+   "ar": "أنشئ موضوعًا أولًا.",
+   "fr": "Créez d'abord un sujet.",
+   "bn": "আগে একটি টপিক তৈরি করুন।",
+   "pt-BR": "Crie um tópico primeiro.",
+   "ru": "Сначала создайте тему.",
+   "id": "Buat topik terlebih dahulu."
+  },
+  "Could not reach the push service: {error}": {
+   "zh-Hans": "无法连接推送服务：{error}",
+   "hi": "पुश सेवा तक नहीं पहुँच सके: {error}",
+   "es": "No se pudo contactar con el servicio de notificaciones: {error}",
+   "ar": "تعذّر الوصول إلى خدمة الإشعارات: {error}",
+   "fr": "Impossible de joindre le service de notifications : {error}",
+   "bn": "পুশ সেবায় পৌঁছানো যায়নি: {error}",
+   "pt-BR": "Não foi possível falar com o serviço de notificações: {error}",
+   "ru": "Не удалось связаться со службой уведомлений: {error}",
+   "id": "Tidak dapat menghubungi layanan notifikasi: {error}"
+  },
+  "The push service answered {status}.": {
+   "zh-Hans": "推送服务返回了 {status}。",
+   "hi": "पुश सेवा ने {status} लौटाया।",
+   "es": "El servicio de notificaciones respondió {status}.",
+   "ar": "ردّت خدمة الإشعارات بالرمز {status}.",
+   "fr": "Le service de notifications a répondu {status}.",
+   "bn": "পুশ সেবা {status} উত্তর দিয়েছে।",
+   "pt-BR": "O serviço de notificações respondeu {status}.",
+   "ru": "Служба уведомлений ответила {status}.",
+   "id": "Layanan notifikasi menjawab {status}."
+  },
+  "Notifications with Coucou closed work. Tap to open Coucou.": {
+   "zh-Hans": "Coucou 关闭时的通知已可用。轻点即可打开 Coucou。",
+   "hi": "Coucou बंद होने पर सूचनाएँ काम कर रही हैं। Coucou खोलने के लिए टैप करें।",
+   "es": "Las notificaciones con Coucou cerrado funcionan. Toca para abrir Coucou.",
+   "ar": "الإشعارات تعمل وCoucou مغلق. اضغط لفتح Coucou.",
+   "fr": "Les notifications avec Coucou fermé fonctionnent. Touchez pour ouvrir Coucou.",
+   "bn": "Coucou বন্ধ থাকলেও বিজ্ঞপ্তি কাজ করছে। Coucou খুলতে ট্যাপ করুন।",
+   "pt-BR": "As notificações com o Coucou fechado funcionam. Toque para abrir o Coucou.",
+   "ru": "Уведомления при закрытом Coucou работают. Нажмите, чтобы открыть Coucou.",
+   "id": "Notifikasi saat Coucou tertutup berfungsi. Ketuk untuk membuka Coucou."
+  },
+  "This access token is not valid.": {
+   "zh-Hans": "此访问令牌无效。",
+   "hi": "यह एक्सेस टोकन मान्य नहीं है।",
+   "es": "Este token de acceso no es válido.",
+   "ar": "رمز الوصول هذا غير صالح.",
+   "fr": "Ce jeton d'accès n'est pas valide.",
+   "bn": "এই অ্যাক্সেস টোকেনটি বৈধ নয়।",
+   "pt-BR": "Este token de acesso não é válido.",
+   "ru": "Этот токен доступа недействителен.",
+   "id": "Token akses ini tidak valid."
+  },
+  "New topic": {
+   "zh-Hans": "新主题",
+   "hi": "नया टॉपिक",
+   "es": "Nuevo tema",
+   "ar": "موضوع جديد",
+   "fr": "Nouveau sujet",
+   "bn": "নতুন টপিক",
+   "pt-BR": "Novo tópico",
+   "ru": "Новая тема",
+   "id": "Topik baru"
+  },
+  "Send a test notification": {
+   "zh-Hans": "发送测试通知",
+   "hi": "टेस्ट सूचना भेजें",
+   "es": "Enviar una notificación de prueba",
+   "ar": "إرسال إشعار تجريبي",
+   "fr": "Envoyer une notification de test",
+   "bn": "পরীক্ষামূলক বিজ্ঞপ্তি পাঠান",
+   "pt-BR": "Enviar notificação de teste",
+   "ru": "Отправить тестовое уведомление",
+   "id": "Kirim notifikasi uji"
+  },
+  "Sent. It should show on the phone in a few seconds.": {
+   "zh-Hans": "已发送。几秒钟内应会出现在手机上。",
+   "hi": "भेज दिया। कुछ सेकंड में फ़ोन पर दिखना चाहिए।",
+   "es": "Enviada. Debería aparecer en el teléfono en unos segundos.",
+   "ar": "أُرسل. يُفترض أن يظهر على الهاتف خلال ثوانٍ.",
+   "fr": "Envoyée. Elle devrait apparaître sur le téléphone dans quelques secondes.",
+   "bn": "পাঠানো হয়েছে। কয়েক সেকেন্ডের মধ্যে ফোনে দেখা যাওয়ার কথা।",
+   "pt-BR": "Enviada. Deve aparecer no celular em alguns segundos.",
+   "ru": "Отправлено. Через несколько секунд должно появиться на телефоне.",
+   "id": "Terkirim. Seharusnya muncul di ponsel dalam beberapa detik."
+  },
+  "Topic": {
+   "zh-Hans": "主题",
+   "hi": "टॉपिक",
+   "es": "Tema",
+   "ar": "الموضوع",
+   "fr": "Sujet",
+   "bn": "টপিক",
+   "pt-BR": "Tópico",
+   "ru": "Тема",
+   "id": "Topik"
+  },
+  "In the ntfy app, tap + and subscribe to this topic. Whoever knows it can read these notifications: they only say who is waiting, never the command.": {
+   "zh-Hans": "在 ntfy 应用中轻点 +，订阅此主题。知道它的人都能读到这些通知：通知只说明谁在等待，从不包含命令。",
+   "hi": "ntfy ऐप में + पर टैप करें और इस टॉपिक को सब्सक्राइब करें। जिसे भी यह पता है वह ये सूचनाएँ पढ़ सकता है: इनमें सिर्फ़ यह लिखा होता है कि कौन इंतज़ार कर रहा है, कमांड कभी नहीं।",
+   "es": "En la app ntfy, toca + y suscríbete a este tema. Quien lo conozca puede leer estas notificaciones: solo dicen quién espera, nunca el comando.",
+   "ar": "في تطبيق ntfy، اضغط + واشترك في هذا الموضوع. من يعرفه يستطيع قراءة هذه الإشعارات: فهي تذكر فقط من ينتظر، ولا تذكر الأمر أبدًا.",
+   "fr": "Dans l'app ntfy, touchez + et abonnez-vous à ce sujet. Qui le connaît peut lire ces notifications : elles disent seulement qui attend, jamais la commande.",
+   "bn": "ntfy অ্যাপে + ট্যাপ করে এই টপিকে সাবস্ক্রাইব করুন। যে এটি জানে সে এই বিজ্ঞপ্তিগুলো পড়তে পারে: এগুলো শুধু বলে কে অপেক্ষা করছে, কখনো কমান্ডটি নয়।",
+   "pt-BR": "No app ntfy, toque em + e assine este tópico. Quem souber o tópico consegue ler esses avisos: eles só dizem quem está esperando, nunca o comando.",
+   "ru": "В приложении ntfy нажмите + и подпишитесь на эту тему. Кто её знает, может читать эти уведомления: в них сказано только, кто ждёт, но никогда — команда.",
+   "id": "Di aplikasi ntfy, ketuk + lalu berlangganan topik ini. Siapa pun yang mengetahuinya bisa membaca notifikasi ini: isinya hanya siapa yang menunggu, tidak pernah perintahnya."
+  },
+  "Server": {
+   "zh-Hans": "服务器",
+   "hi": "सर्वर",
+   "es": "Servidor",
+   "ar": "الخادم",
+   "fr": "Serveur",
+   "bn": "সার্ভার",
+   "pt-BR": "Servidor",
+   "ru": "Сервер",
+   "id": "Server"
+  },
+  "Access token (optional)": {
+   "zh-Hans": "访问令牌（可选）",
+   "hi": "एक्सेस टोकन (वैकल्पिक)",
+   "es": "Token de acceso (opcional)",
+   "ar": "رمز الوصول (اختياري)",
+   "fr": "Jeton d'accès (facultatif)",
+   "bn": "অ্যাক্সেস টোকেন (ঐচ্ছিক)",
+   "pt-BR": "Token de acesso (opcional)",
+   "ru": "Токен доступа (необязательно)",
+   "id": "Token akses (opsional)"
+  },
+  "Notifications with Coucou closed": {
+   "zh-Hans": "Coucou 关闭时的通知",
+   "hi": "Coucou बंद होने पर सूचनाएँ",
+   "es": "Notificaciones con Coucou cerrado",
+   "ar": "الإشعارات وCoucou مغلق",
+   "fr": "Notifications avec Coucou fermé",
+   "bn": "Coucou বন্ধ থাকলে বিজ্ঞপ্তি",
+   "pt-BR": "Notificações com o Coucou fechado",
+   "ru": "Уведомления при закрытом Coucou",
+   "id": "Notifikasi saat Coucou tertutup"
+  },
+  "iOS pauses Coucou on iPhone shortly after you leave it, so it no longer hears about requests. With this on, a request that waits while no phone is connected is announced through ntfy, a free notification app: install it on the iPhone and subscribe to the topic below. A tap on the notification opens Coucou.": {
+   "zh-Hans": "离开 Coucou 后不久，iOS 就会暂停 iPhone 上的 Coucou，它便收不到请求了。开启此项后，若有请求在没有手机连接时等待，会通过免费的通知应用 ntfy 发出提醒：在 iPhone 上安装 ntfy 并订阅下面的主题。轻点通知即可打开 Coucou。",
+   "hi": "iPhone पर Coucou छोड़ने के थोड़ी देर बाद iOS उसे रोक देता है, इसलिए उसे अनुरोधों की खबर नहीं मिलती। इसे चालू करने पर, जब कोई फ़ोन जुड़ा न हो और कोई अनुरोध इंतज़ार कर रहा हो, तो उसकी सूचना ntfy से भेजी जाती है, जो एक मुफ़्त सूचना ऐप है: इसे iPhone पर इंस्टॉल करें और नीचे दिए टॉपिक को सब्सक्राइब करें। सूचना पर टैप करने से Coucou खुलता है।",
+   "es": "iOS pausa Coucou en el iPhone poco después de salir de la app, así que deja de enterarse de las solicitudes. Con esto activado, una solicitud que espera mientras no hay ningún teléfono conectado se anuncia a través de ntfy, una app de notificaciones gratuita: instálala en el iPhone y suscríbete al tema de abajo. Al tocar la notificación se abre Coucou.",
+   "ar": "يوقف iOS تطبيق Coucou على iPhone مؤقتًا بعد وقت قصير من مغادرته، فلا يعود يعلم بالطلبات. عند تفعيل هذا الخيار، يُعلَن عن أي طلب ينتظر بينما لا يكون أي هاتف متصلًا عبر ntfy، وهو تطبيق إشعارات مجاني: ثبّته على iPhone واشترك في الموضوع أدناه. الضغط على الإشعار يفتح Coucou.",
+   "fr": "iOS met Coucou en pause sur l'iPhone peu après que vous le quittez : il n'apprend plus les demandes. Avec cette option, une demande qui attend alors qu'aucun téléphone n'est connecté est annoncée via ntfy, une app de notifications gratuite : installez-la sur l'iPhone et abonnez-vous au sujet ci-dessous. Toucher la notification ouvre Coucou.",
+   "bn": "iPhone-এ Coucou থেকে বেরোনোর কিছুক্ষণ পরেই iOS সেটিকে থামিয়ে দেয়, তাই এটি আর অনুরোধের খবর পায় না। এটি চালু থাকলে, কোনো ফোন সংযুক্ত না থাকা অবস্থায় কোনো অনুরোধ অপেক্ষা করলে তা ntfy দিয়ে জানানো হয়, যা একটি বিনামূল্যের বিজ্ঞপ্তি অ্যাপ: iPhone-এ এটি ইনস্টল করে নিচের টপিকে সাবস্ক্রাইব করুন। বিজ্ঞপ্তিতে ট্যাপ করলে Coucou খোলে।",
+   "pt-BR": "O iOS pausa o Coucou no iPhone pouco depois que você sai dele, e aí ele deixa de saber dos pedidos. Com isto ligado, um pedido que fica esperando enquanto nenhum celular está conectado é avisado pelo ntfy, um app de notificações gratuito: instale-o no iPhone e assine o tópico abaixo. Tocar no aviso abre o Coucou.",
+   "ru": "iOS приостанавливает Coucou на iPhone вскоре после выхода из приложения, и оно перестаёт узнавать о запросах. Если включить эту функцию, запрос, который ждёт, пока ни один телефон не подключён, объявляется через ntfy — бесплатное приложение для уведомлений: установите его на iPhone и подпишитесь на тему ниже. Нажатие на уведомление открывает Coucou.",
+   "id": "iOS menjeda Coucou di iPhone tak lama setelah Anda keluar, sehingga Coucou tidak lagi tahu ada permintaan. Jika ini aktif, permintaan yang menunggu saat tidak ada ponsel terhubung akan diumumkan lewat ntfy, aplikasi notifikasi gratis: pasang di iPhone lalu berlangganan topik di bawah. Mengetuk notifikasi akan membuka Coucou."
   }
  }
 }
