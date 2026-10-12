@@ -43,6 +43,8 @@
 	<array>
 		<string>_coucou._tcp</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Coucou uses the camera only to scan the pairing code of Coucou on your Windows or Linux computer.</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Coucou asks for Face ID before allowing a command from your iPhone.</string>
 	<key>NSLocalNetworkUsageDescription</key>

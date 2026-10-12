@@ -77,8 +77,10 @@ a Live Activity do Mac não se aplica; o resto funciona.
 
 ### Parear
 
-1. Aponte a **Câmera** do iPhone para o QR code do PC e toque no aviso do Coucou. Ou, no PC, **Copiar link**, mande
-   para o iPhone e cole em **Coucou → ⚙︎ → Windows or Linux computer**.
+1. Abra o **Coucou no iPhone → ⚙︎ → Windows or Linux computer → Scan the code** (na primeira abertura, o botão
+   **Scan the pairing code**) e aponte para o QR code do PC. Use o leitor do próprio Coucou: a **Câmera do iPhone não
+   abre códigos do Coucou** e responde "No usable data found". Outra opção: no PC, **Copiar link**, mande para o
+   iPhone (WhatsApp, e-mail…) e toque no link, ou cole em **Coucou → ⚙︎ → Windows or Linux computer**.
 2. O Coucou mostra o nome do PC: toque em **Pair**. Quando o iOS pedir, permita o acesso à **rede local**.
 3. As sessões do PC aparecem em **Agents**. O botão 🖥 no canto superior esquerdo abre o **chat com o Mochi do PC**;
    no menu ⋯ você escolhe o modelo e liga ou desliga os braços dele.
@@ -108,10 +110,25 @@ a Live Activity do Mac não se aplica; o resto funciona.
 - Pelo link passam: estados e passos das sessões, o comando de cada pedido, as perguntas e suas escolhas, e as
   mensagens do chat. **Nunca** as chaves de API do PC, arquivos ou caminhos completos.
 
-## Rodar a versão desta branch no PC
+## Instalar esta versão no PC
 
-Enquanto não sai uma versão nova, rode a partir do código (detalhes em
-[windows/README.md](../windows/README.md#build-it-yourself)):
+Não precisa de VS Code nem de compilar nada: o GitHub Actions gera o instalador.
+
+1. No GitHub: **Actions → Windows installer**. Ele roda sozinho quando o app do Windows muda; para rodar na hora,
+   **Run workflow**. Quando ficar verde (uns 15–25 minutos), abra a execução e, em **Artifacts**, baixe
+   **Coucou-Windows-msi** (um zip com o `.msi` dentro). O `-setup.exe` também está lá, mas o `.msi` costuma passar
+   melhor pelo Windows Defender.
+2. Desinstale o Coucou antigo: **Configurações do Windows → Aplicativos → Aplicativos instalados → Coucou →
+   Desinstalar**. Suas configurações e chaves de API ficam guardadas (Credential Manager) e voltam no novo.
+3. Extraia o zip e abra o `.msi`. O instalador não é assinado: se aparecer "O Windows protegeu o computador", clique
+   em **Mais informações → Executar assim mesmo**.
+4. Abra o Coucou e ligue **Configurações → Braços do Mochi**.
+
+Sem instalar nada, também dá para usar o **Coucou-Windows-portable**: extraia e rode o `coucou.exe` (deixe o
+`coucou-hook.exe` na mesma pasta).
+
+Para desenvolver (opcional), rode a partir do código, num terminal (PowerShell serve, VS Code é opcional); detalhes em
+[windows/README.md](../windows/README.md#build-it-yourself):
 
 ```
 cd windows

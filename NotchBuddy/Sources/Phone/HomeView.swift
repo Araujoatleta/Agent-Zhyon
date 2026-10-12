@@ -35,7 +35,16 @@ struct HomeView: View {
             if let id = SharedSession.sessionId(from: url) {
                 open(id)
             } else if let found = PCPairing.parse(url.absoluteString) {
-                pairing = found
+                if onboardingDone {
+                    pairing = found
+                } else {
+                    // The first-launch guide is up: it closes, then the pairing sheet opens.
+                    onboardingDone = true
+                    Task {
+                        try? await Task.sleep(for: .milliseconds(700))
+                        pairing = found
+                    }
+                }
             }
         }
         .sheet(item: $pairing) { found in
