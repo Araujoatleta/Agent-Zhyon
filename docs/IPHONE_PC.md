@@ -15,7 +15,8 @@ Linux computer**, directly over your local network, with the link Coucou for And
 
 ## On the computer
 
-Coucou for Windows or Linux 0.4.0 or later (Mochi's hands need the next version, unreleased yet: build it from
+Coucou for Windows or Linux 0.4.0 or later (Mochi's hands need the next version, unreleased yet: download the
+installer from the **Windows installer** workflow's artifacts, or build it from
 [`windows/`](../windows/README.md#build-it-yourself) meanwhile):
 
 1. **Settings → Phone (Android and iPhone)**: turn on **Phone link**. The iPhone must be on the same Wi-Fi. If Windows
