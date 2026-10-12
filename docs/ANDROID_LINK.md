@@ -6,7 +6,9 @@ the local network.
 
 Status: the Android client, `android/tools/dev-desktop.mjs` (a stand-in desktop for testing) and the
 real desktop server of the Windows/Linux app (`windows/src-tauri/src/phone_link/`) implement this.
-The Mac app is left to its author.
+The iPhone app implements the client side too, for Windows and Linux computers
+(`NotchBuddy/Sources/Phone/PCLink*.swift`, [IPHONE_PC.md](IPHONE_PC.md)): capabilities `chat`, `agent`, `details`
+and `answers`; no relay. The Mac app is left to its author.
 
 ## Transport
 

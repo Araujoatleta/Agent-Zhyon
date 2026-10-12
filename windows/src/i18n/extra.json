@@ -4182,7 +4182,7 @@
    "ar": "من محادثة الهاتف، يستطيع Mochi العمل على هذا الحاسوب وفق ما ضُبط في الإعدادات ← يدا Mochi. يتطلب ذلك المحادثة أعلاه. ويبقى كل تغيير بانتظار «السماح»، خلف Face ID أو بصمة الهاتف.",
    "fr": "Depuis le chat du téléphone, Mochi peut agir sur cet ordinateur comme réglé dans Réglages → Les mains de Mochi. Il faut le chat ci-dessus. Chaque modification attend toujours Autoriser, derrière Face ID ou l'empreinte du téléphone.",
    "bn": "ফোনের চ্যাট থেকে Mochi এই কম্পিউটারে সেটিংস → Mochi-র হাত-এ যেভাবে ঠিক করা আছে সেভাবে কাজ করতে পারে। এর জন্য উপরের চ্যাট চালু থাকতে হবে। প্রতিটি পরিবর্তন তবুও ‘অনুমতি দিন’-এর অপেক্ষা করে, ফোনের Face ID বা আঙুলের ছাপের পেছনে।",
-   "pt-BR": "Pelo chat do celular, o Mochi pode agir neste computador como definido em Ajustes → Braços do Mochi. Precisa do chat acima. Cada alteração continua esperando Permitir, protegida pelo Face ID ou pela digital do celular.",
+   "pt-BR": "Pelo chat do celular, o Mochi pode agir neste computador como definido em Configurações → Braços do Mochi. Precisa do chat acima. Cada alteração continua esperando Permitir, protegida pelo Face ID ou pela digital do celular.",
    "ru": "Из чата на телефоне Mochi может действовать на этом компьютере так, как задано в «Настройки → Руки Mochi». Нужен чат выше. Каждое изменение по-прежнему ждёт «Разрешить» с подтверждением Face ID или отпечатком на телефоне.",
    "id": "Dari obrolan di ponsel, Mochi dapat bertindak di komputer ini sesuai pengaturan di Pengaturan → Tangan Mochi. Perlu obrolan di atas. Setiap perubahan tetap menunggu Izinkan, di balik Face ID atau sidik jari ponsel."
   },
@@ -4259,7 +4259,7 @@
    "ar": "يدا Mochi متوقفتان. فعّلهما من الإعدادات ← يدا Mochi.",
    "fr": "Les mains de Mochi sont désactivées. Active-les dans Réglages → Les mains de Mochi.",
    "bn": "Mochi-র হাত বন্ধ। সেটিংস → Mochi-র হাত থেকে চালু করুন।",
-   "pt-BR": "Os braços do Mochi estão desligados. Ligue-os em Ajustes → Braços do Mochi.",
+   "pt-BR": "Os braços do Mochi estão desligados. Ligue-os em Configurações → Braços do Mochi.",
    "ru": "Руки Mochi выключены. Включите их в «Настройки → Руки Mochi».",
    "id": "Tangan Mochi nonaktif. Aktifkan di Pengaturan → Tangan Mochi."
   },
@@ -4270,7 +4270,7 @@
    "ar": "اختر المجلد الذي يعمل فيه Mochi من الإعدادات ← يدا Mochi.",
    "fr": "Choisis le dossier où travaille Mochi dans Réglages → Les mains de Mochi.",
    "bn": "সেটিংস → Mochi-র হাত থেকে Mochi যে ফোল্ডারে কাজ করবে তা বেছে নিন।",
-   "pt-BR": "Escolha a pasta em que o Mochi trabalha em Ajustes → Braços do Mochi.",
+   "pt-BR": "Escolha a pasta em que o Mochi trabalha em Configurações → Braços do Mochi.",
    "ru": "Выберите папку, в которой работает Mochi, в «Настройки → Руки Mochi».",
    "id": "Pilih folder tempat Mochi bekerja di Pengaturan → Tangan Mochi."
   },
