@@ -385,11 +385,7 @@ fn run_lines(mut cmd: Command, timeout: Duration, cancel: &AtomicBool, mut line:
     {
         let tx = tx.clone();
         std::thread::spawn(move || {
-            for l in BufReader::new(stream).lines().map_while(Result::ok) {
-                if tx.send(l).is_err() {
-                    break;
-                }
-            }
+            for_each_line(stream, |l| tx.send(l).is_ok());
         });
     }
     drop(tx);
@@ -415,6 +411,25 @@ fn run_lines(mut cmd: Command, timeout: Duration, cancel: &AtomicBool, mut line:
     }
     let status = child.wait().map_err(|e| e.to_string())?;
     Ok((status.success(), lines))
+}
+
+/// Each line of `stream` to `line` (until it answers false), whatever its encoding: Windows PowerShell writes in the
+/// console's code page, not UTF-8, and a line it cannot read must not end the reading (the stage's result comes last).
+fn for_each_line(stream: impl Read, mut line: impl FnMut(String) -> bool) {
+    let mut reader = BufReader::new(stream);
+    let mut buf = Vec::new();
+    loop {
+        buf.clear();
+        match reader.read_until(b'\n', &mut buf) {
+            Ok(0) | Err(_) => break,
+            Ok(_) => {
+                let text = String::from_utf8_lossy(&buf);
+                if !line(text.trim_end_matches(['\r', '\n']).to_string()) {
+                    break;
+                }
+            }
+        }
+    }
 }
 
 /// Ends a process and everything it started.
@@ -799,17 +814,17 @@ pub fn start_gateway(app: &AppHandle) -> Result<(), String> {
     {
         let (tail, shown) = (tail.clone(), secrets_shown.clone());
         std::thread::spawn(move || {
-            for line in BufReader::new(stream).lines().map_while(Result::ok) {
+            for_each_line(stream, |line| {
                 let line = redact(line.trim(), &shown);
-                if line.is_empty() {
-                    continue;
+                if !line.is_empty() {
+                    let mut tail = tail.lock().unwrap();
+                    tail.push_back(line);
+                    while tail.len() > TAIL {
+                        tail.pop_front();
+                    }
                 }
-                let mut tail = tail.lock().unwrap();
-                tail.push_back(line);
-                while tail.len() > TAIL {
-                    tail.pop_front();
-                }
-            }
+                true
+            });
         });
     }
     let child = Arc::new(Mutex::new(Some(child)));
@@ -1226,6 +1241,20 @@ mod tests {
         let line = "auth ok with sk-ant-api03-SECRET and key 0123456789abcdef0123, short stays";
         assert_eq!(redact(line, &secrets), "auth ok with ••• and key •••, short stays");
         assert_eq!(redact(&"x".repeat(1000), &[]).len(), 400);
+    }
+
+    #[test]
+    fn a_line_in_another_encoding_never_ends_the_reading() {
+        // "✓ venv" in code page 437 (0xFB is not UTF-8), then the stage's result.
+        let bytes: &[u8] = b"\xfb venv created\r\nplain\n{\"ok\":true,\"stage\":\"venv\",\"skipped\":false}";
+        let mut lines = Vec::new();
+        for_each_line(bytes, |l| {
+            lines.push(l);
+            true
+        });
+        assert_eq!(lines.len(), 3);
+        assert_eq!(lines[1], "plain");
+        assert!(parse_frame(&lines, "venv").unwrap().ok, "the result is still read");
     }
 
     #[test]
