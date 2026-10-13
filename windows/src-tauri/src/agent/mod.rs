@@ -19,7 +19,7 @@ mod text;
 mod tools;
 mod wire;
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -231,20 +231,66 @@ fn alias(tool: &str) -> &'static str {
     }
 }
 
-/// One step on one line: "Bash · npm test".
-fn step_line(step: &Step) -> String {
+/// One step on one line, as a phone shows it: "Bash · npm test", "Edit · src\main.rs (+1 −1)".
+fn step_line(step: &Step, folder: &Path, home: &Path) -> String {
     let tool = alias(&step.tool);
-    if step.summary.is_empty() {
+    let summary = phone_summary(&step.tool, &step.summary, folder, home);
+    if summary.is_empty() {
         tool.to_string()
     } else {
-        format!("{tool} · {}", text::one_line(&step.summary, 180))
+        format!("{tool} · {}", text::one_line(&summary, 180))
     }
+}
+
+/// The tools whose summary names a path.
+const PATH_TOOLS: &[&str] = &["read_file", "write_file", "edit_file", "list_directory", "find_files", "search_text"];
+
+/// A summary as a phone shows it, with no whole path crossing the link (it names the user, and the island has it):
+/// a path in the working folder is written from there ("src\main.rs", the folder itself by its name), one elsewhere
+/// in the home folder from "~" ("~\Downloads\notes.txt"). A command is shown as it will run, since that is what
+/// Allow is for, and an address as it is.
+fn phone_summary(tool: &str, summary: &str, folder: &Path, home: &Path) -> String {
+    if !PATH_TOOLS.contains(&tool) {
+        return summary.to_string();
+    }
+    let folder_text = policy::display(folder);
+    let name = folder.file_name().map_or_else(|| folder_text.clone(), |n| n.to_string_lossy().into_owned());
+    let in_home = format!("~{}", std::path::MAIN_SEPARATOR);
+    swap_root(summary, &folder_text, &name, "")
+        .or_else(|| swap_root(summary, &policy::display(home), "~", &in_home))
+        .unwrap_or_else(|| summary.to_string())
+}
+
+/// `text` with the first path that starts with `root` (at the start of `text` or after a space) written from it:
+/// `root` itself becomes `itself`, and `root` and its separator before the rest of a path become `inside`. None when
+/// no path in `text` starts there. Case-insensitive on Windows, where C:\Users and c:\users are the same folder.
+fn swap_root(text: &str, root: &str, itself: &str, inside: &str) -> Option<String> {
+    let root = root.trim_end_matches(['\\', '/']);
+    if root.is_empty() {
+        return None;
+    }
+    // ASCII case folding keeps every byte where it was, so positions found in one are positions in the other.
+    let fold = |s: &str| if cfg!(windows) { s.to_ascii_lowercase() } else { s.to_string() };
+    let (hay, needle) = (fold(text), fold(root));
+    for (at, _) in hay.match_indices(&needle) {
+        if at > 0 && !text[..at].ends_with(' ') {
+            continue;
+        }
+        let end = at + needle.len();
+        let (cut, put) = match text[end..].chars().next() {
+            None | Some(' ') => (end, itself),
+            Some('\\' | '/') => (end + 1, inside),
+            Some(_) => continue,
+        };
+        return Some(format!("{}{put}{}", &text[..at], &text[cut..]));
+    }
+    None
 }
 
 /// What a phone shows for an action waiting for a click: the command, the path or the address, and why it asks
 /// when the reason is not the action itself.
-fn phone_command(request: &Request) -> String {
-    let mut command = request.summary.clone();
+fn phone_command(request: &Request, folder: &Path, home: &Path) -> String {
+    let mut command = phone_summary(&request.tool, &request.summary, folder, home);
     if request.secret {
         command.push_str(" — looks like a secret file");
     } else if request.outside {
@@ -269,6 +315,9 @@ struct LiveHands {
     run: u64,
     origin: Origin,
     project: Option<String>,
+    /// The working folder and the home folder, which paths on a phone are written from.
+    folder: PathBuf,
+    home: PathBuf,
     /// The phone that asked, when it did: one `chatStep` per change.
     phone_steps: Option<UnboundedSender<StepLine>>,
     lines: Mutex<Vec<String>>,
@@ -296,7 +345,7 @@ impl LiveHands {
 impl Hands for LiveHands {
     fn step(&self, step: &Step) {
         let _ = self.app.emit_to(WINDOW_LABEL, "agent-step", json!({ "run": self.run, "origin": self.origin, "step": step }));
-        let line = step_line(step);
+        let line = step_line(step, &self.folder, &self.home);
         {
             let mut lines = self.lines.lock().unwrap();
             match lines.get_mut(step.index) {
@@ -328,7 +377,7 @@ impl Hands for LiveHands {
                     session_id: format!("mochi-{}", self.run),
                     pill_id: PILL_ID.into(),
                     tool: alias(&request.tool).into(),
-                    command: phone_command(&request),
+                    command: phone_command(&request, &self.folder, &self.home),
                 })),
             );
             let wait = if self.origin == Origin::Phone { WAIT_PHONE } else { WAIT_DESK };
@@ -542,6 +591,8 @@ async fn turn(
         run: run_id,
         origin,
         project: env.folder.file_name().map(|n| n.to_string_lossy().to_string()),
+        folder: env.folder.clone(),
+        home: env.home.clone(),
         phone_steps,
         lines: Mutex::new(Vec::new()),
     };
@@ -767,17 +818,59 @@ mod tests {
         assert!(!Agent::default().cancel(), "nothing to stop");
     }
 
+    /// A path from the file system's root, on this OS: `at(&["home", "me"])` is /home/me or C:\home\me.
+    fn at(parts: &[&str]) -> PathBuf {
+        let mut path = PathBuf::from(if cfg!(windows) { "C:\\" } else { "/" });
+        path.extend(parts);
+        path
+    }
+
     #[test]
     fn phones_see_claude_codes_tool_names_and_why_an_action_asks() {
+        let (folder, home) = (at(&["home", "me", "proj"]), at(&["home", "me"]));
         let step = Step { index: 0, tool: "run_command".into(), summary: "npm test".into(), status: Status::Running, detail: None, output: None };
-        assert_eq!(step_line(&step), "Bash · npm test");
-        assert_eq!(step_line(&Step { tool: "system_info".into(), summary: String::new(), ..step.clone() }), "Info");
+        assert_eq!(step_line(&step, &folder, &home), "Bash · npm test");
+        assert_eq!(step_line(&Step { tool: "system_info".into(), summary: String::new(), ..step.clone() }, &folder, &home), "Info");
         assert_eq!(alias("edit_file"), "Edit");
         assert_eq!(alias("something_new"), "Tool");
-        let mut request = Request { tool: "read_file".into(), summary: "/etc/hosts".into(), cwd: None, before: None, after: None, new_file: false, outside: true, secret: false };
-        assert_eq!(phone_command(&request), "/etc/hosts — outside the working folder");
+        let hosts = policy::display(&at(&["etc", "hosts"]));
+        let mut request = Request { tool: "read_file".into(), summary: hosts.clone(), cwd: None, before: None, after: None, new_file: false, outside: true, secret: false };
+        assert_eq!(phone_command(&request, &folder, &home), format!("{hosts} — outside the working folder"));
         request.secret = true;
-        assert_eq!(phone_command(&request), "/etc/hosts — looks like a secret file");
+        assert_eq!(phone_command(&request, &folder, &home), format!("{hosts} — looks like a secret file"));
+    }
+
+    #[test]
+    fn no_whole_path_reaches_a_phone() {
+        let (folder, home) = (at(&["home", "me", "proj"]), at(&["home", "me"]));
+        let sep = std::path::MAIN_SEPARATOR;
+        let shown = |tool: &str, summary: String| phone_summary(tool, &summary, &folder, &home);
+        let d = |parts: &[&str]| policy::display(&at(parts));
+        // In the working folder: from there, the folder itself by its name.
+        assert_eq!(shown("read_file", d(&["home", "me", "proj", "notes", "todo.txt"])), format!("notes{sep}todo.txt"));
+        assert_eq!(shown("edit_file", format!("{} (+1 −1)", d(&["home", "me", "proj", "src", "main.rs"]))), format!("src{sep}main.rs (+1 −1)"));
+        assert_eq!(shown("list_directory", d(&["home", "me", "proj"])), "proj");
+        assert_eq!(shown("search_text", format!("TODO · {}", d(&["home", "me", "proj"]))), "TODO · proj");
+        // Elsewhere at home: from "~". A folder whose name only starts like the working folder's is not in it.
+        assert_eq!(shown("write_file", d(&["home", "me", "Downloads", "a.txt"])), format!("~{sep}Downloads{sep}a.txt"));
+        assert_eq!(shown("find_files", format!("*.md · {}", d(&["home", "me", "project2"]))), format!("*.md · ~{sep}project2"));
+        assert_eq!(shown("list_directory", d(&["home", "me"])), "~");
+        // Outside the home folder nothing names the user; a command and an address are shown as they are.
+        assert_eq!(shown("read_file", d(&["etc", "hosts"])), d(&["etc", "hosts"]));
+        let command = format!("cat {}", d(&["home", "me", "proj", "a.txt"]));
+        assert_eq!(shown("run_command", command.clone()), command);
+        assert_eq!(shown("fetch_url", "https://example.com/home/me".into()), "https://example.com/home/me");
+        // The line a phone gets.
+        let step = Step { index: 0, tool: "write_file".into(), summary: d(&["home", "me", "proj", "README.md"]), status: Status::Ok, detail: None, output: None };
+        assert_eq!(step_line(&step, &folder, &home), "Write · README.md");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn windows_paths_match_whatever_their_case() {
+        let (folder, home) = (PathBuf::from(r"C:\Users\Eduardo\Documents"), PathBuf::from(r"C:\Users\Eduardo"));
+        assert_eq!(phone_summary("read_file", r"c:\users\eduardo\documents\nota.txt", &folder, &home), "nota.txt");
+        assert_eq!(phone_summary("read_file", r"C:\USERS\EDUARDO\Desktop\a.txt", &folder, &home), r"~\Desktop\a.txt");
     }
 
     #[test]

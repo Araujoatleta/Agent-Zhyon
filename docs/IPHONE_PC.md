@@ -110,7 +110,8 @@ Activity started by a Mac does not apply. Everything else on this page works.
   iPhone (over 500 characters) can only be denied from it. Notification buttons ask iOS to unlock first.
 - What crosses the link: session states and steps (steps, the final line and the folder's name only with details
   on), the tool and command of a request, questions and your picks, your chat messages and Mochi's answers. Never
-  the computer's API keys, never a file, never a full path.
+  the computer's API keys, never a file. In Mochi's steps and requests a path is written from the working folder, or
+  from `~` elsewhere in your home folder, so none names you.
 - Mochi's hands from the phone follow the computer's rules (Settings → Mochi's hands): looking inside the working
   folder is free; every change, command and web request waits for Allow; files that look like keys or passwords
   always ask.

@@ -137,9 +137,13 @@ re-read for every connection, and changing either switch disconnects the phones 
   (its whole process tree) and the action waiting for a click is withdrawn.
 - What Mochi wants to do that needs a click comes as an ordinary `approval` on the pill `agent_mochi`, so a phone that
   knows nothing of `agent` can answer it too, with the same biometric check for Allow. `tool` is a Claude Code tool name
-  (`Bash`, `Read`, `Write`, `Edit`, `LS`, `Glob`, `Grep`, `WebFetch`, `Open`); `command` is the command, the path or the
-  address, followed by ` — outside the working folder` or ` — looks like a secret file` when that is why it asks. These
-  approvals are sent whether the turn started on the island or on a phone, and never replace Claude Code's.
+  (`Bash`, `Read`, `Write`, `Edit`, `LS`, `Glob`, `Grep`, `WebFetch`, `Open`, `Home`); `command` is the command, the
+  path or the address, followed by ` — outside the working folder` or ` — looks like a secret file` when that is why
+  it asks. These approvals are sent whether the turn started on the island or on a phone, and never replace Claude
+  Code's.
+- In these approvals and in `chatStep` and session steps, a path is written from the working folder (`src\main.rs`,
+  the folder itself by its name) or, elsewhere in the user's home folder, from `~` (`~\Downloads\notes.txt`): no path
+  naming the user crosses the link. A command is sent as it will run, since that is what Allow is for.
 - While Mochi works, `sessions` carries one more session on the pill `agent_mochi` (agent `Mochi`, the step running as
   its `statusText`); it stays a few minutes after the turn ends, then goes.
 - The phone sends only the text of its request: no files, paths or commands of its own. What Mochi may do is decided on

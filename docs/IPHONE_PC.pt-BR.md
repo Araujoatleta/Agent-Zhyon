@@ -144,7 +144,9 @@ iPhone quando ele consegue. No PC, aperte **Windows + H** no chat da ilha para d
 - O iPhone só aceita **um certificado**: o do QR code (SHA-256 fixado), em TLS 1.2 ou mais novo.
 - O token do pareamento fica no **Keychain** do iPhone, só neste aparelho (fora de backups e do iCloud).
 - Pelo link passam: estados e passos das sessões, o comando de cada pedido, as perguntas e suas escolhas, e as
-  mensagens do chat. **Nunca** as chaves de API do PC, arquivos ou caminhos completos.
+  mensagens do chat. **Nunca** as chaves de API do PC ou arquivos. Nos passos e pedidos do Mochi, um caminho aparece
+  a partir da pasta de trabalho (`notas\todo.txt`), ou a partir de `~` no resto da sua pasta de usuário
+  (`~\Downloads\a.txt`), então nenhum mostra o seu nome de usuário.
 
 ## Instalar esta versão no PC
 
