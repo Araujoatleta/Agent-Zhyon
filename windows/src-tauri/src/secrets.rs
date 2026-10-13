@@ -72,6 +72,9 @@ pub const INTERNAL_KEYS: &[&str] = &[
     // Notifications with Coucou closed (phone_link/push.rs): the push topic, and an access token for a protected one.
     "phone-push-topic",
     "phone-push-token",
+    // Mochi's home (smart_home/config.rs): Home Assistant's long-lived access token, and the Philips TVs' pairings.
+    "home-assistant-token",
+    "home-philips",
 ];
 
 /// Whether the keystore would accept this key through `get_internal` / `set_internal`.

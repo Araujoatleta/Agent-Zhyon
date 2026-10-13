@@ -298,7 +298,7 @@ mod tests {
     }
 
     fn env(dir: &Folder, level: Level) -> Env {
-        Env { folder: dir.0.clone(), home: dir.0.clone(), level, shell: Shell::detect(), cancel: Arc::new(AtomicBool::new(false)), web_search: false }
+        Env { folder: dir.0.clone(), home: dir.0.clone(), level, shell: Shell::detect(), cancel: Arc::new(AtomicBool::new(false)), web_search: false, house: None }
     }
 
     fn job(flavor: Flavor) -> Job {
@@ -455,6 +455,40 @@ mod tests {
         assert_eq!(done.actions, MAX_ROUNDS);
         assert!(done.text.contains("stopped"));
         assert_eq!(done.messages.last().unwrap()["role"], "assistant");
+    }
+
+    #[test]
+    fn turn_on_the_tv_and_open_youtube_then_a_denied_plug() {
+        use super::super::tools::tests::{house, FakeHouse};
+        let dir = folder("home");
+        let mut env = env(&dir, Level::Ask);
+        let runner = Arc::new(FakeHouse { calls: Default::default() });
+        env.house = Some(house(runner.clone()));
+        // "Mochi, liga a TV da sala e abre o YouTube": two calls in order, then the answer.
+        let model = Script::new(vec![
+            claude_call("t1", "home_control", json!({"device":"TV da sala","action":"turn_on"})),
+            claude_call("t2", "home_control", json!({"device":"TV da sala","action":"open_app","value":"YouTube"})),
+            claude_text("A TV da sala está ligada e o YouTube está aberto."),
+        ]);
+        let user = User::new(false);
+        let done = block_on(run(job(Flavor::Anthropic), &env, &model, &user)).unwrap();
+        assert_eq!(done.text, "A TV da sala está ligada e o YouTube está aberto.");
+        assert_eq!(runner.calls.lock().unwrap().as_slice(), ["philips:aa turn_on", "philips:aa open_app"]);
+        assert!(user.asked.lock().unwrap().is_empty(), "a TV needs no click");
+        let seen = model.seen.lock().unwrap();
+        assert!(seen[0]["tools"].as_array().unwrap().iter().any(|t| t["name"] == "home_control"));
+        // The device's own answer reached the model.
+        let second = seen[1]["messages"].as_array().unwrap();
+        assert!(second.last().unwrap()["content"][0]["content"].as_str().unwrap().contains("The device now reports"));
+        drop(seen);
+
+        // A plug asks first; denied, nothing is sent.
+        let model = Script::new(vec![claude_call("t1", "home_control", json!({"device":"Aquecedor","action":"turn_on"})), claude_text("OK.")]);
+        let user = User::new(false);
+        block_on(run(job(Flavor::Anthropic), &env, &model, &user)).unwrap();
+        assert_eq!(user.asked.lock().unwrap()[0].tool, "home_control");
+        assert_eq!(user.asked.lock().unwrap()[0].summary, "Aquecedor · Turn on");
+        assert_eq!(runner.calls.lock().unwrap().len(), 2, "the denied plug was never touched");
     }
 
     #[test]

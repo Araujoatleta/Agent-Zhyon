@@ -4769,6 +4769,1496 @@
    "pt-BR": "O iOS pausa o Coucou no iPhone pouco depois que você sai dele, e aí ele deixa de saber dos pedidos. Com isto ligado, um pedido que fica esperando enquanto nenhum celular está conectado é avisado pelo ntfy, um app de notificações gratuito: instale-o no iPhone e assine o tópico abaixo. Tocar no aviso abre o Coucou.",
    "ru": "iOS приостанавливает Coucou на iPhone вскоре после выхода из приложения, и оно перестаёт узнавать о запросах. Если включить эту функцию, запрос, который ждёт, пока ни один телефон не подключён, объявляется через ntfy — бесплатное приложение для уведомлений: установите его на iPhone и подпишитесь на тему ниже. Нажатие на уведомление открывает Coucou.",
    "id": "iOS menjeda Coucou di iPhone tak lama setelah Anda keluar, sehingga Coucou tidak lagi tahu ada permintaan. Jika ini aktif, permintaan yang menunggu saat tidak ada ponsel terhubung akan diumumkan lewat ntfy, aplikasi notifikasi gratis: pasang di iPhone lalu berlangganan topik di bawah. Mengetuk notifikasi akan membuka Coucou."
+  },
+  "Turn on": {
+   "zh-Hans": "打开",
+   "hi": "चालू करें",
+   "es": "Encender",
+   "ar": "تشغيل",
+   "fr": "Allumer",
+   "bn": "চালু করুন",
+   "pt-BR": "Ligar",
+   "ru": "Включить",
+   "id": "Nyalakan"
+  },
+  "Turn off": {
+   "zh-Hans": "关闭",
+   "hi": "बंद करें",
+   "es": "Apagar",
+   "ar": "إيقاف",
+   "fr": "Éteindre",
+   "bn": "বন্ধ করুন",
+   "pt-BR": "Desligar",
+   "ru": "Выключить",
+   "id": "Matikan"
+  },
+  "Volume {percent}%": {
+   "zh-Hans": "音量 {percent}%",
+   "hi": "आवाज़ {percent}%",
+   "es": "Volumen {percent}%",
+   "ar": "مستوى الصوت {percent}%",
+   "fr": "Volume {percent} %",
+   "bn": "ভলিউম {percent}%",
+   "pt-BR": "Volume {percent}%",
+   "ru": "Громкость {percent}%",
+   "id": "Volume {percent}%"
+  },
+  "Unmute": {
+   "zh-Hans": "取消静音",
+   "hi": "म्यूट हटाएँ",
+   "es": "Quitar silencio",
+   "ar": "إلغاء الكتم",
+   "fr": "Réactiver le son",
+   "bn": "মিউট সরান",
+   "pt-BR": "Tirar do mudo",
+   "ru": "Включить звук",
+   "id": "Bunyikan"
+  },
+  "Open {app}": {
+   "zh-Hans": "打开 {app}",
+   "hi": "{app} खोलें",
+   "es": "Abrir {app}",
+   "ar": "فتح {app}",
+   "fr": "Ouvrir {app}",
+   "bn": "{app} খুলুন",
+   "pt-BR": "Abrir {app}",
+   "ru": "Открыть {app}",
+   "id": "Buka {app}"
+  },
+  "Channel {channel}": {
+   "zh-Hans": "频道 {channel}",
+   "hi": "चैनल {channel}",
+   "es": "Canal {channel}",
+   "ar": "القناة {channel}",
+   "fr": "Chaîne {channel}",
+   "bn": "চ্যানেল {channel}",
+   "pt-BR": "Canal {channel}",
+   "ru": "Канал {channel}",
+   "id": "Saluran {channel}"
+  },
+  "Next channel": {
+   "zh-Hans": "下一个频道",
+   "hi": "अगला चैनल",
+   "es": "Canal siguiente",
+   "ar": "القناة التالية",
+   "fr": "Chaîne suivante",
+   "bn": "পরের চ্যানেল",
+   "pt-BR": "Próximo canal",
+   "ru": "Следующий канал",
+   "id": "Saluran berikutnya"
+  },
+  "Previous channel": {
+   "zh-Hans": "上一个频道",
+   "hi": "पिछला चैनल",
+   "es": "Canal anterior",
+   "ar": "القناة السابقة",
+   "fr": "Chaîne précédente",
+   "bn": "আগের চ্যানেল",
+   "pt-BR": "Canal anterior",
+   "ru": "Предыдущий канал",
+   "id": "Saluran sebelumnya"
+  },
+  "Brightness {percent}%": {
+   "zh-Hans": "亮度 {percent}%",
+   "hi": "चमक {percent}%",
+   "es": "Brillo {percent}%",
+   "ar": "السطوع {percent}%",
+   "fr": "Luminosité {percent} %",
+   "bn": "উজ্জ্বলতা {percent}%",
+   "pt-BR": "Brilho {percent}%",
+   "ru": "Яркость {percent}%",
+   "id": "Kecerahan {percent}%"
+  },
+  "Not answering": {
+   "zh-Hans": "无响应",
+   "hi": "जवाब नहीं दे रहा",
+   "es": "No responde",
+   "ar": "لا يستجيب",
+   "fr": "Ne répond pas",
+   "bn": "সাড়া দিচ্ছে না",
+   "pt-BR": "Não responde",
+   "ru": "Не отвечает",
+   "id": "Tidak merespons"
+  },
+  "On": {
+   "zh-Hans": "已打开",
+   "hi": "चालू",
+   "es": "Encendido",
+   "ar": "يعمل",
+   "fr": "Allumé",
+   "bn": "চালু",
+   "pt-BR": "Ligado",
+   "ru": "Включено",
+   "id": "Menyala"
+  },
+  "Muted": {
+   "zh-Hans": "已静音",
+   "hi": "म्यूट",
+   "es": "Silenciado",
+   "ar": "مكتوم",
+   "fr": "Son coupé",
+   "bn": "মিউট করা",
+   "pt-BR": "No mudo",
+   "ru": "Без звука",
+   "id": "Dibisukan"
+  },
+  "Not confirmed yet": {
+   "zh-Hans": "尚未确认",
+   "hi": "अभी पुष्टि नहीं हुई",
+   "es": "Aún sin confirmar",
+   "ar": "لم يتأكد بعد",
+   "fr": "Pas encore confirmé",
+   "bn": "এখনও নিশ্চিত হয়নি",
+   "pt-BR": "Ainda não confirmado",
+   "ru": "Пока не подтверждено",
+   "id": "Belum dikonfirmasi"
+  },
+  "Routine": {
+   "zh-Hans": "例程",
+   "hi": "रूटीन",
+   "es": "Rutina",
+   "ar": "روتين",
+   "fr": "Routine",
+   "bn": "রুটিন",
+   "pt-BR": "Rotina",
+   "ru": "Сценарий",
+   "id": "Rutinitas"
+  },
+  "{done} of {count} steps done": {
+   "zh-Hans": "已完成 {count} 步中的 {done} 步",
+   "hi": "{count} में से {done} चरण पूरे",
+   "es": "{done} de {count} pasos hechos",
+   "ar": "اكتملت {done} من {count} خطوات",
+   "fr": "{done} étapes sur {count} faites",
+   "bn": "{count}টির মধ্যে {done}টি ধাপ সম্পন্ন",
+   "pt-BR": "{done} de {count} passos feitos",
+   "ru": "Выполнено шагов: {done} из {count}",
+   "id": "{done} dari {count} langkah selesai"
+  },
+  "Good night": {
+   "zh-Hans": "晚安",
+   "hi": "शुभ रात्रि",
+   "es": "Buenas noches",
+   "ar": "تصبح على خير",
+   "fr": "Bonne nuit",
+   "bn": "শুভ রাত্রি",
+   "pt-BR": "Boa noite",
+   "ru": "Спокойной ночи",
+   "id": "Selamat malam"
+  },
+  "Movie mode": {
+   "zh-Hans": "影院模式",
+   "hi": "मूवी मोड",
+   "es": "Modo cine",
+   "ar": "وضع السينما",
+   "fr": "Mode cinéma",
+   "bn": "মুভি মোড",
+   "pt-BR": "Modo cinema",
+   "ru": "Режим кино",
+   "id": "Mode bioskop"
+  },
+  "Turn on {device}": {
+   "zh-Hans": "打开 {device}",
+   "hi": "{device} चालू करें",
+   "es": "Encender {device}",
+   "ar": "تشغيل {device}",
+   "fr": "Allumer {device}",
+   "bn": "{device} চালু করুন",
+   "pt-BR": "Ligar {device}",
+   "ru": "Включить {device}",
+   "id": "Nyalakan {device}"
+  },
+  "Give the routine a name.": {
+   "zh-Hans": "请给例程起个名字。",
+   "hi": "रूटीन को एक नाम दें।",
+   "es": "Ponle un nombre a la rutina.",
+   "ar": "أعطِ الروتين اسمًا.",
+   "fr": "Donnez un nom à la routine.",
+   "bn": "রুটিনের একটি নাম দিন।",
+   "pt-BR": "Dê um nome à rotina.",
+   "ru": "Дайте сценарию название.",
+   "id": "Beri nama rutinitas ini."
+  },
+  "Add at least one step to the routine.": {
+   "zh-Hans": "请为例程至少添加一个步骤。",
+   "hi": "रूटीन में कम से कम एक चरण जोड़ें।",
+   "es": "Añade al menos un paso a la rutina.",
+   "ar": "أضف خطوة واحدة على الأقل إلى الروتين.",
+   "fr": "Ajoutez au moins une étape à la routine.",
+   "bn": "রুটিনে অন্তত একটি ধাপ যোগ করুন।",
+   "pt-BR": "Adicione pelo menos um passo à rotina.",
+   "ru": "Добавьте в сценарий хотя бы один шаг.",
+   "id": "Tambahkan setidaknya satu langkah ke rutinitas."
+  },
+  "A routine has at most {count} steps.": {
+   "zh-Hans": "一个例程最多 {count} 个步骤。",
+   "hi": "एक रूटीन में अधिकतम {count} चरण होते हैं।",
+   "es": "Una rutina tiene como máximo {count} pasos.",
+   "ar": "يحتوي الروتين على {count} خطوة كحد أقصى.",
+   "fr": "Une routine a au plus {count} étapes.",
+   "bn": "একটি রুটিনে সর্বোচ্চ {count}টি ধাপ থাকে।",
+   "pt-BR": "Uma rotina tem no máximo {count} passos.",
+   "ru": "В сценарии не больше {count} шагов.",
+   "id": "Satu rutinitas paling banyak {count} langkah."
+  },
+  "Pick a device for every step.": {
+   "zh-Hans": "请为每个步骤选择设备。",
+   "hi": "हर चरण के लिए एक डिवाइस चुनें।",
+   "es": "Elige un dispositivo para cada paso.",
+   "ar": "اختر جهازًا لكل خطوة.",
+   "fr": "Choisissez un appareil pour chaque étape.",
+   "bn": "প্রতিটি ধাপের জন্য একটি ডিভাইস বেছে নিন।",
+   "pt-BR": "Escolha um dispositivo para cada passo.",
+   "ru": "Выберите устройство для каждого шага.",
+   "id": "Pilih perangkat untuk setiap langkah."
+  },
+  "A step of this routine has an action or a value that is not valid.": {
+   "zh-Hans": "此例程的某个步骤的操作或数值无效。",
+   "hi": "इस रूटीन के किसी चरण की क्रिया या मान मान्य नहीं है।",
+   "es": "Un paso de esta rutina tiene una acción o un valor que no es válido.",
+   "ar": "تحتوي خطوة في هذا الروتين على إجراء أو قيمة غير صالحة.",
+   "fr": "Une étape de cette routine a une action ou une valeur non valide.",
+   "bn": "এই রুটিনের একটি ধাপের কাজ বা মান বৈধ নয়।",
+   "pt-BR": "Um passo desta rotina tem uma ação ou um valor que não é válido.",
+   "ru": "В одном из шагов сценария недопустимое действие или значение.",
+   "id": "Salah satu langkah rutinitas ini punya tindakan atau nilai yang tidak valid."
+  },
+  "This device is not there any more.": {
+   "zh-Hans": "此设备已不存在。",
+   "hi": "यह डिवाइस अब मौजूद नहीं है।",
+   "es": "Este dispositivo ya no está.",
+   "ar": "هذا الجهاز لم يعد موجودًا.",
+   "fr": "Cet appareil n'est plus là.",
+   "bn": "এই ডিভাইসটি আর নেই।",
+   "pt-BR": "Este dispositivo não está mais aqui.",
+   "ru": "Этого устройства больше нет.",
+   "id": "Perangkat ini sudah tidak ada."
+  },
+  "This routine is not there any more.": {
+   "zh-Hans": "此例程已不存在。",
+   "hi": "यह रूटीन अब मौजूद नहीं है।",
+   "es": "Esta rutina ya no está.",
+   "ar": "هذا الروتين لم يعد موجودًا.",
+   "fr": "Cette routine n'est plus là.",
+   "bn": "এই রুটিনটি আর নেই।",
+   "pt-BR": "Esta rotina não existe mais.",
+   "ru": "Этого сценария больше нет.",
+   "id": "Rutinitas ini sudah tidak ada."
+  },
+  "Only devices on your local network can be used.": {
+   "zh-Hans": "只能使用本地网络上的设备。",
+   "hi": "केवल आपके स्थानीय नेटवर्क के डिवाइस इस्तेमाल किए जा सकते हैं।",
+   "es": "Solo se pueden usar dispositivos de tu red local.",
+   "ar": "يمكن استخدام الأجهزة الموجودة على شبكتك المحلية فقط.",
+   "fr": "Seuls les appareils de votre réseau local peuvent être utilisés.",
+   "bn": "শুধু আপনার স্থানীয় নেটওয়ার্কের ডিভাইস ব্যবহার করা যায়।",
+   "pt-BR": "Só dispositivos da sua rede local podem ser usados.",
+   "ru": "Можно использовать только устройства вашей локальной сети.",
+   "id": "Hanya perangkat di jaringan lokal Anda yang bisa dipakai."
+  },
+  "This is not a MAC address (like A4:B1:C2:D3:E4:F5).": {
+   "zh-Hans": "这不是 MAC 地址（例如 A4:B1:C2:D3:E4:F5）。",
+   "hi": "यह MAC पता नहीं है (जैसे A4:B1:C2:D3:E4:F5)।",
+   "es": "Esto no es una dirección MAC (como A4:B1:C2:D3:E4:F5).",
+   "ar": "هذا ليس عنوان MAC (مثل A4:B1:C2:D3:E4:F5).",
+   "fr": "Ce n'est pas une adresse MAC (comme A4:B1:C2:D3:E4:F5).",
+   "bn": "এটি MAC ঠিকানা নয় (যেমন A4:B1:C2:D3:E4:F5)।",
+   "pt-BR": "Isto não é um endereço MAC (como A4:B1:C2:D3:E4:F5).",
+   "ru": "Это не MAC-адрес (пример: A4:B1:C2:D3:E4:F5).",
+   "id": "Ini bukan alamat MAC (seperti A4:B1:C2:D3:E4:F5)."
+  },
+  "Press Pair first: the TV shows a PIN.": {
+   "zh-Hans": "请先点击“配对”：电视会显示一个 PIN 码。",
+   "hi": "पहले Pair दबाएँ: टीवी एक PIN दिखाता है।",
+   "es": "Pulsa primero Emparejar: la TV muestra un PIN.",
+   "ar": "اضغط إقران أولًا: سيعرض التلفاز رمز PIN.",
+   "fr": "Appuyez d'abord sur Associer : la TV affiche un code PIN.",
+   "bn": "আগে পেয়ার চাপুন: টিভি একটি PIN দেখাবে।",
+   "pt-BR": "Toque em Parear primeiro: a TV mostra um PIN.",
+   "ru": "Сначала нажмите «Сопрячь»: телевизор покажет PIN-код.",
+   "id": "Tekan Sandingkan dulu: TV menampilkan PIN."
+  },
+  "Enter a long-lived access token from your Home Assistant profile.": {
+   "zh-Hans": "请输入 Home Assistant 个人资料中的长期访问令牌。",
+   "hi": "अपनी Home Assistant प्रोफ़ाइल से लंबे समय तक चलने वाला एक्सेस टोकन डालें।",
+   "es": "Introduce un token de acceso de larga duración de tu perfil de Home Assistant.",
+   "ar": "أدخل رمز وصول طويل الأمد من ملفك الشخصي في Home Assistant.",
+   "fr": "Saisissez un jeton d'accès longue durée de votre profil Home Assistant.",
+   "bn": "আপনার Home Assistant প্রোফাইল থেকে একটি দীর্ঘমেয়াদি অ্যাক্সেস টোকেন দিন।",
+   "pt-BR": "Digite um token de acesso de longa duração do seu perfil no Home Assistant.",
+   "ru": "Введите долгосрочный токен доступа из профиля Home Assistant.",
+   "id": "Masukkan token akses jangka panjang dari profil Home Assistant Anda."
+  },
+  "Home Assistant does not answer at this address.": {
+   "zh-Hans": "此地址上的 Home Assistant 没有响应。",
+   "hi": "इस पते पर Home Assistant जवाब नहीं दे रहा।",
+   "es": "Home Assistant no responde en esta dirección.",
+   "ar": "لا يستجيب Home Assistant على هذا العنوان.",
+   "fr": "Home Assistant ne répond pas à cette adresse.",
+   "bn": "এই ঠিকানায় Home Assistant সাড়া দিচ্ছে না।",
+   "pt-BR": "O Home Assistant não responde neste endereço.",
+   "ru": "Home Assistant не отвечает по этому адресу.",
+   "id": "Home Assistant tidak merespons di alamat ini."
+  },
+  "Home Assistant refused the token. Create a new long-lived access token in your Home Assistant profile.": {
+   "zh-Hans": "Home Assistant 拒绝了该令牌。请在 Home Assistant 个人资料中新建一个长期访问令牌。",
+   "hi": "Home Assistant ने टोकन अस्वीकार कर दिया। अपनी Home Assistant प्रोफ़ाइल में नया लंबे समय तक चलने वाला एक्सेस टोकन बनाएँ।",
+   "es": "Home Assistant rechazó el token. Crea un token de acceso de larga duración nuevo en tu perfil de Home Assistant.",
+   "ar": "رفض Home Assistant الرمز. أنشئ رمز وصول طويل الأمد جديدًا في ملفك الشخصي في Home Assistant.",
+   "fr": "Home Assistant a refusé le jeton. Créez un nouveau jeton d'accès longue durée dans votre profil Home Assistant.",
+   "bn": "Home Assistant টোকেনটি প্রত্যাখ্যান করেছে। আপনার Home Assistant প্রোফাইলে একটি নতুন দীর্ঘমেয়াদি অ্যাক্সেস টোকেন তৈরি করুন।",
+   "pt-BR": "O Home Assistant recusou o token. Crie um novo token de acesso de longa duração no seu perfil do Home Assistant.",
+   "ru": "Home Assistant отклонил токен. Создайте новый долгосрочный токен доступа в профиле Home Assistant.",
+   "id": "Home Assistant menolak token ini. Buat token akses jangka panjang baru di profil Home Assistant Anda."
+  },
+  "Home Assistant does not know this device or service.": {
+   "zh-Hans": "Home Assistant 不认识此设备或服务。",
+   "hi": "Home Assistant इस डिवाइस या सेवा को नहीं जानता।",
+   "es": "Home Assistant no conoce este dispositivo o servicio.",
+   "ar": "لا يعرف Home Assistant هذا الجهاز أو الخدمة.",
+   "fr": "Home Assistant ne connaît pas cet appareil ou ce service.",
+   "bn": "Home Assistant এই ডিভাইস বা সেবাটি চেনে না।",
+   "pt-BR": "O Home Assistant não conhece este dispositivo ou serviço.",
+   "ru": "Home Assistant не знает это устройство или службу.",
+   "id": "Home Assistant tidak mengenal perangkat atau layanan ini."
+  },
+  "Home Assistant answered {status}: {message}": {
+   "zh-Hans": "Home Assistant 返回了 {status}：{message}",
+   "hi": "Home Assistant ने {status} लौटाया: {message}",
+   "es": "Home Assistant respondió {status}: {message}",
+   "ar": "ردّ Home Assistant بالرمز {status}: {message}",
+   "fr": "Home Assistant a répondu {status} : {message}",
+   "bn": "Home Assistant {status} উত্তর দিয়েছে: {message}",
+   "pt-BR": "O Home Assistant respondeu {status}: {message}",
+   "ru": "Home Assistant ответил {status}: {message}",
+   "id": "Home Assistant menjawab {status}: {message}"
+  },
+  "Home Assistant's answer could not be read.": {
+   "zh-Hans": "无法读取 Home Assistant 的响应。",
+   "hi": "Home Assistant का जवाब पढ़ा नहीं जा सका।",
+   "es": "No se pudo leer la respuesta de Home Assistant.",
+   "ar": "تعذّرت قراءة رد Home Assistant.",
+   "fr": "La réponse de Home Assistant n'a pas pu être lue.",
+   "bn": "Home Assistant-এর উত্তর পড়া যায়নি।",
+   "pt-BR": "Não foi possível ler a resposta do Home Assistant.",
+   "ru": "Не удалось прочитать ответ Home Assistant.",
+   "id": "Jawaban Home Assistant tidak dapat dibaca."
+  },
+  "This address does not answer like Home Assistant.": {
+   "zh-Hans": "此地址的响应不像 Home Assistant。",
+   "hi": "यह पता Home Assistant की तरह जवाब नहीं देता।",
+   "es": "Esta dirección no responde como Home Assistant.",
+   "ar": "لا يستجيب هذا العنوان كما يستجيب Home Assistant.",
+   "fr": "Cette adresse ne répond pas comme Home Assistant.",
+   "bn": "এই ঠিকানা Home Assistant-এর মতো সাড়া দেয় না।",
+   "pt-BR": "Este endereço não responde como um Home Assistant.",
+   "ru": "По этому адресу отвечает не Home Assistant.",
+   "id": "Alamat ini tidak merespons seperti Home Assistant."
+  },
+  "Connect Home Assistant first, in Settings → Mochi's home.": {
+   "zh-Hans": "请先在“设置 → Mochi 的家”中连接 Home Assistant。",
+   "hi": "पहले सेटिंग्स → Mochi का घर में Home Assistant कनेक्ट करें।",
+   "es": "Conecta primero Home Assistant, en Configuración → La casa de Mochi.",
+   "ar": "اربط Home Assistant أولًا من الإعدادات ← منزل Mochi.",
+   "fr": "Connectez d'abord Home Assistant, dans Réglages → La maison de Mochi.",
+   "bn": "আগে সেটিংস → Mochi-র বাড়ি থেকে Home Assistant যুক্ত করুন।",
+   "pt-BR": "Conecte o Home Assistant primeiro, em Configurações → Casa do Mochi.",
+   "ru": "Сначала подключите Home Assistant в «Настройки → Дом Mochi».",
+   "id": "Hubungkan Home Assistant dulu, di Pengaturan → Rumah Mochi."
+  },
+  "To turn it on from standby, turn on \"Switch on with Wi-Fi\" (or \"with Chromecast\") in the TV's network settings.": {
+   "zh-Hans": "若要从待机状态开机，请在电视的网络设置中打开“通过 Wi-Fi 开机”（或“通过 Chromecast 开机”）。",
+   "hi": "स्टैंडबाय से चालू करने के लिए, टीवी की नेटवर्क सेटिंग्स में \"Wi-Fi से चालू करें\" (या \"Chromecast से\") चालू करें।",
+   "es": "Para encenderla desde el modo de espera, activa \"Encender con Wi-Fi\" (o \"con Chromecast\") en los ajustes de red de la TV.",
+   "ar": "لتشغيله من وضع الاستعداد، فعّل \"التشغيل عبر Wi-Fi\" (أو \"عبر Chromecast\") في إعدادات الشبكة في التلفاز.",
+   "fr": "Pour l'allumer depuis la veille, activez « Allumer avec le Wi-Fi » (ou « avec Chromecast ») dans les réglages réseau de la TV.",
+   "bn": "স্ট্যান্ডবাই থেকে চালু করতে টিভির নেটওয়ার্ক সেটিংসে \"Wi-Fi দিয়ে চালু করুন\" (বা \"Chromecast দিয়ে\") চালু করুন।",
+   "pt-BR": "Para ligá-la a partir do standby, ative \"Ligar com Wi-Fi\" (ou \"com Chromecast\") nas configurações de rede da TV.",
+   "ru": "Чтобы включать телевизор из режима ожидания, включите «Включение по Wi-Fi» (или «через Chromecast») в его сетевых настройках.",
+   "id": "Untuk menyalakannya dari mode siaga, aktifkan \"Nyalakan dengan Wi-Fi\" (atau \"dengan Chromecast\") di pengaturan jaringan TV."
+  },
+  "The TV does not answer. It may be off with its network asleep, or at another address.": {
+   "zh-Hans": "电视没有响应。它可能已关机且网络处于休眠，或使用了其他地址。",
+   "hi": "टीवी जवाब नहीं दे रहा। हो सकता है वह बंद हो और उसका नेटवर्क सो रहा हो, या किसी और पते पर हो।",
+   "es": "La TV no responde. Puede estar apagada con la red dormida, o en otra dirección.",
+   "ar": "التلفاز لا يستجيب. ربما يكون مطفأً وشبكته نائمة، أو على عنوان آخر.",
+   "fr": "La TV ne répond pas. Elle est peut-être éteinte avec son réseau en veille, ou à une autre adresse.",
+   "bn": "টিভি সাড়া দিচ্ছে না। হয়তো এটি বন্ধ এবং নেটওয়ার্ক ঘুমিয়ে আছে, অথবা অন্য ঠিকানায় আছে।",
+   "pt-BR": "A TV não responde. Ela pode estar desligada com a rede dormindo, ou em outro endereço.",
+   "ru": "Телевизор не отвечает. Возможно, он выключен и его сеть спит, или у него другой адрес.",
+   "id": "TV tidak merespons. Mungkin TV mati dengan jaringan tertidur, atau di alamat lain."
+  },
+  "The TV refused this computer: pair it again.": {
+   "zh-Hans": "电视拒绝了这台电脑：请重新配对。",
+   "hi": "टीवी ने इस कंप्यूटर को अस्वीकार कर दिया: इसे फिर से पेयर करें।",
+   "es": "La TV rechazó este ordenador: vuelve a emparejarla.",
+   "ar": "رفض التلفاز هذا الحاسوب: أعد إقرانه.",
+   "fr": "La TV a refusé cet ordinateur : associez-la à nouveau.",
+   "bn": "টিভি এই কম্পিউটারকে প্রত্যাখ্যান করেছে: আবার পেয়ার করুন।",
+   "pt-BR": "A TV recusou este computador: pareie de novo.",
+   "ru": "Телевизор отклонил этот компьютер: выполните сопряжение заново.",
+   "id": "TV menolak komputer ini: sandingkan ulang."
+  },
+  "This TV does not offer that.": {
+   "zh-Hans": "这台电视不提供此功能。",
+   "hi": "यह टीवी यह सुविधा नहीं देता।",
+   "es": "Esta TV no ofrece eso.",
+   "ar": "هذا التلفاز لا يوفر ذلك.",
+   "fr": "Cette TV ne propose pas cela.",
+   "bn": "এই টিভি এটি দেয় না।",
+   "pt-BR": "Esta TV não oferece isso.",
+   "ru": "Этот телевизор такого не умеет.",
+   "id": "TV ini tidak menyediakan itu."
+  },
+  "The TV's certificate changed since it was paired: check that it is the same TV, then pair it again.": {
+   "zh-Hans": "电视的证书在配对后发生了变化：请确认是同一台电视，然后重新配对。",
+   "hi": "पेयर करने के बाद टीवी का प्रमाणपत्र बदल गया है: जाँचें कि यह वही टीवी है, फिर इसे दोबारा पेयर करें।",
+   "es": "El certificado de la TV cambió desde que se emparejó: comprueba que es la misma TV y vuelve a emparejarla.",
+   "ar": "تغيّرت شهادة التلفاز منذ إقرانه: تحقّق من أنه التلفاز نفسه، ثم أعد إقرانه.",
+   "fr": "Le certificat de la TV a changé depuis l'association : vérifiez que c'est la même TV, puis associez-la à nouveau.",
+   "bn": "পেয়ার করার পর টিভির সার্টিফিকেট বদলে গেছে: এটি একই টিভি কিনা দেখে নিন, তারপর আবার পেয়ার করুন।",
+   "pt-BR": "O certificado da TV mudou desde o pareamento: confira se é a mesma TV e pareie de novo.",
+   "ru": "Сертификат телевизора изменился после сопряжения: убедитесь, что это тот же телевизор, и выполните сопряжение заново.",
+   "id": "Sertifikat TV berubah sejak disandingkan: pastikan ini TV yang sama, lalu sandingkan ulang."
+  },
+  "The TV's answer could not be read.": {
+   "zh-Hans": "无法读取电视的响应。",
+   "hi": "टीवी का जवाब पढ़ा नहीं जा सका।",
+   "es": "No se pudo leer la respuesta de la TV.",
+   "ar": "تعذّرت قراءة رد التلفاز.",
+   "fr": "La réponse de la TV n'a pas pu être lue.",
+   "bn": "টিভির উত্তর পড়া যায়নি।",
+   "pt-BR": "Não foi possível ler a resposta da TV.",
+   "ru": "Не удалось прочитать ответ телевизора.",
+   "id": "Jawaban TV tidak dapat dibaca."
+  },
+  "The TV answered {status}.": {
+   "zh-Hans": "电视返回了 {status}。",
+   "hi": "टीवी ने {status} लौटाया।",
+   "es": "La TV respondió {status}.",
+   "ar": "ردّ التلفاز بالرمز {status}.",
+   "fr": "La TV a répondu {status}.",
+   "bn": "টিভি {status} উত্তর দিয়েছে।",
+   "pt-BR": "A TV respondeu {status}.",
+   "ru": "Телевизор ответил {status}.",
+   "id": "TV menjawab {status}."
+  },
+  "Enter the TV's address first.": {
+   "zh-Hans": "请先输入电视的地址。",
+   "hi": "पहले टीवी का पता डालें।",
+   "es": "Introduce primero la dirección de la TV.",
+   "ar": "أدخل عنوان التلفاز أولًا.",
+   "fr": "Saisissez d'abord l'adresse de la TV.",
+   "bn": "আগে টিভির ঠিকানা দিন।",
+   "pt-BR": "Digite primeiro o endereço da TV.",
+   "ru": "Сначала введите адрес телевизора.",
+   "id": "Masukkan alamat TV terlebih dahulu."
+  },
+  "No Philips TV answers at this address (ports 1925 and 1926). Check that the TV is on, on the same network, and that this is its address.": {
+   "zh-Hans": "此地址（端口 1925 和 1926）上没有飞利浦电视响应。请确认电视已开机、在同一网络中，且这是它的地址。",
+   "hi": "इस पते (पोर्ट 1925 और 1926) पर कोई Philips टीवी जवाब नहीं दे रहा। जाँचें कि टीवी चालू है, उसी नेटवर्क पर है और यही उसका पता है।",
+   "es": "Ninguna TV Philips responde en esta dirección (puertos 1925 y 1926). Comprueba que la TV está encendida, en la misma red, y que esta es su dirección.",
+   "ar": "لا يستجيب أي تلفاز Philips على هذا العنوان (المنفذان 1925 و1926). تحقّق من أن التلفاز يعمل، وعلى الشبكة نفسها، وأن هذا عنوانه.",
+   "fr": "Aucune TV Philips ne répond à cette adresse (ports 1925 et 1926). Vérifiez que la TV est allumée, sur le même réseau, et que c'est bien son adresse.",
+   "bn": "এই ঠিকানায় (পোর্ট 1925 ও 1926) কোনো Philips টিভি সাড়া দিচ্ছে না। টিভি চালু আছে, একই নেটওয়ার্কে আছে এবং এটিই তার ঠিকানা কিনা দেখে নিন।",
+   "pt-BR": "Nenhuma TV Philips responde neste endereço (portas 1925 e 1926). Confira se a TV está ligada, na mesma rede, e se este é mesmo o endereço dela.",
+   "ru": "По этому адресу (порты 1925 и 1926) не отвечает ни один телевизор Philips. Проверьте, что телевизор включён, находится в той же сети и что адрес верный.",
+   "id": "Tidak ada TV Philips yang merespons di alamat ini (port 1925 dan 1926). Pastikan TV menyala, di jaringan yang sama, dan ini memang alamatnya."
+  },
+  "Wrong PIN. Check the code on the TV and type it again.": {
+   "zh-Hans": "PIN 码错误。请核对电视上的代码后重新输入。",
+   "hi": "गलत PIN। टीवी पर कोड देखें और फिर से टाइप करें।",
+   "es": "PIN incorrecto. Revisa el código en la TV y vuelve a escribirlo.",
+   "ar": "رمز PIN خاطئ. تحقّق من الرمز على التلفاز واكتبه مرة أخرى.",
+   "fr": "Code PIN incorrect. Vérifiez le code sur la TV et saisissez-le à nouveau.",
+   "bn": "ভুল PIN। টিভিতে কোডটি দেখে আবার লিখুন।",
+   "pt-BR": "PIN errado. Confira o código na TV e digite de novo.",
+   "ru": "Неверный PIN-код. Проверьте код на телевизоре и введите его снова.",
+   "id": "PIN salah. Periksa kode di TV dan ketik lagi."
+  },
+  "The PIN expired. Start the pairing again.": {
+   "zh-Hans": "PIN 码已过期。请重新开始配对。",
+   "hi": "PIN की समय-सीमा खत्म हो गई। पेयरिंग फिर से शुरू करें।",
+   "es": "El PIN caducó. Empieza de nuevo el emparejamiento.",
+   "ar": "انتهت صلاحية رمز PIN. ابدأ الإقران من جديد.",
+   "fr": "Le code PIN a expiré. Recommencez l'association.",
+   "bn": "PIN-এর মেয়াদ শেষ। আবার পেয়ারিং শুরু করুন।",
+   "pt-BR": "O PIN expirou. Comece o pareamento de novo.",
+   "ru": "Срок PIN-кода истёк. Начните сопряжение заново.",
+   "id": "PIN kedaluwarsa. Mulai penyandingan lagi."
+  },
+  "The TV is already pairing with something else. Close that, then try again.": {
+   "zh-Hans": "电视正在与其他设备配对。请先关闭那个配对，然后重试。",
+   "hi": "टीवी पहले से किसी और चीज़ के साथ पेयर हो रहा है। उसे बंद करें, फिर दोबारा कोशिश करें।",
+   "es": "La TV ya se está emparejando con otra cosa. Ciérralo y vuelve a intentarlo.",
+   "ar": "التلفاز يُقرَن بالفعل بشيء آخر. أغلق ذلك ثم حاول مجددًا.",
+   "fr": "La TV est déjà en cours d'association avec autre chose. Fermez-la, puis réessayez.",
+   "bn": "টিভি ইতিমধ্যে অন্য কিছুর সঙ্গে পেয়ার হচ্ছে। সেটি বন্ধ করে আবার চেষ্টা করুন।",
+   "pt-BR": "A TV já está pareando com outra coisa. Feche isso e tente de novo.",
+   "ru": "Телевизор уже выполняет сопряжение с другим устройством. Закройте его и попробуйте снова.",
+   "id": "TV sedang disandingkan dengan perangkat lain. Tutup itu, lalu coba lagi."
+  },
+  "The TV refused the pairing ({reason}).": {
+   "zh-Hans": "电视拒绝了配对（{reason}）。",
+   "hi": "टीवी ने पेयरिंग अस्वीकार कर दी ({reason})।",
+   "es": "La TV rechazó el emparejamiento ({reason}).",
+   "ar": "رفض التلفاز الإقران ({reason}).",
+   "fr": "La TV a refusé l'association ({reason}).",
+   "bn": "টিভি পেয়ারিং প্রত্যাখ্যান করেছে ({reason})।",
+   "pt-BR": "A TV recusou o pareamento ({reason}).",
+   "ru": "Телевизор отказал в сопряжении ({reason}).",
+   "id": "TV menolak penyandingan ({reason})."
+  },
+  "The TV refused the pairing.": {
+   "zh-Hans": "电视拒绝了配对。",
+   "hi": "टीवी ने पेयरिंग अस्वीकार कर दी।",
+   "es": "La TV rechazó el emparejamiento.",
+   "ar": "رفض التلفاز الإقران.",
+   "fr": "La TV a refusé l'association.",
+   "bn": "টিভি পেয়ারিং প্রত্যাখ্যান করেছে।",
+   "pt-BR": "A TV recusou o pareamento.",
+   "ru": "Телевизор отказал в сопряжении.",
+   "id": "TV menolak penyandingan."
+  },
+  "Type the PIN the TV shows.": {
+   "zh-Hans": "请输入电视显示的 PIN 码。",
+   "hi": "टीवी पर दिख रहा PIN टाइप करें।",
+   "es": "Escribe el PIN que muestra la TV.",
+   "ar": "اكتب رمز PIN الذي يعرضه التلفاز.",
+   "fr": "Saisissez le code PIN affiché par la TV.",
+   "bn": "টিভিতে দেখানো PIN লিখুন।",
+   "pt-BR": "Digite o PIN que aparece na TV.",
+   "ru": "Введите PIN-код, который показывает телевизор.",
+   "id": "Ketik PIN yang ditampilkan TV."
+  },
+  "The wake-up signal could not be sent on the network.": {
+   "zh-Hans": "无法在网络上发送唤醒信号。",
+   "hi": "नेटवर्क पर जगाने का संकेत नहीं भेजा जा सका।",
+   "es": "No se pudo enviar la señal de encendido por la red.",
+   "ar": "تعذّر إرسال إشارة الإيقاظ على الشبكة.",
+   "fr": "Le signal de réveil n'a pas pu être envoyé sur le réseau.",
+   "bn": "নেটওয়ার্কে জাগানোর সংকেত পাঠানো যায়নি।",
+   "pt-BR": "Não foi possível enviar o sinal para acordar a TV pela rede.",
+   "ru": "Не удалось отправить в сеть сигнал пробуждения.",
+   "id": "Sinyal bangun tidak dapat dikirim di jaringan."
+  },
+  "Mochi's home": {
+   "zh-Hans": "Mochi 的家",
+   "hi": "Mochi का घर",
+   "es": "La casa de Mochi",
+   "ar": "منزل Mochi",
+   "fr": "La maison de Mochi",
+   "bn": "Mochi-র বাড়ি",
+   "pt-BR": "Casa do Mochi",
+   "ru": "Дом Mochi",
+   "id": "Rumah Mochi"
+  },
+  "Ask before every action": {
+   "zh-Hans": "每次操作前都询问",
+   "hi": "हर क्रिया से पहले पूछें",
+   "es": "Preguntar antes de cada acción",
+   "ar": "اسأل قبل كل إجراء",
+   "fr": "Demander avant chaque action",
+   "bn": "প্রতিটি কাজের আগে জিজ্ঞেস করুন",
+   "pt-BR": "Perguntar antes de toda ação",
+   "ru": "Спрашивать перед каждым действием",
+   "id": "Tanya sebelum setiap tindakan"
+  },
+  "Let Mochi use the devices of your house from the chat, on this computer or on your phone: turn the TV on, open an app, dim the lights, run a routine. Through Home Assistant, or straight to Philips TVs on your network. Off by default.": {
+   "zh-Hans": "让 Mochi 在聊天中使用你家里的设备（在这台电脑或手机上）：打开电视、打开应用、调暗灯光、运行例程。通过 Home Assistant，或直接连接你网络中的飞利浦电视。默认关闭。",
+   "hi": "Mochi को चैट से, इस कंप्यूटर या आपके फ़ोन पर, आपके घर के डिवाइस इस्तेमाल करने दें: टीवी चालू करना, ऐप खोलना, रोशनी कम करना, रूटीन चलाना। Home Assistant के ज़रिए, या सीधे आपके नेटवर्क के Philips टीवी से। डिफ़ॉल्ट रूप से बंद।",
+   "es": "Deja que Mochi use los dispositivos de tu casa desde el chat, en este ordenador o en tu teléfono: encender la TV, abrir una app, bajar las luces, ejecutar una rutina. A través de Home Assistant, o directamente con las TV Philips de tu red. Desactivado por defecto.",
+   "ar": "دع Mochi يستخدم أجهزة منزلك من الدردشة، على هذا الحاسوب أو على هاتفك: تشغيل التلفاز، فتح تطبيق، خفض الإضاءة، تشغيل روتين. عبر Home Assistant، أو مباشرة مع أجهزة تلفاز Philips على شبكتك. معطّل افتراضيًا.",
+   "fr": "Laissez Mochi utiliser les appareils de votre maison depuis le chat, sur cet ordinateur ou sur votre téléphone : allumer la TV, ouvrir une app, baisser les lumières, lancer une routine. Par Home Assistant, ou directement avec les TV Philips de votre réseau. Désactivé par défaut.",
+   "bn": "চ্যাট থেকে, এই কম্পিউটারে বা আপনার ফোনে, Mochi-কে আপনার বাড়ির ডিভাইস ব্যবহার করতে দিন: টিভি চালু করা, অ্যাপ খোলা, আলো কমানো, রুটিন চালানো। Home Assistant দিয়ে, অথবা সরাসরি আপনার নেটওয়ার্কের Philips টিভিতে। ডিফল্টভাবে বন্ধ।",
+   "pt-BR": "Deixe o Mochi usar os aparelhos da sua casa pelo chat, neste computador ou no celular: ligar a TV, abrir um app, diminuir as luzes, rodar uma rotina. Pelo Home Assistant, ou direto nas TVs Philips da sua rede. Vem desligado.",
+   "ru": "Позвольте Mochi управлять устройствами вашего дома из чата — на этом компьютере или с телефона: включить телевизор, открыть приложение, приглушить свет, запустить сценарий. Через Home Assistant или напрямую с телевизорами Philips в вашей сети. По умолчанию выключено.",
+   "id": "Biarkan Mochi memakai perangkat rumah Anda dari chat, di komputer ini atau di ponsel: menyalakan TV, membuka aplikasi, meredupkan lampu, menjalankan rutinitas. Lewat Home Assistant, atau langsung ke TV Philips di jaringan Anda. Nonaktif secara bawaan."
+  },
+  "Mochi needs his hands on (above) and uses only the devices you tick. After each action he asks the device again and tells you what it reports.": {
+   "zh-Hans": "需要先打开 Mochi 的双手（见上方），他只会使用你勾选的设备。每次操作后，他都会再次询问设备，并告诉你设备报告的状态。",
+   "hi": "Mochi के हाथ चालू होने चाहिए (ऊपर), और वह केवल वही डिवाइस इस्तेमाल करता है जिन्हें आप चुनते हैं। हर क्रिया के बाद वह डिवाइस से फिर पूछता है और बताता है कि डिवाइस क्या रिपोर्ट करता है।",
+   "es": "Mochi necesita sus manos activadas (arriba) y usa solo los dispositivos que marques. Después de cada acción vuelve a preguntar al dispositivo y te dice lo que informa.",
+   "ar": "يحتاج Mochi إلى تفعيل يديه (في الأعلى)، ولا يستخدم إلا الأجهزة التي تحددها. بعد كل إجراء يسأل الجهاز مجددًا ويخبرك بما يُبلغ عنه.",
+   "fr": "Mochi a besoin de ses mains (plus haut) et n'utilise que les appareils que vous cochez. Après chaque action, il interroge à nouveau l'appareil et vous dit ce qu'il indique.",
+   "bn": "Mochi-র হাত চালু থাকতে হবে (উপরে), এবং তিনি শুধু আপনার টিক দেওয়া ডিভাইসগুলোই ব্যবহার করেন। প্রতিটি কাজের পর তিনি ডিভাইসটিকে আবার জিজ্ঞেস করে জানান সেটি কী জানাচ্ছে।",
+   "pt-BR": "O Mochi precisa dos braços ligados (acima) e usa só os aparelhos que você marcar. Depois de cada ação ele pergunta de novo ao aparelho e te diz o que ele informa.",
+   "ru": "Mochi нужны включённые «руки» (выше), и он использует только отмеченные вами устройства. После каждого действия он снова опрашивает устройство и сообщает, что оно ответило.",
+   "id": "Mochi perlu tangannya aktif (di atas) dan hanya memakai perangkat yang Anda centang. Setelah setiap tindakan, ia menanyai perangkat lagi dan memberi tahu Anda apa laporannya."
+  },
+  "Search the network": {
+   "zh-Hans": "搜索网络",
+   "hi": "नेटवर्क में खोजें",
+   "es": "Buscar en la red",
+   "ar": "البحث في الشبكة",
+   "fr": "Chercher sur le réseau",
+   "bn": "নেটওয়ার্কে খুঁজুন",
+   "pt-BR": "Procurar na rede",
+   "ru": "Искать в сети",
+   "id": "Cari di jaringan"
+  },
+  "Looks for Home Assistant and TVs on your local network (mDNS and UPnP), for a few seconds. Nothing is added until you choose.": {
+   "zh-Hans": "在本地网络中查找 Home Assistant 和电视（mDNS 和 UPnP），持续几秒钟。在你选择之前不会添加任何内容。",
+   "hi": "कुछ सेकंड के लिए आपके स्थानीय नेटवर्क पर Home Assistant और टीवी खोजता है (mDNS और UPnP)। जब तक आप न चुनें, कुछ नहीं जोड़ा जाता।",
+   "es": "Busca Home Assistant y televisores en tu red local (mDNS y UPnP) durante unos segundos. No se añade nada hasta que elijas.",
+   "ar": "يبحث عن Home Assistant وأجهزة التلفاز على شبكتك المحلية (mDNS وUPnP) لبضع ثوانٍ. لا يُضاف شيء حتى تختار.",
+   "fr": "Cherche Home Assistant et des TV sur votre réseau local (mDNS et UPnP), pendant quelques secondes. Rien n'est ajouté avant que vous choisissiez.",
+   "bn": "কয়েক সেকেন্ড ধরে আপনার স্থানীয় নেটওয়ার্কে Home Assistant ও টিভি খোঁজে (mDNS ও UPnP)। আপনি বেছে না নেওয়া পর্যন্ত কিছুই যোগ হয় না।",
+   "pt-BR": "Procura o Home Assistant e TVs na sua rede local (mDNS e UPnP), por alguns segundos. Nada é adicionado até você escolher.",
+   "ru": "Несколько секунд ищет Home Assistant и телевизоры в вашей локальной сети (mDNS и UPnP). Ничего не добавляется, пока вы не выберете.",
+   "id": "Mencari Home Assistant dan TV di jaringan lokal Anda (mDNS dan UPnP) selama beberapa detik. Tidak ada yang ditambahkan sampai Anda memilih."
+  },
+  "Nothing found. Check that this computer and the devices are on the same network, or add them by their address below.": {
+   "zh-Hans": "未找到任何设备。请确认这台电脑和设备在同一网络中，或在下方通过地址添加。",
+   "hi": "कुछ नहीं मिला। जाँचें कि यह कंप्यूटर और डिवाइस एक ही नेटवर्क पर हैं, या नीचे उनका पता डालकर जोड़ें।",
+   "es": "No se encontró nada. Comprueba que este ordenador y los dispositivos están en la misma red, o añádelos por su dirección abajo.",
+   "ar": "لم يُعثر على شيء. تحقّق من أن هذا الحاسوب والأجهزة على الشبكة نفسها، أو أضفها بعناوينها أدناه.",
+   "fr": "Rien trouvé. Vérifiez que cet ordinateur et les appareils sont sur le même réseau, ou ajoutez-les par leur adresse ci-dessous.",
+   "bn": "কিছু পাওয়া যায়নি। এই কম্পিউটার ও ডিভাইসগুলো একই নেটওয়ার্কে আছে কিনা দেখুন, অথবা নিচে তাদের ঠিকানা দিয়ে যোগ করুন।",
+   "pt-BR": "Nada encontrado. Confira se este computador e os aparelhos estão na mesma rede, ou adicione-os pelo endereço abaixo.",
+   "ru": "Ничего не найдено. Убедитесь, что компьютер и устройства в одной сети, или добавьте их по адресу ниже.",
+   "id": "Tidak ada yang ditemukan. Pastikan komputer ini dan perangkatnya di jaringan yang sama, atau tambahkan lewat alamatnya di bawah."
+  },
+  "Use": {
+   "zh-Hans": "使用",
+   "hi": "इस्तेमाल करें",
+   "es": "Usar",
+   "ar": "استخدام",
+   "fr": "Utiliser",
+   "bn": "ব্যবহার করুন",
+   "pt-BR": "Usar",
+   "ru": "Использовать",
+   "id": "Pakai"
+  },
+  "Add": {
+   "zh-Hans": "添加",
+   "hi": "जोड़ें",
+   "es": "Añadir",
+   "ar": "إضافة",
+   "fr": "Ajouter",
+   "bn": "যোগ করুন",
+   "pt-BR": "Adicionar",
+   "ru": "Добавить",
+   "id": "Tambah"
+  },
+  "Not controlled directly: add it to Home Assistant.": {
+   "zh-Hans": "无法直接控制：请将其添加到 Home Assistant。",
+   "hi": "सीधे नियंत्रित नहीं होता: इसे Home Assistant में जोड़ें।",
+   "es": "No se controla directamente: añádelo a Home Assistant.",
+   "ar": "لا يُتحكَّم به مباشرة: أضفه إلى Home Assistant.",
+   "fr": "Pas contrôlé directement : ajoutez-le à Home Assistant.",
+   "bn": "সরাসরি নিয়ন্ত্রণ হয় না: এটি Home Assistant-এ যোগ করুন।",
+   "pt-BR": "Não é controlado direto: adicione-o ao Home Assistant.",
+   "ru": "Напрямую не управляется: добавьте его в Home Assistant.",
+   "id": "Tidak dikendalikan langsung: tambahkan ke Home Assistant."
+  },
+  "Address": {
+   "zh-Hans": "地址",
+   "hi": "पता",
+   "es": "Dirección",
+   "ar": "العنوان",
+   "fr": "Adresse",
+   "bn": "ঠিকানা",
+   "pt-BR": "Endereço",
+   "ru": "Адрес",
+   "id": "Alamat"
+  },
+  "Access token": {
+   "zh-Hans": "访问令牌",
+   "hi": "एक्सेस टोकन",
+   "es": "Token de acceso",
+   "ar": "رمز الوصول",
+   "fr": "Jeton d'accès",
+   "bn": "অ্যাক্সেস টোকেন",
+   "pt-BR": "Token de acesso",
+   "ru": "Токен доступа",
+   "id": "Token akses"
+  },
+  "Long-lived access token": {
+   "zh-Hans": "长期访问令牌",
+   "hi": "लंबे समय तक चलने वाला एक्सेस टोकन",
+   "es": "Token de acceso de larga duración",
+   "ar": "رمز وصول طويل الأمد",
+   "fr": "Jeton d'accès longue durée",
+   "bn": "দীর্ঘমেয়াদি অ্যাক্সেস টোকেন",
+   "pt-BR": "Token de acesso de longa duração",
+   "ru": "Долгосрочный токен доступа",
+   "id": "Token akses jangka panjang"
+  },
+  "Connected: Home Assistant {version} · {home}": {
+   "zh-Hans": "已连接：Home Assistant {version} · {home}",
+   "hi": "कनेक्ट हो गया: Home Assistant {version} · {home}",
+   "es": "Conectado: Home Assistant {version} · {home}",
+   "ar": "متصل: Home Assistant {version} · {home}",
+   "fr": "Connecté : Home Assistant {version} · {home}",
+   "bn": "যুক্ত হয়েছে: Home Assistant {version} · {home}",
+   "pt-BR": "Conectado: Home Assistant {version} · {home}",
+   "ru": "Подключено: Home Assistant {version} · {home}",
+   "id": "Terhubung: Home Assistant {version} · {home}"
+  },
+  "Create the token in Home Assistant: your profile → Security → Long-lived access tokens. It is kept in the system's credential store, never in a file. Only an address on your local network is accepted. Lights, switches, TVs and speakers become devices; Mochi uses only those you tick below.": {
+   "zh-Hans": "在 Home Assistant 中创建令牌：个人资料 → 安全 → 长期访问令牌。它保存在系统的凭据存储中，绝不写入文件。只接受本地网络上的地址。灯、开关、电视和音箱会成为设备；Mochi 只使用你在下方勾选的设备。",
+   "hi": "Home Assistant में टोकन बनाएँ: आपकी प्रोफ़ाइल → सुरक्षा → लंबे समय तक चलने वाले एक्सेस टोकन। यह सिस्टम के क्रेडेंशियल स्टोर में रखा जाता है, कभी किसी फ़ाइल में नहीं। केवल आपके स्थानीय नेटवर्क का पता स्वीकार होता है। लाइटें, स्विच, टीवी और स्पीकर डिवाइस बनते हैं; Mochi केवल वही इस्तेमाल करता है जिन्हें आप नीचे चुनते हैं।",
+   "es": "Crea el token en Home Assistant: tu perfil → Seguridad → Tokens de acceso de larga duración. Se guarda en el almacén de credenciales del sistema, nunca en un archivo. Solo se acepta una dirección de tu red local. Luces, interruptores, televisores y altavoces se convierten en dispositivos; Mochi usa solo los que marques abajo.",
+   "ar": "أنشئ الرمز في Home Assistant: ملفك الشخصي ← الأمان ← رموز الوصول طويلة الأمد. يُحفظ في مخزن بيانات الاعتماد في النظام، وليس في ملف أبدًا. لا يُقبل إلا عنوان على شبكتك المحلية. تصبح الأضواء والمفاتيح والتلفازات ومكبرات الصوت أجهزة؛ ولا يستخدم Mochi إلا ما تحدده أدناه.",
+   "fr": "Créez le jeton dans Home Assistant : votre profil → Sécurité → Jetons d'accès longue durée. Il est gardé dans le coffre d'identifiants du système, jamais dans un fichier. Seule une adresse de votre réseau local est acceptée. Lumières, interrupteurs, TV et enceintes deviennent des appareils ; Mochi n'utilise que ceux que vous cochez ci-dessous.",
+   "bn": "Home Assistant-এ টোকেন তৈরি করুন: আপনার প্রোফাইল → নিরাপত্তা → দীর্ঘমেয়াদি অ্যাক্সেস টোকেন। এটি সিস্টেমের ক্রেডেনশিয়াল স্টোরে রাখা হয়, কখনো ফাইলে নয়। শুধু আপনার স্থানীয় নেটওয়ার্কের ঠিকানা গ্রহণ করা হয়। আলো, সুইচ, টিভি ও স্পিকার ডিভাইস হয়ে যায়; Mochi শুধু নিচে আপনার টিক দেওয়াগুলো ব্যবহার করেন।",
+   "pt-BR": "Crie o token no Home Assistant: seu perfil → Segurança → Tokens de acesso de longa duração. Ele fica guardado no cofre de credenciais do sistema, nunca em arquivo. Só um endereço da sua rede local é aceito. Luzes, interruptores, TVs e caixas de som viram aparelhos; o Mochi só usa os que você marcar abaixo.",
+   "ru": "Создайте токен в Home Assistant: ваш профиль → Безопасность → Долгосрочные токены доступа. Он хранится в хранилище учётных данных системы, никогда в файле. Принимается только адрес в вашей локальной сети. Лампы, выключатели, телевизоры и колонки становятся устройствами; Mochi использует только отмеченные ниже.",
+   "id": "Buat token di Home Assistant: profil Anda → Keamanan → Token akses jangka panjang. Token disimpan di penyimpanan kredensial sistem, tidak pernah di file. Hanya alamat di jaringan lokal Anda yang diterima. Lampu, sakelar, TV, dan speaker menjadi perangkat; Mochi hanya memakai yang Anda centang di bawah."
+  },
+  "Philips TVs": {
+   "zh-Hans": "飞利浦电视",
+   "hi": "Philips टीवी",
+   "es": "Televisores Philips",
+   "ar": "أجهزة تلفاز Philips",
+   "fr": "TV Philips",
+   "bn": "Philips টিভি",
+   "pt-BR": "TVs Philips",
+   "ru": "Телевизоры Philips",
+   "id": "TV Philips"
+  },
+  "TV address": {
+   "zh-Hans": "电视地址",
+   "hi": "टीवी का पता",
+   "es": "Dirección de la TV",
+   "ar": "عنوان التلفاز",
+   "fr": "Adresse de la TV",
+   "bn": "টিভির ঠিকানা",
+   "pt-BR": "Endereço da TV",
+   "ru": "Адрес телевизора",
+   "id": "Alamat TV"
+  },
+  "Found: {name} ({details}). Now press Pair: the TV shows a PIN.": {
+   "zh-Hans": "已找到：{name}（{details}）。现在请点击“配对”：电视会显示一个 PIN 码。",
+   "hi": "मिला: {name} ({details})। अब Pair दबाएँ: टीवी एक PIN दिखाएगा।",
+   "es": "Encontrada: {name} ({details}). Ahora pulsa Emparejar: la TV muestra un PIN.",
+   "ar": "عُثر على: {name} ({details}). اضغط الآن إقران: سيعرض التلفاز رمز PIN.",
+   "fr": "Trouvée : {name} ({details}). Appuyez maintenant sur Associer : la TV affiche un code PIN.",
+   "bn": "পাওয়া গেছে: {name} ({details})। এখন পেয়ার চাপুন: টিভি একটি PIN দেখাবে।",
+   "pt-BR": "Encontrada: {name} ({details}). Agora toque em Parear: a TV mostra um PIN.",
+   "ru": "Найден: {name} ({details}). Теперь нажмите «Сопрячь»: телевизор покажет PIN-код.",
+   "id": "Ditemukan: {name} ({details}). Sekarang tekan Sandingkan: TV menampilkan PIN."
+  },
+  "Found: {name} ({details}).": {
+   "zh-Hans": "已找到：{name}（{details}）。",
+   "hi": "मिला: {name} ({details})।",
+   "es": "Encontrada: {name} ({details}).",
+   "ar": "عُثر على: {name} ({details}).",
+   "fr": "Trouvée : {name} ({details}).",
+   "bn": "পাওয়া গেছে: {name} ({details})।",
+   "pt-BR": "Encontrada: {name} ({details}).",
+   "ru": "Найден: {name} ({details}).",
+   "id": "Ditemukan: {name} ({details})."
+  },
+  "Pair": {
+   "zh-Hans": "配对",
+   "hi": "पेयर करें",
+   "es": "Emparejar",
+   "ar": "إقران",
+   "fr": "Associer",
+   "bn": "পেয়ার করুন",
+   "pt-BR": "Parear",
+   "ru": "Сопрячь",
+   "id": "Sandingkan"
+  },
+  "Confirm": {
+   "zh-Hans": "确认",
+   "hi": "पुष्टि करें",
+   "es": "Confirmar",
+   "ar": "تأكيد",
+   "fr": "Confirmer",
+   "bn": "নিশ্চিত করুন",
+   "pt-BR": "Confirmar",
+   "ru": "Подтвердить",
+   "id": "Konfirmasi"
+  },
+  "Paired. Mochi can now use this TV.": {
+   "zh-Hans": "已配对。Mochi 现在可以使用这台电视了。",
+   "hi": "पेयर हो गया। Mochi अब इस टीवी का इस्तेमाल कर सकता है।",
+   "es": "Emparejada. Mochi ya puede usar esta TV.",
+   "ar": "تم الإقران. يمكن لـ Mochi الآن استخدام هذا التلفاز.",
+   "fr": "Associée. Mochi peut maintenant utiliser cette TV.",
+   "bn": "পেয়ার হয়েছে। Mochi এখন এই টিভি ব্যবহার করতে পারেন।",
+   "pt-BR": "Pareada. O Mochi já pode usar esta TV.",
+   "ru": "Сопряжено. Теперь Mochi может управлять этим телевизором.",
+   "id": "Tersandingkan. Mochi sekarang bisa memakai TV ini."
+  },
+  "PIN on the TV": {
+   "zh-Hans": "电视上的 PIN 码",
+   "hi": "टीवी पर PIN",
+   "es": "PIN de la TV",
+   "ar": "رمز PIN على التلفاز",
+   "fr": "Code PIN de la TV",
+   "bn": "টিভিতে PIN",
+   "pt-BR": "PIN da TV",
+   "ru": "PIN-код на телевизоре",
+   "id": "PIN di TV"
+  },
+  "Paired": {
+   "zh-Hans": "已配对",
+   "hi": "पेयर है",
+   "es": "Emparejada",
+   "ar": "مقترن",
+   "fr": "Associée",
+   "bn": "পেয়ার করা",
+   "pt-BR": "Pareada",
+   "ru": "Сопряжено",
+   "id": "Tersandingkan"
+  },
+  "Needs pairing: press Pair and type the PIN the TV shows.": {
+   "zh-Hans": "需要配对：点击“配对”，然后输入电视显示的 PIN 码。",
+   "hi": "पेयरिंग ज़रूरी है: Pair दबाएँ और टीवी पर दिख रहा PIN टाइप करें।",
+   "es": "Hay que emparejarla: pulsa Emparejar y escribe el PIN que muestra la TV.",
+   "ar": "يحتاج إلى إقران: اضغط إقران واكتب رمز PIN الذي يعرضه التلفاز.",
+   "fr": "Association requise : appuyez sur Associer et saisissez le code PIN affiché par la TV.",
+   "bn": "পেয়ার করা দরকার: পেয়ার চাপুন এবং টিভিতে দেখানো PIN লিখুন।",
+   "pt-BR": "Precisa parear: toque em Parear e digite o PIN que aparece na TV.",
+   "ru": "Нужно сопряжение: нажмите «Сопрячь» и введите PIN-код с телевизора.",
+   "id": "Perlu disandingkan: tekan Sandingkan dan ketik PIN yang ditampilkan TV."
+  },
+  "No pairing needed": {
+   "zh-Hans": "无需配对",
+   "hi": "पेयरिंग की ज़रूरत नहीं",
+   "es": "No hace falta emparejar",
+   "ar": "لا حاجة إلى الإقران",
+   "fr": "Pas d'association nécessaire",
+   "bn": "পেয়ার করার দরকার নেই",
+   "pt-BR": "Não precisa parear",
+   "ru": "Сопряжение не требуется",
+   "id": "Tidak perlu disandingkan"
+  },
+  "MAC address": {
+   "zh-Hans": "MAC 地址",
+   "hi": "MAC पता",
+   "es": "Dirección MAC",
+   "ar": "عنوان MAC",
+   "fr": "Adresse MAC",
+   "bn": "MAC ঠিকানা",
+   "pt-BR": "Endereço MAC",
+   "ru": "MAC-адрес",
+   "id": "Alamat MAC"
+  },
+  "Coucou asks the TV which JointSpace version it speaks and what it can do, and offers only that. Android TVs (2016 and later) are paired once with a PIN. The TV's address is in its network settings.": {
+   "zh-Hans": "Coucou 会询问电视使用哪个 JointSpace 版本以及能做什么，并只提供这些功能。Android 电视（2016 年及以后）需用 PIN 码配对一次。电视的地址可在其网络设置中找到。",
+   "hi": "Coucou टीवी से पूछता है कि वह कौन-सा JointSpace संस्करण इस्तेमाल करता है और क्या कर सकता है, और केवल वही पेश करता है। Android टीवी (2016 और बाद के) एक बार PIN से पेयर होते हैं। टीवी का पता उसकी नेटवर्क सेटिंग्स में है।",
+   "es": "Coucou le pregunta a la TV qué versión de JointSpace habla y qué puede hacer, y ofrece solo eso. Las Android TV (2016 en adelante) se emparejan una vez con un PIN. La dirección de la TV está en sus ajustes de red.",
+   "ar": "يسأل Coucou التلفاز عن إصدار JointSpace الذي يتحدثه وما يمكنه فعله، ولا يقدّم إلا ذلك. أجهزة Android TV (2016 وما بعدها) تُقرَن مرة واحدة برمز PIN. عنوان التلفاز موجود في إعدادات الشبكة فيه.",
+   "fr": "Coucou demande à la TV quelle version de JointSpace elle parle et ce qu'elle sait faire, et ne propose que cela. Les Android TV (2016 et après) s'associent une fois avec un code PIN. L'adresse de la TV est dans ses réglages réseau.",
+   "bn": "Coucou টিভিকে জিজ্ঞেস করে সেটি কোন JointSpace সংস্করণ ব্যবহার করে এবং কী করতে পারে, এবং শুধু সেটুকুই দেয়। Android টিভি (২০১৬ ও পরের) একবার PIN দিয়ে পেয়ার হয়। টিভির ঠিকানা তার নেটওয়ার্ক সেটিংসে আছে।",
+   "pt-BR": "O Coucou pergunta à TV qual versão do JointSpace ela fala e o que ela consegue fazer, e só oferece isso. As Android TVs (2016 em diante) são pareadas uma vez com um PIN. O endereço da TV está nas configurações de rede dela.",
+   "ru": "Coucou спрашивает у телевизора, какую версию JointSpace он поддерживает и что умеет, и предлагает только это. Телевизоры на Android (2016 и новее) сопрягаются один раз по PIN-коду. Адрес телевизора есть в его сетевых настройках.",
+   "id": "Coucou menanyakan versi JointSpace yang dipakai TV dan apa yang bisa dilakukannya, lalu hanya menawarkan itu. TV Android (2016 dan sesudahnya) disandingkan sekali dengan PIN. Alamat TV ada di pengaturan jaringannya."
+  },
+  "To turn a TV on from standby, turn on \"Switch on with Wi-Fi\" (or \"with Chromecast\") on the TV. The MAC address, found by itself when possible, lets Coucou wake it from deep standby.": {
+   "zh-Hans": "若要从待机状态打开电视，请在电视上打开“通过 Wi-Fi 开机”（或“通过 Chromecast 开机”）。MAC 地址（尽可能自动获取）可让 Coucou 从深度待机中唤醒电视。",
+   "hi": "टीवी को स्टैंडबाय से चालू करने के लिए, टीवी पर \"Wi-Fi से चालू करें\" (या \"Chromecast से\") चालू करें। MAC पता, जो संभव होने पर अपने आप मिल जाता है, Coucou को उसे गहरे स्टैंडबाय से जगाने देता है।",
+   "es": "Para encender una TV desde el modo de espera, activa \"Encender con Wi-Fi\" (o \"con Chromecast\") en la TV. La dirección MAC, que se encuentra sola cuando es posible, permite a Coucou despertarla del modo de espera profundo.",
+   "ar": "لتشغيل التلفاز من وضع الاستعداد، فعّل \"التشغيل عبر Wi-Fi\" (أو \"عبر Chromecast\") على التلفاز. عنوان MAC، الذي يُعثر عليه تلقائيًا متى أمكن، يتيح لـ Coucou إيقاظه من الاستعداد العميق.",
+   "fr": "Pour allumer une TV depuis la veille, activez « Allumer avec le Wi-Fi » (ou « avec Chromecast ») sur la TV. L'adresse MAC, trouvée toute seule quand c'est possible, permet à Coucou de la réveiller d'une veille profonde.",
+   "bn": "স্ট্যান্ডবাই থেকে টিভি চালু করতে, টিভিতে \"Wi-Fi দিয়ে চালু করুন\" (বা \"Chromecast দিয়ে\") চালু করুন। MAC ঠিকানা, সম্ভব হলে নিজে থেকেই পাওয়া যায়, Coucou-কে গভীর স্ট্যান্ডবাই থেকে টিভি জাগাতে দেয়।",
+   "pt-BR": "Para ligar uma TV a partir do standby, ative \"Ligar com Wi-Fi\" (ou \"com Chromecast\") na TV. O endereço MAC, encontrado sozinho quando possível, deixa o Coucou acordar a TV do standby profundo.",
+   "ru": "Чтобы включать телевизор из режима ожидания, включите на нём «Включение по Wi-Fi» (или «через Chromecast»). MAC-адрес, который по возможности определяется сам, позволяет Coucou будить телевизор из глубокого сна.",
+   "id": "Untuk menyalakan TV dari mode siaga, aktifkan \"Nyalakan dengan Wi-Fi\" (atau \"dengan Chromecast\") di TV. Alamat MAC, yang ditemukan sendiri bila memungkinkan, membuat Coucou bisa membangunkannya dari siaga dalam."
+  },
+  "Devices": {
+   "zh-Hans": "设备",
+   "hi": "डिवाइस",
+   "es": "Dispositivos",
+   "ar": "الأجهزة",
+   "fr": "Appareils",
+   "bn": "ডিভাইস",
+   "pt-BR": "Aparelhos",
+   "ru": "Устройства",
+   "id": "Perangkat"
+  },
+  "Read the devices": {
+   "zh-Hans": "读取设备",
+   "hi": "डिवाइस पढ़ें",
+   "es": "Leer los dispositivos",
+   "ar": "قراءة الأجهزة",
+   "fr": "Lire les appareils",
+   "bn": "ডিভাইস পড়ুন",
+   "pt-BR": "Ler os aparelhos",
+   "ru": "Прочитать устройства",
+   "id": "Baca perangkat"
+  },
+  "No device yet: connect Home Assistant or add a TV above.": {
+   "zh-Hans": "还没有设备：请在上方连接 Home Assistant 或添加电视。",
+   "hi": "अभी कोई डिवाइस नहीं: ऊपर Home Assistant कनेक्ट करें या कोई टीवी जोड़ें।",
+   "es": "Aún no hay dispositivos: conecta Home Assistant o añade una TV arriba.",
+   "ar": "لا توجد أجهزة بعد: اربط Home Assistant أو أضف تلفازًا في الأعلى.",
+   "fr": "Aucun appareil pour l'instant : connectez Home Assistant ou ajoutez une TV plus haut.",
+   "bn": "এখনও কোনো ডিভাইস নেই: উপরে Home Assistant যুক্ত করুন বা একটি টিভি যোগ করুন।",
+   "pt-BR": "Nenhum aparelho ainda: conecte o Home Assistant ou adicione uma TV acima.",
+   "ru": "Устройств пока нет: подключите Home Assistant или добавьте телевизор выше.",
+   "id": "Belum ada perangkat: hubungkan Home Assistant atau tambahkan TV di atas."
+  },
+  "Room": {
+   "zh-Hans": "房间",
+   "hi": "कमरा",
+   "es": "Habitación",
+   "ar": "الغرفة",
+   "fr": "Pièce",
+   "bn": "ঘর",
+   "pt-BR": "Cômodo",
+   "ru": "Комната",
+   "id": "Ruangan"
+  },
+  "Mochi may use it": {
+   "zh-Hans": "Mochi 可以使用",
+   "hi": "Mochi इसका इस्तेमाल कर सकता है",
+   "es": "Mochi puede usarlo",
+   "ar": "يمكن لـ Mochi استخدامه",
+   "fr": "Mochi peut l'utiliser",
+   "bn": "Mochi এটি ব্যবহার করতে পারেন",
+   "pt-BR": "O Mochi pode usar",
+   "ru": "Mochi может им пользоваться",
+   "id": "Mochi boleh memakainya"
+  },
+  "Ask before acting": {
+   "zh-Hans": "操作前询问",
+   "hi": "करने से पहले पूछें",
+   "es": "Preguntar antes de actuar",
+   "ar": "اسأل قبل التنفيذ",
+   "fr": "Demander avant d'agir",
+   "bn": "করার আগে জিজ্ঞেস করুন",
+   "pt-BR": "Perguntar antes de agir",
+   "ru": "Спрашивать перед действием",
+   "id": "Tanya sebelum bertindak"
+  },
+  "Test": {
+   "zh-Hans": "测试",
+   "hi": "जाँचें",
+   "es": "Probar",
+   "ar": "اختبار",
+   "fr": "Tester",
+   "bn": "পরীক্ষা করুন",
+   "pt-BR": "Testar",
+   "ru": "Проверить",
+   "id": "Uji"
+  },
+  "Tick the devices Mochi may use, and give each its room: then \"turn on the living room TV\" finds it. Plugs and switches ask before acting unless you untick it; with \"Ask before every action\" on, every device asks.": {
+   "zh-Hans": "勾选 Mochi 可以使用的设备，并为每个设备指定房间：这样“打开客厅的电视”就能找到它。插座和开关在操作前会询问，除非你取消勾选；打开“每次操作前都询问”后，所有设备都会询问。",
+   "hi": "वे डिवाइस चुनें जिन्हें Mochi इस्तेमाल कर सकता है, और हर एक को उसका कमरा दें: तब \"बैठक का टीवी चालू करो\" उसे ढूँढ लेता है। प्लग और स्विच करने से पहले पूछते हैं, जब तक आप इसे हटा न दें; \"हर क्रिया से पहले पूछें\" चालू होने पर हर डिवाइस पूछता है।",
+   "es": "Marca los dispositivos que Mochi puede usar y dale a cada uno su habitación: así \"enciende la TV del salón\" la encuentra. Los enchufes e interruptores preguntan antes de actuar salvo que lo desmarques; con \"Preguntar antes de cada acción\" activado, todos preguntan.",
+   "ar": "حدد الأجهزة التي يمكن لـ Mochi استخدامها، وأعطِ كلًا منها غرفته: عندها يجد \"شغّل تلفاز غرفة المعيشة\" الجهاز. المقابس والمفاتيح تسأل قبل التنفيذ ما لم تُلغِ التحديد؛ ومع تفعيل \"اسأل قبل كل إجراء\" تسأل كل الأجهزة.",
+   "fr": "Cochez les appareils que Mochi peut utiliser et donnez à chacun sa pièce : « allume la TV du salon » le trouve alors. Les prises et interrupteurs demandent avant d'agir sauf si vous décochez ; avec « Demander avant chaque action », tous les appareils demandent.",
+   "bn": "Mochi যেসব ডিভাইস ব্যবহার করতে পারেন সেগুলোতে টিক দিন, আর প্রতিটির ঘর ঠিক করে দিন: তখন \"বসার ঘরের টিভি চালু করো\" সেটি খুঁজে পাবে। আপনি টিক না সরালে প্লাগ ও সুইচ কাজ করার আগে জিজ্ঞেস করে; \"প্রতিটি কাজের আগে জিজ্ঞেস করুন\" চালু থাকলে সব ডিভাইস জিজ্ঞেস করে।",
+   "pt-BR": "Marque os aparelhos que o Mochi pode usar e dê a cada um o seu cômodo: aí \"liga a TV da sala\" encontra o certo. Tomadas e interruptores perguntam antes de agir, a menos que você desmarque; com \"Perguntar antes de toda ação\" ligado, todos perguntam.",
+   "ru": "Отметьте устройства, которыми может пользоваться Mochi, и укажите для каждого комнату: тогда «включи телевизор в гостиной» найдёт нужный. Розетки и выключатели спрашивают перед действием, если вы не снимете отметку; при включённом «Спрашивать перед каждым действием» спрашивают все устройства.",
+   "id": "Centang perangkat yang boleh dipakai Mochi, dan beri tiap perangkat ruangannya: lalu \"nyalakan TV ruang tamu\" akan menemukannya. Colokan dan sakelar bertanya sebelum bertindak kecuali Anda hapus centangnya; dengan \"Tanya sebelum setiap tindakan\" aktif, semua perangkat bertanya."
+  },
+  "Routines": {
+   "zh-Hans": "例程",
+   "hi": "रूटीन",
+   "es": "Rutinas",
+   "ar": "الروتينات",
+   "fr": "Routines",
+   "bn": "রুটিন",
+   "pt-BR": "Rotinas",
+   "ru": "Сценарии",
+   "id": "Rutinitas"
+  },
+  "Suggestions": {
+   "zh-Hans": "建议",
+   "hi": "सुझाव",
+   "es": "Sugerencias",
+   "ar": "اقتراحات",
+   "fr": "Suggestions",
+   "bn": "পরামর্শ",
+   "pt-BR": "Sugestões",
+   "ru": "Подсказки",
+   "id": "Saran"
+  },
+  "New routine": {
+   "zh-Hans": "新例程",
+   "hi": "नया रूटीन",
+   "es": "Nueva rutina",
+   "ar": "روتين جديد",
+   "fr": "Nouvelle routine",
+   "bn": "নতুন রুটিন",
+   "pt-BR": "Nova rotina",
+   "ru": "Новый сценарий",
+   "id": "Rutinitas baru"
+  },
+  "Edit and save": {
+   "zh-Hans": "编辑并保存",
+   "hi": "बदलें और सहेजें",
+   "es": "Editar y guardar",
+   "ar": "تعديل وحفظ",
+   "fr": "Modifier et enregistrer",
+   "bn": "সম্পাদনা করে সংরক্ষণ করুন",
+   "pt-BR": "Editar e salvar",
+   "ru": "Изменить и сохранить",
+   "id": "Ubah dan simpan"
+  },
+  "Tick some devices for Mochi first: suggestions are made of them.": {
+   "zh-Hans": "请先为 Mochi 勾选一些设备：建议会由这些设备组成。",
+   "hi": "पहले Mochi के लिए कुछ डिवाइस चुनें: सुझाव उन्हीं से बनते हैं।",
+   "es": "Marca primero algunos dispositivos para Mochi: las sugerencias se hacen con ellos.",
+   "ar": "حدد بعض الأجهزة لـ Mochi أولًا: تُبنى الاقتراحات منها.",
+   "fr": "Cochez d'abord quelques appareils pour Mochi : les suggestions en sont faites.",
+   "bn": "আগে Mochi-র জন্য কয়েকটি ডিভাইসে টিক দিন: পরামর্শগুলো সেগুলো দিয়েই তৈরি হয়।",
+   "pt-BR": "Marque alguns aparelhos para o Mochi primeiro: as sugestões são feitas com eles.",
+   "ru": "Сначала отметьте для Mochi несколько устройств: подсказки строятся из них.",
+   "id": "Centang dulu beberapa perangkat untuk Mochi: saran dibuat dari perangkat itu."
+  },
+  "Name, like Good night": {
+   "zh-Hans": "名称，例如“晚安”",
+   "hi": "नाम, जैसे शुभ रात्रि",
+   "es": "Nombre, como Buenas noches",
+   "ar": "الاسم، مثل تصبح على خير",
+   "fr": "Nom, comme Bonne nuit",
+   "bn": "নাম, যেমন শুভ রাত্রি",
+   "pt-BR": "Nome, como Boa noite",
+   "ru": "Название, например «Спокойной ночи»",
+   "id": "Nama, seperti Selamat malam"
+  },
+  "Seconds to wait before this step": {
+   "zh-Hans": "此步骤前等待的秒数",
+   "hi": "इस चरण से पहले कितने सेकंड रुकना है",
+   "es": "Segundos de espera antes de este paso",
+   "ar": "عدد الثواني قبل هذه الخطوة",
+   "fr": "Secondes d'attente avant cette étape",
+   "bn": "এই ধাপের আগে কত সেকেন্ড অপেক্ষা",
+   "pt-BR": "Segundos de espera antes deste passo",
+   "ru": "Сколько секунд ждать перед этим шагом",
+   "id": "Detik menunggu sebelum langkah ini"
+  },
+  "Add a step": {
+   "zh-Hans": "添加步骤",
+   "hi": "चरण जोड़ें",
+   "es": "Añadir un paso",
+   "ar": "إضافة خطوة",
+   "fr": "Ajouter une étape",
+   "bn": "একটি ধাপ যোগ করুন",
+   "pt-BR": "Adicionar um passo",
+   "ru": "Добавить шаг",
+   "id": "Tambah langkah"
+  },
+  "Read the devices and tick some for Mochi first.": {
+   "zh-Hans": "请先读取设备，并为 Mochi 勾选一些。",
+   "hi": "पहले डिवाइस पढ़ें और Mochi के लिए कुछ चुनें।",
+   "es": "Lee los dispositivos y marca algunos para Mochi primero.",
+   "ar": "اقرأ الأجهزة وحدد بعضها لـ Mochi أولًا.",
+   "fr": "Lisez d'abord les appareils et cochez-en quelques-uns pour Mochi.",
+   "bn": "আগে ডিভাইস পড়ুন এবং Mochi-র জন্য কয়েকটিতে টিক দিন।",
+   "pt-BR": "Leia os aparelhos e marque alguns para o Mochi primeiro.",
+   "ru": "Сначала прочитайте устройства и отметьте некоторые для Mochi.",
+   "id": "Baca perangkat dan centang beberapa untuk Mochi dulu."
+  },
+  "Run": {
+   "zh-Hans": "运行",
+   "hi": "चलाएँ",
+   "es": "Ejecutar",
+   "ar": "تشغيل",
+   "fr": "Lancer",
+   "bn": "চালান",
+   "pt-BR": "Executar",
+   "ru": "Запустить",
+   "id": "Jalankan"
+  },
+  "Edit": {
+   "zh-Hans": "编辑",
+   "hi": "बदलें",
+   "es": "Editar",
+   "ar": "تعديل",
+   "fr": "Modifier",
+   "bn": "সম্পাদনা",
+   "pt-BR": "Editar",
+   "ru": "Изменить",
+   "id": "Ubah"
+  },
+  "A routine is a name and the actions it stands for, in order: say \"Mochi, good night\" and he runs it. Each step is checked like an action asked alone.": {
+   "zh-Hans": "例程就是一个名称及其代表的一系列按顺序执行的操作：说“Mochi，晚安”，他就会运行它。每个步骤都会像单独请求的操作一样被检查。",
+   "hi": "रूटीन एक नाम है और उसके पीछे की क्रियाएँ, क्रम में: \"Mochi, शुभ रात्रि\" कहें और वह उसे चला देगा। हर चरण की जाँच अकेले माँगी गई क्रिया की तरह होती है।",
+   "es": "Una rutina es un nombre y las acciones que representa, en orden: di \"Mochi, buenas noches\" y la ejecuta. Cada paso se comprueba como una acción pedida sola.",
+   "ar": "الروتين اسم والإجراءات التي يمثلها بالترتيب: قل \"Mochi، تصبح على خير\" فينفّذه. تُفحص كل خطوة كما يُفحص الإجراء المطلوب وحده.",
+   "fr": "Une routine est un nom et les actions qu'il représente, dans l'ordre : dites « Mochi, bonne nuit » et il la lance. Chaque étape est vérifiée comme une action demandée seule.",
+   "bn": "রুটিন হলো একটি নাম এবং তার পেছনের কাজগুলো, ক্রমানুসারে: বলুন \"Mochi, শুভ রাত্রি\", তিনি সেটি চালাবেন। প্রতিটি ধাপ আলাদাভাবে চাওয়া কাজের মতোই যাচাই হয়।",
+   "pt-BR": "Uma rotina é um nome e as ações que ele representa, em ordem: diga \"Mochi, boa noite\" e ele a executa. Cada passo é conferido como uma ação pedida sozinha.",
+   "ru": "Сценарий — это название и действия, которые за ним стоят, по порядку: скажите «Mochi, спокойной ночи», и он его запустит. Каждый шаг проверяется так же, как отдельное действие.",
+   "id": "Rutinitas adalah sebuah nama dan tindakan yang diwakilinya, berurutan: ucapkan \"Mochi, selamat malam\" dan ia menjalankannya. Setiap langkah diperiksa seperti tindakan yang diminta sendiri."
+  },
+  "Record": {
+   "zh-Hans": "记录",
+   "hi": "रिकॉर्ड",
+   "es": "Registro",
+   "ar": "السجل",
+   "fr": "Journal",
+   "bn": "রেকর্ড",
+   "pt-BR": "Registro",
+   "ru": "Журнал",
+   "id": "Catatan"
+  },
+  "Every action on the house, who asked and how it went, kept on this computer only.": {
+   "zh-Hans": "家中的每次操作、由谁发起以及结果如何，只保存在这台电脑上。",
+   "hi": "घर पर हर क्रिया, किसने माँगी और कैसी रही, केवल इसी कंप्यूटर पर रखी जाती है।",
+   "es": "Cada acción en la casa, quién la pidió y cómo fue, guardada solo en este ordenador.",
+   "ar": "كل إجراء على المنزل، ومن طلبه، وكيف جرى، محفوظ على هذا الحاسوب فقط.",
+   "fr": "Chaque action sur la maison, qui l'a demandée et comment elle s'est passée, gardée sur cet ordinateur seulement.",
+   "bn": "বাড়ির প্রতিটি কাজ, কে চেয়েছিল এবং কেমন হলো, শুধু এই কম্পিউটারেই রাখা হয়।",
+   "pt-BR": "Cada ação na casa, quem pediu e como foi, guardada só neste computador.",
+   "ru": "Каждое действие с домом — кто попросил и чем закончилось — хранится только на этом компьютере.",
+   "id": "Setiap tindakan di rumah, siapa yang meminta dan bagaimana hasilnya, disimpan hanya di komputer ini."
+  },
+  "Show the latest actions": {
+   "zh-Hans": "显示最近的操作",
+   "hi": "हाल की क्रियाएँ दिखाएँ",
+   "es": "Mostrar las últimas acciones",
+   "ar": "عرض أحدث الإجراءات",
+   "fr": "Afficher les dernières actions",
+   "bn": "সাম্প্রতিক কাজগুলো দেখান",
+   "pt-BR": "Mostrar as últimas ações",
+   "ru": "Показать последние действия",
+   "id": "Tampilkan tindakan terbaru"
+  },
+  "Nothing yet.": {
+   "zh-Hans": "暂无内容。",
+   "hi": "अभी कुछ नहीं।",
+   "es": "Nada todavía.",
+   "ar": "لا شيء بعد.",
+   "fr": "Rien pour l'instant.",
+   "bn": "এখনও কিছু নেই।",
+   "pt-BR": "Nada ainda.",
+   "ru": "Пока ничего.",
+   "id": "Belum ada."
+  },
+  "Set the volume": {
+   "zh-Hans": "设置音量",
+   "hi": "आवाज़ सेट करें",
+   "es": "Ajustar el volumen",
+   "ar": "ضبط مستوى الصوت",
+   "fr": "Régler le volume",
+   "bn": "ভলিউম ঠিক করুন",
+   "pt-BR": "Definir o volume",
+   "ru": "Задать громкость",
+   "id": "Atur volume"
+  },
+  "Open an app": {
+   "zh-Hans": "打开应用",
+   "hi": "ऐप खोलें",
+   "es": "Abrir una app",
+   "ar": "فتح تطبيق",
+   "fr": "Ouvrir une app",
+   "bn": "একটি অ্যাপ খুলুন",
+   "pt-BR": "Abrir um app",
+   "ru": "Открыть приложение",
+   "id": "Buka aplikasi"
+  },
+  "Change the channel": {
+   "zh-Hans": "换台",
+   "hi": "चैनल बदलें",
+   "es": "Cambiar de canal",
+   "ar": "تغيير القناة",
+   "fr": "Changer de chaîne",
+   "bn": "চ্যানেল বদলান",
+   "pt-BR": "Mudar de canal",
+   "ru": "Сменить канал",
+   "id": "Ganti saluran"
+  },
+  "Set the brightness": {
+   "zh-Hans": "设置亮度",
+   "hi": "चमक सेट करें",
+   "es": "Ajustar el brillo",
+   "ar": "ضبط السطوع",
+   "fr": "Régler la luminosité",
+   "bn": "উজ্জ্বলতা ঠিক করুন",
+   "pt-BR": "Definir o brilho",
+   "ru": "Задать яркость",
+   "id": "Atur kecerahan"
+  },
+  "TV": {
+   "zh-Hans": "电视",
+   "hi": "टीवी",
+   "es": "TV",
+   "ar": "تلفاز",
+   "fr": "TV",
+   "bn": "টিভি",
+   "pt-BR": "TV",
+   "ru": "Телевизор",
+   "id": "TV"
+  },
+  "Speaker": {
+   "zh-Hans": "音箱",
+   "hi": "स्पीकर",
+   "es": "Altavoz",
+   "ar": "مكبر صوت",
+   "fr": "Enceinte",
+   "bn": "স্পিকার",
+   "pt-BR": "Caixa de som",
+   "ru": "Колонка",
+   "id": "Speaker"
+  },
+  "Light": {
+   "zh-Hans": "灯",
+   "hi": "लाइट",
+   "es": "Luz",
+   "ar": "ضوء",
+   "fr": "Lumière",
+   "bn": "আলো",
+   "pt-BR": "Luz",
+   "ru": "Свет",
+   "id": "Lampu"
+  },
+  "Plug": {
+   "zh-Hans": "插座",
+   "hi": "प्लग",
+   "es": "Enchufe",
+   "ar": "مقبس",
+   "fr": "Prise",
+   "bn": "প্লাগ",
+   "pt-BR": "Tomada",
+   "ru": "Розетка",
+   "id": "Colokan"
+  },
+  "Switch": {
+   "zh-Hans": "开关",
+   "hi": "स्विच",
+   "es": "Interruptor",
+   "ar": "مفتاح",
+   "fr": "Interrupteur",
+   "bn": "সুইচ",
+   "pt-BR": "Interruptor",
+   "ru": "Выключатель",
+   "id": "Sakelar"
+  },
+  "Reported nothing it can do": {
+   "zh-Hans": "未报告任何可执行的操作",
+   "hi": "कोई क्रिया नहीं बताई",
+   "es": "No informó nada que pueda hacer",
+   "ar": "لم يُبلغ عن أي شيء يمكنه فعله",
+   "fr": "N'a rien indiqué qu'il sache faire",
+   "bn": "করতে পারে এমন কিছু জানায়নি",
+   "pt-BR": "Não informou nada que saiba fazer",
+   "ru": "Не сообщило, что умеет",
+   "id": "Tidak melaporkan apa pun yang bisa dilakukan"
+  },
+  "encrypted (port 1926)": {
+   "zh-Hans": "加密（端口 1926）",
+   "hi": "एन्क्रिप्टेड (पोर्ट 1926)",
+   "es": "cifrada (puerto 1926)",
+   "ar": "مشفّر (المنفذ 1926)",
+   "fr": "chiffrée (port 1926)",
+   "bn": "এনক্রিপ্ট করা (পোর্ট 1926)",
+   "pt-BR": "criptografada (porta 1926)",
+   "ru": "с шифрованием (порт 1926)",
+   "id": "terenkripsi (port 1926)"
+  },
+  "unencrypted (port 1925)": {
+   "zh-Hans": "未加密（端口 1925）",
+   "hi": "बिना एन्क्रिप्शन (पोर्ट 1925)",
+   "es": "sin cifrar (puerto 1925)",
+   "ar": "غير مشفّر (المنفذ 1925)",
+   "fr": "non chiffrée (port 1925)",
+   "bn": "এনক্রিপ্ট করা নয় (পোর্ট 1925)",
+   "pt-BR": "sem criptografia (porta 1925)",
+   "ru": "без шифрования (порт 1925)",
+   "id": "tidak terenkripsi (port 1925)"
+  },
+  "Phone": {
+   "zh-Hans": "手机",
+   "hi": "फ़ोन",
+   "es": "Teléfono",
+   "ar": "الهاتف",
+   "fr": "Téléphone",
+   "bn": "ফোন",
+   "pt-BR": "Celular",
+   "ru": "Телефон",
+   "id": "Ponsel"
+  },
+  "after {seconds} s": {
+   "zh-Hans": "{seconds} 秒后",
+   "hi": "{seconds} सेकंड बाद",
+   "es": "a los {seconds} s",
+   "ar": "بعد {seconds} ث",
+   "fr": "après {seconds} s",
+   "bn": "{seconds} সেকেন্ড পরে",
+   "pt-BR": "depois de {seconds} s",
+   "ru": "через {seconds} с",
+   "id": "setelah {seconds} dtk"
+  },
+  "Looks at the house": {
+   "zh-Hans": "查看家里",
+   "hi": "घर देखता है",
+   "es": "Mira la casa",
+   "ar": "يطّلع على المنزل",
+   "fr": "Regarde la maison",
+   "bn": "বাড়ি দেখে",
+   "pt-BR": "Olha a casa",
+   "ru": "Смотрит на дом",
+   "id": "Melihat rumah"
+  },
+  "Controls": {
+   "zh-Hans": "控制",
+   "hi": "नियंत्रित करता है",
+   "es": "Controla",
+   "ar": "يتحكم",
+   "fr": "Commande",
+   "bn": "নিয়ন্ত্রণ করে",
+   "pt-BR": "Controla",
+   "ru": "Управляет",
+   "id": "Mengendalikan"
+  },
+  "Runs the routine": {
+   "zh-Hans": "运行例程",
+   "hi": "रूटीन चलाता है",
+   "es": "Ejecuta la rutina",
+   "ar": "يشغّل الروتين",
+   "fr": "Lance la routine",
+   "bn": "রুটিন চালায়",
+   "pt-BR": "Executa a rotina",
+   "ru": "Запускает сценарий",
+   "id": "Menjalankan rutinitas"
+  },
+  "Mochi wants to control a device in your home": {
+   "zh-Hans": "Mochi 想控制你家里的一个设备",
+   "hi": "Mochi आपके घर के एक डिवाइस को नियंत्रित करना चाहता है",
+   "es": "Mochi quiere controlar un dispositivo de tu casa",
+   "ar": "يريد Mochi التحكم في جهاز في منزلك",
+   "fr": "Mochi veut commander un appareil de votre maison",
+   "bn": "Mochi আপনার বাড়ির একটি ডিভাইস নিয়ন্ত্রণ করতে চান",
+   "pt-BR": "O Mochi quer controlar um aparelho da sua casa",
+   "ru": "Mochi хочет управлять устройством в вашем доме",
+   "id": "Mochi ingin mengendalikan perangkat di rumah Anda"
+  },
+  "Mochi wants to run a routine": {
+   "zh-Hans": "Mochi 想运行一个例程",
+   "hi": "Mochi एक रूटीन चलाना चाहता है",
+   "es": "Mochi quiere ejecutar una rutina",
+   "ar": "يريد Mochi تشغيل روتين",
+   "fr": "Mochi veut lancer une routine",
+   "bn": "Mochi একটি রুটিন চালাতে চান",
+   "pt-BR": "O Mochi quer executar uma rotina",
+   "ru": "Mochi хочет запустить сценарий",
+   "id": "Mochi ingin menjalankan rutinitas"
+  },
+  "{count} apps": {
+   "zh-Hans": {
+    "other": "{count} 个应用"
+   },
+   "hi": {
+    "one": "{count} ऐप",
+    "other": "{count} ऐप"
+   },
+   "es": {
+    "one": "{count} app",
+    "other": "{count} apps"
+   },
+   "ar": {
+    "zero": "{count} تطبيق",
+    "one": "تطبيق واحد",
+    "two": "تطبيقان",
+    "few": "{count} تطبيقات",
+    "many": "{count} تطبيقًا",
+    "other": "{count} تطبيق"
+   },
+   "fr": {
+    "one": "{count} app",
+    "other": "{count} apps"
+   },
+   "bn": {
+    "one": "{count}টি অ্যাপ",
+    "other": "{count}টি অ্যাপ"
+   },
+   "pt-BR": {
+    "one": "{count} app",
+    "other": "{count} apps"
+   },
+   "ru": {
+    "one": "{count} приложение",
+    "few": "{count} приложения",
+    "many": "{count} приложений",
+    "other": "{count} приложения"
+   },
+   "id": {
+    "other": "{count} aplikasi"
+   }
+  },
+  "{count} channels": {
+   "zh-Hans": {
+    "other": "{count} 个频道"
+   },
+   "hi": {
+    "one": "{count} चैनल",
+    "other": "{count} चैनल"
+   },
+   "es": {
+    "one": "{count} canal",
+    "other": "{count} canales"
+   },
+   "ar": {
+    "zero": "{count} قناة",
+    "one": "قناة واحدة",
+    "two": "قناتان",
+    "few": "{count} قنوات",
+    "many": "{count} قناة",
+    "other": "{count} قناة"
+   },
+   "fr": {
+    "one": "{count} chaîne",
+    "other": "{count} chaînes"
+   },
+   "bn": {
+    "one": "{count}টি চ্যানেল",
+    "other": "{count}টি চ্যানেল"
+   },
+   "pt-BR": {
+    "one": "{count} canal",
+    "other": "{count} canais"
+   },
+   "ru": {
+    "one": "{count} канал",
+    "few": "{count} канала",
+    "many": "{count} каналов",
+    "other": "{count} канала"
+   },
+   "id": {
+    "other": "{count} saluran"
+   }
+  },
+  "{count} devices": {
+   "zh-Hans": {
+    "other": "{count} 个设备"
+   },
+   "hi": {
+    "one": "{count} डिवाइस",
+    "other": "{count} डिवाइस"
+   },
+   "es": {
+    "one": "{count} dispositivo",
+    "other": "{count} dispositivos"
+   },
+   "ar": {
+    "zero": "{count} جهاز",
+    "one": "جهاز واحد",
+    "two": "جهازان",
+    "few": "{count} أجهزة",
+    "many": "{count} جهازًا",
+    "other": "{count} جهاز"
+   },
+   "fr": {
+    "one": "{count} appareil",
+    "other": "{count} appareils"
+   },
+   "bn": {
+    "one": "{count}টি ডিভাইস",
+    "other": "{count}টি ডিভাইস"
+   },
+   "pt-BR": {
+    "one": "{count} aparelho",
+    "other": "{count} aparelhos"
+   },
+   "ru": {
+    "one": "{count} устройство",
+    "few": "{count} устройства",
+    "many": "{count} устройств",
+    "other": "{count} устройства"
+   },
+   "id": {
+    "other": "{count} perangkat"
+   }
   }
  }
 }

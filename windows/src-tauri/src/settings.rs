@@ -118,6 +118,20 @@ pub struct Settings {
     pub phone_push: bool,
     /// The ntfy server ("" is https://ntfy.sh). Not a secret. Owned by Rust.
     pub phone_push_server: String,
+    /// Mochi's home (smart_home/): from the chat, Mochi may use the devices of the house the user picked. Off until the
+    /// user turns it on in Settings → Mochi's home; owned by Rust like the hands, so what a webview sends back is ignored.
+    pub home_enabled: bool,
+    /// Every action on the house waits for a click, not only those on plugs, switches and the devices set to ask.
+    /// Owned by Rust.
+    pub home_ask_all: bool,
+    /// Home Assistant's address on the local network ("" none). Its token is in the OS keystore. Owned by Rust.
+    pub home_assistant_url: String,
+    /// The Philips TVs added by their address; their pairings are in the OS keystore. Owned by Rust.
+    pub home_tvs: Vec<crate::smart_home::config::TvConf>,
+    /// The user's rules for each device (name, room, may Mochi use it, ask first), by device id. Owned by Rust.
+    pub home_devices: BTreeMap<String, crate::smart_home::config::DevicePrefs>,
+    /// The routines ("Good night", "Movie mode"…). Owned by Rust.
+    pub home_routines: Vec<crate::smart_home::routines::Routine>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -190,6 +204,12 @@ impl Default for Settings {
             phone_agent: false,
             phone_push: false,
             phone_push_server: String::new(),
+            home_enabled: false,
+            home_ask_all: false,
+            home_assistant_url: String::new(),
+            home_tvs: Vec::new(),
+            home_devices: BTreeMap::new(),
+            home_routines: Vec::new(),
         }
     }
 }
@@ -483,7 +503,13 @@ mod tests {
   "chatHands": false,
   "phoneAgent": true,
   "phonePush": true,
-  "phonePushServer": "https://ntfy.example.com"
+  "phonePushServer": "https://ntfy.example.com",
+  "homeEnabled": true,
+  "homeAskAll": true,
+  "homeAssistantUrl": "http://homeassistant.local:8123/",
+  "homeTvs": [{ "id": "philips:0a1b2c3d", "host": "192.168.1.20", "api": 6, "https": true, "pin": "", "mac": "A4:B1:C2:D3:E4:F5", "name": "Philips TV", "model": "55PUS8007/12", "os": "MSAF_2019_P", "version": "6.4.0", "features": { "inputkey": ["key"] }, "needsPairing": true }],
+  "homeDevices": { "philips:0a1b2c3d": { "name": "TV da sala", "room": "Sala", "exposed": true, "ask": false } },
+  "homeRoutines": [{ "id": "r-0a1b2c3d4e5f", "name": "Boa noite", "steps": [{ "device": "philips:0a1b2c3d", "action": "turn_off", "value": "", "wait": 0 }] }]
 }"##;
 
     fn custom() -> Value {
@@ -680,6 +706,20 @@ mod tests {
         }
         assert_eq!(parse(&custom_with("agentLevel", None)).unwrap().agent_level, "ask");
         assert!(parse(&custom_with("agentFolder", Some(serde_json::json!(5)))).unwrap().agent_folder.is_empty());
+    }
+
+    #[test]
+    fn a_file_from_before_mochis_home_keeps_it_off_and_empty() {
+        // Mochi acting on the house is never on by default, and an older file is not consent.
+        let d = Settings::default();
+        assert!(!d.home_enabled && !d.home_ask_all && d.home_assistant_url.is_empty());
+        assert!(d.home_tvs.is_empty() && d.home_devices.is_empty() && d.home_routines.is_empty());
+        assert!(!parse(&custom_with("homeEnabled", None)).unwrap().home_enabled);
+        assert!(!parse(&custom_with("homeEnabled", Some(serde_json::json!("yes")))).unwrap().home_enabled, "a wrong type does not switch it on");
+        // A broken TV list costs only itself.
+        let odd = parse(&custom_with("homeTvs", Some(serde_json::json!("nope")))).unwrap();
+        assert!(odd.home_tvs.is_empty());
+        assert_eq!(odd.home_routines.len(), 1);
     }
 
     #[test]
@@ -1027,6 +1067,12 @@ mod tests {
                 "phoneAgent",
                 "phonePush",
                 "phonePushServer",
+                "homeEnabled",
+                "homeAskAll",
+                "homeAssistantUrl",
+                "homeTvs",
+                "homeDevices",
+                "homeRoutines",
             ]
         );
         let _ = std::fs::remove_dir_all(&dir);

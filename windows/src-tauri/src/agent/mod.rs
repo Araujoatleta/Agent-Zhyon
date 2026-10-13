@@ -36,8 +36,10 @@ use crate::phone_link::{self, ApprovalIn, PhoneLink, SessionIn, StepLine};
 use crate::settings::{self, Settings};
 use crate::{claude, local_chat, log, openai_compat, Shared};
 use policy::Level;
-use run::{BoxFuture, Failed, Hands, Job, Status, Step, Transport};
+pub use run::BoxFuture;
+use run::{Failed, Hands, Job, Status, Step, Transport};
 use shell::Shell;
+pub use tools::{HomeEnv, HomeResult, HomeRunner, RoutineInfo};
 use tools::{Env, Request};
 use wire::Flavor;
 
@@ -224,6 +226,7 @@ fn alias(tool: &str) -> &'static str {
         "fetch_url" => "WebFetch",
         "open_url" => "Open",
         "system_info" => "Info",
+        "home_devices" | "home_control" | "home_routine" => "Home",
         _ => "Tool",
     }
 }
@@ -449,6 +452,11 @@ fn system_prompt(env: &Env, origin: Origin) -> String {
         Level::Ask => "Every file change, command and web request is shown to the user, who approves or denies it.",
         Level::Edits => "File changes inside the working folder are applied at once; commands, web requests and anything outside the folder are shown to the user, who approves or denies them.",
     };
+    let house = if env.house.is_some() {
+        "\n- You can also act on the user's home: home_devices lists the devices you may use and what each can do, home_control does one action on one device, home_routine runs one of the user's routines. When the user asks for something in the house (\"liga a TV da sala e abre o YouTube\"), do it with these tools, one action at a time and in order, then say in one short sentence what the devices report now. Never claim an action worked if its answer says otherwise."
+    } else {
+        ""
+    };
     let phone = if origin == Origin::Phone {
         "\nThe user is talking to you from their phone, away from the computer: keep your answers short."
     } else {
@@ -465,7 +473,7 @@ How you work:
 - Work in small steps and check them: run the tests or the program, read back what you changed.
 - If the user denies an action, do not try another way to do the same thing: ask what they want instead.
 - Never print, copy or send secrets you come across (keys, tokens, passwords).
-- When you are done, say briefly what you did and what changed.{phone}
+- When you are done, say briefly what you did and what changed.{house}{phone}
 
 Use light Markdown when it helps: short paragraphs, bullet lists, **bold**, `inline code` and fenced code blocks. Avoid tables and big headings: the chat window is small.",
         folder = policy::display(&env.folder),
@@ -516,6 +524,8 @@ async fn turn(
     let agent = app.state::<Agent>();
     let (run_id, cancel) = agent.begin(origin).ok_or(TurnError::Busy)?;
     let mut guard = RunGuard { app: app.clone(), run: run_id, cancel: cancel.clone(), kept: false };
+    // The house is read before the turn (from the last minute's reading when there is one), never for long.
+    let house = tokio::time::timeout(Duration::from_secs(8), crate::smart_home::agent_env(app, origin == Origin::Phone)).await.ok().flatten();
     let env = Env {
         folder,
         home: crate::platform::home_dir(),
@@ -523,6 +533,7 @@ async fn turn(
         shell: Shell::detect(),
         cancel,
         web_search: matches!(brain, Brain::Claude),
+        house,
     };
     let started = chat.begin(&format!("{provider}+hands"));
     let job = brain.job(model, system_prompt(&env, origin), started.history.clone(), started.first, context.as_ref(), &query);
@@ -778,6 +789,7 @@ mod tests {
             shell: Shell::Bash(PathBuf::from("/bin/bash")),
             cancel: Arc::new(AtomicBool::new(false)),
             web_search: false,
+            house: None,
         };
         let p = system_prompt(&env, Origin::Island);
         assert!(p.contains("The working folder is /work/proj."));
@@ -868,6 +880,7 @@ mod tests {
             shell: Shell::detect(),
             cancel: Arc::new(AtomicBool::new(false)),
             web_search: false,
+            house: None,
         };
         let job = brain.job("qwen", system_prompt(&env, Origin::Island), vec![], true, None, "what is on my list?");
         let done = tokio::runtime::Builder::new_current_thread()

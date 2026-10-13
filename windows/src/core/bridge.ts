@@ -9,6 +9,7 @@ import type { Settings } from "./state";
 import type { RecapHistory, RecapPrefs } from "../recap/summary";
 import type { SpotifyState } from "./spotify";
 import type { HandsStatusReport } from "./hands";
+import type { DevicePrefs, Found, HomeDevice, HomeStatus, LogEntry, Routine, ServerInfo, TestResult, TvSummary } from "./home";
 
 export const IS_TAURI =
   typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -355,6 +356,30 @@ export const Bridge = {
   phoneAgentStatus: () => call<{ enabled: boolean }>("phone_agent_status"),
   /** Off by default; only from the switch in Settings. Phones are reconnected so they learn about it. */
   phoneAgentSetEnabled: (enabled: boolean) => callOrThrow<{ enabled: boolean }>("phone_agent_set_enabled", { enabled }),
+  // ── Mochi's home (src-tauri/src/smart_home) ────────────────────────────────
+  homeStatus: () => call<HomeStatus>("home_status"),
+  /** The latest actions on the house, newest first. */
+  homeLog: () => call<LogEntry[]>("home_log"),
+  homeSet: (enabled: boolean, askAll: boolean) => callOrThrow<HomeStatus>("home_set", { enabled, askAll }),
+  /** Checks and keeps Home Assistant's address and token (null keeps the stored token; an empty address forgets both). */
+  homeHaConnect: (url: string, token: string | null) => callOrThrow<ServerInfo>("home_ha_connect", { url, token }),
+  /** Searches the local network for Home Assistant and TVs (about three seconds). */
+  homeScan: () => callOrThrow<Found[]>("home_scan"),
+  homeTvAdd: (host: string) => callOrThrow<TvSummary>("home_tv_add", { host }),
+  /** The TV shows a PIN. */
+  homeTvPair: (id: string) => callOrThrow<void>("home_tv_pair", { id }),
+  homeTvPin: (id: string, pin: string) => callOrThrow<TvSummary>("home_tv_pin", { id, pin }),
+  homeTvSetMac: (id: string, mac: string) => callOrThrow<TvSummary>("home_tv_set_mac", { id, mac }),
+  homeTvRemove: (id: string) => callOrThrow<void>("home_tv_remove", { id }),
+  /** Every device, asked now. */
+  homeDevices: () => callOrThrow<HomeDevice[]>("home_devices"),
+  homeDeviceSet: (id: string, prefs: DevicePrefs) => callOrThrow<void>("home_device_set", { id, prefs }),
+  /** One action from Settings: the user's own click. */
+  homeTest: (id: string, action: string, value: string | null) => callOrThrow<TestResult>("home_test", { id, action, value }),
+  homeRoutineSave: (routine: Routine) => callOrThrow<Routine>("home_routine_save", { routine }),
+  homeRoutineDelete: (id: string) => callOrThrow<void>("home_routine_delete", { id }),
+  homeRoutineRun: (id: string) => callOrThrow<TestResult>("home_routine_run", { id }),
+  homeTemplates: () => callOrThrow<Routine[]>("home_templates"),
   // ── Notifications with Coucou closed (src-tauri/src/phone_link/push.rs) ──
   phonePushStatus: () => call<PhonePushStatus>("phone_push_status"),
   /** The switch and the server; turning it on makes the topic. Throws with the reason (an address that is not https). */

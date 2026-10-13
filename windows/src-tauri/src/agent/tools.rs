@@ -14,8 +14,10 @@ use serde::Serialize;
 use serde_json::{json, Value};
 
 use super::policy::{self, Effect, Gate, Level};
+use super::run::BoxFuture;
 use super::shell::{self, Shell};
 use super::text;
+use crate::smart_home::model::{self as home, Action as HomeAction, Device, ACTION_WORDS};
 
 /// Most text one tool call sends back to the model (about 10 000 tokens).
 pub const MAX_RESULT: usize = 40 * 1024;
@@ -56,7 +58,49 @@ pub struct Env {
     pub cancel: Arc<AtomicBool>,
     /// Claude has a web search of its own (the server tool); the others only have fetch_url.
     pub web_search: bool,
+    /// Mochi's home (the house, not the home folder), when it is on and has devices for him (smart_home::agent_env).
+    pub house: Option<HomeEnv>,
 }
+
+/// Mochi's home for one turn: the devices he may use (read at the start of the turn), the routines, and the way to
+/// act on them. Behind a trait so the tools are tested without a house.
+pub struct HomeEnv {
+    pub devices: Vec<Device>,
+    pub routines: Vec<RoutineInfo>,
+    pub runner: Arc<dyn HomeRunner>,
+}
+
+/// A routine as Mochi sees it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RoutineInfo {
+    pub id: String,
+    pub name: String,
+    /// One of its steps is on a device that asks first.
+    pub asks: bool,
+    /// "TV da sala: turn off", in order.
+    pub steps: Vec<String>,
+    /// What stops it from running as it is (a device gone, an action the device does not have).
+    pub problems: Vec<String>,
+}
+
+/// What an action on the house gave: for the model (`text`) and for the step (`detail`, in the user's words).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct HomeResult {
+    pub ok: bool,
+    pub text: String,
+    pub detail: String,
+}
+
+pub trait HomeRunner: Send + Sync {
+    /// The devices Mochi may use, asked now.
+    fn devices<'a>(&'a self) -> BoxFuture<'a, Vec<Device>>;
+    /// One action, already checked against the device.
+    fn control<'a>(&'a self, id: &'a str, action: &'a HomeAction) -> BoxFuture<'a, HomeResult>;
+    fn routine<'a>(&'a self, id: &'a str) -> BoxFuture<'a, HomeResult>;
+}
+
+/// What the model is told when it calls a home tool while the home is off.
+const NO_HOME: &str = "Mochi's home is not available on this computer: it is off, or no device is ticked for Mochi in Settings → Mochi's home.";
 
 /// One tool as the model is told about it.
 #[derive(Debug, Clone)]
@@ -172,6 +216,41 @@ pub fn definitions(env: &Env) -> Vec<ToolDef> {
             &[],
         ),
     ]);
+    if let Some(h) = &env.house {
+        tools.extend(home_definitions(h));
+    }
+    tools
+}
+
+/// The home's tools, offered only while the home has devices for Mochi.
+fn home_definitions(h: &HomeEnv) -> Vec<ToolDef> {
+    let mut tools = vec![
+        def(
+            "home_devices",
+            "List the devices of the user's home that Mochi may use: each one's id, name, room, kind, whether it answers, its state right now, the actions it reported it can do, and its apps and channels. Call it when you do not know a device's id or what it can do, or to check a device's state.",
+            json!({ "device": { "type": "string", "description": "Optional: one device (id or name) to see in full, with all its apps and channels." } }),
+            &[],
+        ),
+        def(
+            "home_control",
+            "Do one action on one device of the user's home: turn it on or off, set or step the volume, mute, open an app, change the channel, set a light's brightness. Only actions the device reports in home_devices work. One action per call, in order: to turn on the TV and open an app, call turn_on, read its answer, then open_app. The answer says what the device reports afterwards: tell the user exactly that, and never say an action worked if the answer says otherwise. Plugs, switches and some devices wait for the user's approval.",
+            json!({
+                "device": { "type": "string", "description": "The device's id from home_devices, or its name with its room, like \"TV da sala\"." },
+                "action": { "type": "string", "enum": ACTION_WORDS, "description": "What to do." },
+                "value": { "type": "string", "description": "set_volume and set_brightness: a percent from 0 to 100. open_app: the app's name. set_channel: the channel's number or name. Leave it out for the other actions." },
+            }),
+            &["device", "action"],
+        ),
+    ];
+    if !h.routines.is_empty() {
+        let names: Vec<&str> = h.routines.iter().map(|r| r.name.as_str()).collect();
+        tools.push(def(
+            "home_routine",
+            format!("Run one of the user's routines, saved sequences of home actions: {}. Each step goes to its device in order; the answer says how each went.", names.join(", ")),
+            json!({ "routine": { "type": "string", "description": "The routine's name or id." } }),
+            &["routine"],
+        ));
+    }
     tools
 }
 
@@ -198,6 +277,16 @@ pub enum Action {
     Fetch { url: Url },
     Open { url: Url },
     Info,
+    Home(HomeCall),
+}
+
+/// A call to Mochi's home, checked.
+#[derive(Debug, Clone, PartialEq)]
+pub enum HomeCall {
+    /// All the devices, or one in full (by id).
+    Devices { device: Option<String> },
+    Control { device: String, action: HomeAction },
+    Routine { id: String },
 }
 
 /// A checked call, its gate, and the one line that says what it does (the command, the path, the address).
@@ -414,11 +503,92 @@ pub fn prepare(call: &Call, env: &Env) -> Result<Prepared, String> {
             (Action::Open { url }, Effect::Open, None, summary)
         }
         "system_info" => (Action::Info, Effect::Info, None, String::new()),
+        "home_devices" => {
+            let h = env.house.as_ref().ok_or(NO_HOME)?;
+            let device = match str_arg(input, "device").map(str::trim).filter(|d| !d.is_empty()) {
+                Some(d) => Some(home::find(&h.devices, d)?.id.clone()),
+                None => None,
+            };
+            (Action::Home(HomeCall::Devices { device }), Effect::Info, None, String::new())
+        }
+        "home_control" => {
+            let h = env.house.as_ref().ok_or(NO_HOME)?;
+            let device = home::find(&h.devices, required(input, "device")?)?;
+            let action = HomeAction::parse(required(input, "action")?, input.get("value"))?;
+            home::check(device, &action)?;
+            // The app and the channel as the device lists them, so the card says "Open YouTube", not "youtube".
+            let action = match action {
+                HomeAction::OpenApp(app) => HomeAction::OpenApp(home::resolve_app(device, &app)?),
+                HomeAction::SetChannel(c) => HomeAction::SetChannel(home::resolve_channel(device, &c)?.number),
+                other => other,
+            };
+            let summary = format!("{} · {}", device.name, action.label());
+            (Action::Home(HomeCall::Control { device: device.id.clone(), action }), Effect::Home { ask: device.ask }, None, summary)
+        }
+        "home_routine" => {
+            let h = env.house.as_ref().ok_or(NO_HOME)?;
+            let r = find_routine(&h.routines, required(input, "routine")?)?;
+            if !r.problems.is_empty() {
+                return Err(format!(
+                    "The routine \"{}\" cannot run as it is ({}). Tell the user to fix it in Settings → Mochi's home.",
+                    r.name,
+                    r.problems.join("; ")
+                ));
+            }
+            (Action::Home(HomeCall::Routine { id: r.id.clone() }), Effect::Home { ask: r.asks }, None, r.name.clone())
+        }
         other => return Err(format!("There is no tool named \"{other}\".")),
     };
     let (inside, secret) = path_for_gate.as_deref().map_or((true, false), place);
     let gate = policy::gate(env.level, effect, inside, secret);
     Ok(Prepared { tool: call.name.clone(), action, gate, summary, outside: !inside, secret })
+}
+
+/// The routine `query` names: its id, or its name (case and accents aside).
+fn find_routine<'a>(routines: &'a [RoutineInfo], query: &str) -> Result<&'a RoutineInfo, String> {
+    let q = home::normalize(query);
+    routines
+        .iter()
+        .find(|r| r.id == query.trim() || home::normalize(&r.name) == q)
+        .ok_or_else(|| format!("No routine is called \"{query}\". The user's routines: {}.", routines.iter().map(|r| r.name.as_str()).collect::<Vec<_>>().join(", ")))
+}
+
+/// The devices as the model reads them. `one`: that device in full (all its apps and channels).
+fn home_list(devices: &[Device], one: Option<&str>) -> String {
+    let shown: Vec<&Device> = devices.iter().filter(|d| one.is_none_or(|id| d.id == id)).collect();
+    if shown.is_empty() {
+        return "No device: the user has not ticked any for Mochi in Settings → Mochi's home.".into();
+    }
+    let (max_apps, max_channels) = if one.is_some() { (300, 600) } else { (30, 25) };
+    let mut out = format!("Devices Mochi may use ({}):\n", shown.len());
+    for d in shown {
+        let room = if d.room.is_empty() { String::new() } else { format!(" in {}", d.room) };
+        let model = d.model.as_deref().map(|m| format!(", model {m}")).unwrap_or_default();
+        let can: Vec<&str> = d.caps.iter().map(|c| c.as_str()).collect();
+        out.push_str(&format!(
+            "- {} — \"{}\"{room} ({}, {}{model}): {}. Can: {}.",
+            d.id,
+            d.name,
+            d.kind.as_str(),
+            d.source,
+            crate::smart_home::state_text(&d.state),
+            if can.is_empty() { "nothing".to_string() } else { can.join(", ") }
+        ));
+        if !d.apps.is_empty() {
+            let more = d.apps.len().saturating_sub(max_apps);
+            out.push_str(&format!(" Apps ({}): {}{}.", d.apps.len(), d.apps.iter().take(max_apps).cloned().collect::<Vec<_>>().join(", "), if more > 0 { format!(", and {more} more") } else { String::new() }));
+        }
+        if !d.channels.is_empty() {
+            let more = d.channels.len().saturating_sub(max_channels);
+            let list: Vec<String> = d.channels.iter().take(max_channels).map(|c| format!("{} {}", c.number, c.name)).collect();
+            out.push_str(&format!(" Channels ({}): {}{}.", d.channels.len(), list.join(", "), if more > 0 { format!(", and {more} more (ask for this device alone to see all)") } else { String::new() }));
+        }
+        if d.ask {
+            out.push_str(" Each action waits for the user's approval.");
+        }
+        out.push('\n');
+    }
+    out
 }
 
 /// A text file, whole. Refused when it is large or not text.
@@ -476,6 +646,25 @@ pub async fn execute(prepared: &Prepared, env: &Env) -> Output {
             Output::ok("Opened in the user's browser.".into(), None)
         }
         Action::Info => Output::ok(system_info(env), None),
+        Action::Home(call) => home_execute(call, env).await,
+    }
+}
+
+async fn home_execute(call: &HomeCall, env: &Env) -> Output {
+    let Some(h) = &env.house else { return Output::error(NO_HOME) };
+    let result = match call {
+        HomeCall::Devices { device } => {
+            let devices = h.runner.devices().await;
+            return Output::ok(home_list(&devices, device.as_deref()), Some(devices.len().to_string()));
+        }
+        HomeCall::Control { device, action } => h.runner.control(device, action).await,
+        HomeCall::Routine { id } => h.runner.routine(id).await,
+    };
+    Output {
+        text: text::clip_middle(&result.text, MAX_RESULT),
+        is_error: !result.ok,
+        detail: (!result.detail.is_empty()).then(|| text::one_line(&result.detail, 120)),
+        output: (!result.ok).then(|| text::one_line(&result.detail, 300)),
     }
 }
 
@@ -844,7 +1033,7 @@ fn system_info(env: &Env) -> String {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
 
     struct Scratch(PathBuf);
@@ -871,6 +1060,7 @@ mod tests {
                 shell: Shell::detect(),
                 cancel: Arc::new(AtomicBool::new(false)),
                 web_search: false,
+                house: None,
             }
         }
     }
@@ -1097,6 +1287,94 @@ mod tests {
         assert!(m("*.{js,ts}", "a.ts"));
         assert!(!m("*.{js,ts}", "a.tsx"));
         assert!(m("a+b(c).txt", "a+b(c).txt"), "regex characters are literal");
+    }
+
+    /// A house that records what it was asked and answers as a device would.
+    pub(crate) struct FakeHouse {
+        pub calls: std::sync::Mutex<Vec<String>>,
+    }
+
+    impl HomeRunner for FakeHouse {
+        fn devices<'a>(&'a self) -> BoxFuture<'a, Vec<Device>> {
+            Box::pin(async { house_devices() })
+        }
+        fn control<'a>(&'a self, id: &'a str, action: &'a HomeAction) -> BoxFuture<'a, HomeResult> {
+            self.calls.lock().unwrap().push(format!("{id} {}", action.word().0));
+            Box::pin(async move { HomeResult { ok: true, text: format!("Done: {} on {id}. The device now reports: on.", action.describe()), detail: "On".into() } })
+        }
+        fn routine<'a>(&'a self, id: &'a str) -> BoxFuture<'a, HomeResult> {
+            self.calls.lock().unwrap().push(format!("routine {id}"));
+            Box::pin(async { HomeResult { ok: true, text: "Routine done.".into(), detail: "2 of 2 steps done".into() } })
+        }
+    }
+
+    pub(crate) fn house_devices() -> Vec<Device> {
+        use crate::smart_home::model::tests::{light, tv};
+        let mut plug = light("ha:switch.aquecedor", "Aquecedor", "Quarto");
+        plug.kind = crate::smart_home::model::Kind::Plug;
+        plug.caps = vec![crate::smart_home::model::Capability::TurnOn, crate::smart_home::model::Capability::TurnOff];
+        plug.ask = true;
+        vec![tv("philips:aa", "TV", "Sala"), tv("philips:bb", "TV", "Quarto"), plug]
+    }
+
+    pub(crate) fn house(runner: Arc<FakeHouse>) -> HomeEnv {
+        HomeEnv {
+            devices: house_devices(),
+            routines: vec![RoutineInfo { id: "r-1".into(), name: "Boa noite".into(), asks: false, steps: vec!["TV: turn off".into()], problems: vec![] }],
+            runner,
+        }
+    }
+
+    #[test]
+    fn the_home_tools_come_only_with_a_house_and_check_before_acting() {
+        let s = Scratch::new("home");
+        let runner = Arc::new(FakeHouse { calls: Default::default() });
+        let mut env = s.env(Level::Ask);
+        assert!(definitions(&env).iter().all(|d| !d.name.starts_with("home_")));
+        assert!(prepare(&call("home_control", json!({"device":"TV","action":"turn_on"})), &env).unwrap_err().contains("not available"));
+        env.house = Some(house(runner.clone()));
+        let names: Vec<&str> = definitions(&env).iter().map(|d| d.name).collect();
+        assert!(names.contains(&"home_devices") && names.contains(&"home_control") && names.contains(&"home_routine"));
+        let control = definitions(&env).into_iter().find(|d| d.name == "home_control").unwrap();
+        assert_eq!(control.schema["properties"]["action"]["enum"].as_array().unwrap().len(), ACTION_WORDS.len());
+
+        // A TV acts at once; the plug asks; the name with its room finds the device.
+        let p = prepare(&call("home_control", json!({"device":"TV da sala","action":"turn_on"})), &env).unwrap();
+        assert_eq!(p.gate, Gate::Free);
+        assert_eq!(p.summary, "TV · Turn on");
+        assert!(matches!(&p.action, Action::Home(HomeCall::Control { device, .. }) if device == "philips:aa"));
+        let plug = prepare(&call("home_control", json!({"device":"aquecedor","action":"turn_on"})), &env).unwrap();
+        assert_eq!(plug.gate, Gate::Ask);
+        // Read only refuses the house too.
+        let mut read_only = s.env(Level::ReadOnly);
+        read_only.house = Some(house(runner.clone()));
+        assert!(matches!(prepare(&call("home_control", json!({"device":"TV da sala","action":"turn_on"})), &read_only).unwrap().gate, Gate::Refuse(_)));
+
+        // Refused before anything is sent: an action the device did not report, an app it does not have, a device
+        // that is ambiguous, an action that is not one.
+        assert!(prepare(&call("home_control", json!({"device":"TV da sala","action":"set_brightness","value":50})), &env).unwrap_err().contains("did not report"));
+        assert!(prepare(&call("home_control", json!({"device":"TV da sala","action":"open_app","value":"Spotify"})), &env).unwrap_err().contains("no app"));
+        assert!(prepare(&call("home_control", json!({"device":"TV","action":"turn_on"})), &env).unwrap_err().contains("could be"));
+        assert!(prepare(&call("home_control", json!({"device":"TV da sala","action":"reboot"})), &env).is_err());
+        assert!(runner.calls.lock().unwrap().is_empty());
+
+        // Carried out through the house, with the device's answer for the model and the state for the step.
+        let out = block_on(execute(&prepare(&call("home_control", json!({"device":"philips:aa","action":"open_app","value":"youtube"})), &env).unwrap(), &env));
+        assert!(!out.is_error && out.text.contains("open YouTube"), "{}", out.text);
+        assert_eq!(out.detail.as_deref(), Some("On"));
+        assert_eq!(runner.calls.lock().unwrap().as_slice(), ["philips:aa open_app"]);
+
+        // The list, and one device in full.
+        let list = block_on(execute(&prepare(&call("home_devices", json!({})), &env).unwrap(), &env));
+        assert!(list.text.contains("philips:aa") && list.text.contains("in Sala") && list.text.contains("Apps (4): YouTube"), "{}", list.text);
+        assert!(list.text.contains("waits for the user's approval"), "the plug says it asks");
+        let one = block_on(execute(&prepare(&call("home_devices", json!({"device":"tv do quarto"})), &env).unwrap(), &env));
+        assert!(one.text.contains("philips:bb") && !one.text.contains("philips:aa"));
+
+        // Routines by name.
+        let r = prepare(&call("home_routine", json!({"routine":"boa noite"})), &env).unwrap();
+        assert_eq!((r.gate.clone(), r.summary.as_str()), (Gate::Free, "Boa noite"));
+        assert!(prepare(&call("home_routine", json!({"routine":"festa"})), &env).unwrap_err().contains("Boa noite"));
     }
 
     #[test]

@@ -38,6 +38,7 @@ use tauri::{AppHandle, Emitter, Manager, State, WebviewWindow};
 
 use crate::{island, log, pipe, recap, secrets, settings, Shared};
 pub(crate) use chat::StepLine;
+pub(crate) use pairing::computer_name;
 pub(crate) use hub::{ApprovalIn, SessionIn};
 use hub::{Host, Hub};
 use pairing::SecretStore;
