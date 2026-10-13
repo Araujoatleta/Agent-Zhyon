@@ -66,6 +66,34 @@ export interface PhonePushStatus {
   hasToken: boolean;
 }
 
+/**
+ * Away from home, directly (phone_link/remote.rs): what the router answered. The home's addresses are in it, so only
+ * the settings window may ask.
+ */
+export interface PhoneRemoteStatus {
+  enabled: boolean;
+  /** The phone link is on: without it the switch does nothing. */
+  linkOn: boolean;
+  /** Still waiting for the router's first answer. */
+  checking: boolean;
+  router: string | null;
+  /** The home's internet address with the router's port: "198.51.100.7:47821". */
+  v4: string | null;
+  /** Why there is none, in the user's words. */
+  v4Problem: string | null;
+  /** This computer's internet (IPv6) addresses with the port. */
+  v6: string[];
+  v6Note: string | null;
+  /** The router confirmed they are let in. */
+  v6Confirmed: boolean;
+  /** The router's IPv6 firewall lets nothing in: they are not given to the phone. */
+  v6Blocked: boolean;
+  /** Why there is no IPv6 way in on this computer. */
+  v6Error: string | null;
+  /** When a phone last connected from the internet (ms; 0: not since the link started). */
+  lastOutside: number;
+}
+
 /** Session details for the phone: the switch (off by default). */
 export interface PhoneDetailsStatus {
   enabled: boolean;
@@ -391,6 +419,12 @@ export const Bridge = {
   phonePushSetToken: (token: string) => callOrThrow<PhonePushStatus>("phone_push_set_token", { token }),
   /** Sends a test notification now. Throws with what went wrong. */
   phonePushTest: () => callOrThrow<void>("phone_push_test"),
+  // ── Away from home, directly (src-tauri/src/phone_link/remote.rs) ──
+  phoneRemoteStatus: () => call<PhoneRemoteStatus>("phone_remote_status"),
+  /** The switch: on asks the router to open the link's port, off closes it. */
+  phoneRemoteSet: (enabled: boolean) => callOrThrow<PhoneRemoteStatus>("phone_remote_set", { enabled }),
+  /** Asks the router again now. */
+  phoneRemoteCheck: () => callOrThrow<PhoneRemoteStatus>("phone_remote_check"),
   chatReset: () => call<void>("chat_reset"),
   /**
    * The models a provider offers, for the picker in the chat view. Rust asks

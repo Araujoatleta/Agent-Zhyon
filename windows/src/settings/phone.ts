@@ -2,12 +2,12 @@
 // phone with this computer — Coucou for Android, or Coucou on iPhone through
 // its Windows and Linux link. Off until the user turns it on.
 
-import { Bridge, type PhoneChatStatus, type PhoneLinkPairing, type PhoneLinkStatus, type PhonePushStatus, type PhoneRelayState, type PhoneRelayStatus } from "../core/bridge";
+import { Bridge, type PhoneChatStatus, type PhoneLinkPairing, type PhoneLinkStatus, type PhonePushStatus, type PhoneRelayState, type PhoneRelayStatus, type PhoneRemoteStatus } from "../core/bridge";
 import { modelId, modelsOf, toggleModel, usableProviders } from "../core/phone-chat";
 import { PROVIDERS, type ProviderDef } from "../core/providers";
 import type { Settings } from "../core/state";
 import { h } from "../views/dom";
-import { t } from "../i18n/i18n";
+import { language, t } from "../i18n/i18n";
 
 type Toggle = (on: boolean, onChange: (v: boolean) => void) => HTMLElement;
 
@@ -66,6 +66,7 @@ export function phoneSection(on: boolean, makeToggle: Toggle, settings: Settings
       h("div", { class: "hint", text: t("If Windows asks about the firewall, allow Coucou on private networks. The phone and this computer must be on the same Wi-Fi.") }),
       h("div", { class: "hint", text: t("Your phone finds this computer again by itself when the network changes. It is announced on your local network only while this switch is on. Some hotspots and guest networks block this.") }),
       ...(SHOW_RELAY_SETTINGS ? [relayBlock(makeToggle, () => void refreshPairing())] : []),
+      remoteBlock(makeToggle),
       detailsBlock(makeToggle),
       answersBlock(makeToggle),
       diffsBlock(makeToggle),
@@ -601,6 +602,93 @@ function pushBlock(makeToggle: Toggle): HTMLElement {
     more,
     note,
   );
+}
+
+/** What Settings says about "away from home, directly", line by line (src-tauri/src/phone_link/remote.rs). */
+export function remoteLines(status: PhoneRemoteStatus): string[] {
+  if (!status.enabled) return [];
+  if (status.checking) return [t("Asking your router…")];
+  const lines: string[] = [];
+  if (status.router) lines.push(t("Router: {name}", { name: status.router }));
+  lines.push(status.v4 ? t("Over IPv4: {address}", { address: status.v4 }) : t("Over IPv4: no. {why}", { why: status.v4Problem ?? "" }));
+  if (status.v6.length > 0) {
+    lines.push(t("Over IPv6: {addresses}", { addresses: status.v6.join(", ") }));
+    if (status.v6Note) lines.push(status.v6Note);
+  } else {
+    lines.push(t("Over IPv6: no. {why}", { why: status.v6Error ?? t("This computer has no internet IPv6 address.") }));
+  }
+  lines.push(
+    status.v4 || (status.v6.length > 0 && !status.v6Blocked)
+      ? t("Your iPhone learns these addresses the next time it connects here at home. Away from home, it then tries them by itself.")
+      : t("Not reachable from outside for now: see what your router answered above."),
+  );
+  if (status.lastOutside > 0) {
+    const time = new Date(status.lastOutside).toLocaleString(language(), { hour: "2-digit", minute: "2-digit", day: "numeric", month: "short" });
+    lines.push(t("Last connection from outside: {time}", { time }));
+  } else {
+    lines.push(t("No phone has connected from outside yet."));
+  }
+  return lines;
+}
+
+/**
+ * Away from home, directly: Coucou asks the user's own router to open the link's port (UPnP) and tells the paired
+ * phones where to try, so the iPhone reaches this computer from anywhere with no server of anyone in between.
+ * Off by default; turning it off closes the port again (src-tauri/src/phone_link/remote.rs).
+ */
+function remoteBlock(makeToggle: Toggle): HTMLElement {
+  const note = h("div", { class: "hint" });
+  const lines = h("div", {});
+  const again = h("button", { text: t("Check again") });
+  let current: PhoneRemoteStatus | null = null;
+
+  const show = (status: PhoneRemoteStatus | null) => {
+    if (!status) return;
+    current = status;
+    switchEl.classList.toggle("on", status.enabled);
+    switchEl.setAttribute("aria-pressed", String(status.enabled));
+    lines.replaceChildren(...remoteLines(status).map((text) => h("div", { class: "hint", text })));
+    again.hidden = !status.enabled || status.checking;
+  };
+  const apply = async (enabled: boolean) => {
+    note.textContent = "";
+    try {
+      show(await Bridge.phoneRemoteSet(enabled));
+    } catch (err) {
+      note.textContent = String(err);
+      if (current) show(current);
+    }
+  };
+  const switchEl = makeToggle(false, (next) => void apply(next));
+  again.addEventListener("click", () => {
+    void (async () => {
+      note.textContent = "";
+      try {
+        show(await Bridge.phoneRemoteCheck());
+      } catch (err) {
+        note.textContent = String(err);
+      }
+    })();
+  });
+
+  const block = h(
+    "div",
+    {},
+    h("div", { class: "row" }, h("label", { text: t("Away from home, directly") }), switchEl),
+    h("div", { class: "hint", text: t("Your iPhone reaches this computer over the internet with no server of anyone in between: Coucou asks your router to open the link's port (UPnP) and tells the phone your home's address. The same certificate and pairing code protect it as at home. Turning it off closes the port again.") }),
+    lines,
+    h("div", { class: "row" }, again),
+    note,
+  );
+  again.hidden = true;
+  // The router answers a few seconds after the switch, and again every few minutes: kept up to date while shown.
+  const watch = window.setInterval(() => {
+    if (!block.isConnected) return window.clearInterval(watch);
+    if (document.visibilityState !== "visible" || !current?.enabled) return;
+    void Bridge.phoneRemoteStatus().then(show);
+  }, 3000);
+  void Bridge.phoneRemoteStatus().then(show);
+  return block;
 }
 
 function usableProvidersCandidates(): ProviderDef[] {

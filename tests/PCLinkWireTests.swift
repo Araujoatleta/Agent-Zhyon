@@ -255,6 +255,40 @@ enum PCLinkWireTests {
             checkEqual("nothing to say", PCText.spoken("```\ncode\n```"), "")
         }
 
+        print("\nAway from home: the computer's addresses on the internet")
+        do {
+            check("this iPhone asks for them", PCWire.capabilities.contains("remote"))
+            // As windows/src-tauri/src/phone_link/hub.rs writes it (remote_line).
+            let told = line(#"{"type":"remote","endpoints":["[2804:14c:1:2::10]:47821","198.51.100.7:47822"]}"#)
+            checkEqual("decoded, IPv6 first as sent", told, .remote(["[2804:14c:1:2::10]:47821", "198.51.100.7:47822"]))
+            checkEqual("none: the switch is off on the computer", line(#"{"type":"remote","endpoints":[]}"#), .remote([]))
+            checkEqual("no list at all: ignored", line(#"{"type":"remote"}"#), .other)
+            let noisy = line(#"{"type":"remote","endpoints":["pc.example.com:47821","198.51.100.7:47822","198.51.100.7:47822",5,"[2804::1]:0","1.2.3.4:99999","10.0.0.1:47821","[fe80::1%en0]:47821","1.2.3:4","256.1.1.1:5","[2804::2]:+80"]}"#)
+            checkEqual("addresses only, each once, nothing malformed", noisy, .remote(["198.51.100.7:47822", "10.0.0.1:47821"]))
+            let many = (1...9).map { "198.51.100.\($0):47821" }
+            checkEqual("at most six", PCRemote.clean(many).count, PCRemote.maxEndpoints)
+            check("host and port of an IPv6 one", PCRemote.parse("[2804:14c:1:2::10]:47821").map { $0.host == "2804:14c:1:2::10" && $0.port == 47821 } == true)
+            check("host and port of an IPv4 one", PCRemote.parse("198.51.100.7:47822").map { $0.host == "198.51.100.7" && $0.port == 47822 } == true)
+            check("a name is never taken", PCRemote.parse("evil.example:443") == nil)
+            check("an IPv6 without brackets is not taken", PCRemote.parse("2804::1:47821") == nil)
+
+            var model = PCLinkModel()
+            let effects = model.apply(.remote(["198.51.100.7:47822"]), now: t0)
+            check("the screens' state is not touched", effects.isEmpty && model == PCLinkModel())
+
+            // A pairing kept before this existed still loads, with no address outside.
+            let old = Data(#"{"host":"192.168.1.20","port":47821,"fingerprint":"\#(fp)","name":"PC"}"#.utf8)
+            let loaded = try? JSONDecoder().decode(PCComputer.self, from: old)
+            checkEqual("an older saved pairing loads", loaded?.host, "192.168.1.20")
+            checkEqual("with no address outside", loaded?.remote, [])
+            var computer = PCComputer(host: "192.168.1.20", port: 47821, fingerprint: fp, name: "PC")
+            computer.remote = ["198.51.100.7:47822"]
+            let again = (try? JSONEncoder().encode(computer)).flatMap { try? JSONDecoder().decode(PCComputer.self, from: $0) }
+            checkEqual("kept across launches", again, computer)
+            let tampered = Data(#"{"host":"h","port":1,"fingerprint":"\#(fp)","name":"","remote":["x.example:1","198.51.100.7:1"]}"#.utf8)
+            checkEqual("what was saved is checked again", (try? JSONDecoder().decode(PCComputer.self, from: tampered))?.remote, ["198.51.100.7:1"])
+        }
+
         print(failures == 0 ? "\nAll PC link wire tests passed." : "\n\(failures) failure(s).")
         if failures > 0 { exit(1) }
     }

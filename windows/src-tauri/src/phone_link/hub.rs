@@ -422,6 +422,8 @@ struct Sub {
     relay: bool,
     /// The services this phone may see (the user's ticks when it connected); empty: none.
     services: Vec<String>,
+    /// The phone asked for `remote`: it is told the home's internet addresses whenever they change.
+    remote: bool,
     /// When this phone asked for a diff lately (ms), to keep it from flooding the island.
     diff_asks: Vec<u64>,
 }
@@ -437,6 +439,8 @@ pub struct Caps {
     pub relay: bool,
     /// The services the user allowed for the phone (empty: the capability is not offered).
     pub services: Vec<String>,
+    /// The phone understands `remote` (the home's internet addresses, remote.rs).
+    pub remote: bool,
 }
 
 #[derive(Default)]
@@ -454,6 +458,9 @@ struct Inner {
     usage: Option<Arc<str>>,
     /// The service cards the island has, cleaned (all of them: each phone gets only the ones its user allowed).
     services: Vec<ServiceIn>,
+    /// Where the phones can reach this computer from the internet (remote.rs), most direct first. None: not known
+    /// yet (nothing is said, so a phone keeps what it knew); empty: nowhere (the switch is off).
+    remote: Option<Vec<String>>,
     subs: Vec<Sub>,
     next_sub: u64,
 }
@@ -561,7 +568,7 @@ impl Hub {
 
     /// Like [`subscribe`], for a phone that may also have been offered `answers` and `prefs`.
     pub fn subscribe_with(&self, tx: mpsc::Sender<Out>, now: u64, caps: Caps) -> (u64, Arc<AtomicBool>) {
-        let Caps { details, answers, prefs, diffs, usage, relay, services } = caps;
+        let Caps { details, answers, prefs, diffs, usage, relay, services, remote } = caps;
         let mut inner = self.inner.lock().unwrap();
         expire(&mut inner, now);
         let id = inner.next_sub;
@@ -591,8 +598,13 @@ impl Hub {
                 let _ = tx.try_send(Out::Line(line.clone()));
             }
         }
+        if remote {
+            if let Some(endpoints) = &inner.remote {
+                let _ = tx.try_send(Out::Line(remote_line(endpoints)));
+            }
+        }
         let evicted = Arc::new(AtomicBool::new(false));
-        inner.subs.push(Sub { id, tx, evicted: evicted.clone(), details, answers, prefs, diffs, usage, relay, services, diff_asks: Vec::new() });
+        inner.subs.push(Sub { id, tx, evicted: evicted.clone(), details, answers, prefs, diffs, usage, relay, services, remote, diff_asks: Vec::new() });
         (id, evicted)
     }
 
@@ -607,6 +619,31 @@ impl Hub {
         let mut told = 0;
         self.inner.lock().unwrap().subs.retain(|s| {
             if !s.relay {
+                return true;
+            }
+            let kept = s.tx.try_send(Out::Line(line.clone())).is_ok();
+            if kept {
+                told += 1;
+            } else {
+                s.evicted.store(true, Ordering::SeqCst);
+            }
+            kept
+        });
+        told
+    }
+
+    /// Where this computer can be reached from the internet changed (remote.rs): the phones that understand it are
+    /// told, inside the authenticated channel. None: not known yet, nothing is said. Returns how many were told.
+    pub fn set_remote(&self, endpoints: Option<Vec<String>>) -> usize {
+        let mut inner = self.inner.lock().unwrap();
+        if inner.remote == endpoints {
+            return 0;
+        }
+        inner.remote = endpoints;
+        let Some(line) = inner.remote.as_ref().map(|e| remote_line(e)) else { return 0 };
+        let mut told = 0;
+        inner.subs.retain(|s| {
+            if !s.remote {
                 return true;
             }
             let kept = s.tx.try_send(Out::Line(line.clone())).is_ok();
@@ -998,6 +1035,12 @@ fn all_sessions(inner: &Inner) -> Vec<Session> {
 
 /// Sends one line to every subscriber; one that cannot keep up (a full queue) or
 /// has gone is dropped rather than waited for.
+/// `{"type":"remote","endpoints":["[2804:…]:47821","198.51.100.7:47821"]}`: where to try, in order, when the local
+/// network does not answer.
+fn remote_line(endpoints: &[String]) -> Arc<str> {
+    json!({ "type": "remote", "endpoints": endpoints }).to_string().into()
+}
+
 fn broadcast(inner: &mut Inner, line: &str) {
     let shared: Arc<str> = line.into();
     inner.subs.retain(|s| {
@@ -1785,6 +1828,25 @@ mod tests {
         let told = drain(&mut with);
         assert_eq!(told, vec![serde_json::json!({ "type": "relayAccess", "access": access })]);
         assert!(drain(&mut without).is_empty(), "a phone that did not ask is never sent it");
+    }
+
+    #[test]
+    fn the_homes_internet_addresses_go_to_phones_that_understand_them() {
+        let (hub, _) = hub();
+        let (_, mut early) = sub_with(&hub, Caps { remote: true, ..Caps::default() });
+        let (_, mut older) = sub_with(&hub, Caps::default());
+        assert!(drain(&mut early).iter().all(|l| l["type"] != "remote"), "nothing is said while it is not known");
+        drain(&mut older);
+        let endpoints = vec!["[2804:14c:1:2::10]:47821".to_string(), "198.51.100.7:47821".to_string()];
+        assert_eq!(hub.set_remote(Some(endpoints.clone())), 1);
+        assert_eq!(drain(&mut early), vec![serde_json::json!({ "type": "remote", "endpoints": endpoints })]);
+        assert!(drain(&mut older).is_empty(), "an older phone is never sent it");
+        assert_eq!(hub.set_remote(Some(endpoints.clone())), 0, "the same addresses again: nothing to say");
+        // A phone that connects later hears them at once; switched off, every phone hears there are none.
+        let (_, mut later) = sub_with(&hub, Caps { remote: true, ..Caps::default() });
+        assert!(drain(&mut later).contains(&serde_json::json!({ "type": "remote", "endpoints": endpoints })));
+        assert_eq!(hub.set_remote(Some(Vec::new())), 2);
+        assert_eq!(drain(&mut early), vec![serde_json::json!({ "type": "remote", "endpoints": [] })]);
     }
 
     #[test]

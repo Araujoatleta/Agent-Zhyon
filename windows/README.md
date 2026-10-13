@@ -342,6 +342,13 @@ app shortly after you leave it, so a request still waiting while no phone is
 connected can be announced through [ntfy](https://ntfy.sh) (ntfy.sh or your
 own server). The notification only says who is waiting; a tap opens Coucou.
 
+**Away from home, directly** (off by default): Coucou asks your own router
+(UPnP) to open the link's port and tells the paired iPhone your home's
+internet addresses, so it reaches this computer from anywhere with the same
+pinned certificate and code, and no server in between. Settings shows what the
+router answered and what cannot work (UPnP off, CGNAT, IPv6 kept closed).
+Turning it off, or quitting Coucou, closes the port again.
+
 ## GitHub
 
 With a token in **Settings… → Integrations → GitHub** — a classic token with

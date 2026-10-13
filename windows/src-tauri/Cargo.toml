@@ -45,6 +45,10 @@ futures-util = { version = "0.3", default-features = false, features = ["sink"] 
 # Mochi's hands (agent/): searching file contents and matching file names. Already in the tree (through tauri), so
 # nothing new is downloaded.
 regex = "1"
+# Away from home, directly (phone_link/remote.rs): this computer's IPv6 addresses (if-addrs) and a listener for IPv6
+# only beside the IPv4 one (socket2). Both already in the tree through mdns-sd, so nothing new is downloaded.
+if-addrs = "0.15"
+socket2 = "0.6"
 
 [target.'cfg(windows)'.dependencies]
 keyring = { version = "3", features = ["windows-native"] }

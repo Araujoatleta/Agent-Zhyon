@@ -8,7 +8,10 @@
 //   * an address that authenticated before is remembered (in memory only, 8 addresses) and is not held to the
 //     stranger pool;
 //   * when the pool is getting full the TLS handshake and the hello get 3 s instead of 10 s, so a flood of silent
-//     connections frees its slots fast.
+//     connections frees its slots fast;
+//   * callers from the internet (away from home, directly: remote.rs) that never authenticated have a pool of their
+//     own, of 2, and are always hurried: the internet's scanners can neither take the local network's places nor
+//     hold one for long.
 // Pure bookkeeping: no sockets, no clock, so every rule is a unit test.
 
 use std::collections::{HashMap, VecDeque};
@@ -23,6 +26,8 @@ pub const MAX_UNAUTH_PER_ADDRESS: usize = 2;
 pub const MAX_UNAUTH_STRANGERS: usize = 4;
 /// Addresses remembered as "authenticated before".
 pub const KNOWN_ADDRESSES: usize = 8;
+/// Unauthenticated connections from the internet, from addresses that never authenticated, all together.
+pub const MAX_UNAUTH_OUTSIDE: usize = 2;
 pub const PATIENT: Duration = Duration::from_secs(10);
 pub const HURRIED: Duration = Duration::from_secs(3);
 
@@ -30,6 +35,7 @@ pub const HURRIED: Duration = Duration::from_secs(3);
 struct State {
     total: usize,
     strangers_unauth: usize,
+    outside_unauth: usize,
     unauth: HashMap<IpAddr, usize>,
     known: VecDeque<IpAddr>,
 }
@@ -48,8 +54,18 @@ impl Admission {
         Arc::new(Admission::default())
     }
 
-    /// A slot for this caller, or None (the connection is closed unserved). The slot is given back when the ticket drops.
+    /// A slot for this caller on the local network (or the relay), or None (the connection is closed unserved). The
+    /// slot is given back when the ticket drops.
     pub fn admit(self: &Arc<Self>, ip: IpAddr) -> Option<Ticket> {
+        self.admit_from(ip, false)
+    }
+
+    /// A slot for a caller from the internet (away from home, directly).
+    pub fn admit_outside(self: &Arc<Self>, ip: IpAddr) -> Option<Ticket> {
+        self.admit_from(ip, true)
+    }
+
+    fn admit_from(self: &Arc<Self>, ip: IpAddr, outside: bool) -> Option<Ticket> {
         let ip = canonical(ip);
         let mut s = self.state.lock().unwrap();
         if s.total >= MAX_CONNECTIONS {
@@ -58,21 +74,28 @@ impl Admission {
         if s.unauth.get(&ip).copied().unwrap_or(0) >= MAX_UNAUTH_PER_ADDRESS {
             return None;
         }
-        let stranger = !s.known.contains(&ip);
-        if stranger && s.strangers_unauth >= MAX_UNAUTH_STRANGERS {
+        let known = s.known.contains(&ip);
+        // A stranger of the local network counts in its pool, a stranger of the internet in the other.
+        let (stranger, outsider) = (!known && !outside, !known && outside);
+        if (stranger && s.strangers_unauth >= MAX_UNAUTH_STRANGERS) || (outsider && s.outside_unauth >= MAX_UNAUTH_OUTSIDE) {
             return None;
         }
         // Looked at before this caller is counted: "is the pool getting full already?"
-        let hurried = s.total + 2 >= MAX_CONNECTIONS || s.strangers_unauth * 2 >= MAX_UNAUTH_STRANGERS;
+        let hurried = outsider || s.total + 2 >= MAX_CONNECTIONS || s.strangers_unauth * 2 >= MAX_UNAUTH_STRANGERS;
         s.total += 1;
         *s.unauth.entry(ip).or_insert(0) += 1;
         if stranger {
             s.strangers_unauth += 1;
         }
+        if outsider {
+            s.outside_unauth += 1;
+        }
         Some(Ticket {
             admission: self.clone(),
             ip,
             stranger,
+            outsider,
+            outside,
             unauthenticated: Mutex::new(true),
             wait: if hurried { HURRIED } else { PATIENT },
         })
@@ -85,6 +108,11 @@ impl Admission {
     }
 
     #[cfg(test)]
+    pub fn outside_count(&self) -> usize {
+        self.state.lock().unwrap().outside_unauth
+    }
+
+    #[cfg(test)]
     pub fn knows(&self, ip: IpAddr) -> bool {
         self.state.lock().unwrap().known.contains(&canonical(ip))
     }
@@ -94,7 +122,12 @@ impl Admission {
 pub struct Ticket {
     admission: Arc<Admission>,
     ip: IpAddr,
+    /// Counted in the local network's stranger pool until it authenticates.
     stranger: bool,
+    /// Counted in the internet's stranger pool until it authenticates.
+    outsider: bool,
+    /// From the internet (whether its address was known or not).
+    outside: bool,
     unauthenticated: Mutex<bool>,
     wait: Duration,
 }
@@ -103,6 +136,11 @@ impl Ticket {
     /// How long the TLS handshake and then the hello may take (shorter when the pool is nearly full).
     pub fn wait(&self) -> Duration {
         self.wait
+    }
+
+    /// The caller came from the internet, not the local network.
+    pub fn outside(&self) -> bool {
+        self.outside
     }
 
     /// The caller said a valid hello: it no longer counts against the unauthenticated limits and its address is
@@ -114,14 +152,14 @@ impl Ticket {
         }
         *flag = false;
         let mut s = self.admission.state.lock().unwrap();
-        release_unauth(&mut s, self.ip, self.stranger);
+        release_unauth(&mut s, self.ip, self.stranger, self.outsider);
         s.known.retain(|k| *k != self.ip);
         s.known.push_front(self.ip);
         s.known.truncate(KNOWN_ADDRESSES);
     }
 }
 
-fn release_unauth(s: &mut State, ip: IpAddr, stranger: bool) {
+fn release_unauth(s: &mut State, ip: IpAddr, stranger: bool, outsider: bool) {
     if let Some(n) = s.unauth.get_mut(&ip) {
         *n -= 1;
         if *n == 0 {
@@ -131,6 +169,9 @@ fn release_unauth(s: &mut State, ip: IpAddr, stranger: bool) {
     if stranger {
         s.strangers_unauth -= 1;
     }
+    if outsider {
+        s.outside_unauth -= 1;
+    }
 }
 
 impl Drop for Ticket {
@@ -138,7 +179,7 @@ impl Drop for Ticket {
         let mut s = self.admission.state.lock().unwrap();
         s.total -= 1;
         if *self.unauthenticated.lock().unwrap() {
-            release_unauth(&mut s, self.ip, self.stranger);
+            release_unauth(&mut s, self.ip, self.stranger, self.outsider);
         }
     }
 }
@@ -276,6 +317,40 @@ mod tests {
             known.push(t);
         }
         assert_eq!(b.admit(ip("192.168.4.0")).unwrap().wait(), HURRIED);
+    }
+
+    #[test]
+    fn the_internet_never_takes_the_local_networks_places() {
+        let a = Admission::new();
+        // Scanners from everywhere: two get a hurried place, the rest are closed unserved.
+        let scanners: Vec<_> = (0..30).filter_map(|n| a.admit_outside(ip(&format!("203.0.113.{n}")))).collect();
+        assert_eq!(scanners.len(), MAX_UNAUTH_OUTSIDE);
+        assert!(scanners.iter().all(|t| t.wait() == HURRIED && t.outside()));
+        assert_eq!(a.counts().1, 0, "the local network's stranger pool is untouched");
+        // A phone at home that never connected before still gets in, with the full wait.
+        let home = a.admit(ip("192.168.1.30")).expect("the local network keeps its places");
+        assert!(!home.outside());
+        // And the paired phone, away on its carrier's address, gets in once a scanner leaves.
+        drop(scanners);
+        let away = a.admit_outside(ip("198.51.100.40")).unwrap();
+        away.authenticated();
+        assert_eq!(a.outside_count(), 0, "an authenticated phone no longer counts against the internet's pool");
+        let _flood: Vec<_> = (0..30).filter_map(|n| a.admit_outside(ip(&format!("203.0.113.{n}")))).collect();
+        assert!(a.admit_outside(ip("198.51.100.40")).is_some(), "its address is known: the flood cannot keep it out");
+    }
+
+    #[test]
+    fn a_place_from_the_internet_comes_back_whatever_way_it_ends() {
+        let a = Admission::new();
+        {
+            let _t = a.admit_outside(ip("203.0.113.9")).unwrap();
+            assert_eq!(a.outside_count(), 1);
+        }
+        assert_eq!((a.counts(), a.outside_count()), ((0, 0), 0));
+        let t = a.admit_outside(ip("203.0.113.9")).unwrap();
+        t.authenticated();
+        drop(t);
+        assert_eq!((a.counts(), a.outside_count()), ((0, 0), 0));
     }
 
     #[test]

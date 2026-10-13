@@ -167,6 +167,8 @@ export interface Settings {
   /** Notifications with Coucou closed, through ntfy, and its server ("" is ntfy.sh). Rust owns them too. */
   phonePush?: boolean;
   phonePushServer?: string;
+  /** Away from home, directly: the router opens the link's port (UPnP). Rust owns it too. */
+  phoneRemote?: boolean;
   /**
    * Mochi's hands (src-tauri/src/agent): the chat may act on this computer. Rust owns these three: only
    * Settings → Mochi's hands changes them, whatever the page sends back.

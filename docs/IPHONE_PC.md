@@ -87,10 +87,50 @@ The sideload build is compiled with `SIDELOAD`: it has **no iCloud and no Apple 
 have, so it talks only to a Windows or Linux computer. Its widgets stay empty (they need an App Group) and the Live
 Activity started by a Mac does not apply. Everything else on this page works.
 
+## Away from home, directly (no one's server)
+
+The iPhone can reach the computer from anywhere (cellular, the Wi-Fi at work) with **no server in between**: no
+Cloudflare, no VPS, no third-party service. The door is opened by **your own router**:
+
+1. On the computer: **Settings → Phone (Android and iPhone) → Away from home, directly** → on.
+2. Coucou asks the router (with **UPnP**, the way game consoles and video calls do it) to forward the link's port to
+   this computer, and asks it the home's internet address. A few seconds later Settings shows what the router said,
+   for instance **Over IPv4: 198.51.100.7:47821** and **Over IPv6: [2804:…]:47821**.
+3. Open Coucou on the iPhone **once at home**, on the Wi-Fi: it learns these addresses. In **⚙︎ → Windows or Linux
+   computer**, the **Away from home** row then says *Ready*.
+4. That is all. Away from home, the iPhone tries the local network and, if it has not answered within a second and a
+   half, goes straight to the home's addresses; on cellular it goes there at once. Linked that way, it says *Over the
+   internet, directly to your computer*.
+
+To try it: turn the iPhone's Wi-Fi off and open Coucou. On the computer, **Last connection from outside** shows when.
+
+What has to work (Settings says which one did not, in words):
+
+- **UPnP on in the router.** *"No router answered on the local network"* means it is off: it is usually under
+  "Network", "NAT" or "Advanced" in the router's settings.
+- **A real internet address.** Many providers share one IPv4 address between many homes (**CGNAT**): then nothing can
+  come in over IPv4, and Settings says so. **IPv6** usually works anyway, since every device has its own address; if
+  the router keeps IPv6 closed to the outside, look for its option to allow incoming IPv6 connections. A router behind
+  the provider's box (two routers) needs that box in **bridge mode**, or a public IP from the provider.
+- **The home's address may change.** Coucou asks the router again every 10 minutes and tells a connected iPhone at
+  once. If it changes while the iPhone is away and not connected, it learns the new one the next time it connects at
+  home.
+- **The computer on, with Coucou running**, as always.
+
+Security: it is **the same link** as at home, TLS with the certificate pinned by the QR code and the same pairing
+code. A caller from the internet without the code gets no further than the first line; such callers share **2
+places** of their own, so they never take the iPhone's place at home, and with the switch off the computer does not
+answer the internet at all. Only the router is asked: no "what is my IP" service, no one's DNS. The home's address
+never goes to the log. It is **off by default**; turning it off closes the port on the router at once, and so does
+quitting Coucou. If the computer goes down suddenly, the router closes the port by itself within the hour (some
+routers only take permanent forwards: then it stays open, to a computer that does not answer, until you turn the
+switch off).
+
 ## Limits, honestly
 
-- **Local network only.** Same Wi-Fi, or the computer's own hotspot. Guest networks and hotspots with client
-  isolation, a VPN on either side, or a firewall that blocks the port keep the iPhone from the computer. If the
+- **The local network, or away from home directly** (above). Same Wi-Fi, or the computer's own hotspot. Guest
+  networks and hotspots with client isolation, a VPN on either side, or a firewall that blocks the port keep the iPhone
+  from the computer. If the
   computer's address changes, the iPhone finds it again through its announcement (`_coucou._tcp`) and checks the
   certificate before trusting it.
 - **No wake-up.** iOS pauses an app shortly after it leaves the screen, and only Apple's push can wake it, which needs
@@ -118,7 +158,8 @@ Activity started by a Mac does not apply. Everything else on this page works.
 
 ## For developers
 
-- `NotchBuddy/Sources/Phone/PCLinkWire.swift`: the pairing link, the lines both ways and the screens' state.
+- `NotchBuddy/Sources/Phone/PCLinkWire.swift`: the pairing link, the lines both ways and the screens' state, and
+  `PCRemote`, which takes only IP addresses with a port from the `remote` line (never a name: nothing is looked up).
   Foundation only, tested by `tests/PCLinkWireTests.swift` (`scripts/test-pc-link.sh` runs on macOS and Linux; the
   Mac CI runs it).
 - `PCLink.swift`: Network.framework (TLS with the pinned certificate, Bonjour), the Keychain, notifications, and the

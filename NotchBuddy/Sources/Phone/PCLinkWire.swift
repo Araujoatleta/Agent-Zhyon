@@ -2,14 +2,15 @@ import Foundation
 
 // The iPhone's half of the phone link to Coucou on a Windows or Linux computer (docs/ANDROID_LINK.md, protocol v1).
 // iCloud only joins the iPhone to a Mac; a PC is reached directly: TLS on the local network, the certificate pinned
-// by the pairing QR code, one JSON object per line. This file is Foundation only: the pairing link, the lines both
+// by the pairing QR code, one JSON object per line. Away from home, the same TLS goes to the addresses the computer
+// gave over the link (`remote`: its router opened a port for it), with no server of anyone in between. This file is Foundation only: the pairing link, the lines both
 // ways, and what they do to the screens' state, so tests/PCLinkWireTests.swift runs anywhere
 // (scripts/test-pc-link.sh). PCLink.swift adds the connection, the Keychain and the notifications.
 
 enum PCWire {
     static let version = 1
     /// What this iPhone understands. The computer offers each one only while its own switch is on.
-    static let capabilities = ["chat", "agent", "details", "answers"]
+    static let capabilities = ["chat", "agent", "details", "answers", "remote"]
     static let maxLineBytes = 64 * 1024
     /// An approval is offered for 2 minutes at most (the computer gives up at 115 s).
     static let approvalLifetime: TimeInterval = 120
@@ -28,12 +29,73 @@ struct PCComputer: Codable, Equatable, Sendable {
     /// Lowercase hex SHA-256 of the computer's TLS certificate: the one certificate this iPhone accepts.
     var fingerprint: String
     var name: String
+    /// Where the computer can be reached from the internet, most direct first ("[2804:…]:47821",
+    /// "198.51.100.7:47821"): what it said last over the link. Tried when the local network does not answer.
+    var remote: [String] = []
+
+    private enum CodingKeys: String, CodingKey {
+        case host, port, fingerprint, name, remote
+    }
 
     /// What the computer announces on the network (TXT `fp`): a hint to find it again, never a proof.
     var shortFingerprint: String { String(fingerprint.prefix(16)) }
 
     /// The name to show: the computer's own, or a plain word.
     var displayName: String { name.isEmpty ? "your computer" : name }
+}
+
+extension PCComputer {
+    /// Written in an extension so the memberwise initializer stays. A pairing saved before `remote` existed loads
+    /// with none.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        host = try c.decode(String.self, forKey: .host)
+        port = try c.decode(UInt16.self, forKey: .port)
+        fingerprint = try c.decode(String.self, forKey: .fingerprint)
+        name = try c.decode(String.self, forKey: .name)
+        remote = PCRemote.clean((try? c.decodeIfPresent([String].self, forKey: .remote)) ?? [])
+    }
+}
+
+/// The computer's addresses on the internet (`remote`). Addresses only, never a name: nothing is looked up, so no
+/// one's DNS learns where the iPhone goes.
+enum PCRemote {
+    static let maxEndpoints = 6
+
+    /// "198.51.100.7:47821" or "[2804:14c::10]:47821": an IP address and a port. Nil for anything else.
+    static func parse(_ text: String) -> (host: String, port: UInt16)? {
+        let text = text.trimmingCharacters(in: .whitespaces)
+        guard !text.isEmpty, text.count <= 64, text.allSatisfy(\.isASCII) else { return nil }
+        let host: Substring
+        let portText: Substring
+        if text.hasPrefix("[") {
+            guard let close = text.firstIndex(of: "]") else { return nil }
+            host = text[text.index(after: text.startIndex)..<close]
+            let rest = text[text.index(after: close)...]
+            guard rest.hasPrefix(":"), host.contains(":"),
+                  host.allSatisfy({ $0.isHexDigit || $0 == ":" || $0 == "." }) else { return nil }
+            portText = rest.dropFirst()
+        } else {
+            guard let colon = text.firstIndex(of: ":"), text.lastIndex(of: ":") == colon else { return nil }
+            host = text[..<colon]
+            portText = text[text.index(after: colon)...]
+            let parts = host.split(separator: ".", omittingEmptySubsequences: false)
+            guard parts.count == 4, parts.allSatisfy({ part in
+                (1...3).contains(part.count) && part.allSatisfy(\.isNumber) && (Int(part) ?? 256) <= 255
+            }) else { return nil }
+        }
+        guard portText.allSatisfy(\.isNumber), let port = UInt16(portText), port > 0 else { return nil }
+        return (String(host), port)
+    }
+
+    /// The well-formed ones, each once, in the computer's order, at most six.
+    static func clean(_ list: [String]) -> [String] {
+        var kept: [String] = []
+        for item in list where parse(item) != nil && !kept.contains(item) && kept.count < maxEndpoints {
+            kept.append(item)
+        }
+        return kept
+    }
 }
 
 /// What the QR code in Settings → Phone on the computer holds:
@@ -264,6 +326,8 @@ enum PCIncoming: Equatable, Sendable {
     case chatDone(id: String, text: String?)
     case chatError(id: String, reason: String, message: String)
     case chatStep(id: String, step: PCChatStep)
+    /// Where the computer can be reached from the internet now; empty: nowhere (its switch is off).
+    case remote([String])
     /// Anything this iPhone does not use (prefs, usage, diffs, services…).
     case other
 
@@ -311,6 +375,9 @@ enum PCIncoming: Equatable, Sendable {
             let step = PCChatStep(index: index, status: PCText.line(text("status"), max: 16),
                                   text: PCText.line(text("text"), max: 400))
             return .chatStep(id: text("id"), step: step)
+        case "remote":
+            guard let list = object["endpoints"] as? [Any] else { return .other }
+            return .remote(PCRemote.clean(list.compactMap { $0 as? String }))
         default:
             return .other
         }
@@ -503,7 +570,7 @@ struct PCLinkModel: Equatable, Sendable {
                 entry.steps.sort { $0.index < $1.index }
             }
             return []
-        case .error, .pong, .other:
+        case .error, .pong, .remote, .other:
             return []
         }
     }

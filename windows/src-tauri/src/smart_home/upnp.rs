@@ -1,7 +1,8 @@
 // A media renderer's volume and mute, the UPnP way (RenderingControl), as Samsung TVs — and many other TVs and
 // speakers — answer it on the local network. The renderer is found by SSDP, asked to its own address only
 // (discovery.rs); its control address is read from its description; then each call is one small SOAP request.
-// Only local addresses are contacted, and only on the device that described itself.
+// Only local addresses are contacted, and only on the device that described itself. `soap` is the same call for any
+// UPnP service (the router's, phone_link/remote.rs).
 
 use std::net::Ipv4Addr;
 use std::time::Duration;
@@ -45,37 +46,67 @@ pub async fn rendering_control(ip: Ipv4Addr) -> Option<Url> {
     control_url(&xml, &location, RENDERING_CONTROL)
 }
 
-/// A SOAP request for `action` with its arguments, in order.
-pub fn envelope(action: &str, args: &[(&str, String)]) -> String {
-    let body: String = args.iter().map(|(name, value)| format!("<{name}>{value}</{name}>")).collect();
+/// A SOAP request for `action` of `service`, with its arguments in order. The values are escaped.
+pub fn envelope_for(service: &str, action: &str, args: &[(&str, String)]) -> String {
+    let escape = |v: &str| v.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;");
+    let body: String = args.iter().map(|(name, value)| format!("<{name}>{}</{name}>", escape(value))).collect();
     format!(
         "<?xml version=\"1.0\" encoding=\"utf-8\"?><s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" \
-         s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\"><s:Body><u:{action} xmlns:u=\"{RENDERING_CONTROL}\">\
+         s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\"><s:Body><u:{action} xmlns:u=\"{service}\">\
          {body}</u:{action}></s:Body></s:Envelope>"
     )
 }
 
-/// One call; the answer's text.
-async fn call(control: &Url, action: &str, args: &[(&str, String)]) -> Result<String, String> {
+/// Why a SOAP call failed: the HTTP status and, for a SOAP fault, the UPnP error code and its description (718 is
+/// "the port is taken", for instance). `status` None: no answer at all.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Fault {
+    pub status: Option<u16>,
+    pub code: Option<u32>,
+    pub description: String,
+    /// Not on the local network: nothing was sent.
+    pub refused: bool,
+}
+
+/// One call of `action` on `service` at `control`, a local address only; the answer's text.
+pub async fn soap(control: &Url, service: &str, action: &str, args: &[(&str, String)]) -> Result<String, Fault> {
+    let fault = |status: Option<u16>, code: Option<u32>, description: String, refused: bool| Fault { status, code, description, refused };
     let host = control.host_str().unwrap_or("");
     if !net::resolves_locally(host, control.port_or_known_default().unwrap_or(80)).await {
-        return Err(t("Only devices on your local network can be used."));
+        return Err(fault(None, None, String::new(), true));
     }
-    let client = reqwest::Client::builder().no_proxy().connect_timeout(Duration::from_secs(3)).timeout(TIMEOUT).build().map_err(|e| e.to_string())?;
+    let client = reqwest::Client::builder()
+        .no_proxy()
+        .connect_timeout(Duration::from_secs(3))
+        .timeout(TIMEOUT)
+        .build()
+        .map_err(|e| fault(None, None, e.to_string(), false))?;
     let response = client
         .post(control.clone())
         .header("Content-Type", "text/xml; charset=\"utf-8\"")
-        .header("SOAPAction", format!("\"{RENDERING_CONTROL}#{action}\""))
-        .body(envelope(action, args))
+        .header("SOAPAction", format!("\"{service}#{action}\""))
+        .body(envelope_for(service, action, args))
         .send()
         .await
-        .map_err(|_| t("The TV does not answer. It may be off with its network asleep, or at another address."))?;
+        .map_err(|_| fault(None, None, String::new(), false))?;
     let status = response.status();
-    let bytes = net::read_capped(response, MAX_ANSWER).await?;
+    let bytes = net::read_capped(response, MAX_ANSWER).await.map_err(|e| fault(Some(status.as_u16()), None, e, false))?;
+    let text = String::from_utf8_lossy(&bytes).into_owned();
     if !status.is_success() {
-        return Err(tf("The TV answered {status}.", &[("status", &status.as_u16().to_string())]));
+        let code = discovery::tag(&text, "errorCode").and_then(|c| c.trim().parse().ok());
+        let description = discovery::tag(&text, "errorDescription").map(|d| d.trim().chars().take(120).collect()).unwrap_or_default();
+        return Err(fault(Some(status.as_u16()), code, description, false));
     }
-    Ok(String::from_utf8_lossy(&bytes).into_owned())
+    Ok(text)
+}
+
+/// One call to a TV's renderer; the answer's text, or what went wrong in the user's words.
+async fn call(control: &Url, action: &str, args: &[(&str, String)]) -> Result<String, String> {
+    soap(control, RENDERING_CONTROL, action, args).await.map_err(|f| match f {
+        Fault { refused: true, .. } => t("Only devices on your local network can be used."),
+        Fault { status: None, .. } => t("The TV does not answer. It may be off with its network asleep, or at another address."),
+        Fault { status: Some(status), .. } => tf("The TV answered {status}.", &[("status", &status.to_string())]),
+    })
 }
 
 fn master() -> Vec<(&'static str, String)> {
@@ -140,7 +171,7 @@ mod tests {
         // A control address on another device is not followed.
         let elsewhere = DESCRIPTION.replace("/upnp/control/RenderingControl1", "http://203.0.113.5/x");
         assert!(control_url(&elsewhere, &location, RENDERING_CONTROL).is_none());
-        let envelope = envelope("SetVolume", &[("InstanceID", "0".into()), ("Channel", "Master".into()), ("DesiredVolume", "15".into())]);
+        let envelope = envelope_for(RENDERING_CONTROL, "SetVolume", &[("InstanceID", "0".into()), ("Channel", "Master".into()), ("DesiredVolume", "15".into())]);
         assert!(envelope.contains("<u:SetVolume xmlns:u=\"urn:schemas-upnp-org:service:RenderingControl:1\"><InstanceID>0</InstanceID><Channel>Master</Channel><DesiredVolume>15</DesiredVolume></u:SetVolume>"));
     }
 

@@ -81,6 +81,11 @@ struct PCLinkSettingsView: View {
                         Text(pc.status.text)
                             .font(.subheadline)
                             .foregroundStyle(pc.status.color)
+                        if pc.status == .connected, pc.viaOutside {
+                            Text("Over the internet, directly to your computer")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
                 .padding(.vertical, 4)
@@ -97,6 +102,9 @@ struct PCLinkSettingsView: View {
                     }
                     if !pc.model.os.isEmpty {
                         LabeledContent("System", value: pc.model.os.capitalized)
+                    }
+                    if let away = awayFromHome(computer) {
+                        LabeledContent("Away from home", value: away)
                     }
                 } header: {
                     Text("Link")
@@ -181,6 +189,15 @@ struct PCLinkSettingsView: View {
             return
         }
         pending = pairing
+    }
+
+    /// What the iPhone can do away from home (windows/src-tauri/src/phone_link/remote.rs). Nil when the computer
+    /// has never said: an older Coucou there.
+    private func awayFromHome(_ computer: PCComputer) -> String? {
+        if pc.status == .connected, pc.viaOutside { return "Connected" }
+        if !computer.remote.isEmpty { return computer.remote.count == 1 ? "Ready, 1 address" : "Ready, \(computer.remote.count) addresses" }
+        if pc.model.caps.contains("remote") { return "Off on the computer" }
+        return nil
     }
 
     private func capability(_ title: String, on: Bool) -> some View {

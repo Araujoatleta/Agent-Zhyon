@@ -6,7 +6,9 @@
 // finishes what is queued, including a last `error`, and closes.
 //
 // What it refuses, on purpose:
-//   * anyone who is not on the local network (private, loopback, link-local);
+//   * anyone who is not on the local network (private, loopback, link-local), unless the user switched on "away from
+//     home, directly" (remote.rs): then the internet may knock too, with a pool of its own (admission.rs), and must
+//     pass the same pinned certificate and the same pairing code;
 //   * a first message that is not a valid `hello` within a few seconds;
 //   * a wrong token or protocol version (after a short pause, so guessing is slow);
 //   * a line over 64 KiB, or silence for 20 minutes (the phone pings every 20 s while it is awake, and checks in every few minutes while it sleeps);
@@ -17,7 +19,7 @@
 // applies the request still pending.
 
 use std::net::IpAddr;
-use std::sync::atomic::Ordering;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -86,6 +88,10 @@ pub trait Features: Send + Sync {
     fn agent(&self) -> bool {
         false
     }
+    /// Away from home, directly: callers from the internet may connect (remote.rs).
+    fn remote(&self) -> bool {
+        false
+    }
 }
 
 /// Nothing extra: how the link behaved before capabilities existed.
@@ -110,11 +116,22 @@ pub struct Shared {
     pub chat: Option<Arc<ChatLink>>,
     pub features: Arc<dyn Features>,
     admission: Arc<Admission>,
+    /// When a phone last authenticated from the internet (ms; 0: never since the link started). Shown in Settings.
+    pub outside_seen: AtomicU64,
 }
 
 impl Shared {
     pub fn with_features(hub: Arc<Hub>, token: String, name: String, chat: Option<Arc<ChatLink>>, features: Arc<dyn Features>) -> Arc<Shared> {
-        Arc::new(Shared { hub, token: Mutex::new(token), name, clock: now_ms, chat, features, admission: Admission::new() })
+        Arc::new(Shared {
+            hub,
+            token: Mutex::new(token),
+            name,
+            clock: now_ms,
+            chat,
+            features,
+            admission: Admission::new(),
+            outside_seen: AtomicU64::new(0),
+        })
     }
 }
 
@@ -174,7 +191,14 @@ pub fn tls_acceptor(identity: &Identity) -> Result<TlsAcceptor, String> {
 /// Accepts connections until stopped. Must be called inside the async runtime.
 pub fn serve(listener: TcpListener, acceptor: TlsAcceptor, shared: Arc<Shared>) -> Handle {
     let for_handle = shared.clone();
-    let accept = tokio::spawn(async move {
+    let accept = serve_more(listener, acceptor, shared);
+    Handle { accept, shared: for_handle }
+}
+
+/// One more way in to the same server (the IPv6 listener of remote.rs): the same certificate, the same code, the same
+/// places. Abort the task to stop it; the connections it accepted belong to the server.
+pub fn serve_more(listener: TcpListener, acceptor: TlsAcceptor, shared: Arc<Shared>) -> JoinHandle<()> {
+    tokio::spawn(async move {
         loop {
             let (tcp, peer) = match listener.accept().await {
                 Ok(x) => x,
@@ -183,19 +207,27 @@ pub fn serve(listener: TcpListener, acceptor: TlsAcceptor, shared: Arc<Shared>) 
                     continue;
                 }
             };
-            if !is_local(peer.ip()) {
-                continue; // dropped before any byte is read
-            }
             // The slot is held until the connection ends (the ticket drops), whatever way it ends.
-            let Some(ticket) = shared.admission.admit(peer.ip()) else { continue };
+            let Some(ticket) = ticket_for(&shared, peer.ip()) else { continue };
             let (shared, acceptor) = (shared.clone(), acceptor.clone());
             tokio::spawn(async move {
                 let _ = tcp.set_nodelay(true);
                 one_connection(tcp, acceptor, &shared, Arc::new(ticket)).await;
             });
         }
-    });
-    Handle { accept, shared: for_handle }
+    })
+}
+
+/// A place for a caller: the local network's pool, or the internet's while the user's switch is on. None: closed
+/// before any byte is read.
+pub(super) fn ticket_for(shared: &Shared, ip: IpAddr) -> Option<Ticket> {
+    if is_local(ip) {
+        shared.admission.admit(ip)
+    } else if shared.features.remote() {
+        shared.admission.admit_outside(ip)
+    } else {
+        None
+    }
 }
 
 /// The local network only: private, loopback and link-local addresses.
@@ -273,6 +305,9 @@ where
     // address is remembered so a flood from elsewhere cannot keep this phone out.
     if let Some(t) = &ticket {
         t.authenticated();
+        if t.outside() {
+            shared.outside_seen.store((shared.clock)(), Ordering::SeqCst);
+        }
     }
     // Capabilities: offered only if the phone asked and the user's switch is on right now. A phone
     // that sends none (an older app) is never sent, and never answered, anything about chat.
@@ -289,6 +324,8 @@ where
     let services: Vec<String> = if asked("services") { shared.features.services() } else { Vec::new() };
     // Mochi's hands ride on the chat: never without it.
     let agent = chat.is_some() && asked("agent") && shared.features.agent();
+    // The home's internet addresses, or that there are none (the switch is off): a phone that understands it is told.
+    let remote = asked("remote");
     let mut offered: Vec<&str> = Vec::new();
     if chat.is_some() {
         offered.push("chat");
@@ -317,12 +354,15 @@ where
     if !services.is_empty() {
         offered.push("services");
     }
+    if remote {
+        offered.push("remote");
+    }
     let mut welcome = json!({ "type": "welcome", "v": PROTOCOL, "desktop": shared.name, "os": std::env::consts::OS });
     if !offered.is_empty() {
         welcome["caps"] = json!(offered);
     }
     let _ = say(welcome).await;
-    let (id, evicted) = shared.hub.subscribe_with(tx.clone(), (shared.clock)(), crate::phone_link::hub::Caps { details, answers, prefs, diffs, usage, relay, services });
+    let (id, evicted) = shared.hub.subscribe_with(tx.clone(), (shared.clock)(), crate::phone_link::hub::Caps { details, answers, prefs, diffs, usage, relay, services, remote });
 
     // 2. the conversation
     loop {

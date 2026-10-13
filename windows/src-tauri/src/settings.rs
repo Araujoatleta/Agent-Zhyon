@@ -121,6 +121,9 @@ pub struct Settings {
     pub phone_push: bool,
     /// The ntfy server ("" is https://ntfy.sh). Not a secret. Owned by Rust.
     pub phone_push_server: String,
+    /// Away from home, directly (phone_link/remote.rs): the router is asked to open the link's port and the phones
+    /// are told the home's internet addresses. Off by default; owned by Rust like the other phone switches.
+    pub phone_remote: bool,
     /// Mochi's home (smart_home/): from the chat, Mochi may use the devices of the house the user picked. Off until the
     /// user turns it on in Settings → Mochi's home; owned by Rust like the hands, so what a webview sends back is ignored.
     pub home_enabled: bool,
@@ -214,6 +217,7 @@ impl Default for Settings {
             phone_agent: false,
             phone_push: false,
             phone_push_server: String::new(),
+            phone_remote: false,
             home_enabled: false,
             home_ask_all: false,
             home_mcp: false,
@@ -517,6 +521,7 @@ mod tests {
   "phoneAgent": true,
   "phonePush": true,
   "phonePushServer": "https://ntfy.example.com",
+  "phoneRemote": true,
   "homeEnabled": true,
   "homeAskAll": true,
   "homeMcp": true,
@@ -756,6 +761,15 @@ mod tests {
         assert!(!parse(&custom_with("phonePush", None)).unwrap().phone_push);
         assert!(!parse(&custom_with("phonePush", Some(serde_json::json!("yes")))).unwrap().phone_push, "a wrong type does not switch it on");
         assert!(parse(&custom_with("phonePushServer", Some(serde_json::json!(5)))).unwrap().phone_push_server.is_empty());
+    }
+
+    #[test]
+    fn opening_a_port_on_the_router_is_never_on_by_default() {
+        // An older file, or a wrong type, is not consent to be reachable from the internet.
+        assert!(!Settings::default().phone_remote);
+        assert!(!parse(&custom_with("phoneRemote", None)).unwrap().phone_remote);
+        assert!(!parse(&custom_with("phoneRemote", Some(serde_json::json!("yes")))).unwrap().phone_remote);
+        assert!(parse(CUSTOM.as_bytes()).is_some_and(|s| s.phone_remote));
     }
 
     #[test]
@@ -1094,6 +1108,7 @@ mod tests {
                 "phoneAgent",
                 "phonePush",
                 "phonePushServer",
+                "phoneRemote",
                 "homeEnabled",
                 "homeAskAll",
                 "homeMcp",

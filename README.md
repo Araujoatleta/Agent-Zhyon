@@ -93,7 +93,7 @@ The Mac app does the work; the iPhone app keeps you in the loop when you step aw
 
 **Get it on your iPhone in 3 steps:** install Coucou on your iPhone ([Join the TestFlight beta](https://testflight.apple.com/join/3GpeHv2b) — free, App Store coming soon), turn on **Settings → General → iPhone** in the Mac app (0.1.9 or later), and use the same Apple Account in iCloud on both. Full guide, troubleshooting and build-it-yourself: [docs/IPHONE.md](docs/IPHONE.md).
 
-**With Windows or Linux instead of a Mac:** turn on **Settings → Phone (Android and iPhone)** in Coucou for Windows or Linux and scan its pairing code in the iPhone app (**Settings → Windows or Linux computer → Scan the code**; the Camera app cannot open it). The iPhone connects to the computer directly over your Wi-Fi (no iCloud), and a sideload build for a free Apple Account is built by GitHub Actions. Guide: [docs/IPHONE_PC.md](docs/IPHONE_PC.md) (Português: [docs/IPHONE_PC.pt-BR.md](docs/IPHONE_PC.pt-BR.md)).
+**With Windows or Linux instead of a Mac:** turn on **Settings → Phone (Android and iPhone)** in Coucou for Windows or Linux and scan its pairing code in the iPhone app (**Settings → Windows or Linux computer → Scan the code**; the Camera app cannot open it). The iPhone connects to the computer directly over your Wi-Fi (no iCloud), and, with **Away from home, directly** on, from anywhere through your own router (no server in between). A sideload build for a free Apple Account is built by GitHub Actions. Guide: [docs/IPHONE_PC.md](docs/IPHONE_PC.md) (Português: [docs/IPHONE_PC.pt-BR.md](docs/IPHONE_PC.pt-BR.md)).
 
 ## Coucou for Android
 

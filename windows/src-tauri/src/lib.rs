@@ -110,6 +110,7 @@ fn save_settings(app: AppHandle, shared: State<Shared>, settings: Settings) {
         settings.phone_agent = current.phone_agent;
         settings.phone_push = current.phone_push;
         settings.phone_push_server = current.phone_push_server.clone();
+        settings.phone_remote = current.phone_remote;
         // Mochi's home too: only Settings → Mochi's home changes it (smart_home/).
         settings.home_enabled = current.home_enabled;
         settings.home_ask_all = current.home_ask_all;
@@ -834,6 +835,9 @@ pub fn run() {
             phone_link::phone_push_topic,
             phone_link::phone_push_new_topic,
             phone_link::phone_push_set_token,
+            phone_link::phone_remote_status,
+            phone_link::phone_remote_set,
+            phone_link::phone_remote_check,
             phone_link::push::phone_push_test,
             agent::agent_status,
             agent::agent_decide,

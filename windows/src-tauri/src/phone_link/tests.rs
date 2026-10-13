@@ -2050,3 +2050,69 @@ mod agent_tests {
         });
     }
 }
+
+mod remote_tests {
+    use super::*;
+
+    /// The user's switch for "away from home, directly".
+    struct Away(bool);
+    impl server::Features for Away {
+        fn details(&self) -> bool {
+            false
+        }
+        fn remote(&self) -> bool {
+            self.0
+        }
+    }
+
+    async fn phone(rig: &Rig, caps: Option<Value>) -> (Client, Value) {
+        let mut c = Client::connect(rig.port, &rig.fingerprint).await.unwrap();
+        let mut hello = json!({ "type": "hello", "v": 1, "token": TOKEN, "device": "Test phone" });
+        if let Some(caps) = caps {
+            hello["caps"] = caps;
+        }
+        c.send(hello).await;
+        let welcome = c.expect("welcome").await;
+        (c, welcome)
+    }
+
+    #[test]
+    fn the_internet_gets_in_only_while_the_switch_is_on_and_never_in_the_homes_places() {
+        let shared = |on: bool| server::Shared::with_features(Hub::new(Arc::new(Recorder::default())), TOKEN.into(), "PC".into(), None, Arc::new(Away(on)));
+        let off = shared(false);
+        assert!(server::ticket_for(&off, "203.0.113.5".parse().unwrap()).is_none(), "switched off: the internet is dropped");
+        assert!(server::ticket_for(&off, "192.168.1.5".parse().unwrap()).is_some_and(|t| !t.outside()));
+        let on = shared(true);
+        let outside: Vec<_> = (0..5).filter_map(|n| server::ticket_for(&on, format!("203.0.113.{n}").parse().unwrap())).collect();
+        assert_eq!(outside.len(), 2, "the internet's own small pool");
+        assert!(outside.iter().all(|t| t.outside()));
+        assert!(server::ticket_for(&on, "2804:14c::9".parse().unwrap()).is_none(), "IPv6 from the internet shares that pool");
+        assert!(server::ticket_for(&on, "fe80::1".parse().unwrap()).is_some(), "the local network keeps its places");
+    }
+
+    #[test]
+    fn a_phone_that_understands_it_is_told_where_to_try_from_outside() {
+        block_on(async {
+            let rig = Rig::start().await;
+            rig.hub.set_remote(Some(vec!["[2804:14c:1:2::10]:47821".into(), "198.51.100.7:47821".into()]));
+            let (mut c, welcome) = phone(&rig, Some(json!(["remote"]))).await;
+            assert_eq!(welcome["caps"], json!(["remote"]));
+            assert_eq!(c.expect("remote").await["endpoints"], json!(["[2804:14c:1:2::10]:47821", "198.51.100.7:47821"]));
+            // Switched off: told there is nowhere, so it forgets.
+            rig.hub.set_remote(Some(Vec::new()));
+            assert_eq!(c.expect("remote").await["endpoints"], json!([]));
+            // An older phone is not offered it and never hears of it.
+            let (mut old, welcome) = phone(&rig, None).await;
+            assert!(welcome.get("caps").is_none(), "{welcome}");
+            rig.hub.set_remote(Some(vec!["198.51.100.8:47821".into()]));
+            old.send(json!({ "type": "ping" })).await;
+            loop {
+                let m = old.recv().await.expect("closed");
+                assert_ne!(m["type"], "remote");
+                if m["type"] == "pong" {
+                    break;
+                }
+            }
+        });
+    }
+}
