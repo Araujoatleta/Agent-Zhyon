@@ -109,6 +109,26 @@ pub fn launcher() -> Option<PathBuf> {
     launcher_in(&hermes_home(), user_bin().as_deref())
 }
 
+/// The installer's own "done" mark (its last stage writes it).
+fn completed_in(home: &Path) -> bool {
+    home.join("hermes-agent").join(".hermes-bootstrap-complete").is_file()
+}
+
+/// Coucou's own note that an installation it started has not finished yet (in Coucou's folder, not Hermes').
+fn pending_mark() -> PathBuf {
+    settings::local_dir().join("hermes-install-pending")
+}
+
+/// Hermes is there and whole: its command is found, and no installation Coucou started stopped halfway (that one
+/// runs again, rather than being taken for the user's own Hermes).
+pub fn installed_in(home: &Path, launcher: Option<&Path>, pending: bool) -> bool {
+    launcher.is_some() && !(pending && !completed_in(home))
+}
+
+fn installed() -> bool {
+    installed_in(&hermes_home(), launcher().as_deref(), pending_mark().exists())
+}
+
 /// The value of `name` in a .env file's text (the last assignment wins, as python-dotenv reads it), quotes and an
 /// end-of-line comment removed.
 pub fn env_value(text: &str, name: &str) -> Option<String> {
@@ -539,7 +559,7 @@ fn status_of(app: &AppHandle) -> SetupStatus {
     let progress = zheus.progress.lock().unwrap().clone();
     let gateway = zheus.state.lock().unwrap().clone();
     SetupStatus {
-        installed: launcher().is_some(),
+        installed: installed(),
         managed: settings.hermes_managed,
         home: hermes_home().display().to_string(),
         brains: brain_options(&settings, secrets::present),
@@ -604,8 +624,12 @@ async fn fetch_installer() -> Result<(PathBuf, PathBuf), String> {
 async fn setup(app: AppHandle, brain_id: String, house: bool, configure: bool) -> Result<(), String> {
     let brain = brain(&brain_id).ok_or_else(|| t("Pick the AI Hermes should use."))?;
     let zheus_cancel = app.state::<Zheus>().cancel.clone();
-    let fresh = launcher().is_none();
+    let fresh = !installed();
     if fresh {
+        if let Some(dir) = pending_mark().parent() {
+            let _ = std::fs::create_dir_all(dir);
+        }
+        let _ = std::fs::write(pending_mark(), COMMIT);
         set_progress(&app, |p| p.step = t("Downloading Hermes' installer…"));
         let (dir, script) = fetch_installer().await?;
         log::line(format!("hermes setup: installer checked (commit {})", &COMMIT[..10]));
@@ -647,6 +671,7 @@ async fn setup(app: AppHandle, brain_id: String, house: bool, configure: bool) -
         .map_err(|e| e.to_string())?;
         let _ = std::fs::remove_dir_all(&dir);
         outcome?;
+        let _ = std::fs::remove_file(pending_mark());
         set_progress(&app, |p| p.done = p.total);
     }
     let launcher = launcher().ok_or_else(|| t("Hermes was installed, but its hermes command was not found."))?;
@@ -1232,6 +1257,20 @@ mod tests {
         std::fs::create_dir_all(&published).unwrap();
         std::fs::write(published.join(name), b"").unwrap();
         assert_eq!(launcher_in(&home, None), Some(published.join(name)), "the published one first");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn an_installation_coucou_started_and_did_not_finish_runs_again() {
+        let dir = std::env::temp_dir().join(format!("coucou-hermes-pending-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let launcher = dir.join("bin").join("hermes");
+        assert!(!installed_in(&dir, None, false), "no command, not installed");
+        assert!(installed_in(&dir, Some(&launcher), false), "the user's own Hermes, whatever its marks");
+        assert!(!installed_in(&dir, Some(&launcher), true), "Coucou's, stopped halfway: installed again");
+        std::fs::create_dir_all(dir.join("hermes-agent")).unwrap();
+        std::fs::write(dir.join("hermes-agent").join(".hermes-bootstrap-complete"), "{}").unwrap();
+        assert!(installed_in(&dir, Some(&launcher), true), "its installer finished: whole");
         let _ = std::fs::remove_dir_all(&dir);
     }
 
