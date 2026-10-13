@@ -94,7 +94,8 @@ pub struct Opened {
     wan: Option<(Url, &'static str)>,
     port: Option<u16>,
     firewall: Option<Url>,
-    pinholes: Vec<String>,
+    /// Each address let in through the IPv6 firewall, with the id that renews and closes it.
+    pinholes: Vec<(Ipv6Addr, String)>,
 }
 
 /// The router, as far as Coucou uses it.
@@ -251,8 +252,9 @@ pub async fn unmap(control: &Url, service: &str, external: u16) {
     let _ = upnp::soap(control, service, "DeletePortMapping", &args).await;
 }
 
-/// Lets `addr`:`port` in through the router's IPv6 firewall.
-pub async fn open_pinhole(control: &Url, addr: Ipv6Addr, port: u16) -> Pinhole {
+/// Lets `addr`:`port` in through the router's IPv6 firewall: renews `existing` (the pinhole opened before for it), or
+/// opens a new one.
+pub async fn open_pinhole(control: &Url, addr: Ipv6Addr, port: u16, existing: Option<&str>) -> Pinhole {
     let status = match upnp::soap(control, FIREWALL6, "GetFirewallStatus", &[]).await {
         Ok(status) => status,
         Err(f) => return Pinhole::Unknown(fault_text(&f)),
@@ -264,6 +266,13 @@ pub async fn open_pinhole(control: &Url, addr: Ipv6Addr, port: u16) -> Pinhole {
         (Some(true), Some(false)) => return Pinhole::Closed,
         (Some(true), Some(true)) => {}
         _ => return Pinhole::Unknown(t("no answer")),
+    }
+    // Renewed rather than closed and opened again, so a phone linked through it is not cut off.
+    if let Some(id) = existing {
+        let renew = [("UniqueID", id.to_string()), ("NewLeaseTime", LEASE.to_string())];
+        if upnp::soap(control, FIREWALL6, "UpdatePinhole", &renew).await.is_ok() {
+            return Pinhole::Opened(id.to_string());
+        }
     }
     let args = [
         ("RemoteHost", String::new()),
@@ -332,16 +341,23 @@ pub async fn check(router: Option<Router>, client: Option<Ipv4Addr>, port: u16, 
     }
 
     // IPv6: pinholes for this computer's addresses, when the router has a firewall that takes them.
-    if let Some(firewall) = &router.firewall {
-        for id in &before.pinholes {
-            close_pinhole(&before.firewall.clone().unwrap_or_else(|| firewall.clone()), id).await;
+    // Those of addresses this computer no longer has, or of another router, are closed first.
+    let same_router = router.firewall.is_some() && before.firewall == router.firewall;
+    if let Some(old) = &before.firewall {
+        for (ip, id) in &before.pinholes {
+            if !same_router || !v6.contains(ip) {
+                close_pinhole(old, id).await;
+            }
         }
+    }
+    if let Some(firewall) = &router.firewall {
         opened.firewall = Some(firewall.clone());
         let mut note = None;
         for ip in &v6 {
-            match open_pinhole(firewall, *ip, port).await {
+            let existing = before.pinholes.iter().find(|(a, _)| same_router && a == ip).map(|(_, id)| id.as_str());
+            match open_pinhole(firewall, *ip, port, existing).await {
                 Pinhole::Opened(id) => {
-                    opened.pinholes.push(id);
+                    opened.pinholes.push((*ip, id));
                     reach.v6_confirmed = true;
                     note = Some(t("The router lets these addresses in."));
                 }
@@ -370,7 +386,7 @@ pub async fn close(opened: &Opened) {
         unmap(control, service, port).await;
     }
     if let Some(firewall) = &opened.firewall {
-        for id in &opened.pinholes {
+        for (_, id) in &opened.pinholes {
             close_pinhole(firewall, id).await;
         }
     }
@@ -532,6 +548,7 @@ mod tests {
                 _ if e.body.contains("<u:DeletePortMapping") => ok("<u:DeletePortMappingResponse/>"),
                 _ if e.body.contains("<u:GetFirewallStatus") => ok("<u:GetFirewallStatusResponse><FirewallEnabled>1</FirewallEnabled><InboundPinholeAllowed>1</InboundPinholeAllowed></u:GetFirewallStatusResponse>"),
                 _ if e.body.contains("<u:AddPinhole") => ok("<u:AddPinholeResponse><UniqueID>7</UniqueID></u:AddPinholeResponse>"),
+                _ if e.body.contains("<u:UpdatePinhole") => ok("<u:UpdatePinholeResponse/>"),
                 _ if e.body.contains("<u:DeletePinhole") => ok("<u:DeletePinholeResponse/>"),
                 _ => (500, String::new()),
             })
@@ -569,7 +586,8 @@ mod tests {
             let seen = seen.lock().unwrap();
             let first = seen[before..].iter().find(|e| e.body.contains("<u:AddPortMapping")).unwrap();
             assert!(first.body.contains("<NewExternalPort>47822<"), "the port it had, not 47821 again");
-            assert!(seen[before..].iter().any(|e| e.body.contains("<u:DeletePinhole") && e.body.contains("<UniqueID>7<")), "the old pinhole is replaced");
+            assert!(seen[before..].iter().any(|e| e.body.contains("<u:UpdatePinhole") && e.body.contains("<UniqueID>7<")), "the pinhole is renewed");
+            assert!(!seen[before..].iter().any(|e| e.body.contains("<u:DeletePinhole") || e.body.contains("<u:AddPinhole")), "not closed and opened again");
             assert!(!seen[before..].iter().any(|e| e.body.contains("<u:DeletePortMapping")), "the port kept is not closed");
         }
         block_on(close(&opened));
