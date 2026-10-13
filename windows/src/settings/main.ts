@@ -1371,7 +1371,7 @@ async function render() {
     chatProvidersSection(chatKeys, keyChanged),
     localSection(customKey),
     handsSection(toggle),
-    homeSection(toggle),
+    homeSection(toggle, { on: settings.readAloud === true, set: (on) => { settings.readAloud = on; void save(); } }),
     activePillsSection(connected),
     integrationsSection(present),
     phoneSection(settings.phoneLink ?? false, toggle, settings),

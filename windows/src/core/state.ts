@@ -174,6 +174,8 @@ export interface Settings {
   agentLevel?: string;
   /** The chat's hands toggle: use Mochi's hands in the chat when they are on. The island's own choice. */
   chatHands: boolean;
+  /** The chat reads Mochi's answers aloud with the system's voices (core/voice.ts). Off by default. */
+  readAloud?: boolean;
   /** Mochi on the desktop. Rust owns it: whatever the page sends back is ignored. */
   desktopMochi?: {
     onDesktop: boolean;

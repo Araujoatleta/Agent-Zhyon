@@ -132,6 +132,9 @@ pub struct Settings {
     pub home_devices: BTreeMap<String, crate::smart_home::config::DevicePrefs>,
     /// The routines ("Good night", "Movie mode"…). Owned by Rust.
     pub home_routines: Vec<crate::smart_home::routines::Routine>,
+    /// The chat on this computer reads Mochi's answers aloud, with the system's own voices (Settings → Mochi's home →
+    /// Voice). Off by default. The island's own choice, like the hands toggle: nothing leaves the computer.
+    pub read_aloud: bool,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -210,6 +213,7 @@ impl Default for Settings {
             home_tvs: Vec::new(),
             home_devices: BTreeMap::new(),
             home_routines: Vec::new(),
+            read_aloud: false,
         }
     }
 }
@@ -509,7 +513,8 @@ mod tests {
   "homeAssistantUrl": "http://homeassistant.local:8123/",
   "homeTvs": [{ "id": "philips:0a1b2c3d", "host": "192.168.1.20", "api": 6, "https": true, "pin": "", "mac": "A4:B1:C2:D3:E4:F5", "name": "Philips TV", "model": "55PUS8007/12", "os": "MSAF_2019_P", "version": "6.4.0", "features": { "inputkey": ["key"] }, "needsPairing": true }],
   "homeDevices": { "philips:0a1b2c3d": { "name": "TV da sala", "room": "Sala", "exposed": true, "ask": false } },
-  "homeRoutines": [{ "id": "r-0a1b2c3d4e5f", "name": "Boa noite", "steps": [{ "device": "philips:0a1b2c3d", "action": "turn_off", "value": "", "wait": 0 }] }]
+  "homeRoutines": [{ "id": "r-0a1b2c3d4e5f", "name": "Boa noite", "steps": [{ "device": "philips:0a1b2c3d", "action": "turn_off", "value": "", "wait": 0 }] }],
+  "readAloud": true
 }"##;
 
     fn custom() -> Value {
@@ -720,6 +725,9 @@ mod tests {
         let odd = parse(&custom_with("homeTvs", Some(serde_json::json!("nope")))).unwrap();
         assert!(odd.home_tvs.is_empty());
         assert_eq!(odd.home_routines.len(), 1);
+        // Reading answers aloud is a choice too: off until the user turns it on.
+        assert!(!d.read_aloud);
+        assert!(!parse(&custom_with("readAloud", None)).unwrap().read_aloud);
     }
 
     #[test]
@@ -1073,6 +1081,7 @@ mod tests {
                 "homeTvs",
                 "homeDevices",
                 "homeRoutines",
+                "readAloud",
             ]
         );
         let _ = std::fs::remove_dir_all(&dir);

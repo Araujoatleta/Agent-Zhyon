@@ -164,3 +164,46 @@ test("a suggested routine is reviewed and saved, and the switches go through Rus
   await flush();
   assert.deepEqual(sent("home_set").at(-1), { enabled: true, askAll: false });
 });
+
+test("the voice block keeps the choice, reads a sentence to try, and says how to add a voice", async () => {
+  const spoken = [];
+  let voices = [{ name: "Microsoft Zira", lang: "en-US", localService: true }];
+  globalThis.speechSynthesis = {
+    getVoices: () => voices,
+    speak: (u) => spoken.push(u),
+    cancel() {},
+    addEventListener() {},
+    removeEventListener() {},
+  };
+  globalThis.SpeechSynthesisUtterance = class {
+    constructor(text) {
+      this.text = text;
+    }
+  };
+  answers = { home_status: status() };
+  assert.equal(all(homeSection(toggle)).find((e) => e.tagName === "H3" && e.textContent === "Voice"), undefined, "no block without the choice");
+
+  const chosen = [];
+  const section = homeSection(toggle, { on: false, set: (on) => chosen.push(on) });
+  await flush();
+  assert.ok(byText(section, "H3", "Voice"));
+  assert.ok(byText(section, "DIV", "Voice: Microsoft Zira"));
+  const row = all(section).find((e) => e.tagName === "DIV" && e.className === "row" && e.children.some((c) => c.textContent === "Read Mochi's answers aloud"));
+  row.children[1].fire("click");
+  assert.deepEqual(chosen, [true]);
+  byText(section, "BUTTON", "Try").fire("click");
+  await flush();
+  await flush();
+  assert.equal(spoken.at(-1)?.text, "Hello! This is how I read my answers.");
+
+  voices = [{ name: "Haruka", lang: "ja-JP", localService: true }];
+  const without = homeSection(toggle, { on: true, set: () => {} });
+  await flush();
+  const advice = "No voice for this language on this computer. On Windows, add one in Settings → Time & language → Speech.";
+  assert.ok(byText(without, "DIV", advice));
+  byText(without, "BUTTON", "Try").fire("click");
+  await flush();
+  await flush();
+  assert.equal(spoken.length, 1, "nothing read without a voice");
+  assert.ok(all(without).some((e) => e.tagName === "DIV" && e.className === "notice err" && e.textContent === advice));
+});

@@ -7,10 +7,20 @@ import {
   ACTIONS, actionsFor, capsLine, cloneRoutine, foundLine, kindLabel, originLabel, roomsOf, stateLine, stepLine, tvLine,
   type DevicePrefs, type Found, type HomeDevice, type HomeStatus, type Routine, type RoutineStep, type TvSummary,
 } from "../core/home";
+import { answerVoice, speak } from "../core/voice";
 import { h } from "../views/dom";
 import { t } from "../i18n/i18n";
 
 type Toggle = (on: boolean, onChange: (v: boolean) => void) => HTMLElement;
+
+/** The chat's "read answers aloud" choice, which Settings keeps with the island's own settings. */
+export interface VoiceChoice {
+  on: boolean;
+  set: (on: boolean) => void;
+}
+
+/** Windows has voice typing of its own (Windows + H); Linux has none. */
+const WINDOWS = typeof navigator !== "undefined" && navigator.userAgent.includes("Windows");
 
 const errorText = (err: unknown) => String(err).replace(/^Error:\s*/, "");
 
@@ -40,7 +50,7 @@ async function busy(button: HTMLButtonElement, into: HTMLElement, work: () => Pr
   }
 }
 
-export function homeSection(makeToggle: Toggle): HTMLElement {
+export function homeSection(makeToggle: Toggle, voice?: VoiceChoice): HTMLElement {
   let status: HomeStatus | null = null;
   let devices: HomeDevice[] = [];
   const note = h("div", {});
@@ -481,6 +491,38 @@ export function homeSection(makeToggle: Toggle): HTMLElement {
     routineList,
   );
 
+  // ── Voice ──
+  const voiceBox = h("div", { class: "pill-group" });
+  if (voice) {
+    const voiceNote = h("div", {});
+    const voiceName = h("div", { class: "hint" });
+    const readSwitch = makeToggle(voice.on, (next) => voice.set(next));
+    const tryButton = h("button", { text: t("Try") }) as HTMLButtonElement;
+    const noVoice = () => t("No voice for this language on this computer. On Windows, add one in Settings → Time & language → Speech.");
+    tryButton.addEventListener("click", () =>
+      void busy(tryButton, voiceNote, async () => {
+        if (!(await speak(t("Hello! This is how I read my answers.")))) throw new Error(noVoice());
+      }),
+    );
+    voiceBox.append(
+      h("h3", { text: t("Voice") }),
+      h("div", {
+        class: "hint",
+        text: WINDOWS
+          ? t("To speak to Mochi, open the chat and press Windows + H: Windows' voice typing writes what you say, in the language of the keyboard in use. Then press Enter.")
+          : t("Linux has no voice typing of its own: speak to Mochi from your phone, with the microphone of the chat with the computer."),
+      }),
+      h("div", { class: "row" }, h("label", { text: t("Read Mochi's answers aloud") }), readSwitch),
+      h("div", { class: "hint", text: t("The answers to what you ask in the chat on this computer, with this computer's own voices, in the app's language. Nothing is sent anywhere. Muting the island's sounds silences them too.") }),
+      voiceName,
+      h("div", { class: "row" }, tryButton),
+      voiceNote,
+    );
+    void answerVoice().then((v) => {
+      voiceName.textContent = v ? t("Voice: {name}", { name: v.name }) : noVoice();
+    });
+  }
+
   // ── The record ──
   const logList = h("div", { class: "home-list" });
   const logButton = h("button", { text: t("Show the latest actions") }) as HTMLButtonElement;
@@ -523,6 +565,7 @@ export function homeSection(makeToggle: Toggle): HTMLElement {
     tvBox,
     deviceBox,
     routineBox,
+    voice ? voiceBox : null,
     logBox,
   );
 }

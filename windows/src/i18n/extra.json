@@ -6259,6 +6259,94 @@
    "id": {
     "other": "{count} perangkat"
    }
+  },
+  "Try": {
+   "zh-Hans": "试听",
+   "hi": "सुनकर देखें",
+   "es": "Probar",
+   "ar": "تجربة",
+   "fr": "Essayer",
+   "bn": "শুনে দেখুন",
+   "pt-BR": "Testar",
+   "ru": "Проверить",
+   "id": "Coba"
+  },
+  "No voice for this language on this computer. On Windows, add one in Settings → Time & language → Speech.": {
+   "zh-Hans": "这台电脑上没有这种语言的语音。在 Windows 上，可在“设置 → 时间和语言 → 语音”中添加。",
+   "hi": "इस कंप्यूटर पर इस भाषा की कोई आवाज़ नहीं है। Windows पर, सेटिंग्स → समय और भाषा → वाक् में एक जोड़ें।",
+   "es": "No hay ninguna voz para este idioma en este ordenador. En Windows, añade una en Configuración → Hora e idioma → Voz.",
+   "ar": "لا يوجد صوت لهذه اللغة على هذا الحاسوب. في Windows، أضف صوتًا من الإعدادات ← الوقت واللغة ← الكلام.",
+   "fr": "Aucune voix pour cette langue sur cet ordinateur. Sous Windows, ajoutez-en une dans Paramètres → Heure et langue → Voix.",
+   "bn": "এই কম্পিউটারে এই ভাষার কোনো ভয়েস নেই। Windows-এ সেটিংস → সময় ও ভাষা → স্পিচ থেকে একটি যোগ করুন।",
+   "pt-BR": "Não há voz para este idioma neste computador. No Windows, adicione uma em Configurações → Hora e idioma → Fala.",
+   "ru": "На этом компьютере нет голоса для этого языка. В Windows добавьте его в разделе «Параметры → Время и язык → Речь».",
+   "id": "Tidak ada suara untuk bahasa ini di komputer ini. Di Windows, tambahkan di Pengaturan → Waktu & bahasa → Ucapan."
+  },
+  "Hello! This is how I read my answers.": {
+   "zh-Hans": "你好！我会这样朗读我的回答。",
+   "hi": "नमस्ते! मैं अपने जवाब ऐसे पढ़कर सुनाता हूँ।",
+   "es": "¡Hola! Así leo mis respuestas.",
+   "ar": "مرحبًا! هكذا أقرأ إجاباتي.",
+   "fr": "Bonjour ! Voici comment je lis mes réponses.",
+   "bn": "হ্যালো! আমি এভাবেই আমার উত্তর পড়ে শোনাই।",
+   "pt-BR": "Olá! É assim que eu leio as minhas respostas.",
+   "ru": "Привет! Вот так я читаю свои ответы.",
+   "id": "Halo! Beginilah aku membacakan jawabanku."
+  },
+  "To speak to Mochi, open the chat and press Windows + H: Windows' voice typing writes what you say, in the language of the keyboard in use. Then press Enter.": {
+   "zh-Hans": "要和 Mochi 说话，请打开聊天并按 Windows + H：Windows 语音输入会用当前键盘的语言写下你说的话。然后按 Enter。",
+   "hi": "Mochi से बोलने के लिए चैट खोलें और Windows + H दबाएँ: Windows की वॉइस टाइपिंग आपकी कही बात लिखती है, उपयोग में लगे कीबोर्ड की भाषा में। फिर Enter दबाएँ।",
+   "es": "Para hablarle a Mochi, abre el chat y pulsa Windows + H: el dictado por voz de Windows escribe lo que dices, en el idioma del teclado en uso. Luego pulsa Intro.",
+   "ar": "للتحدث إلى Mochi، افتح الدردشة واضغط Windows + H: تكتب الكتابة الصوتية في Windows ما تقوله، بلغة لوحة المفاتيح المستخدمة. ثم اضغط Enter.",
+   "fr": "Pour parler à Mochi, ouvrez le chat et appuyez sur Windows + H : la saisie vocale de Windows écrit ce que vous dites, dans la langue du clavier utilisé. Puis appuyez sur Entrée.",
+   "bn": "Mochi-র সঙ্গে কথা বলতে চ্যাট খুলে Windows + H চাপুন: Windows-এর ভয়েস টাইপিং আপনার বলা কথা লিখে দেয়, ব্যবহৃত কিবোর্ডের ভাষায়। তারপর Enter চাপুন।",
+   "pt-BR": "Para falar com o Mochi, abra o chat e aperte Windows + H: a digitação por voz do Windows escreve o que você diz, no idioma do teclado em uso. Depois aperte Enter.",
+   "ru": "Чтобы поговорить с Mochi, откройте чат и нажмите Windows + H: голосовой ввод Windows запишет сказанное на языке текущей раскладки клавиатуры. Затем нажмите Enter.",
+   "id": "Untuk berbicara dengan Mochi, buka chat lalu tekan Windows + H: pengetikan suara Windows menuliskan ucapan Anda, dalam bahasa keyboard yang sedang dipakai. Lalu tekan Enter."
+  },
+  "Linux has no voice typing of its own: speak to Mochi from your phone, with the microphone of the chat with the computer.": {
+   "zh-Hans": "Linux 没有自带的语音输入：请在手机上通过与电脑聊天中的麦克风和 Mochi 说话。",
+   "hi": "Linux में अपनी वॉइस टाइपिंग नहीं है: अपने फ़ोन से, कंप्यूटर वाली चैट के माइक्रोफ़ोन से Mochi से बोलें।",
+   "es": "Linux no tiene dictado por voz propio: háblale a Mochi desde tu teléfono, con el micrófono del chat con el ordenador.",
+   "ar": "لا يملك Linux كتابة صوتية خاصة به: تحدث إلى Mochi من هاتفك، عبر ميكروفون الدردشة مع الحاسوب.",
+   "fr": "Linux n'a pas de saisie vocale intégrée : parlez à Mochi depuis votre téléphone, avec le micro du chat avec l'ordinateur.",
+   "bn": "Linux-এ নিজস্ব ভয়েস টাইপিং নেই: আপনার ফোন থেকে, কম্পিউটারের সঙ্গে চ্যাটের মাইক্রোফোন দিয়ে Mochi-র সঙ্গে কথা বলুন।",
+   "pt-BR": "O Linux não tem digitação por voz própria: fale com o Mochi pelo celular, com o microfone do chat com o computador.",
+   "ru": "В Linux нет собственного голосового ввода: говорите с Mochi с телефона, через микрофон в чате с компьютером.",
+   "id": "Linux tidak punya pengetikan suara sendiri: bicaralah dengan Mochi dari ponsel Anda, lewat mikrofon di chat dengan komputer."
+  },
+  "Read Mochi's answers aloud": {
+   "zh-Hans": "朗读 Mochi 的回答",
+   "hi": "Mochi के जवाब पढ़कर सुनाएँ",
+   "es": "Leer en voz alta las respuestas de Mochi",
+   "ar": "قراءة إجابات Mochi بصوت عالٍ",
+   "fr": "Lire à voix haute les réponses de Mochi",
+   "bn": "Mochi-র উত্তর জোরে পড়ে শোনান",
+   "pt-BR": "Ler as respostas do Mochi em voz alta",
+   "ru": "Читать ответы Mochi вслух",
+   "id": "Bacakan jawaban Mochi dengan suara"
+  },
+  "The answers to what you ask in the chat on this computer, with this computer's own voices, in the app's language. Nothing is sent anywhere. Muting the island's sounds silences them too.": {
+   "zh-Hans": "朗读你在这台电脑的聊天中提问的回答，使用这台电脑自带的语音和应用的语言。不会发送任何内容。将岛的声音静音也会让它安静。",
+   "hi": "इस कंप्यूटर की चैट में आपके पूछे सवालों के जवाब, इसी कंप्यूटर की अपनी आवाज़ों में, ऐप की भाषा में। कुछ भी कहीं नहीं भेजा जाता। आइलैंड की आवाज़ें म्यूट करने से ये भी चुप हो जाते हैं।",
+   "es": "Las respuestas a lo que preguntas en el chat de este ordenador, con las voces del propio ordenador, en el idioma de la app. No se envía nada a ningún sitio. Silenciar los sonidos de la isla también las silencia.",
+   "ar": "إجابات ما تسأله في الدردشة على هذا الحاسوب، بأصوات هذا الحاسوب نفسه، بلغة التطبيق. لا يُرسل أي شيء إلى أي مكان. كتم أصوات الشريط يُسكتها أيضًا.",
+   "fr": "Les réponses à ce que vous demandez dans le chat de cet ordinateur, avec les voix de l'ordinateur lui-même, dans la langue de l'app. Rien n'est envoyé nulle part. Couper les sons de l'île les fait taire aussi.",
+   "bn": "এই কম্পিউটারের চ্যাটে আপনার প্রশ্নের উত্তর, এই কম্পিউটারের নিজস্ব ভয়েসে, অ্যাপের ভাষায়। কিছুই কোথাও পাঠানো হয় না। আইল্যান্ডের শব্দ মিউট করলে এগুলোও চুপ হয়ে যায়।",
+   "pt-BR": "As respostas ao que você pergunta no chat deste computador, com as vozes do próprio computador, no idioma do app. Nada é enviado para lugar nenhum. Silenciar os sons da ilha também as silencia.",
+   "ru": "Ответы на вопросы в чате на этом компьютере — голосами самого компьютера, на языке приложения. Ничего никуда не отправляется. Если выключить звуки острова, они тоже замолкают.",
+   "id": "Jawaban atas pertanyaan Anda di chat komputer ini, dengan suara bawaan komputer ini, dalam bahasa aplikasi. Tidak ada yang dikirim ke mana pun. Membisukan suara pulau juga membisukannya."
+  },
+  "Voice: {name}": {
+   "zh-Hans": "语音：{name}",
+   "hi": "आवाज़: {name}",
+   "es": "Voz: {name}",
+   "ar": "الصوت: {name}",
+   "fr": "Voix : {name}",
+   "bn": "ভয়েস: {name}",
+   "pt-BR": "Voz: {name}",
+   "ru": "Голос: {name}",
+   "id": "Suara: {name}"
   }
  }
 }
