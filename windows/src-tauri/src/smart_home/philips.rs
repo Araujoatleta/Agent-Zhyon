@@ -194,7 +194,8 @@ async fn request(endpoint: &Endpoint, creds: Option<&Credentials>, method: Metho
         Ok(u) => u,
         Err(e) => return (Err(TvError::Other(e)), None),
     };
-    if !net::is_local_host(&endpoint.host) {
+    // Checked before every request, as when the TV was added: a name must still point inside the house.
+    if !net::resolves_locally(&endpoint.host, endpoint.port).await {
         return (Err(TvError::Other(t("Only devices on your local network can be used."))), None);
     }
     let (client, seen) = match client(endpoint) {
