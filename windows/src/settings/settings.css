@@ -431,3 +431,28 @@ html[dir="rtl"] :is(.diff, .path, .keycap, input[type="password"], input[type="t
 /* Settings → Android phone: the pairing QR code (an SVG from Rust, black on white). */
 .qr { width: 220px; max-width: 100%; background: #fff; border-radius: 8px; padding: 4px; }
 .qr svg { display: block; width: 100%; height: auto; }
+
+/* Mochi's home: the lists of devices, TVs and routines, each item a small card. */
+
+.home-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.home-device {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+}
+
+.row > label.check {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink);
+}

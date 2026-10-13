@@ -1704,11 +1704,15 @@ fn every_secret_the_phone_link_stores_is_in_the_keystores_key_list() {
         super::relay_client::ROOM_KEY,
         super::relay_client::PAIRING_KEY,
         super::relay_client::ACCESS_KEY,
+        super::push::TOPIC_KEY,
+        super::push::TOKEN_KEY,
     ] {
         assert!(crate::secrets::INTERNAL_KEYS.contains(&key), "{key} is not in secrets::INTERNAL_KEYS");
     }
-    // And nothing in the list is a stray: each one is used by the phone link.
-    assert_eq!(crate::secrets::INTERNAL_KEYS.len(), 6);
+    // And nothing in the list is a stray: each one is used by the phone link, or by Mochi's home.
+    let home = [crate::smart_home::config::HA_TOKEN_KEY, crate::smart_home::config::PHILIPS_KEY];
+    assert!(home.iter().all(|k| crate::secrets::INTERNAL_KEYS.contains(k)));
+    assert_eq!(crate::secrets::INTERNAL_KEYS.len(), 8 + home.len());
 }
 
 #[test]
@@ -1729,6 +1733,30 @@ fn the_whole_pairing_life_works_through_the_real_key_list() {
     assert_ne!(relay::pairing(&store).unwrap().0, room1);
     // Clearing the access key goes through too.
     relay::set_access_key(&store, "").unwrap();
+}
+
+#[test]
+fn the_hub_says_which_request_still_waits() {
+    let hub = Hub::new(Arc::new(Recorder::default()));
+    let now = server::now_ms();
+    let approval = |id: &str| ApprovalIn {
+        request_id: id.into(),
+        session_id: "s1".into(),
+        pill_id: "integration_claude".into(),
+        tool: "Bash".into(),
+        command: "ls".into(),
+    };
+    assert!(!hub.waiting("r1"));
+    hub.publish(vec![], Some(approval("r1")), now);
+    assert!(hub.waiting("r1"));
+    hub.publish_agent(None, Some(approval("agent-7")), now);
+    assert!(hub.waiting("agent-7") && hub.waiting("r1"));
+    // Answered at the desk: the island publishes no request any more.
+    hub.publish(vec![], None, now);
+    assert!(!hub.waiting("r1"));
+    hub.publish_agent(None, None, now);
+    assert!(!hub.waiting("agent-7"));
+    assert!(!hub.waiting(""), "an empty id never waits");
 }
 
 #[test]

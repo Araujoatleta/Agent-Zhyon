@@ -292,6 +292,7 @@ fn kill_tree(child: &mut Child) {
 mod tests {
     use super::*;
 
+    #[cfg(unix)]
     fn here() -> PathBuf {
         std::env::temp_dir()
     }

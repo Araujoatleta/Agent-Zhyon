@@ -18,6 +18,7 @@ import {
 } from "../core/providers";
 import { Sound } from "../core/sound";
 import { State, type ChatMessage } from "../core/state";
+import { speak, stopSpeaking } from "../core/voice";
 import type { ViewHost } from "./views";
 import { N_, t, tl, tn } from "../i18n/i18n";
 
@@ -398,6 +399,7 @@ export function buildPrompt(onHeightChange: () => void): ViewHost {
     const query = input.value.trim();
     if (!query || sending) return;
     if (picker.isOpen) picker.close();
+    stopSpeaking(); // a new question: the last answer stops being read
     input.value = "";
     sending = true;
     withHands = handsActive();
@@ -418,6 +420,8 @@ export function buildPrompt(onHeightChange: () => void): ViewHost {
       State.chatHistory.push({ id: nextId++, role: "assistant", content: reply.text });
       State.stateOverride = null;
       Sound.play("finish");
+      // Read aloud when the user asked for it (Settings → Mochi's home → Voice), unless the island is muted.
+      if (State.settings.readAloud === true && State.settings.soundEnabled) void speak(reply.text);
     } catch (err) {
       State.stateOverride = null;
       State.noteMessage = String(err).replace(/^Error:\s*/, "");

@@ -6,6 +6,8 @@
 //     inside the working folder and never for a secret-looking file.
 //   * Running a command, fetching or opening a web page always waits for a click, at every level.
 //   * "Read only" offers no tool that changes anything, and refuses one if a model asks anyway.
+//   * An action on the house (smart_home/) asks when its device does: plugs and switches by default, any device the
+//     user set to ask, every device with "Ask before every action". The others act at once. Read only refuses them.
 
 use std::path::{Component, Path, PathBuf};
 
@@ -53,6 +55,8 @@ pub enum Effect {
     Fetch,
     /// Opens a page in the browser.
     Open,
+    /// Acts on a device of the user's home. `ask`: the device (or the user's setting) wants a click first.
+    Home { ask: bool },
 }
 
 /// What must happen before a call runs.
@@ -71,9 +75,11 @@ pub fn gate(level: Level, effect: Effect, inside: bool, secret: bool) -> Gate {
         Effect::Info => Gate::Free,
         Effect::Read if mine => Gate::Free,
         Effect::Read => Gate::Ask,
-        Effect::Write | Effect::Command if level == Level::ReadOnly => {
+        Effect::Write | Effect::Command | Effect::Home { .. } if level == Level::ReadOnly => {
             Gate::Refuse("Mochi's hands are set to read only on this computer: nothing can be changed and no command can run. Tell the user what you would do instead.")
         }
+        Effect::Home { ask: true } => Gate::Ask,
+        Effect::Home { ask: false } => Gate::Free,
         Effect::Write if level == Level::Edits && mine => Gate::Free,
         Effect::Write | Effect::Command | Effect::Fetch | Effect::Open => Gate::Ask,
     }
@@ -226,6 +232,12 @@ mod tests {
         assert_eq!(gate(Edits, Write, false, false), Gate::Ask);
         assert_eq!(gate(Edits, Write, true, true), Gate::Ask);
         assert_eq!(gate(Edits, Command, true, false), Gate::Ask);
+        // The house: the device's own rule, at every level but read only.
+        for level in [Ask, Edits] {
+            assert_eq!(gate(level, Home { ask: true }, true, false), Gate::Ask);
+            assert_eq!(gate(level, Home { ask: false }, true, false), Gate::Free);
+        }
+        assert!(matches!(gate(ReadOnly, Home { ask: false }, true, false), Gate::Refuse(_)));
     }
 
     #[test]

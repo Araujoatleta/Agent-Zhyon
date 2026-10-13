@@ -29,6 +29,7 @@ mod secrets;
 mod session_window;
 mod settings;
 mod shortcuts;
+mod smart_home;
 mod sounds;
 mod spotify;
 mod tray;
@@ -106,6 +107,15 @@ fn save_settings(app: AppHandle, shared: State<Shared>, settings: Settings) {
         settings.phone_relay_url = current.phone_relay_url.clone();
         settings.phone_chat_models = current.phone_chat_models.clone();
         settings.phone_agent = current.phone_agent;
+        settings.phone_push = current.phone_push;
+        settings.phone_push_server = current.phone_push_server.clone();
+        // Mochi's home too: only Settings → Mochi's home changes it (smart_home/).
+        settings.home_enabled = current.home_enabled;
+        settings.home_ask_all = current.home_ask_all;
+        settings.home_assistant_url = current.home_assistant_url.clone();
+        settings.home_tvs = current.home_tvs.clone();
+        settings.home_devices = current.home_devices.clone();
+        settings.home_routines = current.home_routines.clone();
         // Mochi's hands too: only Settings → Mochi's hands changes them (agent::agent_settings_set).
         settings.agent_enabled = current.agent_enabled;
         settings.agent_folder = current.agent_folder.clone();
@@ -690,6 +700,7 @@ pub fn run() {
         .manage(Pending::default())
         .manage(Chat::default())
         .manage(agent::Agent::default())
+        .manage(smart_home::Home::default())
         .manage(shortcuts::Registry::default())
         .manage(recap::load())
         .invoke_handler(tauri::generate_handler![
@@ -766,10 +777,33 @@ pub fn run() {
             phone_link::phone_chat_set_models,
             phone_link::phone_agent_status,
             phone_link::phone_agent_set_enabled,
+            phone_link::phone_push_status,
+            phone_link::phone_push_set,
+            phone_link::phone_push_topic,
+            phone_link::phone_push_new_topic,
+            phone_link::phone_push_set_token,
+            phone_link::push::phone_push_test,
             agent::agent_status,
             agent::agent_decide,
             agent::agent_cancel,
             agent::agent_settings_set,
+            smart_home::home_status,
+            smart_home::home_log,
+            smart_home::home_set,
+            smart_home::home_ha_connect,
+            smart_home::home_scan,
+            smart_home::home_tv_add,
+            smart_home::home_tv_pair,
+            smart_home::home_tv_pin,
+            smart_home::home_tv_set_mac,
+            smart_home::home_tv_remove,
+            smart_home::home_devices,
+            smart_home::home_device_set,
+            smart_home::home_test,
+            smart_home::home_routine_save,
+            smart_home::home_routine_delete,
+            smart_home::home_routine_run,
+            smart_home::home_templates,
             recap::recap_history,
             recap::recap_prefs,
             recap::recap_set_enabled,

@@ -60,6 +60,9 @@ const VERBS: Record<string, string> = {
   fetch_url: N_("Fetches"),
   open_url: N_("Opens"),
   system_info: N_("Looks at this computer"),
+  home_devices: N_("Looks at the house"),
+  home_control: N_("Controls"),
+  home_routine: N_("Runs the routine"),
 };
 
 export function stepVerb(tool: string): string {
@@ -83,6 +86,8 @@ export function stepDetail(step: HandsStep): string {
         return tn("{count} file", "{count} files", n);
       case "search_text":
         return tn("{count} match", "{count} matches", n);
+      case "home_devices":
+        return tn("{count} device", "{count} devices", n);
     }
   }
   if (d === "timeout") return t("time limit");
@@ -103,6 +108,10 @@ export function requestTitle(r: HandsRequest): string {
       return t("Mochi wants to fetch a web page");
     case "open_url":
       return t("Mochi wants to open a web page");
+    case "home_control":
+      return t("Mochi wants to control a device in your home");
+    case "home_routine":
+      return t("Mochi wants to run a routine");
     default:
       return r.secret ? t("Mochi wants to read a file that may hold secrets") : t("Mochi wants to look outside his folder");
   }

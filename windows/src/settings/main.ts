@@ -19,6 +19,7 @@ import { h, clear } from "../views/dom";
 import { agentsSection } from "./agents";
 import { phoneSection } from "./phone";
 import { handsSection } from "./hands";
+import { homeSection } from "./home";
 import { colorDot } from "./colors";
 import { renderDiff, statusDot } from "./parts";
 import {
@@ -1370,6 +1371,7 @@ async function render() {
     chatProvidersSection(chatKeys, keyChanged),
     localSection(customKey),
     handsSection(toggle),
+    homeSection(toggle, { on: settings.readAloud === true, set: (on) => { settings.readAloud = on; void save(); } }),
     activePillsSection(connected),
     integrationsSection(present),
     phoneSection(settings.phoneLink ?? false, toggle, settings),

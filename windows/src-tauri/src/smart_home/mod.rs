@@ -1,0 +1,999 @@
+// Mochi's home: the devices of the house Mochi may use from the chat — through Home Assistant's official REST API,
+// or straight over the local network for Philips TVs — with the user's rooms, routines and rules. See
+// docs/SMART_HOME.md.
+//
+// Off by default (Settings → Mochi's home). While it is off, nothing is read and nothing runs. When it is on:
+//
+//   * The devices come from Home Assistant (media players, lights, switches) and from the Philips TVs the user added.
+//     What each can do is what it reported (model.rs), never assumed from its brand.
+//   * Mochi only sees the devices the user ticked, and acts through three tools of his hands (agent/tools.rs):
+//     home_devices, home_control, home_routine. Each action is checked against the device before anything is sent,
+//     and becomes one call of a fixed list; plugs, switches and the devices set to ask wait for a click (Allow on
+//     the island, or on the phone behind Face ID), and "Ask before every action" makes all of them wait.
+//   * After each action the device is asked again, and Mochi says what it reports now ("the TV is on, YouTube is
+//     on screen"), not what was hoped.
+//   * Every action is written in the home's record (journal.rs). Tokens and pairings live in the OS keystore
+//     (config.rs). Only addresses on the local network are ever contacted.
+//
+// The pieces: model.rs (devices, actions, checks), home_assistant.rs and philips.rs (the two ways in), digest.rs
+// (the TVs' authentication), discovery.rs (mDNS and SSDP), routines.rs, journal.rs, config.rs. This file holds the
+// state, the reading of the house, the carrying out of an action, Mochi's way in, and Settings' commands.
+
+pub mod config;
+pub mod digest;
+pub mod discovery;
+pub mod home_assistant;
+pub mod journal;
+pub mod model;
+pub mod philips;
+pub mod routines;
+
+use std::collections::{BTreeMap, HashMap};
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
+
+use serde::Serialize;
+use serde_json::Value;
+use tauri::{AppHandle, Emitter, Manager, State, WebviewWindow};
+
+use crate::agent::{BoxFuture, HomeEnv, HomeRunner, HomeResult, RoutineInfo};
+use crate::i18n::{t, tf};
+use crate::phone_link::only_settings;
+use crate::{log, settings, Shared};
+use config::{DevicePrefs, TvConf};
+use home_assistant::HomeAssistant;
+use model::{Action, Capability, Device, DeviceState, Kind};
+use philips::{Tv, TvError};
+use routines::Routine;
+
+/// Devices read less than this ago serve Mochi's turns.
+const FRESH: Duration = Duration::from_secs(60);
+/// A TV's apps and channels are read again after this.
+const LISTS: Duration = Duration::from_secs(10 * 60);
+/// How long a TV may take to start before the answer says it did not confirm.
+const TURN_ON_WAIT: Duration = Duration::from_secs(25);
+const CONFIRM_WAIT: Duration = Duration::from_secs(8);
+
+/// The home's state: what was last read, the TVs' lists, the pairings in progress.
+#[derive(Default)]
+pub struct Home {
+    cache: Mutex<Option<(Instant, Vec<Device>)>>,
+    lists: Mutex<HashMap<String, TvLists>>,
+    pairings: Mutex<HashMap<String, philips::PairingState>>,
+    /// One reading of the house at a time.
+    reading: tokio::sync::Mutex<()>,
+}
+
+#[derive(Clone)]
+struct TvLists {
+    at: Instant,
+    apps: Vec<philips::App>,
+    channels: Vec<philips::TvChannel>,
+    volume: bool,
+}
+
+/// The settings this module reads, taken at once.
+#[derive(Clone, Default)]
+struct Setup {
+    enabled: bool,
+    ask_all: bool,
+    ha_url: String,
+    tvs: Vec<TvConf>,
+    prefs: BTreeMap<String, DevicePrefs>,
+    routines: Vec<Routine>,
+}
+
+fn setup(app: &AppHandle) -> Setup {
+    let shared = app.state::<Shared>();
+    let s = shared.settings.lock().unwrap();
+    Setup {
+        enabled: s.home_enabled,
+        ask_all: s.home_ask_all,
+        ha_url: s.home_assistant_url.clone(),
+        tvs: s.home_tvs.clone(),
+        prefs: s.home_devices.clone(),
+        routines: s.home_routines.clone(),
+    }
+}
+
+fn forget_cache(app: &AppHandle) {
+    if let Some(home) = app.try_state::<Home>() {
+        *home.cache.lock().unwrap() = None;
+    }
+}
+
+// ── Reading the house ─────────────────────────────────────────────────────────
+
+/// Every device, with its state. `fresh`: ask the devices now, else what was read in the last minute will do.
+pub async fn read(app: &AppHandle, fresh: bool) -> Vec<Device> {
+    let home = app.state::<Home>();
+    let cached = || home.cache.lock().unwrap().as_ref().filter(|(at, _)| at.elapsed() < FRESH).map(|(_, d)| d.clone());
+    if !fresh {
+        if let Some(d) = cached() {
+            return d;
+        }
+    }
+    let _one = home.reading.lock().await;
+    let s = setup(app);
+    let mut devices = Vec::new();
+    if let (false, Some(token)) = (s.ha_url.is_empty(), config::ha_token()) {
+        match HomeAssistant::new(&s.ha_url, &token) {
+            Ok(ha) => match ha.states().await {
+                Ok(states) => {
+                    let areas = ha.areas().await;
+                    for state in &states {
+                        let id = state.get("entity_id").and_then(Value::as_str).unwrap_or("");
+                        let prefs = ha_prefs(s.prefs.get(&format!("ha:{id}")));
+                        if let Some(mut d) = home_assistant::device(state, &prefs, areas.get(id).map(String::as_str)) {
+                            d.ask |= s.ask_all;
+                            devices.push(d);
+                        }
+                    }
+                }
+                Err(e) => log::line(format!("home: Home Assistant not read: {e}")),
+            },
+            Err(e) => log::line(format!("home: Home Assistant not usable: {e}")),
+        }
+    }
+    let mut reads = tokio::task::JoinSet::new();
+    for conf in s.tvs.clone() {
+        let prefs = s.prefs.get(&conf.id).cloned().unwrap_or_default();
+        reads.spawn(tv_device(app.clone(), conf, prefs, s.ask_all));
+    }
+    while let Some(Ok(d)) = reads.join_next().await {
+        devices.push(d);
+    }
+    devices.sort_by(|a, b| (model::normalize(&a.room), model::normalize(&a.name)).cmp(&(model::normalize(&b.room), model::normalize(&b.name))));
+    *home.cache.lock().unwrap() = Some((Instant::now(), devices.clone()));
+    devices
+}
+
+fn ha_prefs(p: Option<&DevicePrefs>) -> home_assistant::Prefs {
+    let p = p.cloned().unwrap_or_default();
+    home_assistant::Prefs { name: p.name, room: p.room, exposed: p.exposed.unwrap_or(false), ask: p.ask }
+}
+
+fn tv_of(conf: &TvConf) -> Tv {
+    Tv { endpoint: conf.endpoint(), creds: config::credentials(&conf.id) }
+}
+
+/// The TV's apps and channels: from the last read when recent, else from the TV.
+async fn lists(app: &AppHandle, conf: &TvConf, tv: &Tv, renew: bool) -> TvLists {
+    let home = app.state::<Home>();
+    let old = home.lists.lock().unwrap().get(&conf.id).cloned();
+    if let Some(l) = old.as_ref().filter(|l| !renew && l.at.elapsed() < LISTS) {
+        return l.clone();
+    }
+    let system = conf.system();
+    let apps = if system.apps() { tv.apps().await.ok() } else { Some(Vec::new()) };
+    let channels = tv.channels().await.ok();
+    let volume = tv.volume().await.is_ok();
+    let fresh = TvLists {
+        at: Instant::now(),
+        apps: apps.or_else(|| old.as_ref().map(|o| o.apps.clone())).unwrap_or_default(),
+        channels: channels.or_else(|| old.as_ref().map(|o| o.channels.clone())).unwrap_or_default(),
+        volume: volume || old.as_ref().is_some_and(|o| o.volume),
+    };
+    home.lists.lock().unwrap().insert(conf.id.clone(), fresh.clone());
+    fresh
+}
+
+async fn tv_device(app: AppHandle, conf: TvConf, prefs: DevicePrefs, ask_all: bool) -> Device {
+    let tv = tv_of(&conf);
+    let system = conf.system();
+    let power = tv.power().await;
+    let answers = !matches!(power, Err(TvError::Unreachable(_) | TvError::CertificateChanged));
+    let allowed = !matches!(power, Err(TvError::Auth));
+    let cached = app.state::<Home>().lists.lock().unwrap().get(&conf.id).cloned();
+    let lists = if answers && allowed { Some(lists(&app, &conf, &tv, false).await) } else { cached };
+    let volume = if answers && allowed { tv.volume().await.ok() } else { None };
+    let on = power.as_ref().ok().copied();
+
+    let mut caps = Vec::new();
+    let can_turn_on = match &power {
+        Ok(_) | Err(TvError::Auth) => true,
+        Err(TvError::NotSupported) => conf.mac().is_some(),
+        Err(_) => system.version.0 >= 5 || conf.mac().is_some(),
+    };
+    if can_turn_on {
+        caps.push(Capability::TurnOn);
+    }
+    if system.keys() {
+        caps.extend([Capability::TurnOff, Capability::VolumeStep, Capability::ChannelStep]);
+    }
+    if volume.is_some() || lists.as_ref().is_some_and(|l| l.volume) {
+        caps.extend([Capability::VolumeSet, Capability::Mute]);
+    }
+    let apps: Vec<String> = lists.as_ref().map(|l| l.apps.iter().map(|a| a.label.clone()).collect()).unwrap_or_default();
+    if system.apps() && !apps.is_empty() {
+        caps.push(Capability::Apps);
+    }
+    let channels: Vec<model::Channel> = lists.as_ref().map(|l| l.channels.iter().map(|c| c.channel.clone()).collect()).unwrap_or_default();
+    if !channels.is_empty() {
+        caps.push(Capability::Channels);
+    }
+    caps.sort();
+    caps.dedup();
+
+    let mut state = DeviceState { online: answers, on, ..DeviceState::default() };
+    if let Some(v) = volume {
+        state.volume = Some(v.percent());
+        state.muted = Some(v.muted);
+    }
+    if on == Some(true) && allowed {
+        if let Some(l) = &lists {
+            state.app = tv.current_app(&l.apps).await;
+        }
+        state.channel = tv.current_channel().await;
+    }
+    let model = (!conf.model.is_empty()).then(|| conf.model.clone()).or(system.model.clone());
+    Device {
+        id: conf.id.clone(),
+        name: if prefs.name.trim().is_empty() { conf.name.clone() } else { prefs.name.trim().to_string() },
+        room: prefs.room.trim().to_string(),
+        kind: Kind::Tv,
+        source: "Philips TV".into(),
+        model,
+        caps,
+        apps,
+        channels,
+        state,
+        exposed: prefs.exposed.unwrap_or(true),
+        ask: ask_all || prefs.ask.unwrap_or(false),
+    }
+}
+
+// ── Carrying out an action ────────────────────────────────────────────────────
+
+/// What became of an action: whether it worked, and the device's state afterwards as it reported it.
+struct Done {
+    confirmed: bool,
+    state: DeviceState,
+    /// Already as asked: nothing was sent.
+    already: bool,
+}
+
+/// The state in English, for the model: "on, volume 20%, YouTube on screen".
+pub fn state_text(s: &DeviceState) -> String {
+    if !s.online {
+        return "not answering".into();
+    }
+    let mut parts = Vec::new();
+    match s.on {
+        Some(true) => parts.push("on".to_string()),
+        Some(false) => parts.push("off (standby)".to_string()),
+        None => {}
+    }
+    if let Some(v) = s.volume {
+        parts.push(format!("volume {v}%"));
+    }
+    if s.muted == Some(true) {
+        parts.push("muted".into());
+    }
+    if let Some(b) = s.brightness {
+        parts.push(format!("brightness {b}%"));
+    }
+    if let Some(a) = &s.app {
+        parts.push(format!("{a} on screen"));
+    }
+    if let Some(c) = &s.channel {
+        parts.push(format!("channel {c}"));
+    }
+    if parts.is_empty() { "answering".into() } else { parts.join(", ") }
+}
+
+/// The state in the user's words, for the island, Settings and the record: "On · volume 20% · YouTube".
+pub fn state_words(s: &DeviceState) -> String {
+    if !s.online {
+        return t("Not answering");
+    }
+    let mut parts = Vec::new();
+    match s.on {
+        Some(true) => parts.push(t("On")),
+        Some(false) => parts.push(t("Off")),
+        None => {}
+    }
+    if let Some(v) = s.volume {
+        parts.push(tf("Volume {percent}%", &[("percent", &v.to_string())]));
+    }
+    if s.muted == Some(true) {
+        parts.push(t("Muted"));
+    }
+    if let Some(b) = s.brightness {
+        parts.push(tf("Brightness {percent}%", &[("percent", &b.to_string())]));
+    }
+    if let Some(a) = &s.app {
+        parts.push(a.clone());
+    }
+    if let Some(c) = &s.channel {
+        parts.push(tf("Channel {channel}", &[("channel", c)]));
+    }
+    parts.join(" · ")
+}
+
+/// Asks `read` again until `ok` holds or `wait` is over; the last state either way.
+async fn until<F, R>(wait: Duration, mut read: R, ok: F) -> (bool, DeviceState)
+where
+    R: FnMut() -> BoxFuture<'static, DeviceState>,
+    F: Fn(&DeviceState) -> bool,
+{
+    let deadline = Instant::now() + wait;
+    loop {
+        let state = read().await;
+        if ok(&state) {
+            return (true, state);
+        }
+        if Instant::now() >= deadline {
+            return (false, state);
+        }
+        tokio::time::sleep(Duration::from_millis(1000)).await;
+    }
+}
+
+async fn tv_state(app: AppHandle, conf: TvConf) -> DeviceState {
+    let tv = tv_of(&conf);
+    let power = tv.power().await;
+    let mut s = DeviceState { online: !matches!(power, Err(TvError::Unreachable(_) | TvError::CertificateChanged)), on: power.as_ref().ok().copied(), ..DeviceState::default() };
+    if let Ok(v) = tv.volume().await {
+        s.volume = Some(v.percent());
+        s.muted = Some(v.muted);
+    }
+    if s.on == Some(true) {
+        let apps = app.state::<Home>().lists.lock().unwrap().get(&conf.id).map(|l| l.apps.clone()).unwrap_or_default();
+        s.app = tv.current_app(&apps).await;
+        s.channel = tv.current_channel().await;
+    }
+    s
+}
+
+fn tv_error(e: TvError, conf: &TvConf) -> String {
+    match e {
+        TvError::Unreachable(_) if conf.mac().is_none() => format!(
+            "{} {}",
+            e.message(),
+            t("To turn it on from standby, turn on \"Switch on with Wi-Fi\" (or \"with Chromecast\") in the TV's network settings.")
+        ),
+        e => e.message(),
+    }
+}
+
+async fn tv_act(app: &AppHandle, conf: &TvConf, device: &Device, action: &Action) -> Result<Done, String> {
+    let tv = tv_of(conf);
+    let reader = {
+        let (app, conf) = (app.clone(), conf.clone());
+        move || -> BoxFuture<'static, DeviceState> { Box::pin(tv_state(app.clone(), conf.clone())) }
+    };
+    match action {
+        Action::TurnOn => {
+            match tv.power().await {
+                Ok(true) => return Ok(Done { confirmed: true, state: tv_state(app.clone(), conf.clone()).await, already: true }),
+                Ok(false) => {
+                    if let Err(e) = tv.set_power(true).await {
+                        // Some firmwares only take the remote's key, which toggles.
+                        tv.key("Standby").await.map_err(|_| tv_error(e, conf))?;
+                    }
+                }
+                Err(TvError::Auth) => return Err(TvError::Auth.message()),
+                Err(e) => match conf.mac() {
+                    Some(mac) => philips::wake(&mac).await?,
+                    None => return Err(tv_error(e, conf)),
+                },
+            }
+            let (confirmed, state) = until(TURN_ON_WAIT, reader, |s| s.on == Some(true)).await;
+            Ok(Done { confirmed, state, already: false })
+        }
+        Action::TurnOff => {
+            match tv.power().await {
+                Ok(false) => return Ok(Done { confirmed: true, state: tv_state(app.clone(), conf.clone()).await, already: true }),
+                Err(e @ (TvError::Unreachable(_) | TvError::Auth | TvError::CertificateChanged)) => return Err(tv_error(e, conf)),
+                _ => tv.key("Standby").await.map_err(|e| tv_error(e, conf))?,
+            }
+            let (confirmed, state) = until(CONFIRM_WAIT, reader, |s| s.on != Some(true)).await;
+            Ok(Done { confirmed, state, already: false })
+        }
+        Action::SetVolume(p) => {
+            let v = tv.volume().await.map_err(|e| tv_error(e, conf))?;
+            tv.set_volume(v.level(*p), v.muted).await.map_err(|e| tv_error(e, conf))?;
+            let target = *p;
+            let (confirmed, state) = until(Duration::from_secs(3), reader, move |s| s.volume.is_some_and(|v| v.abs_diff(target) <= 2)).await;
+            Ok(Done { confirmed, state, already: false })
+        }
+        Action::VolumeUp | Action::VolumeDown => {
+            tv.key(if *action == Action::VolumeUp { "VolumeUp" } else { "VolumeDown" }).await.map_err(|e| tv_error(e, conf))?;
+            Ok(Done { confirmed: true, state: tv_state(app.clone(), conf.clone()).await, already: false })
+        }
+        Action::Mute(m) => {
+            let v = tv.volume().await.map_err(|e| tv_error(e, conf))?;
+            if v.muted == *m {
+                return Ok(Done { confirmed: true, state: tv_state(app.clone(), conf.clone()).await, already: true });
+            }
+            tv.set_volume(v.current, *m).await.map_err(|e| tv_error(e, conf))?;
+            let want = *m;
+            let (confirmed, state) = until(Duration::from_secs(3), reader, move |s| s.muted == Some(want)).await;
+            Ok(Done { confirmed, state, already: false })
+        }
+        Action::OpenApp(name) => {
+            let label = model::resolve_app(device, name)?;
+            let lists = lists(app, conf, &tv, false).await;
+            let app_entry = lists.apps.iter().find(|a| a.label == label).ok_or_else(|| format!("{label} is not in the TV's list any more."))?;
+            tv.launch(&app_entry.intent).await.map_err(|e| tv_error(e, conf))?;
+            let (confirmed, state) = until(CONFIRM_WAIT, reader, move |s| s.app.as_deref() == Some(label.as_str())).await;
+            Ok(Done { confirmed, state, already: false })
+        }
+        Action::SetChannel(wanted) => {
+            let channel = model::resolve_channel(device, wanted)?;
+            let lists = lists(app, conf, &tv, false).await;
+            let entry = lists.channels.iter().find(|c| c.channel.number == channel.number).ok_or_else(|| format!("{} has no channel {}.", device.name, channel.number))?;
+            tv.set_channel(entry).await.map_err(|e| tv_error(e, conf))?;
+            let number = channel.number.clone();
+            let (confirmed, state) = until(Duration::from_secs(6), reader, move |s| s.channel.as_deref() == Some(number.as_str())).await;
+            Ok(Done { confirmed, state, already: false })
+        }
+        Action::ChannelUp | Action::ChannelDown => {
+            tv.key(if *action == Action::ChannelUp { "ChannelStepUp" } else { "ChannelStepDown" }).await.map_err(|e| tv_error(e, conf))?;
+            tokio::time::sleep(Duration::from_millis(800)).await;
+            Ok(Done { confirmed: true, state: tv_state(app.clone(), conf.clone()).await, already: false })
+        }
+        Action::SetBrightness(_) => Err(format!("{} has no brightness.", device.name)),
+    }
+}
+
+async fn ha_state(url: String, token: String, entity: String, prefs: home_assistant::Prefs) -> DeviceState {
+    let Ok(ha) = HomeAssistant::new(&url, &token) else { return DeviceState::default() };
+    match ha.state(&entity).await {
+        Ok(v) => home_assistant::device(&v, &prefs, None).map(|d| d.state).unwrap_or_default(),
+        Err(_) => DeviceState::default(),
+    }
+}
+
+async fn ha_act(s: &Setup, device: &Device, action: &Action) -> Result<Done, String> {
+    let token = config::ha_token().ok_or_else(|| t("Connect Home Assistant first, in Settings → Mochi's home."))?;
+    let ha = HomeAssistant::new(&s.ha_url, &token)?;
+    let (domain, service, data) = home_assistant::service(device, action)?;
+    ha.call(&domain, service, &data).await?;
+    let entity = device.id.trim_start_matches("ha:").to_string();
+    let prefs = ha_prefs(s.prefs.get(&device.id));
+    let reader = {
+        let (url, token) = (s.ha_url.clone(), token.clone());
+        move || -> BoxFuture<'static, DeviceState> { Box::pin(ha_state(url.clone(), token.clone(), entity.clone(), prefs.clone())) }
+    };
+    let action = action.clone();
+    let source = match &action {
+        Action::OpenApp(app) => model::resolve_app(device, app).ok(),
+        _ => None,
+    };
+    let wait = if matches!(action, Action::TurnOn | Action::TurnOff) { Duration::from_secs(10) } else { Duration::from_secs(3) };
+    let (confirmed, state) = until(wait, reader, move |st| match &action {
+        Action::TurnOn => st.on == Some(true),
+        Action::TurnOff => st.on == Some(false),
+        Action::SetVolume(p) => st.volume.is_some_and(|v| v.abs_diff(*p) <= 2),
+        Action::Mute(m) => st.muted == Some(*m),
+        Action::OpenApp(_) => st.app == source,
+        Action::SetBrightness(p) => st.brightness.is_some_and(|b| b.abs_diff(*p) <= 3),
+        _ => true,
+    })
+    .await;
+    Ok(Done { confirmed, state, already: false })
+}
+
+/// The answer of an action, for the model (`text`, English) and for the user (`detail`).
+pub struct Outcome {
+    pub ok: bool,
+    pub text: String,
+    pub detail: String,
+}
+
+/// Carries out `action` on the device `id`: checked against what it reported, sent, confirmed, recorded. `origin`:
+/// "island", "phone", "settings" or "routine". `user`: the user clicked it in Settings, so any device of theirs may
+/// be used, ticked for Mochi or not.
+pub async fn control(app: &AppHandle, id: &str, action: &Action, origin: &str, user: bool) -> Outcome {
+    let s = setup(app);
+    let devices = read(app, false).await;
+    let Some(mut device) = devices.iter().find(|d| d.id == id).cloned() else {
+        return Outcome { ok: false, text: format!("There is no device {id}. Call home_devices to see them."), detail: t("This device is not there any more.") };
+    };
+    if user {
+        device.exposed = true;
+    }
+    if let Err(e) = model::check(&device, action) {
+        return Outcome { ok: false, detail: e.clone(), text: e };
+    }
+    let result = if let Some(conf) = s.tvs.iter().find(|c| c.id == device.id) {
+        tv_act(app, conf, &device, action).await
+    } else if device.id.starts_with("ha:") {
+        ha_act(&s, &device, action).await
+    } else {
+        Err(t("This device is not there any more."))
+    };
+    forget_cache(app);
+    let label = action.label();
+    let outcome = match result {
+        Ok(done) => {
+            let what = action.describe();
+            let text = match (done.already, done.confirmed) {
+                (true, _) => format!("{} was already as asked ({what}): it reports {}. Nothing was sent.", device.name, state_text(&done.state)),
+                (false, true) => format!("Done: {what} on {}. The device now reports: {}.", device.name, state_text(&done.state)),
+                (false, false) => format!(
+                    "Sent: {what} on {}, but the device has not confirmed it yet (it reports: {}). Tell the user it may take a moment.",
+                    device.name,
+                    state_text(&done.state)
+                ),
+            };
+            let detail = if done.confirmed { state_words(&done.state) } else { format!("{} · {}", t("Not confirmed yet"), state_words(&done.state)) };
+            Outcome { ok: true, text, detail }
+        }
+        Err(e) => Outcome { ok: false, text: format!("Could not {} on {}: {e}", action.describe(), device.name), detail: e },
+    };
+    journal::append(&journal::Entry::now(origin, &device.name, &label, outcome.ok, &outcome.detail));
+    log::line(format!("home: {} on {} from {origin}: {}", action.word().0, device.id, if outcome.ok { "ok" } else { "failed" }));
+    outcome
+}
+
+/// Runs a routine's steps in order, each through `control`. A step that fails does not stop the others.
+pub async fn run_routine(app: &AppHandle, routine: &Routine, origin: &str, user: bool) -> Outcome {
+    let mut lines = Vec::new();
+    let mut ok = 0;
+    for (i, step) in routine.steps.iter().enumerate() {
+        if step.wait > 0 {
+            tokio::time::sleep(Duration::from_secs(u64::from(step.wait.min(routines::MAX_WAIT)))).await;
+        }
+        let out = match step.action() {
+            Ok(action) => control(app, &step.device, &action, if origin == "settings" { "settings" } else { "routine" }, user).await,
+            Err(e) => Outcome { ok: false, detail: e.clone(), text: e },
+        };
+        if out.ok {
+            ok += 1;
+        }
+        lines.push(format!("{}. {}", i + 1, out.text));
+    }
+    let all = ok == routine.steps.len();
+    journal::append(&journal::Entry::now(origin, &routine.name, &t("Routine"), all, &format!("{ok}/{}", routine.steps.len())));
+    Outcome {
+        ok: ok > 0,
+        text: format!("Routine \"{}\": {ok} of {} steps done.\n{}", routine.name, routine.steps.len(), lines.join("\n")),
+        detail: tf("{done} of {count} steps done", &[("done", &ok.to_string()), ("count", &routine.steps.len().to_string())]),
+    }
+}
+
+// ── Mochi's way in (agent/tools.rs) ───────────────────────────────────────────
+
+struct Runner {
+    app: AppHandle,
+    origin: &'static str,
+}
+
+impl HomeRunner for Runner {
+    fn devices<'a>(&'a self) -> BoxFuture<'a, Vec<Device>> {
+        Box::pin(async move { read(&self.app, true).await.into_iter().filter(|d| d.exposed).collect() })
+    }
+
+    fn control<'a>(&'a self, id: &'a str, action: &'a Action) -> BoxFuture<'a, HomeResult> {
+        Box::pin(async move {
+            let o = control(&self.app, id, action, self.origin, false).await;
+            HomeResult { ok: o.ok, text: o.text, detail: o.detail }
+        })
+    }
+
+    fn routine<'a>(&'a self, id: &'a str) -> BoxFuture<'a, HomeResult> {
+        Box::pin(async move {
+            let s = setup(&self.app);
+            let Some(r) = s.routines.iter().find(|r| r.id == id) else {
+                return HomeResult { ok: false, text: format!("There is no routine {id}."), detail: String::new() };
+            };
+            let o = run_routine(&self.app, r, self.origin, false).await;
+            HomeResult { ok: o.ok, text: o.text, detail: o.detail }
+        })
+    }
+}
+
+/// What Mochi's hands get for one turn: the devices he may use and the routines, and the way to act on them. None
+/// when the home is off or has nothing for him.
+pub async fn agent_env(app: &AppHandle, from_phone: bool) -> Option<HomeEnv> {
+    let s = setup(app);
+    if !s.enabled {
+        return None;
+    }
+    let devices: Vec<Device> = read(app, false).await.into_iter().filter(|d| d.exposed).collect();
+    if devices.is_empty() {
+        return None;
+    }
+    let routines = s
+        .routines
+        .iter()
+        .map(|r| RoutineInfo {
+            id: r.id.clone(),
+            name: r.name.clone(),
+            asks: routines::asks(r, &devices) || s.ask_all,
+            steps: r.steps.iter().map(|st| {
+                let device = devices.iter().find(|d| d.id == st.device).map_or(st.device.as_str(), |d| d.name.as_str());
+                let action = st.action().map(|a| a.describe()).unwrap_or_else(|e| e);
+                format!("{device}: {action}")
+            }).collect(),
+            problems: routines::problems(r, &devices),
+        })
+        .collect();
+    Some(HomeEnv {
+        devices,
+        routines,
+        runner: Arc::new(Runner { app: app.clone(), origin: if from_phone { "phone" } else { "island" } }),
+    })
+}
+
+// ── Settings → Mochi's home ───────────────────────────────────────────────────
+
+/// A TV as Settings lists it.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TvSummary {
+    pub id: String,
+    pub name: String,
+    pub host: String,
+    pub model: String,
+    pub version: String,
+    pub android: bool,
+    pub https: bool,
+    pub needs_pairing: bool,
+    pub paired: bool,
+    pub mac: String,
+    /// What its features say it can do, before asking it anything: "keys", "apps".
+    pub features: Vec<String>,
+}
+
+fn summary(c: &TvConf) -> TvSummary {
+    let system = c.system();
+    let mut features = Vec::new();
+    if system.keys() {
+        features.push("keys".to_string());
+    }
+    if system.apps() {
+        features.push("apps".to_string());
+    }
+    TvSummary {
+        id: c.id.clone(),
+        name: c.name.clone(),
+        host: c.host.clone(),
+        model: c.model.clone(),
+        version: c.version.clone(),
+        android: system.android(),
+        https: c.https,
+        needs_pairing: c.needs_pairing,
+        paired: config::credentials(&c.id).is_some(),
+        mac: c.mac.clone(),
+        features,
+    }
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HomeStatus {
+    pub enabled: bool,
+    pub ask_all: bool,
+    pub ha_url: String,
+    /// A token is stored; the token itself never comes back to a window.
+    pub ha_token: bool,
+    pub tvs: Vec<TvSummary>,
+    pub routines: Vec<Routine>,
+    pub prefs: BTreeMap<String, DevicePrefs>,
+}
+
+#[tauri::command]
+pub fn home_status(shared: State<Shared>) -> HomeStatus {
+    let s = shared.settings.lock().unwrap();
+    HomeStatus {
+        enabled: s.home_enabled,
+        ask_all: s.home_ask_all,
+        ha_url: s.home_assistant_url.clone(),
+        ha_token: config::ha_token().is_some(),
+        tvs: s.home_tvs.iter().map(summary).collect(),
+        routines: s.home_routines.clone(),
+        prefs: s.home_devices.clone(),
+    }
+}
+
+/// The latest actions, newest first.
+#[tauri::command]
+pub fn home_log() -> Vec<journal::Entry> {
+    journal::recent(30)
+}
+
+/// Saves a change to the home's settings and tells the windows.
+fn save(app: &AppHandle, change: impl FnOnce(&mut settings::Settings)) {
+    let updated = {
+        let shared = app.state::<Shared>();
+        let mut current = shared.settings.lock().unwrap();
+        change(&mut current);
+        if let Err(err) = settings::save(&current) {
+            log::line(format!("could not save settings: {err}"));
+        }
+        current.clone()
+    };
+    forget_cache(app);
+    let _ = app.emit("settings-changed", updated);
+}
+
+/// The switch, and "Ask before every action".
+#[tauri::command]
+pub fn home_set(app: AppHandle, window: WebviewWindow, shared: State<Shared>, enabled: bool, ask_all: bool) -> Result<HomeStatus, String> {
+    only_settings(&window)?;
+    save(&app, |s| {
+        s.home_enabled = enabled;
+        s.home_ask_all = ask_all;
+    });
+    log::line(format!("home: {}{}", if enabled { "on" } else { "off" }, if ask_all { ", asks before every action" } else { "" }));
+    Ok(home_status(shared))
+}
+
+/// Connects Home Assistant: checks the address and the token, then keeps them. `token` None keeps the stored one;
+/// an empty address forgets both.
+#[tauri::command]
+pub async fn home_ha_connect(app: AppHandle, window: WebviewWindow, url: String, token: Option<String>) -> Result<home_assistant::ServerInfo, String> {
+    only_settings(&window)?;
+    if url.trim().is_empty() {
+        config::set_ha_token("")?;
+        save(&app, |s| s.home_assistant_url.clear());
+        log::line("home: Home Assistant forgotten");
+        return Ok(home_assistant::ServerInfo { version: String::new(), location: String::new() });
+    }
+    let token = match token.filter(|given| !given.trim().is_empty()) {
+        Some(given) => given,
+        None => config::ha_token().ok_or_else(|| t("Enter a long-lived access token from your Home Assistant profile."))?,
+    };
+    let ha = HomeAssistant::new(&url, &token)?;
+    let info = ha.check().await?;
+    config::set_ha_token(&token)?;
+    let clean = home_assistant::clean_url(&url)?.to_string();
+    save(&app, |s| s.home_assistant_url = clean);
+    log::line(format!("home: Home Assistant {} connected", info.version));
+    Ok(info)
+}
+
+/// Searches the local network for Home Assistant and TVs (about three seconds).
+#[tauri::command]
+pub async fn home_scan(window: WebviewWindow) -> Result<Vec<discovery::Found>, String> {
+    only_settings(&window)?;
+    let found = discovery::scan().await;
+    log::line(format!("home: search found {} device(s)", found.len()));
+    Ok(found)
+}
+
+/// Adds the Philips TV at `host` (or updates it): asks it which API it speaks and what it has, reads its model from
+/// its UPnP description and its MAC from the network's table, and keeps all that.
+#[tauri::command]
+pub async fn home_tv_add(app: AppHandle, window: WebviewWindow, host: String) -> Result<TvSummary, String> {
+    only_settings(&window)?;
+    let probe = philips::probe(&host).await?;
+    let ip = probe.endpoint.host.parse::<std::net::Ipv4Addr>().ok();
+    let model = match ip {
+        Some(ip) => discovery::model_of(ip).await,
+        None => None,
+    };
+    let mac = philips::learn_mac(&probe.endpoint.host).map(|m| philips::format_mac(&m));
+    let existing = setup(&app).tvs.into_iter().find(|tv| tv.host == probe.endpoint.host);
+    let mut id_bytes = [0u8; 4];
+    let _ = ring::rand::SecureRandom::fill(&ring::rand::SystemRandom::new(), &mut id_bytes);
+    let s = &probe.system;
+    let conf = TvConf {
+        id: existing.as_ref().map(|e| e.id.clone()).unwrap_or_else(|| format!("philips:{}", id_bytes.iter().map(|b| format!("{b:02x}")).collect::<String>())),
+        host: probe.endpoint.host.clone(),
+        api: probe.endpoint.api,
+        https: probe.endpoint.https,
+        pin: probe.endpoint.pin.map(|p| config::pin_hex(&p)).unwrap_or_default(),
+        mac: mac.or_else(|| existing.as_ref().map(|e| e.mac.clone())).unwrap_or_default(),
+        name: s.name.clone(),
+        model: model.or(s.model.clone()).or_else(|| existing.as_ref().map(|e| e.model.clone())).unwrap_or_default(),
+        os: s.os_type.clone().unwrap_or_default(),
+        version: format!("{}.{}.{}", s.version.0, s.version.1, s.version.2),
+        features: s.features.iter().cloned().collect(),
+        needs_pairing: s.needs_pairing,
+    };
+    let summary_out = summary(&conf);
+    save(&app, |settings| {
+        settings.home_tvs.retain(|tv| tv.id != conf.id);
+        settings.home_tvs.push(conf.clone());
+    });
+    if let Some(home) = app.try_state::<Home>() {
+        home.lists.lock().unwrap().remove(&conf.id);
+    }
+    log::line(format!("home: Philips TV added (API {}, {})", conf.version, if conf.https { "https" } else { "http" }));
+    Ok(summary_out)
+}
+
+fn tv_conf(app: &AppHandle, id: &str) -> Result<TvConf, String> {
+    setup(app).tvs.into_iter().find(|tv| tv.id == id).ok_or_else(|| t("This device is not there any more."))
+}
+
+/// Starts pairing: the TV shows a PIN.
+#[tauri::command]
+pub async fn home_tv_pair(app: AppHandle, window: WebviewWindow, id: String) -> Result<(), String> {
+    only_settings(&window)?;
+    let conf = tv_conf(&app, &id)?;
+    let state = philips::pair_request(&conf.endpoint(), &conf.system()).await?;
+    app.state::<Home>().pairings.lock().unwrap().insert(id, state);
+    log::line("home: pairing started, the TV shows a PIN");
+    Ok(())
+}
+
+/// Finishes pairing with the PIN the TV shows. The pairing is kept in the OS keystore.
+#[tauri::command]
+pub async fn home_tv_pin(app: AppHandle, window: WebviewWindow, id: String, pin: String) -> Result<TvSummary, String> {
+    only_settings(&window)?;
+    let conf = tv_conf(&app, &id)?;
+    let state = app.state::<Home>().pairings.lock().unwrap().get(&id).cloned().ok_or_else(|| t("Press Pair first: the TV shows a PIN."))?;
+    let creds = philips::pair_grant(&conf.endpoint(), &state, &pin).await?;
+    config::set_credentials(&id, Some(&creds))?;
+    app.state::<Home>().pairings.lock().unwrap().remove(&id);
+    if let Some(home) = app.try_state::<Home>() {
+        home.lists.lock().unwrap().remove(&id);
+    }
+    forget_cache(&app);
+    log::line("home: Philips TV paired");
+    Ok(summary(&conf))
+}
+
+/// The TV's MAC address, to wake it from deep standby. Empty forgets it.
+#[tauri::command]
+pub fn home_tv_set_mac(app: AppHandle, window: WebviewWindow, id: String, mac: String) -> Result<TvSummary, String> {
+    only_settings(&window)?;
+    let mac = mac.trim();
+    let clean = if mac.is_empty() {
+        String::new()
+    } else {
+        philips::format_mac(&philips::parse_mac(mac).ok_or_else(|| t("This is not a MAC address (like A4:B1:C2:D3:E4:F5)."))?)
+    };
+    let mut conf = tv_conf(&app, &id)?;
+    conf.mac = clean;
+    let out = summary(&conf);
+    save(&app, |s| {
+        if let Some(tv) = s.home_tvs.iter_mut().find(|tv| tv.id == id) {
+            *tv = conf.clone();
+        }
+    });
+    Ok(out)
+}
+
+/// Forgets a TV, its pairing and its rules.
+#[tauri::command]
+pub fn home_tv_remove(app: AppHandle, window: WebviewWindow, id: String) -> Result<(), String> {
+    only_settings(&window)?;
+    config::set_credentials(&id, None)?;
+    save(&app, |s| {
+        s.home_tvs.retain(|tv| tv.id != id);
+        s.home_devices.remove(&id);
+    });
+    if let Some(home) = app.try_state::<Home>() {
+        home.lists.lock().unwrap().remove(&id);
+    }
+    log::line("home: Philips TV removed");
+    Ok(())
+}
+
+/// Every device, asked now.
+#[tauri::command]
+pub async fn home_devices(app: AppHandle, window: WebviewWindow) -> Result<Vec<Device>, String> {
+    only_settings(&window)?;
+    Ok(read(&app, true).await)
+}
+
+/// The user's rules for one device: its name and room here, whether Mochi may use it, whether it asks first.
+#[tauri::command]
+pub fn home_device_set(app: AppHandle, window: WebviewWindow, id: String, prefs: DevicePrefs) -> Result<(), String> {
+    only_settings(&window)?;
+    let clean = DevicePrefs {
+        name: prefs.name.trim().chars().take(60).collect(),
+        room: prefs.room.trim().chars().take(40).collect(),
+        exposed: prefs.exposed,
+        ask: prefs.ask,
+    };
+    save(&app, |s| {
+        if clean == DevicePrefs::default() {
+            s.home_devices.remove(&id);
+        } else {
+            s.home_devices.insert(id.clone(), clean);
+        }
+    });
+    Ok(())
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TestResult {
+    pub ok: bool,
+    pub detail: String,
+}
+
+/// A test from Settings: the user's own click, on any of their devices.
+#[tauri::command]
+pub async fn home_test(app: AppHandle, window: WebviewWindow, id: String, action: String, value: Option<String>) -> Result<TestResult, String> {
+    only_settings(&window)?;
+    let value = value.filter(|v| !v.trim().is_empty()).map(Value::String);
+    let action = Action::parse(&action, value.as_ref())?;
+    let o = control(&app, &id, &action, "settings", true).await;
+    Ok(TestResult { ok: o.ok, detail: o.detail })
+}
+
+/// Saves a routine (new or changed). Returns it as kept.
+#[tauri::command]
+pub fn home_routine_save(app: AppHandle, window: WebviewWindow, routine: Routine) -> Result<Routine, String> {
+    only_settings(&window)?;
+    let r = routines::clean(routine)?;
+    save(&app, |s| match s.home_routines.iter_mut().find(|x| x.id == r.id) {
+        Some(existing) => *existing = r.clone(),
+        None => s.home_routines.push(r.clone()),
+    });
+    Ok(r)
+}
+
+#[tauri::command]
+pub fn home_routine_delete(app: AppHandle, window: WebviewWindow, id: String) -> Result<(), String> {
+    only_settings(&window)?;
+    save(&app, |s| s.home_routines.retain(|r| r.id != id));
+    Ok(())
+}
+
+/// Runs a routine from Settings (the user's own click).
+#[tauri::command]
+pub async fn home_routine_run(app: AppHandle, window: WebviewWindow, id: String) -> Result<TestResult, String> {
+    only_settings(&window)?;
+    let r = setup(&app).routines.into_iter().find(|r| r.id == id).ok_or_else(|| t("This routine is not there any more."))?;
+    let o = run_routine(&app, &r, "settings", true).await;
+    Ok(TestResult { ok: o.ok, detail: o.detail })
+}
+
+/// Routines to start from, made of the user's devices.
+#[tauri::command]
+pub async fn home_templates(app: AppHandle, window: WebviewWindow) -> Result<Vec<Routine>, String> {
+    only_settings(&window)?;
+    Ok(routines::templates(&read(&app, false).await))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_state_is_said_in_words_for_the_model() {
+        let s = DeviceState { online: true, on: Some(true), volume: Some(20), muted: Some(false), app: Some("YouTube".into()), ..DeviceState::default() };
+        assert_eq!(state_text(&s), "on, volume 20%, YouTube on screen");
+        assert_eq!(state_words(&s), "On · Volume 20% · YouTube");
+        assert_eq!(state_text(&DeviceState::default()), "not answering");
+        assert_eq!(state_text(&DeviceState { online: true, ..DeviceState::default() }), "answering");
+    }
+
+    /// Reads this file: every command that changes something, or reaches out to the network, checks the calling
+    /// window (only Settings may), as in phone_link and agent.
+    #[test]
+    fn every_command_checks_the_calling_window() {
+        let source = include_str!("mod.rs").replace("\r\n", "\n");
+        let mut seen = 0;
+        for chunk in source.split("#[tauri::command]\n").skip(1) {
+            let name = chunk.split("fn ").nth(1).and_then(|r| r.split('(').next()).expect("a command has a name");
+            let end = chunk.find("\n}\n").expect("a command ends");
+            let body = &chunk[..end];
+            seen += 1;
+            if ["home_status", "home_log"].contains(&name) {
+                assert!(!body.contains("save(") && !body.contains(".await"), "{name} must only read");
+                continue;
+            }
+            assert!(body.contains("window: WebviewWindow") && body.contains("only_settings(&window)?"), "{name} does not check the calling window");
+        }
+        assert!(seen >= 16, "saw {seen}");
+    }
+
+    #[test]
+    fn until_stops_as_soon_as_the_state_holds() {
+        let rt = tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap();
+        let calls = Arc::new(Mutex::new(0));
+        let c = calls.clone();
+        let read = move || -> BoxFuture<'static, DeviceState> {
+            let c = c.clone();
+            Box::pin(async move {
+                let mut n = c.lock().unwrap();
+                *n += 1;
+                DeviceState { online: true, on: Some(*n >= 2), ..DeviceState::default() }
+            })
+        };
+        let (ok, state) = rt.block_on(until(Duration::from_secs(5), read, |s| s.on == Some(true)));
+        assert!(ok && state.on == Some(true));
+        assert_eq!(*calls.lock().unwrap(), 2);
+    }
+}

@@ -286,6 +286,29 @@ Settings window can turn it on.
   and, with **Settings → Phone → Let the phone use Mochi's hands**, start a turn
   from its own chat (see [docs/IPHONE_PC.md](../docs/IPHONE_PC.md)).
 
+## Mochi's home
+
+**Settings… → Mochi's home** lets the chat (and a paired phone's chat) use the
+devices of your house through Mochi's hands: "turn on the living room TV and
+open YouTube". Through **Home Assistant**'s REST API (media players, lights,
+switches) with a long-lived token, or straight to **Philips TVs** on your
+network (JointSpace, Android TVs paired once with a PIN). Off by default.
+
+- Mochi only sees the devices you tick, and only does what each one reported it
+  can do; every action becomes one call of a fixed list. Plugs and switches
+  always wait for Allow, so do the devices set to ask, and *Ask before every
+  action* makes them all wait.
+- After each action the device is asked again: Mochi says what it reports.
+- Tokens and pairings are in the system's keystore; only local addresses are
+  contacted; every action is in `home-log.jsonl` next to the log.
+- Routines ("Good night", "Movie mode"), a network search (mDNS, SSDP), a test
+  button for every action, and answers read aloud with the system's voices
+  (Windows + H dictates in the chat).
+
+Setup, safety and limits (it is tested on simulated devices so far):
+[docs/SMART_HOME.md](../docs/SMART_HOME.md) (in Portuguese:
+[docs/SMART_HOME.pt-BR.md](../docs/SMART_HOME.pt-BR.md)).
+
 ## Your phone
 
 **Settings… → Phone (Android and iPhone)** is an opt-in server on your local
@@ -297,6 +320,11 @@ now pairs with Windows and Linux too — see
 [docs/IPHONE_PC.pt-BR.md](../docs/IPHONE_PC.pt-BR.md)), including how to
 install the iPhone app without a Mac. The protocol is
 [docs/ANDROID_LINK.md](../docs/ANDROID_LINK.md).
+
+**Notifications with Coucou closed** (off by default): iOS pauses the iPhone
+app shortly after you leave it, so a request still waiting while no phone is
+connected can be announced through [ntfy](https://ntfy.sh) (ntfy.sh or your
+own server). The notification only says who is waiting; a tap opens Coucou.
 
 ## GitHub
 
@@ -524,7 +552,8 @@ own window.
   sleeps, the transparent square around him (120 px) takes the first mouse
   move, which wakes him and gives the rest back to the desktop.
 - **Mochi's hands** (the chat acting on the computer, [above](#mochis-hands))
-  are Windows and Linux only for now.
+  and **Mochi's home** ([above](#mochis-home)) are Windows and Linux only for
+  now.
 
 ## Linux
 

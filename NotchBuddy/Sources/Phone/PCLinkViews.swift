@@ -268,6 +268,12 @@ struct PCChatView: View {
     let pc: PCLink
     @State private var text = ""
     @FocusState private var focused: Bool
+    /// Dictation as in the instruction composer (on the iPhone when it can); a pause sends what was said.
+    @State private var dictation = Dictation()
+    @State private var silence: Task<Void, Never>?
+    /// The message being answered was spoken: the answer is read aloud.
+    @State private var spoken = false
+    @AppStorage("pcReadAnswersAloud") private var readAloud = true
 
     private var scrollKey: String {
         let last = pc.model.chat.last
@@ -300,6 +306,43 @@ struct PCChatView: View {
             ToolbarItem(placement: .topBarTrailing) { menu }
         }
         .onAppear { pc.refreshModels() }
+        .onDisappear {
+            dictation.stop()
+            MochiVoice.shared.stop()
+        }
+        .onChange(of: dictation.transcript) { _, words in
+            guard dictation.isRecording else { return }
+            text = dictation.prefix + words
+            // A short pause after the words: done talking, the message goes.
+            silence?.cancel()
+            guard !words.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+            silence = Task { @MainActor in
+                try? await Task.sleep(for: .seconds(1.8))
+                guard !Task.isCancelled, dictation.isRecording else { return }
+                dictation.stop()
+                send(spoken: true)
+            }
+        }
+        .onChange(of: pc.chatRunning) { was, now in
+            guard was, !now, spoken else { return }
+            spoken = false
+            if readAloud, let answer = pc.model.chat.last, answer.role == .mochi, !answer.failed {
+                MochiVoice.shared.say(answer.text, language: dictation.localeID)
+            }
+        }
+    }
+
+    private func send(spoken voice: Bool = false) {
+        silence?.cancel()
+        dictation.stop()
+        pc.sendChat(text)
+        if pc.lastError == nil {
+            text = ""
+            spoken = voice
+            Haptics.impact()
+        } else {
+            Haptics.warning()
+        }
     }
 
     private var intro: some View {
@@ -331,6 +374,14 @@ struct PCChatView: View {
                     Label("Mochi's hands", systemImage: "hand.raised")
                 }
             }
+            Toggle(isOn: $readAloud) {
+                Label("Read answers to spoken messages aloud", systemImage: "speaker.wave.2")
+            }
+            Picker("Dictation language", selection: $dictation.localeID) {
+                ForEach(Dictation.languages, id: \.self) { id in
+                    Text(Locale.current.localizedString(forIdentifier: id) ?? id).tag(id)
+                }
+            }
             Button {
                 pc.newChat()
                 Haptics.impact()
@@ -347,25 +398,34 @@ struct PCChatView: View {
         let running = pc.chatRunning
         return VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .bottom, spacing: 8) {
-                TextField(pc.model.handsAllowed && pc.chatHands ? "Ask Mochi to do something…" : "Message Mochi…",
-                          text: $text, axis: .vertical)
-                    .lineLimit(1...8)
-                    .focused($focused)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 11)
-                    .glassPill(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                HStack(alignment: .bottom, spacing: 2) {
+                    TextField(pc.model.handsAllowed && pc.chatHands ? "Ask Mochi to do something…" : "Message Mochi…",
+                              text: $text, axis: .vertical)
+                        .lineLimit(1...8)
+                        .focused($focused)
+                        .padding(.leading, 16)
+                        .padding(.vertical, 11)
+                    // Talk to Mochi: "liga a TV da sala e abre o YouTube". A pause sends it.
+                    Button {
+                        MochiVoice.shared.stop()
+                        Task { await dictation.toggle(startingFrom: text) }
+                    } label: {
+                        Image(systemName: dictation.isRecording ? "waveform" : "mic.fill")
+                            .font(.body)
+                            .foregroundStyle(dictation.isRecording ? Color.red : Color.secondary)
+                            .symbolEffect(.variableColor.iterative, isActive: dictation.isRecording)
+                            .frame(width: 38, height: 42)
+                    }
+                    .disabled(running || pc.status != .connected)
+                    .padding(.trailing, 4)
+                }
+                .glassPill(RoundedRectangle(cornerRadius: 22, style: .continuous))
                 Button {
                     if running {
                         pc.stopChat()
                         Haptics.impact()
                     } else {
-                        pc.sendChat(text)
-                        if pc.lastError == nil {
-                            text = ""
-                            Haptics.impact()
-                        } else {
-                            Haptics.warning()
-                        }
+                        send()
                     }
                 } label: {
                     Image(systemName: running ? "stop.fill" : "arrow.up")

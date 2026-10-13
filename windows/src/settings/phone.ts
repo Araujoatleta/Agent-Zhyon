@@ -2,7 +2,7 @@
 // phone with this computer — Coucou for Android, or Coucou on iPhone through
 // its Windows and Linux link. Off until the user turns it on.
 
-import { Bridge, type PhoneChatStatus, type PhoneLinkPairing, type PhoneLinkStatus, type PhoneRelayState, type PhoneRelayStatus } from "../core/bridge";
+import { Bridge, type PhoneChatStatus, type PhoneLinkPairing, type PhoneLinkStatus, type PhonePushStatus, type PhoneRelayState, type PhoneRelayStatus } from "../core/bridge";
 import { modelId, modelsOf, toggleModel, usableProviders } from "../core/phone-chat";
 import { PROVIDERS, type ProviderDef } from "../core/providers";
 import type { Settings } from "../core/state";
@@ -73,6 +73,7 @@ export function phoneSection(on: boolean, makeToggle: Toggle, settings: Settings
       servicesBlock(),
       chatBlock(makeToggle, settings),
       agentBlock(makeToggle),
+      pushBlock(makeToggle),
     );
   };
 
@@ -498,6 +499,106 @@ function agentBlock(makeToggle: Toggle): HTMLElement {
     {},
     h("div", { class: "row" }, h("label", { text: t("Let the phone use Mochi's hands") }), switchEl),
     h("div", { class: "hint", text: t("From the phone's chat, Mochi can act on this computer as set in Settings → Mochi's hands. It needs the chat above. Every change still waits for Allow, behind the phone's Face ID or fingerprint.") }),
+    note,
+  );
+}
+
+/**
+ * Notifications with Coucou closed: iOS pauses Coucou on iPhone soon after it leaves the screen, so a request that
+ * waits while no phone is connected is announced through ntfy (src-tauri/src/phone_link/push.rs). Off by default.
+ * The topic is shown only here, on request; the access token is write-only.
+ */
+function pushBlock(makeToggle: Toggle): HTMLElement {
+  const note = h("div", { class: "hint" });
+  const more = h("div", {});
+  const server = h("input", { type: "text", placeholder: "https://ntfy.sh", style: "width:100%", autocomplete: "off", spellcheck: "false" }) as HTMLInputElement;
+  const token = h("input", { type: "password", style: "width:100%", autocomplete: "off", spellcheck: "false" }) as HTMLInputElement;
+  const topic = h("input", { type: "text", readonly: "true", style: "width:100%" }) as HTMLInputElement;
+  topic.addEventListener("focus", () => topic.select());
+  let current: PhonePushStatus = { enabled: false, server: "", hasTopic: false, hasToken: false };
+
+  const showTopic = async (renew: boolean) => {
+    try {
+      topic.value = renew ? await Bridge.phonePushNewTopic() : await Bridge.phonePushTopic();
+    } catch (err) {
+      note.textContent = String(err);
+    }
+  };
+  const show = (status: PhonePushStatus | null) => {
+    if (!status) return;
+    current = status;
+    switchEl.classList.toggle("on", status.enabled);
+    switchEl.setAttribute("aria-pressed", String(status.enabled));
+    if (document.activeElement !== server) server.value = status.server;
+    token.placeholder = status.hasToken ? "••••••••" : "";
+    more.hidden = !status.enabled;
+    if (status.enabled && !topic.value) void showTopic(false);
+  };
+  const apply = async (enabled: boolean) => {
+    note.textContent = "";
+    try {
+      show(await Bridge.phonePushSet(enabled, server.value));
+    } catch (err) {
+      note.textContent = String(err);
+      show(current);
+    }
+  };
+  const switchEl = makeToggle(false, (next) => void apply(next));
+
+  const copy = h("button", { text: t("Copy") });
+  copy.addEventListener("click", () => {
+    void navigator.clipboard?.writeText(topic.value).then(() => {
+      copy.textContent = t("Copied");
+      window.setTimeout(() => (copy.textContent = t("Copy")), 1500);
+    });
+  });
+  const renew = h("button", { text: t("New topic") });
+  renew.addEventListener("click", () => void showTopic(true));
+  const saveServer = h("button", { text: t("Save address") });
+  saveServer.addEventListener("click", () => void apply(current.enabled));
+  const saveToken = h("button", { text: t("Save key") });
+  saveToken.addEventListener("click", () => {
+    void (async () => {
+      note.textContent = "";
+      try {
+        show(await Bridge.phonePushSetToken(token.value));
+        token.value = "";
+      } catch (err) {
+        note.textContent = String(err);
+      }
+    })();
+  });
+  const test = h("button", { text: t("Send a test notification") });
+  test.addEventListener("click", () => {
+    void (async () => {
+      note.textContent = "";
+      test.disabled = true;
+      try {
+        await Bridge.phonePushTest();
+        note.textContent = t("Sent. It should show on the phone in a few seconds.");
+      } catch (err) {
+        note.textContent = String(err);
+      } finally {
+        test.disabled = false;
+      }
+    })();
+  });
+
+  more.append(
+    h("div", { class: "row" }, h("label", { text: t("Topic") }), topic, copy, renew),
+    h("div", { class: "hint", text: t("In the ntfy app, tap + and subscribe to this topic. Whoever knows it can read these notifications: they only say who is waiting, never the command.") }),
+    h("div", { class: "row" }, h("label", { text: t("Server") }), server, saveServer),
+    h("div", { class: "row" }, h("label", { text: t("Access token (optional)") }), token, saveToken),
+    h("div", { class: "row" }, test),
+  );
+  more.hidden = true;
+  void Bridge.phonePushStatus().then(show);
+  return h(
+    "div",
+    {},
+    h("div", { class: "row" }, h("label", { text: t("Notifications with Coucou closed") }), switchEl),
+    h("div", { class: "hint", text: t("iOS pauses Coucou on iPhone shortly after you leave it, so it no longer hears about requests. With this on, a request that waits while no phone is connected is announced through ntfy, a free notification app: install it on the iPhone and subscribe to the topic below. A tap on the notification opens Coucou.") }),
+    more,
     note,
   );
 }

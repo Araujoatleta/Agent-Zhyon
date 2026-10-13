@@ -101,6 +101,43 @@ enum PCText {
     static func clip(_ text: String, max: Int) -> String {
         text.count <= max ? text : String(text.prefix(max))
     }
+
+    /// An answer as it is read aloud: code blocks, Markdown marks and link addresses left out, each line a sentence,
+    /// at most `max` characters (cut after a sentence when one ends in the second half). Same as the computer's
+    /// spokenText (windows/src/core/voice.ts).
+    static func spoken(_ markdown: String, max: Int = 600) -> String {
+        var kept: [String] = []
+        var code = false
+        for raw in markdown.components(separatedBy: .newlines) {
+            var line = raw.trimmingCharacters(in: .whitespaces)
+            if line.hasPrefix("```") {
+                code.toggle()
+                continue
+            }
+            if code || line.isEmpty { continue }
+            while let first = line.first, "#>-*•".contains(first) {
+                line.removeFirst()
+                line = line.trimmingCharacters(in: .whitespaces)
+            }
+            if line.isEmpty { continue }
+            // A list item or a title is a sentence too: the voice pauses after it.
+            let bare = line.replacingOccurrences(of: #"[*_`]+$"#, with: "", options: .regularExpression)
+            if let last = bare.last, !".!?…:;,".contains(last) { line += "." }
+            kept.append(line)
+        }
+        var text = kept.joined(separator: " ")
+        text = text.replacingOccurrences(of: #"\[([^\]]*)\]\([^)]*\)"#, with: "$1", options: .regularExpression)
+        for mark in ["**", "__", "`", "*"] {
+            text = text.replacingOccurrences(of: mark, with: "")
+        }
+        text = text.replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression).trimmingCharacters(in: .whitespaces)
+        guard text.count > max else { return text }
+        let cut = String(text.prefix(max))
+        if let end = cut.range(of: ". ", options: .backwards), cut.distance(from: cut.startIndex, to: end.lowerBound) > max / 2 {
+            return String(cut[..<end.lowerBound]) + "."
+        }
+        return cut.trimmingCharacters(in: .whitespaces) + "…"
+    }
 }
 
 // MARK: - Lines from the iPhone

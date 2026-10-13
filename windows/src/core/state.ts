@@ -162,6 +162,9 @@ export interface Settings {
   phoneChatModels?: string[];
   /** The phone may use Mochi's hands through its chat. Rust owns it too. */
   phoneAgent?: boolean;
+  /** Notifications with Coucou closed, through ntfy, and its server ("" is ntfy.sh). Rust owns them too. */
+  phonePush?: boolean;
+  phonePushServer?: string;
   /**
    * Mochi's hands (src-tauri/src/agent): the chat may act on this computer. Rust owns these three: only
    * Settings → Mochi's hands changes them, whatever the page sends back.
@@ -171,6 +174,8 @@ export interface Settings {
   agentLevel?: string;
   /** The chat's hands toggle: use Mochi's hands in the chat when they are on. The island's own choice. */
   chatHands: boolean;
+  /** The chat reads Mochi's answers aloud with the system's voices (core/voice.ts). Off by default. */
+  readAloud?: boolean;
   /** Mochi on the desktop. Rust owns it: whatever the page sends back is ignored. */
   desktopMochi?: {
     onDesktop: boolean;

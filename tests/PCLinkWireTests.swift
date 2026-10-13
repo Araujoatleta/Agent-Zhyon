@@ -242,6 +242,19 @@ enum PCLinkWireTests {
             check("new chat", model.chat.isEmpty && model.running == nil)
         }
 
+        print("\nAn answer read aloud")
+        do {
+            checkEqual("marks, code and link addresses are left out",
+                       PCText.spoken("**Pronto!** A TV da sala está `ligada`.\n\n- YouTube aberto\n```\nnpm test\n```\nVeja [o guia](https://example.com)."),
+                       "Pronto! A TV da sala está ligada. YouTube aberto. Veja o guia.")
+            checkEqual("a title and a quote are sentences", PCText.spoken("# Feito\n> nada mais"), "Feito. nada mais.")
+            checkEqual("a long answer stops after a sentence",
+                       PCText.spoken("A TV está ligada. O YouTube está aberto na tela da sala agora mesmo. " + String(repeating: "x", count: 200), max: 80),
+                       "A TV está ligada. O YouTube está aberto na tela da sala agora mesmo.")
+            checkEqual("or is cut", PCText.spoken(String(repeating: "y", count: 30), max: 10), "yyyyyyyyyy…")
+            checkEqual("nothing to say", PCText.spoken("```\ncode\n```"), "")
+        }
+
         print(failures == 0 ? "\nAll PC link wire tests passed." : "\n\(failures) failure(s).")
         if failures > 0 { exit(1) }
     }
