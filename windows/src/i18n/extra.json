@@ -5507,17 +5507,6 @@
    "ru": "Создайте токен в Home Assistant: ваш профиль → Безопасность → Долгосрочные токены доступа. Он хранится в хранилище учётных данных системы, никогда в файле. Принимается только адрес в вашей локальной сети. Лампы, выключатели, телевизоры и колонки становятся устройствами; Mochi использует только отмеченные ниже.",
    "id": "Buat token di Home Assistant: profil Anda → Keamanan → Token akses jangka panjang. Token disimpan di penyimpanan kredensial sistem, tidak pernah di file. Hanya alamat di jaringan lokal Anda yang diterima. Lampu, sakelar, TV, dan speaker menjadi perangkat; Mochi hanya memakai yang Anda centang di bawah."
   },
-  "Philips TVs": {
-   "zh-Hans": "飞利浦电视",
-   "hi": "Philips टीवी",
-   "es": "Televisores Philips",
-   "ar": "أجهزة تلفاز Philips",
-   "fr": "TV Philips",
-   "bn": "Philips টিভি",
-   "pt-BR": "TVs Philips",
-   "ru": "Телевизоры Philips",
-   "id": "TV Philips"
-  },
   "TV address": {
    "zh-Hans": "电视地址",
    "hi": "टीवी का पता",
@@ -5638,28 +5627,6 @@
    "pt-BR": "Endereço MAC",
    "ru": "MAC-адрес",
    "id": "Alamat MAC"
-  },
-  "Coucou asks the TV which JointSpace version it speaks and what it can do, and offers only that. Android TVs (2016 and later) are paired once with a PIN. The TV's address is in its network settings.": {
-   "zh-Hans": "Coucou 会询问电视使用哪个 JointSpace 版本以及能做什么，并只提供这些功能。Android 电视（2016 年及以后）需用 PIN 码配对一次。电视的地址可在其网络设置中找到。",
-   "hi": "Coucou टीवी से पूछता है कि वह कौन-सा JointSpace संस्करण इस्तेमाल करता है और क्या कर सकता है, और केवल वही पेश करता है। Android टीवी (2016 और बाद के) एक बार PIN से पेयर होते हैं। टीवी का पता उसकी नेटवर्क सेटिंग्स में है।",
-   "es": "Coucou le pregunta a la TV qué versión de JointSpace habla y qué puede hacer, y ofrece solo eso. Las Android TV (2016 en adelante) se emparejan una vez con un PIN. La dirección de la TV está en sus ajustes de red.",
-   "ar": "يسأل Coucou التلفاز عن إصدار JointSpace الذي يتحدثه وما يمكنه فعله، ولا يقدّم إلا ذلك. أجهزة Android TV (2016 وما بعدها) تُقرَن مرة واحدة برمز PIN. عنوان التلفاز موجود في إعدادات الشبكة فيه.",
-   "fr": "Coucou demande à la TV quelle version de JointSpace elle parle et ce qu'elle sait faire, et ne propose que cela. Les Android TV (2016 et après) s'associent une fois avec un code PIN. L'adresse de la TV est dans ses réglages réseau.",
-   "bn": "Coucou টিভিকে জিজ্ঞেস করে সেটি কোন JointSpace সংস্করণ ব্যবহার করে এবং কী করতে পারে, এবং শুধু সেটুকুই দেয়। Android টিভি (২০১৬ ও পরের) একবার PIN দিয়ে পেয়ার হয়। টিভির ঠিকানা তার নেটওয়ার্ক সেটিংসে আছে।",
-   "pt-BR": "O Coucou pergunta à TV qual versão do JointSpace ela fala e o que ela consegue fazer, e só oferece isso. As Android TVs (2016 em diante) são pareadas uma vez com um PIN. O endereço da TV está nas configurações de rede dela.",
-   "ru": "Coucou спрашивает у телевизора, какую версию JointSpace он поддерживает и что умеет, и предлагает только это. Телевизоры на Android (2016 и новее) сопрягаются один раз по PIN-коду. Адрес телевизора есть в его сетевых настройках.",
-   "id": "Coucou menanyakan versi JointSpace yang dipakai TV dan apa yang bisa dilakukannya, lalu hanya menawarkan itu. TV Android (2016 dan sesudahnya) disandingkan sekali dengan PIN. Alamat TV ada di pengaturan jaringannya."
-  },
-  "To turn a TV on from standby, turn on \"Switch on with Wi-Fi\" (or \"with Chromecast\") on the TV. The MAC address, found by itself when possible, lets Coucou wake it from deep standby.": {
-   "zh-Hans": "若要从待机状态打开电视，请在电视上打开“通过 Wi-Fi 开机”（或“通过 Chromecast 开机”）。MAC 地址（尽可能自动获取）可让 Coucou 从深度待机中唤醒电视。",
-   "hi": "टीवी को स्टैंडबाय से चालू करने के लिए, टीवी पर \"Wi-Fi से चालू करें\" (या \"Chromecast से\") चालू करें। MAC पता, जो संभव होने पर अपने आप मिल जाता है, Coucou को उसे गहरे स्टैंडबाय से जगाने देता है।",
-   "es": "Para encender una TV desde el modo de espera, activa \"Encender con Wi-Fi\" (o \"con Chromecast\") en la TV. La dirección MAC, que se encuentra sola cuando es posible, permite a Coucou despertarla del modo de espera profundo.",
-   "ar": "لتشغيل التلفاز من وضع الاستعداد، فعّل \"التشغيل عبر Wi-Fi\" (أو \"عبر Chromecast\") على التلفاز. عنوان MAC، الذي يُعثر عليه تلقائيًا متى أمكن، يتيح لـ Coucou إيقاظه من الاستعداد العميق.",
-   "fr": "Pour allumer une TV depuis la veille, activez « Allumer avec le Wi-Fi » (ou « avec Chromecast ») sur la TV. L'adresse MAC, trouvée toute seule quand c'est possible, permet à Coucou de la réveiller d'une veille profonde.",
-   "bn": "স্ট্যান্ডবাই থেকে টিভি চালু করতে, টিভিতে \"Wi-Fi দিয়ে চালু করুন\" (বা \"Chromecast দিয়ে\") চালু করুন। MAC ঠিকানা, সম্ভব হলে নিজে থেকেই পাওয়া যায়, Coucou-কে গভীর স্ট্যান্ডবাই থেকে টিভি জাগাতে দেয়।",
-   "pt-BR": "Para ligar uma TV a partir do standby, ative \"Ligar com Wi-Fi\" (ou \"com Chromecast\") na TV. O endereço MAC, encontrado sozinho quando possível, deixa o Coucou acordar a TV do standby profundo.",
-   "ru": "Чтобы включать телевизор из режима ожидания, включите на нём «Включение по Wi-Fi» (или «через Chromecast»). MAC-адрес, который по возможности определяется сам, позволяет Coucou будить телевизор из глубокого сна.",
-   "id": "Untuk menyalakan TV dari mode siaga, aktifkan \"Nyalakan dengan Wi-Fi\" (atau \"dengan Chromecast\") di TV. Alamat MAC, yang ditemukan sendiri bila memungkinkan, membuat Coucou bisa membangunkannya dari siaga dalam."
   },
   "Devices": {
    "zh-Hans": "设备",
@@ -6347,6 +6314,204 @@
    "pt-BR": "Voz: {name}",
    "ru": "Голос: {name}",
    "id": "Suara: {name}"
+  },
+  "encrypted (port 8002)": {
+   "zh-Hans": "加密（端口 8002）",
+   "hi": "एन्क्रिप्टेड (पोर्ट 8002)",
+   "es": "cifrada (puerto 8002)",
+   "ar": "مشفّر (المنفذ 8002)",
+   "fr": "chiffrée (port 8002)",
+   "bn": "এনক্রিপ্ট করা (পোর্ট 8002)",
+   "pt-BR": "criptografada (porta 8002)",
+   "ru": "с шифрованием (порт 8002)",
+   "id": "terenkripsi (port 8002)"
+  },
+  "unencrypted (port 8001)": {
+   "zh-Hans": "未加密（端口 8001）",
+   "hi": "बिना एन्क्रिप्शन (पोर्ट 8001)",
+   "es": "sin cifrar (puerto 8001)",
+   "ar": "غير مشفّر (المنفذ 8001)",
+   "fr": "non chiffrée (port 8001)",
+   "bn": "এনক্রিপ্ট ছাড়া (পোর্ট 8001)",
+   "pt-BR": "sem criptografia (porta 8001)",
+   "ru": "без шифрования (порт 8001)",
+   "id": "tanpa enkripsi (port 8001)"
+  },
+  "volume by UPnP": {
+   "zh-Hans": "通过 UPnP 控制音量",
+   "hi": "UPnP से वॉल्यूम",
+   "es": "volumen por UPnP",
+   "ar": "الصوت عبر UPnP",
+   "fr": "volume par UPnP",
+   "bn": "UPnP দিয়ে ভলিউম",
+   "pt-BR": "volume por UPnP",
+   "ru": "громкость через UPnP",
+   "id": "volume lewat UPnP"
+  },
+  "Look at the TV: it asks whether to allow Coucou. Choose Allow.": {
+   "zh-Hans": "请看电视：它会询问是否允许 Coucou。请选择“允许”。",
+   "hi": "टीवी पर देखें: वह पूछ रहा है कि Coucou को अनुमति दें या नहीं। अनुमति दें चुनें।",
+   "es": "Mira la TV: pregunta si permitir a Coucou. Elige Permitir.",
+   "ar": "انظر إلى التلفاز: إنه يسأل هل يسمح لـ Coucou. اختر السماح.",
+   "fr": "Regardez la TV : elle demande s'il faut autoriser Coucou. Choisissez Autoriser.",
+   "bn": "টিভির দিকে তাকান: এটি জিজ্ঞেস করছে Coucou-কে অনুমতি দেবে কি না। অনুমতি দিন বেছে নিন।",
+   "pt-BR": "Olhe a TV: ela pergunta se pode permitir o Coucou. Escolha Permitir.",
+   "ru": "Посмотрите на телевизор: он спрашивает, разрешить ли Coucou. Выберите «Разрешить».",
+   "id": "Lihat TV: TV menanyakan apakah Coucou diizinkan. Pilih Izinkan."
+  },
+  "Needs pairing: press Pair, then choose Allow on the TV.": {
+   "zh-Hans": "需要配对：点击“配对”，然后在电视上选择“允许”。",
+   "hi": "पेयरिंग ज़रूरी है: पेयर करें दबाएँ, फिर टीवी पर अनुमति दें चुनें।",
+   "es": "Hay que emparejarla: pulsa Emparejar y luego elige Permitir en la TV.",
+   "ar": "يحتاج إلى إقران: اضغط إقران، ثم اختر السماح على التلفاز.",
+   "fr": "Association requise : appuyez sur Associer, puis choisissez Autoriser sur la TV.",
+   "bn": "পেয়ার করা দরকার: পেয়ার চাপুন, তারপর টিভিতে অনুমতি দিন বেছে নিন।",
+   "pt-BR": "Precisa parear: toque em Parear e depois escolha Permitir na TV.",
+   "ru": "Нужно сопряжение: нажмите «Сопрячь», затем выберите «Разрешить» на телевизоре.",
+   "id": "Perlu disandingkan: tekan Sandingkan, lalu pilih Izinkan di TV."
+  },
+  "Samsung and Philips TVs": {
+   "zh-Hans": "三星和飞利浦电视",
+   "hi": "Samsung और Philips टीवी",
+   "es": "Televisores Samsung y Philips",
+   "ar": "أجهزة تلفاز Samsung وPhilips",
+   "fr": "TV Samsung et Philips",
+   "bn": "Samsung ও Philips টিভি",
+   "pt-BR": "TVs Samsung e Philips",
+   "ru": "Телевизоры Samsung и Philips",
+   "id": "TV Samsung dan Philips"
+  },
+  "Coucou asks the TV what it is and what it can do, and offers only that. Samsung TVs (2016 and later) ask once on their screen whether to allow Coucou; Philips Android TVs show a PIN. The TV's address is in its network settings. A TV of another kind is not added: Coucou says what it does answer on.": {
+   "zh-Hans": "Coucou 会询问电视它是什么、能做什么，并且只提供这些功能。三星电视（2016 年及以后）会在屏幕上询问一次是否允许 Coucou；飞利浦 Android 电视会显示 PIN 码。电视的地址在其网络设置中。其他类型的电视不会被添加：Coucou 会告诉你它能响应哪些方式。",
+   "hi": "Coucou टीवी से पूछता है कि वह क्या है और क्या कर सकता है, और सिर्फ़ वही देता है। Samsung टीवी (2016 और बाद के) एक बार अपनी स्क्रीन पर पूछते हैं कि Coucou को अनुमति दें या नहीं; Philips Android टीवी एक PIN दिखाते हैं। टीवी का पता उसकी नेटवर्क सेटिंग्स में होता है। किसी और तरह का टीवी जोड़ा नहीं जाता: Coucou बताता है कि वह किन तरीकों पर जवाब देता है।",
+   "es": "Coucou le pregunta a la TV qué es y qué puede hacer, y solo ofrece eso. Las TV Samsung (2016 y posteriores) preguntan una vez en pantalla si permitir a Coucou; las TV Android de Philips muestran un PIN. La dirección de la TV está en su configuración de red. Una TV de otro tipo no se añade: Coucou dice por dónde responde.",
+   "ar": "يسأل Coucou التلفاز عمّا هو وما يستطيع فعله، ولا يعرض إلا ذلك. تسأل أجهزة تلفاز Samsung (2016 وما بعدها) مرة واحدة على شاشتها هل تسمح لـ Coucou؛ وتعرض أجهزة Philips بنظام Android رمز PIN. عنوان التلفاز موجود في إعدادات الشبكة الخاصة به. لا يُضاف تلفاز من نوع آخر: يذكر Coucou الطرق التي يستجيب عليها.",
+   "fr": "Coucou demande à la TV ce qu'elle est et ce qu'elle sait faire, et ne propose que cela. Les TV Samsung (2016 et après) demandent une fois à l'écran s'il faut autoriser Coucou ; les TV Android de Philips affichent un code PIN. L'adresse de la TV est dans ses réglages réseau. Une TV d'un autre type n'est pas ajoutée : Coucou dit sur quoi elle répond.",
+   "bn": "Coucou টিভিকে জিজ্ঞেস করে সেটি কী এবং কী করতে পারে, এবং শুধু সেটুকুই দেয়। Samsung টিভি (2016 ও পরের) একবার স্ক্রিনে জিজ্ঞেস করে Coucou-কে অনুমতি দেবে কি না; Philips Android টিভি একটি PIN দেখায়। টিভির ঠিকানা তার নেটওয়ার্ক সেটিংসে থাকে। অন্য ধরনের টিভি যোগ করা হয় না: Coucou জানায় সেটি কোন পথে সাড়া দেয়।",
+   "pt-BR": "O Coucou pergunta à TV o que ela é e o que consegue fazer, e só oferece isso. TVs Samsung (2016 em diante) perguntam uma vez na tela se podem permitir o Coucou; as Android TVs Philips mostram um PIN. O endereço da TV está nas configurações de rede dela. Uma TV de outro tipo não é adicionada: o Coucou diz por onde ela responde.",
+   "ru": "Coucou спрашивает телевизор, что он такое и что умеет, и предлагает только это. Телевизоры Samsung (2016 года и новее) один раз спрашивают на экране, разрешить ли Coucou; телевизоры Philips на Android показывают PIN-код. Адрес телевизора есть в его настройках сети. Телевизор другого типа не добавляется: Coucou говорит, на что он отвечает.",
+   "id": "Coucou menanyakan kepada TV apa dirinya dan apa yang bisa dilakukannya, dan hanya menawarkan itu. TV Samsung (2016 dan sesudahnya) sekali bertanya di layar apakah Coucou diizinkan; Android TV Philips menampilkan PIN. Alamat TV ada di pengaturan jaringannya. TV jenis lain tidak ditambahkan: Coucou menyebutkan jalur apa saja yang dijawabnya."
+  },
+  "To turn a TV on from standby: on a Samsung TV, turn on \"Power On with Mobile\" (Settings → General → Network → Expert Settings); on a Philips TV, \"Switch on with Wi-Fi\" (or \"with Chromecast\"). The MAC address, found by itself when possible, lets Coucou wake it from deep standby.": {
+   "zh-Hans": "要从待机状态打开电视：三星电视请开启“通过移动设备开机”（设置 → 常规 → 网络 → 专家设置）；飞利浦电视请开启“通过 Wi-Fi 开机”（或“通过 Chromecast 开机”）。MAC 地址会尽可能自动找到，用于让 Coucou 从深度待机中唤醒电视。",
+   "hi": "स्टैंडबाय से टीवी चालू करने के लिए: Samsung टीवी पर \"Power On with Mobile\" चालू करें (सेटिंग्स → सामान्य → नेटवर्क → विशेषज्ञ सेटिंग्स); Philips टीवी पर \"Switch on with Wi-Fi\" (या \"with Chromecast\")। MAC पता, जो जहाँ तक संभव हो खुद मिल जाता है, Coucou को टीवी को गहरे स्टैंडबाय से जगाने देता है।",
+   "es": "Para encender una TV desde el modo de espera: en una TV Samsung, activa «Encender con móvil» (Configuración → General → Red → Configuración experta); en una TV Philips, «Encender con Wi-Fi» (o «con Chromecast»). La dirección MAC, encontrada sola cuando se puede, permite a Coucou despertarla del modo de espera profundo.",
+   "ar": "لتشغيل التلفاز من وضع الاستعداد: على تلفاز Samsung فعّل «التشغيل بالجهاز المحمول» (الإعدادات ← عام ← الشبكة ← إعدادات الخبراء)؛ وعلى تلفاز Philips «التشغيل عبر Wi-Fi» (أو «عبر Chromecast»). عنوان MAC، الذي يُعثر عليه تلقائيًا متى أمكن، يتيح لـ Coucou إيقاظ التلفاز من الاستعداد العميق.",
+   "fr": "Pour allumer une TV depuis la veille : sur une TV Samsung, activez « Allumer avec mobile » (Paramètres → Général → Réseau → Paramètres experts) ; sur une TV Philips, « Allumer avec le Wi-Fi » (ou « avec Chromecast »). L'adresse MAC, trouvée toute seule quand c'est possible, permet à Coucou de la réveiller de la veille profonde.",
+   "bn": "স্ট্যান্ডবাই থেকে টিভি চালু করতে: Samsung টিভিতে \"Power On with Mobile\" চালু করুন (সেটিংস → সাধারণ → নেটওয়ার্ক → বিশেষজ্ঞ সেটিংস); Philips টিভিতে \"Switch on with Wi-Fi\" (অথবা \"with Chromecast\")। MAC ঠিকানা, যতটা সম্ভব নিজে থেকেই পাওয়া যায়, Coucou-কে গভীর স্ট্যান্ডবাই থেকে টিভি জাগাতে দেয়।",
+   "pt-BR": "Para ligar uma TV a partir do standby: na TV Samsung, ative \"Ligar com dispositivo móvel\" (Configurações → Geral → Rede → Configurações especialistas); na TV Philips, \"Ligar com Wi-Fi\" (ou \"com Chromecast\"). O endereço MAC, encontrado sozinho quando possível, deixa o Coucou acordar a TV do standby profundo.",
+   "ru": "Чтобы включать телевизор из режима ожидания: на Samsung включите «Включение с мобильного» (Настройки → Общие → Сеть → Экспертные настройки); на Philips — «Включение по Wi-Fi» (или «через Chromecast»). MAC-адрес, найденный автоматически, когда это возможно, позволяет Coucou будить телевизор из глубокого режима ожидания.",
+   "id": "Untuk menyalakan TV dari siaga: di TV Samsung, aktifkan \"Power On with Mobile\" (Pengaturan → Umum → Jaringan → Pengaturan Ahli); di TV Philips, \"Switch on with Wi-Fi\" (atau \"with Chromecast\"). Alamat MAC, yang ditemukan sendiri bila memungkinkan, memungkinkan Coucou membangunkan TV dari siaga dalam."
+  },
+  "Pair this TV first, in Settings → Mochi's home.": {
+   "zh-Hans": "请先在“设置 → Mochi 的家”中配对这台电视。",
+   "hi": "पहले इस टीवी को सेटिंग्स → Mochi का घर में पेयर करें।",
+   "es": "Empareja primero esta TV, en Configuración → La casa de Mochi.",
+   "ar": "أقرن هذا التلفاز أولًا، من الإعدادات ← منزل Mochi.",
+   "fr": "Associez d'abord cette TV, dans Réglages → La maison de Mochi.",
+   "bn": "আগে এই টিভি পেয়ার করুন, সেটিংস → Mochi-র বাড়ি থেকে।",
+   "pt-BR": "Pareie esta TV primeiro, em Configurações → Casa do Mochi.",
+   "ru": "Сначала выполните сопряжение этого телевизора в «Настройки → Дом Mochi».",
+   "id": "Sandingkan TV ini dulu, di Pengaturan → Rumah Mochi."
+  },
+  "To turn it on from standby, turn on \"Power On with Mobile\" in the TV's network settings (Settings → General → Network → Expert Settings).": {
+   "zh-Hans": "要从待机状态打开它，请在电视的网络设置中开启“通过移动设备开机”（设置 → 常规 → 网络 → 专家设置）。",
+   "hi": "इसे स्टैंडबाय से चालू करने के लिए, टीवी की नेटवर्क सेटिंग्स में \"Power On with Mobile\" चालू करें (सेटिंग्स → सामान्य → नेटवर्क → विशेषज्ञ सेटिंग्स)।",
+   "es": "Para encenderla desde el modo de espera, activa «Encender con móvil» en la configuración de red de la TV (Configuración → General → Red → Configuración experta).",
+   "ar": "لتشغيله من وضع الاستعداد، فعّل «التشغيل بالجهاز المحمول» في إعدادات شبكة التلفاز (الإعدادات ← عام ← الشبكة ← إعدادات الخبراء).",
+   "fr": "Pour l'allumer depuis la veille, activez « Allumer avec mobile » dans les réglages réseau de la TV (Paramètres → Général → Réseau → Paramètres experts).",
+   "bn": "এটি স্ট্যান্ডবাই থেকে চালু করতে, টিভির নেটওয়ার্ক সেটিংসে \"Power On with Mobile\" চালু করুন (সেটিংস → সাধারণ → নেটওয়ার্ক → বিশেষজ্ঞ সেটিংস)।",
+   "pt-BR": "Para ligá-la a partir do standby, ative \"Ligar com dispositivo móvel\" nas configurações de rede da TV (Configurações → Geral → Rede → Configurações especialistas).",
+   "ru": "Чтобы включать его из режима ожидания, включите «Включение с мобильного» в сетевых настройках телевизора (Настройки → Общие → Сеть → Экспертные настройки).",
+   "id": "Untuk menyalakannya dari siaga, aktifkan \"Power On with Mobile\" di pengaturan jaringan TV (Pengaturan → Umum → Jaringan → Pengaturan Ahli)."
+  },
+  "The TV refused Coucou: press Pair in Settings → Mochi's home, then choose Allow on the TV.": {
+   "zh-Hans": "电视拒绝了 Coucou：请在“设置 → Mochi 的家”中点击“配对”，然后在电视上选择“允许”。",
+   "hi": "टीवी ने Coucou को मना कर दिया: सेटिंग्स → Mochi का घर में पेयर करें दबाएँ, फिर टीवी पर अनुमति दें चुनें।",
+   "es": "La TV rechazó a Coucou: pulsa Emparejar en Configuración → La casa de Mochi y luego elige Permitir en la TV.",
+   "ar": "رفض التلفاز Coucou: اضغط إقران في الإعدادات ← منزل Mochi، ثم اختر السماح على التلفاز.",
+   "fr": "La TV a refusé Coucou : appuyez sur Associer dans Réglages → La maison de Mochi, puis choisissez Autoriser sur la TV.",
+   "bn": "টিভি Coucou-কে ফিরিয়ে দিয়েছে: সেটিংস → Mochi-র বাড়িতে পেয়ার চাপুন, তারপর টিভিতে অনুমতি দিন বেছে নিন।",
+   "pt-BR": "A TV recusou o Coucou: toque em Parear em Configurações → Casa do Mochi e depois escolha Permitir na TV.",
+   "ru": "Телевизор отказал Coucou: нажмите «Сопрячь» в «Настройки → Дом Mochi», затем выберите «Разрешить» на телевизоре.",
+   "id": "TV menolak Coucou: tekan Sandingkan di Pengaturan → Rumah Mochi, lalu pilih Izinkan di TV."
+  },
+  "{device} does not offer that.": {
+   "zh-Hans": "{device} 不提供这项功能。",
+   "hi": "{device} यह सुविधा नहीं देता।",
+   "es": "{device} no ofrece eso.",
+   "ar": "{device} لا يوفّر ذلك.",
+   "fr": "{device} ne propose pas cela.",
+   "bn": "{device} এটি দেয় না।",
+   "pt-BR": "{device} não oferece isso.",
+   "ru": "{device} этого не умеет.",
+   "id": "{device} tidak menawarkan itu."
+  },
+  "This TV answers neither as a Samsung nor as a Philips TV, and on none of the other known ways in. Check that it is on and that the address is right; it may not be controllable over the network.": {
+   "zh-Hans": "这台电视既不以三星电视也不以飞利浦电视的方式响应，其他已知方式也都没有响应。请确认它已开机且地址正确；它可能无法通过网络控制。",
+   "hi": "यह टीवी न Samsung की तरह जवाब देता है, न Philips की तरह, और न ही किसी दूसरे जाने-पहचाने तरीके पर। जाँचें कि वह चालू है और पता सही है; हो सकता है उसे नेटवर्क से नियंत्रित न किया जा सके।",
+   "es": "Esta TV no responde ni como Samsung ni como Philips, ni por ninguna de las otras vías conocidas. Comprueba que esté encendida y que la dirección sea correcta; puede que no se pueda controlar por la red.",
+   "ar": "هذا التلفاز لا يستجيب كتلفاز Samsung ولا كتلفاز Philips، ولا عبر أي من الطرق المعروفة الأخرى. تأكد من أنه يعمل وأن العنوان صحيح؛ قد لا يمكن التحكم فيه عبر الشبكة.",
+   "fr": "Cette TV ne répond ni comme une Samsung ni comme une Philips, ni par aucune des autres voies connues. Vérifiez qu'elle est allumée et que l'adresse est la bonne ; elle n'est peut-être pas pilotable par le réseau.",
+   "bn": "এই টিভি Samsung বা Philips কোনোটির মতোই সাড়া দেয় না, আর অন্য কোনো পরিচিত পথেও না। দেখুন সেটি চালু আছে এবং ঠিকানা ঠিক আছে কি না; হয়তো এটিকে নেটওয়ার্ক দিয়ে নিয়ন্ত্রণ করা যায় না।",
+   "pt-BR": "Esta TV não responde nem como Samsung nem como Philips, nem por nenhum dos outros caminhos conhecidos. Confira se ela está ligada e se o endereço está certo; talvez ela não possa ser controlada pela rede.",
+   "ru": "Этот телевизор не отвечает ни как Samsung, ни как Philips, ни по одному из других известных способов. Проверьте, что он включён и адрес верный; возможно, им нельзя управлять по сети.",
+   "id": "TV ini tidak menjawab sebagai TV Samsung maupun Philips, dan tidak lewat jalur lain yang dikenal. Pastikan TV menyala dan alamatnya benar; mungkin TV ini tidak bisa dikendalikan lewat jaringan."
+  },
+  "This TV answers neither as a Samsung nor as a Philips TV. It does answer on: {found}. Send this line to whoever helps you with Coucou: it tells how this TV could be controlled.": {
+   "zh-Hans": "这台电视既不以三星电视也不以飞利浦电视的方式响应。它确实响应：{found}。请把这一行发给帮你设置 Coucou 的人：它说明了这台电视可以如何被控制。",
+   "hi": "यह टीवी न Samsung की तरह जवाब देता है, न Philips की तरह। यह इन पर जवाब देता है: {found}। यह पंक्ति उस व्यक्ति को भेजें जो Coucou में आपकी मदद करता है: इससे पता चलता है कि इस टीवी को कैसे नियंत्रित किया जा सकता है।",
+   "es": "Esta TV no responde ni como Samsung ni como Philips. Sí responde por: {found}. Envía esta línea a quien te ayude con Coucou: indica cómo se podría controlar esta TV.",
+   "ar": "هذا التلفاز لا يستجيب كتلفاز Samsung ولا كتلفاز Philips. لكنه يستجيب على: {found}. أرسل هذا السطر إلى من يساعدك في Coucou: فهو يبيّن كيف يمكن التحكم في هذا التلفاز.",
+   "fr": "Cette TV ne répond ni comme une Samsung ni comme une Philips. Elle répond bien sur : {found}. Envoyez cette ligne à la personne qui vous aide avec Coucou : elle dit comment cette TV pourrait être pilotée.",
+   "bn": "এই টিভি Samsung বা Philips কোনোটির মতোই সাড়া দেয় না। তবে এটি সাড়া দেয়: {found}। এই লাইনটি যিনি Coucou-তে আপনাকে সাহায্য করেন তাঁকে পাঠান: এতে বোঝা যায় এই টিভি কীভাবে নিয়ন্ত্রণ করা যেতে পারে।",
+   "pt-BR": "Esta TV não responde nem como Samsung nem como Philips. Ela responde por: {found}. Mande esta linha para quem te ajuda com o Coucou: ela diz como esta TV poderia ser controlada.",
+   "ru": "Этот телевизор не отвечает ни как Samsung, ни как Philips. Он отвечает на: {found}. Отправьте эту строку тому, кто помогает вам с Coucou: она подскажет, как можно управлять этим телевизором.",
+   "id": "TV ini tidak menjawab sebagai TV Samsung maupun Philips. TV ini menjawab lewat: {found}. Kirim baris ini ke orang yang membantu Anda dengan Coucou: baris ini menunjukkan bagaimana TV ini bisa dikendalikan."
+  },
+  "The TV says Coucou was denied. To allow it, remove Coucou from the TV's list of devices (Settings → General → External Device Manager → Device Connection Manager → Device List), then press Pair again.": {
+   "zh-Hans": "电视表示 Coucou 已被拒绝。要允许它，请从电视的设备列表中删除 Coucou（设置 → 常规 → 外部设备管理器 → 设备连接管理器 → 设备列表），然后再次点击“配对”。",
+   "hi": "टीवी कहता है कि Coucou को मना किया गया था। अनुमति देने के लिए, टीवी की डिवाइस सूची से Coucou हटाएँ (सेटिंग्स → सामान्य → बाहरी डिवाइस मैनेजर → डिवाइस कनेक्शन मैनेजर → डिवाइस सूची), फिर दोबारा पेयर करें दबाएँ।",
+   "es": "La TV dice que Coucou fue rechazado. Para permitirlo, quita Coucou de la lista de dispositivos de la TV (Configuración → General → Administrador de dispositivos externos → Administrador de conexión de dispositivos → Lista de dispositivos) y pulsa Emparejar de nuevo.",
+   "ar": "يقول التلفاز إن Coucou مرفوض. للسماح به، احذف Coucou من قائمة أجهزة التلفاز (الإعدادات ← عام ← مدير الأجهزة الخارجية ← مدير اتصال الأجهزة ← قائمة الأجهزة)، ثم اضغط إقران مرة أخرى.",
+   "fr": "La TV dit que Coucou a été refusé. Pour l'autoriser, retirez Coucou de la liste des appareils de la TV (Paramètres → Général → Gestionnaire de périphériques externes → Gestionnaire de connexion des appareils → Liste des appareils), puis appuyez de nouveau sur Associer.",
+   "bn": "টিভি বলছে Coucou-কে প্রত্যাখ্যান করা হয়েছে। অনুমতি দিতে, টিভির ডিভাইস তালিকা থেকে Coucou সরান (সেটিংস → সাধারণ → এক্সটার্নাল ডিভাইস ম্যানেজার → ডিভাইস কানেকশন ম্যানেজার → ডিভাইস তালিকা), তারপর আবার পেয়ার চাপুন।",
+   "pt-BR": "A TV diz que o Coucou foi negado. Para permitir, remova o Coucou da lista de dispositivos da TV (Configurações → Geral → Gerenciador de dispositivos externos → Gerenciador de conexão de dispositivos → Lista de dispositivos) e toque em Parear de novo.",
+   "ru": "Телевизор сообщает, что Coucou запрещён. Чтобы разрешить, удалите Coucou из списка устройств телевизора (Настройки → Общие → Диспетчер внешних устройств → Диспетчер подключения устройств → Список устройств), затем снова нажмите «Сопрячь».",
+   "id": "TV menyatakan Coucou ditolak. Untuk mengizinkannya, hapus Coucou dari daftar perangkat TV (Pengaturan → Umum → Pengelola Perangkat Eksternal → Pengelola Koneksi Perangkat → Daftar Perangkat), lalu tekan Sandingkan lagi."
+  },
+  "This TV has no PIN: press Pair, then choose Allow on the TV.": {
+   "zh-Hans": "这台电视没有 PIN 码：点击“配对”，然后在电视上选择“允许”。",
+   "hi": "इस टीवी में PIN नहीं है: पेयर करें दबाएँ, फिर टीवी पर अनुमति दें चुनें।",
+   "es": "Esta TV no tiene PIN: pulsa Emparejar y luego elige Permitir en la TV.",
+   "ar": "هذا التلفاز بلا رمز PIN: اضغط إقران، ثم اختر السماح على التلفاز.",
+   "fr": "Cette TV n'a pas de code PIN : appuyez sur Associer, puis choisissez Autoriser sur la TV.",
+   "bn": "এই টিভির কোনো PIN নেই: পেয়ার চাপুন, তারপর টিভিতে অনুমতি দিন বেছে নিন।",
+   "pt-BR": "Esta TV não tem PIN: toque em Parear e depois escolha Permitir na TV.",
+   "ru": "У этого телевизора нет PIN-кода: нажмите «Сопрячь», затем выберите «Разрешить» на телевизоре.",
+   "id": "TV ini tidak memakai PIN: tekan Sandingkan, lalu pilih Izinkan di TV."
+  },
+  "Nobody answered on the TV in time: press Pair again, then choose Allow on the TV.": {
+   "zh-Hans": "没有人及时在电视上回应：请再次点击“配对”，然后在电视上选择“允许”。",
+   "hi": "टीवी पर समय रहते किसी ने जवाब नहीं दिया: दोबारा पेयर करें दबाएँ, फिर टीवी पर अनुमति दें चुनें।",
+   "es": "Nadie respondió a tiempo en la TV: pulsa Emparejar de nuevo y luego elige Permitir en la TV.",
+   "ar": "لم يُجب أحد على التلفاز في الوقت المحدد: اضغط إقران مرة أخرى، ثم اختر السماح على التلفاز.",
+   "fr": "Personne n'a répondu à temps sur la TV : appuyez de nouveau sur Associer, puis choisissez Autoriser sur la TV.",
+   "bn": "টিভিতে সময়মতো কেউ সাড়া দেয়নি: আবার পেয়ার চাপুন, তারপর টিভিতে অনুমতি দিন বেছে নিন।",
+   "pt-BR": "Ninguém respondeu na TV a tempo: toque em Parear de novo e depois escolha Permitir na TV.",
+   "ru": "На телевизоре никто не ответил вовремя: снова нажмите «Сопрячь», затем выберите «Разрешить» на телевизоре.",
+   "id": "Tidak ada yang menjawab di TV tepat waktu: tekan Sandingkan lagi, lalu pilih Izinkan di TV."
+  },
+  "The TV is asking whether to allow Coucou: choose Allow on the TV, or press Pair again in Settings → Mochi's home.": {
+   "zh-Hans": "电视正在询问是否允许 Coucou：请在电视上选择“允许”，或在“设置 → Mochi 的家”中再次点击“配对”。",
+   "hi": "टीवी पूछ रहा है कि Coucou को अनुमति दें या नहीं: टीवी पर अनुमति दें चुनें, या सेटिंग्स → Mochi का घर में दोबारा पेयर करें दबाएँ।",
+   "es": "La TV pregunta si permitir a Coucou: elige Permitir en la TV, o pulsa Emparejar de nuevo en Configuración → La casa de Mochi.",
+   "ar": "يسأل التلفاز هل يسمح لـ Coucou: اختر السماح على التلفاز، أو اضغط إقران مرة أخرى في الإعدادات ← منزل Mochi.",
+   "fr": "La TV demande s'il faut autoriser Coucou : choisissez Autoriser sur la TV, ou appuyez de nouveau sur Associer dans Réglages → La maison de Mochi.",
+   "bn": "টিভি জিজ্ঞেস করছে Coucou-কে অনুমতি দেবে কি না: টিভিতে অনুমতি দিন বেছে নিন, অথবা সেটিংস → Mochi-র বাড়িতে আবার পেয়ার চাপুন।",
+   "pt-BR": "A TV está perguntando se pode permitir o Coucou: escolha Permitir na TV, ou toque em Parear de novo em Configurações → Casa do Mochi.",
+   "ru": "Телевизор спрашивает, разрешить ли Coucou: выберите «Разрешить» на телевизоре или снова нажмите «Сопрячь» в «Настройки → Дом Mochi».",
+   "id": "TV sedang menanyakan apakah Coucou diizinkan: pilih Izinkan di TV, atau tekan Sandingkan lagi di Pengaturan → Rumah Mochi."
   }
  }
 }

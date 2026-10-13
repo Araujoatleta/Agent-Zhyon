@@ -6,38 +6,63 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 
 use super::philips::{self, Credentials, Endpoint};
+use super::samsung;
 use crate::secrets;
 
 /// Keystore entries (secrets.rs, internal: no webview can read them).
 pub const HA_TOKEN_KEY: &str = "home-assistant-token";
-/// The Philips TVs' pairings, one JSON object by TV id: {"user": device id, "key": auth key}.
+/// The TVs' pairings, one JSON object by TV id: a Philips TV's {"user": device id, "key": auth key}, a Samsung TV's
+/// {"user": "samsung", "key": its token, or "-" when it allowed Coucou without giving one}. (The name is older than the
+/// Samsung TVs, and stays: stored keys are found by it.)
 pub const PHILIPS_KEY: &str = "home-philips";
+/// `TvConf::brand` of a Samsung TV ("" is a Philips TV, as every TV was before).
+pub const SAMSUNG: &str = "samsung";
 
-/// A Philips TV added in Settings → Mochi's home, as its probe found it.
+/// A TV added in Settings → Mochi's home (Philips or Samsung), as its probe found it.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct TvConf {
-    /// `philips:` and 8 hex digits, made when it is added.
+    /// `philips:` or `samsung:` and 8 hex digits, made when it is added.
     pub id: String,
+    /// "" (Philips) or "samsung".
+    pub brand: String,
     pub host: String,
+    /// Philips: the JointSpace API (1, 5, 6). Samsung: 2.
     pub api: u8,
+    /// Philips: https on 1926. Samsung: the remote wants a token, over wss on 8002.
     pub https: bool,
-    /// The SHA-256 of its certificate, hex ("" over http).
+    /// The SHA-256 of its certificate, hex ("" over http, or not met yet).
     pub pin: String,
     /// For waking it from deep standby; "" unknown.
     pub mac: String,
     /// As the TV calls itself.
     pub name: String,
-    /// From its UPnP description (or API 1); "" unknown.
+    /// From its UPnP description (or API 1), or a Samsung TV's own; "" unknown.
     pub model: String,
     pub os: String,
-    /// "6.4.0".
+    /// "6.4.0" (JointSpace) or "2.0.25" (Samsung's API).
     pub version: String,
     pub features: BTreeMap<String, Vec<String>>,
+    /// Commands need pairing first (a PIN on a Philips TV, Allow on a Samsung TV's screen).
     pub needs_pairing: bool,
+    /// A Samsung Frame TV: its power key is held to turn it off.
+    pub frame: bool,
+    /// The TV's UPnP RenderingControl (volume and mute as numbers), found when it was added; "" none.
+    pub renderer: String,
+    /// A Samsung TV's apps as it last listed them (when it was paired, then whenever it is on): kept, so that Mochi
+    /// can open one on a TV he has just turned on.
+    pub apps: Vec<samsung::App>,
 }
 
 impl TvConf {
+    pub fn samsung(&self) -> bool {
+        self.brand == SAMSUNG
+    }
+
+    pub fn samsung_tv(&self) -> samsung::Tv {
+        samsung::Tv::new(&self.host, self.https, pin_bytes(&self.pin))
+    }
+
     pub fn endpoint(&self) -> Endpoint {
         Endpoint::new(&self.host, self.api.clamp(1, 6), self.https, pin_bytes(&self.pin))
     }
@@ -109,6 +134,16 @@ pub fn credentials(tv: &str) -> Option<Credentials> {
     let c = all.get(tv)?;
     let s = |k: &str| c.get(k).and_then(|v| v.as_str()).map(str::to_string).filter(|v| !v.is_empty());
     Some(Credentials { user: s("user")?, key: s("key")? })
+}
+
+/// A Samsung TV's token ("-": allowed without one). None: not paired.
+pub fn samsung_token(tv: &str) -> Option<String> {
+    credentials(tv).filter(|c| c.user == SAMSUNG).map(|c| c.key)
+}
+
+pub fn set_samsung_token(tv: &str, token: Option<&str>) -> Result<(), String> {
+    let key = token.map(str::trim).filter(|t| !t.is_empty()).unwrap_or("-");
+    set_credentials(tv, Some(&Credentials { user: SAMSUNG.into(), key: key.into() }))
 }
 
 /// Stores (Some) or forgets (None) a TV's pairing.

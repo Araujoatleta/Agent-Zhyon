@@ -511,7 +511,10 @@ mod tests {
   "homeEnabled": true,
   "homeAskAll": true,
   "homeAssistantUrl": "http://homeassistant.local:8123/",
-  "homeTvs": [{ "id": "philips:0a1b2c3d", "host": "192.168.1.20", "api": 6, "https": true, "pin": "", "mac": "A4:B1:C2:D3:E4:F5", "name": "Philips TV", "model": "55PUS8007/12", "os": "MSAF_2019_P", "version": "6.4.0", "features": { "inputkey": ["key"] }, "needsPairing": true }],
+  "homeTvs": [
+    { "id": "philips:0a1b2c3d", "brand": "", "host": "192.168.1.20", "api": 6, "https": true, "pin": "", "mac": "A4:B1:C2:D3:E4:F5", "name": "Philips TV", "model": "55PUS8007/12", "os": "MSAF_2019_P", "version": "6.4.0", "features": { "inputkey": ["key"] }, "needsPairing": true, "frame": false, "renderer": "", "apps": [] },
+    { "id": "samsung:0e0f1a1b", "brand": "samsung", "host": "192.168.0.9", "api": 2, "https": true, "pin": "", "mac": "A4:30:7A:12:34:56", "name": "Samsung 7 Series (43)", "model": "UN43AU7700GXZD", "os": "Tizen", "version": "2.0.25", "features": {}, "needsPairing": true, "frame": true, "renderer": "http://192.168.0.9:9197/upnp/control/RenderingControl1", "apps": [{ "id": "111299001912", "name": "YouTube", "kind": 2 }] }
+  ],
   "homeDevices": { "philips:0a1b2c3d": { "name": "TV da sala", "room": "Sala", "exposed": true, "ask": false } },
   "homeRoutines": [{ "id": "r-0a1b2c3d4e5f", "name": "Boa noite", "steps": [{ "device": "philips:0a1b2c3d", "action": "turn_off", "value": "", "wait": 0 }] }],
   "readAloud": true
@@ -725,6 +728,11 @@ mod tests {
         let odd = parse(&custom_with("homeTvs", Some(serde_json::json!("nope")))).unwrap();
         assert!(odd.home_tvs.is_empty());
         assert_eq!(odd.home_routines.len(), 1);
+        // A TV kept before Samsung TVs came is a Philips one.
+        let mut older = custom();
+        older["homeTvs"][0].as_object_mut().unwrap().remove("brand");
+        let tvs = parse(&serde_json::to_vec(&older).unwrap()).unwrap().home_tvs;
+        assert!(!tvs[0].samsung() && tvs[1].samsung());
         // Reading answers aloud is a choice too: off until the user turns it on.
         assert!(!d.read_aloud);
         assert!(!parse(&custom_with("readAloud", None)).unwrap().read_aloud);

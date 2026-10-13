@@ -366,8 +366,8 @@ export const Bridge = {
   /** Searches the local network for Home Assistant and TVs (about three seconds). */
   homeScan: () => callOrThrow<Found[]>("home_scan"),
   homeTvAdd: (host: string) => callOrThrow<TvSummary>("home_tv_add", { host }),
-  /** The TV shows a PIN. */
-  homeTvPair: (id: string) => callOrThrow<void>("home_tv_pair", { id }),
+  /** A Philips TV shows a PIN (null: type it next); a Samsung TV asks on its screen, and is paired when this resolves. */
+  homeTvPair: (id: string) => callOrThrow<TvSummary | null>("home_tv_pair", { id }),
   homeTvPin: (id: string, pin: string) => callOrThrow<TvSummary>("home_tv_pin", { id, pin }),
   homeTvSetMac: (id: string, mac: string) => callOrThrow<TvSummary>("home_tv_set_mac", { id, mac }),
   homeTvRemove: (id: string) => callOrThrow<void>("home_tv_remove", { id }),

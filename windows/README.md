@@ -291,8 +291,10 @@ Settings window can turn it on.
 **Settings… → Mochi's home** lets the chat (and a paired phone's chat) use the
 devices of your house through Mochi's hands: "turn on the living room TV and
 open YouTube". Through **Home Assistant**'s REST API (media players, lights,
-switches) with a long-lived token, or straight to **Philips TVs** on your
-network (JointSpace, Android TVs paired once with a PIN). Off by default.
+switches) with a long-lived token, or straight to **Samsung TVs** (2016 and
+later: they ask once on their screen whether to allow Coucou) and **Philips
+TVs** (JointSpace, Android TVs paired once with a PIN) on your network. A TV of
+another kind is not added: Coucou says what it does answer on. Off by default.
 
 - Mochi only sees the devices you tick, and only does what each one reported it
   can do; every action becomes one call of a fixed list. Plugs and switches

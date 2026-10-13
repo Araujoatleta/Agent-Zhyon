@@ -109,7 +109,7 @@ export function homeSection(makeToggle: Toggle, voice?: VoiceChoice): HTMLElemen
         haToken.focus();
       });
       row.append(use);
-    } else if (f.kind === "philipsTv") {
+    } else if (f.kind === "philipsTv" || f.kind === "samsungTv") {
       const add = h("button", { text: t("Add") }) as HTMLButtonElement;
       add.addEventListener("click", () => void addTv(f.host, add));
       row.append(add);
@@ -192,7 +192,14 @@ export function homeSection(makeToggle: Toggle, voice?: VoiceChoice): HTMLElemen
     const pair = h("button", { text: tv.paired ? t("Pair again") : t("Pair") }) as HTMLButtonElement;
     pair.addEventListener("click", () =>
       void busy(pair, result, async () => {
-        await Bridge.homeTvPair(tv.id);
+        // A Samsung TV asks on its screen (for up to half a minute): say so while it waits.
+        if (tv.brand === "samsung") result.append(notice(t("Look at the TV: it asks whether to allow Coucou. Choose Allow."), true));
+        const paired = await Bridge.homeTvPair(tv.id);
+        if (paired) {
+          result.replaceChildren();
+          await refresh();
+          return t("Paired. Mochi can now use this TV.");
+        }
         const pin = h("input", { type: "text", style: "width:110px", placeholder: "PIN", autocomplete: "off", inputmode: "numeric" }) as HTMLInputElement;
         const confirm = h("button", { class: "primary", text: t("Confirm") }) as HTMLButtonElement;
         confirm.addEventListener("click", () =>
@@ -223,7 +230,14 @@ export function homeSection(makeToggle: Toggle, voice?: VoiceChoice): HTMLElemen
       }),
     );
     const pairState = tv.needsPairing
-      ? h("span", { class: "hint", text: tv.paired ? t("Paired") : t("Needs pairing: press Pair and type the PIN the TV shows.") })
+      ? h("span", {
+          class: "hint",
+          text: tv.paired
+            ? t("Paired")
+            : tv.brand === "samsung"
+              ? t("Needs pairing: press Pair, then choose Allow on the TV.")
+              : t("Needs pairing: press Pair and type the PIN the TV shows."),
+        })
       : h("span", { class: "hint", text: t("No pairing needed") });
     out.append(
       line,
@@ -237,12 +251,12 @@ export function homeSection(makeToggle: Toggle, voice?: VoiceChoice): HTMLElemen
     tvList.replaceChildren(...(status?.tvs ?? []).map(tvRow));
   };
   tvBox.append(
-    h("h3", { text: t("Philips TVs") }),
+    h("h3", { text: t("Samsung and Philips TVs") }),
     h("div", { class: "row" }, h("label", { text: t("TV address") }), tvHost, tvAdd),
     tvList,
     tvNote,
-    h("div", { class: "hint", text: t("Coucou asks the TV which JointSpace version it speaks and what it can do, and offers only that. Android TVs (2016 and later) are paired once with a PIN. The TV's address is in its network settings.") }),
-    h("div", { class: "hint", text: t("To turn a TV on from standby, turn on \"Switch on with Wi-Fi\" (or \"with Chromecast\") on the TV. The MAC address, found by itself when possible, lets Coucou wake it from deep standby.") }),
+    h("div", { class: "hint", text: t("Coucou asks the TV what it is and what it can do, and offers only that. Samsung TVs (2016 and later) ask once on their screen whether to allow Coucou; Philips Android TVs show a PIN. The TV's address is in its network settings. A TV of another kind is not added: Coucou says what it does answer on.") }),
+    h("div", { class: "hint", text: t("To turn a TV on from standby: on a Samsung TV, turn on \"Power On with Mobile\" (Settings → General → Network → Expert Settings); on a Philips TV, \"Switch on with Wi-Fi\" (or \"with Chromecast\"). The MAC address, found by itself when possible, lets Coucou wake it from deep standby.") }),
   );
 
   // ── Devices ──
