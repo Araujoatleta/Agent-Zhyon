@@ -67,12 +67,17 @@ pub fn set_key(typed_url: &str, key: &str) -> Result<(), String> {
         return Err(t("A key is only sent over https, or to a server on this computer."));
     }
     let bound = BoundKey { url: address(&url), key: key.trim().to_string() };
-    secrets::set(KEY, &serde_json::to_string(&bound).map_err(|e| e.to_string())?)
+    secrets::set_internal(KEY, &serde_json::to_string(&bound).map_err(|e| e.to_string())?)
+}
+
+/// The key kept for this address, if any (hermes_setup.rs: Coucou's own gateway).
+pub fn key_for_address(typed_url: &str) -> Option<String> {
+    key_for(&typed_or_usual(typed_url).ok()?)
 }
 
 /// The key, if it was entered for exactly this address.
 fn key_for(url: &Url) -> Option<String> {
-    bound_key(&secrets::get(KEY)?, url)
+    bound_key(&secrets::get_internal(KEY)?, url)
 }
 
 fn bound_key(stored: &str, url: &Url) -> Option<String> {

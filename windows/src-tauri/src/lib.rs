@@ -11,6 +11,7 @@ mod desktop;
 mod files;
 mod github;
 mod hermes;
+mod hermes_setup;
 mod hooks;
 mod i18n;
 mod identity;
@@ -121,6 +122,9 @@ fn save_settings(app: AppHandle, shared: State<Shared>, settings: Settings) {
         settings.home_routines = current.home_routines.clone();
         // Hermes Agent's address: only its Connect and Disconnect change it (the key is bound to it).
         settings.hermes_url = current.hermes_url.clone();
+        // Whether Coucou runs Hermes, and with which brain: only Settings → Hermes Agent's own commands (hermes_setup).
+        settings.hermes_managed = current.hermes_managed;
+        settings.hermes_brain = current.hermes_brain.clone();
         // Mochi's hands too: only Settings → Mochi's hands changes them (agent::agent_settings_set).
         settings.agent_enabled = current.agent_enabled;
         settings.agent_folder = current.agent_folder.clone();
@@ -533,7 +537,7 @@ fn hermes_disconnect(app: AppHandle, shared: State<Shared>) -> Result<(), String
         }
         current.clone()
     };
-    let _ = secrets::clear(hermes::KEY);
+    let _ = secrets::set_internal(hermes::KEY, "");
     if let Err(err) = settings::save(&settings) {
         log::line(format!("could not save settings: {err}"));
     }
@@ -750,6 +754,7 @@ pub fn run() {
         .manage(Chat::default())
         .manage(agent::Agent::default())
         .manage(smart_home::Home::default())
+        .manage(hermes_setup::Zheus::default())
         .manage(shortcuts::Registry::default())
         .manage(recap::load())
         .invoke_handler(tauri::generate_handler![
@@ -836,6 +841,10 @@ pub fn run() {
             phone_link::phone_push_new_topic,
             phone_link::phone_push_set_token,
             phone_link::phone_remote_status,
+            hermes_setup::hermes_setup_status,
+            hermes_setup::hermes_setup_start,
+            hermes_setup::hermes_setup_cancel,
+            hermes_setup::hermes_gateway_set,
             phone_link::phone_remote_set,
             phone_link::phone_remote_check,
             phone_link::push::phone_push_test,
@@ -923,6 +932,7 @@ pub fn run() {
             hooks::ensure_hook_exe(&handle);
             pipe::start(handle.clone());
             phone_link::start_if_enabled(&handle);
+            hermes_setup::start_if_managed(&handle);
             integrations::start(handle.clone());
             spotify::sync(&handle, &loaded.active_integrations);
             shortcuts::apply(&handle, &loaded.shortcuts);
@@ -934,6 +944,7 @@ pub fn run() {
             // Withdraw the phone link's announcement on the local network before the process ends.
             if let tauri::RunEvent::Exit = event {
                 phone_link::stop_on_exit(app);
+                hermes_setup::stop_on_exit(app);
             }
         });
 }

@@ -144,6 +144,14 @@ pub struct Settings {
     /// The chat on this computer reads Mochi's answers aloud, with the system's own voices (Settings → Mochi's home →
     /// Voice). Off by default. The island's own choice, like the hands toggle: nothing leaves the computer.
     pub read_aloud: bool,
+    /// Coucou installed Hermes Agent or runs it (hermes_setup.rs): its gateway starts with Coucou. Off by default;
+    /// owned by Rust.
+    pub hermes_managed: bool,
+    /// The provider Coucou handed to Hermes as its brain ("anthropic", "google"…): its key goes to the gateway's
+    /// environment, never to a file. Owned by Rust.
+    pub hermes_brain: String,
+    /// The name the user gives their assistant ("Zheus"): Hermes is told it answers to it. The window's own choice.
+    pub assistant_name: String,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -226,6 +234,9 @@ impl Default for Settings {
             home_devices: BTreeMap::new(),
             home_routines: Vec::new(),
             read_aloud: false,
+            hermes_managed: false,
+            hermes_brain: String::new(),
+            assistant_name: String::new(),
         }
     }
 }
@@ -532,7 +543,10 @@ mod tests {
   ],
   "homeDevices": { "philips:0a1b2c3d": { "name": "TV da sala", "room": "Sala", "exposed": true, "ask": false } },
   "homeRoutines": [{ "id": "r-0a1b2c3d4e5f", "name": "Boa noite", "steps": [{ "device": "philips:0a1b2c3d", "action": "turn_off", "value": "", "wait": 0 }] }],
-  "readAloud": true
+  "readAloud": true,
+  "hermesManaged": true,
+  "hermesBrain": "anthropic",
+  "assistantName": "Zheus"
 }"##;
 
     fn custom() -> Value {
@@ -1117,6 +1131,9 @@ mod tests {
                 "homeDevices",
                 "homeRoutines",
                 "readAloud",
+                "hermesManaged",
+                "hermesBrain",
+                "assistantName",
             ]
         );
         let _ = std::fs::remove_dir_all(&dir);

@@ -23,6 +23,43 @@ O Hermes é **conectado, não copiado** para dentro do Coucou: ele é um agente 
 e o Coucou conversa com ele pelo servidor de API oficial dele. Tudo o que o Hermes aprende ou instala fica disponível na
 hora, e o Coucou continua leve.
 
+## O jeito mais simples: o Coucou instala e liga tudo (Zheus)
+
+Você não precisa abrir terminal nem editar arquivo:
+
+1. No Coucou: **Configurações → Hermes Agent**. Em **O nome do seu assistente**, escreva o nome que vai chamar, por
+   exemplo **Zheus**.
+2. Em **O cérebro dele**, escolha uma das IAs que o Coucou já tem (a chave da Anthropic, OpenAI, Google ou OpenRouter
+   que você salvou nas Configurações, ou o Ollama ou LM Studio do computador). Deixe marcado **Deixar ele usar a casa do
+   Mochi** se quiser que ele controle os aparelhos que você marcou.
+3. Leia **O que o Coucou vai fazer** e clique em **Instalar o Hermes**. O Coucou:
+   - baixa o instalador oficial do Hermes do GitHub, numa versão fixa, e **confere o SHA-256** antes de rodar
+     qualquer coisa (se não bater, nada roda);
+   - instala o Hermes em `%LOCALAPPDATA%\hermes` (no Linux, `~/.hermes`) com tudo o que ele precisa, sem perguntar
+     nada, mostrando cada etapa (1 GB e 5 a 15 minutos, mais ou menos). As ferramentas de navegador e de controle da
+     tela ficam de fora (o comando `hermes pm install` adiciona depois);
+   - configura o cérebro e a casa do Mochi com o próprio `hermes config set`. **A chave de IA nunca vai para um
+     arquivo**: ela fica no cofre do sistema e só é entregue ao Hermes na memória, quando o Coucou o inicia;
+   - cria uma chave particular entre o Coucou e o Hermes e liga o servidor do Hermes **só neste computador**
+     (`127.0.0.1:8642`), sempre que o Coucou estiver aberto. Se ele parar, o Coucou liga de novo (algumas vezes), e
+     fechar o Coucou desliga o Hermes junto;
+   - conecta o chat, o celular pareado e a casa do Mochi ao Hermes.
+4. Pronto: fale com ele no chat da ilha ou no iPhone: *"Zheus, como está minha agenda hoje?"*.
+
+**Rodar o Hermes com o Coucou** liga e desliga o servidor (o Hermes continua instalado). O Hermes também tem
+comandos próprios: `hermes setup` para mais provedores, `hermes plugins install spotify` e o resto da seção 5.
+
+Se o **Hermes já estiver instalado** neste computador, o botão vira **Deixar o Coucou rodar o Hermes**: o Coucou só
+roda o seu Hermes, sem mudar as configurações dele (a não ser que você marque **Dar também este cérebro a ele**). Se o
+servidor do seu Hermes já estiver rodando por conta própria, o Coucou não abre um segundo (o Hermes roda um por
+computador): ele usa a chave do `.env` do Hermes, ou você conecta pelo formulário abaixo.
+
+Para tirar o Hermes depois: desligue **Rodar o Hermes com o Coucou** e rode `hermes uninstall`.
+
+## Do jeito manual
+
+O resto deste guia é para quem prefere instalar e ligar o Hermes à mão.
+
 ## O que você precisa
 
 - O Coucou para Windows ou Linux, a versão depois da 0.4.0 (ainda não lançada: pegue o instalador nos artefatos do
@@ -124,9 +161,16 @@ aqui. Com o Coucou fechado, o Hermes é avisado.
   antes de dar acesso a coisas importantes.
 - **Uma coisa de cada vez**: uma conversa com o Hermes e uma dos braços do Mochi usam o mesmo lugar; a segunda espera a
   primeira.
+- **Instalado pelo Coucou**: o instalador é o oficial, fixado num commit e conferido pelo SHA-256 antes de rodar; nada é
+  instalado antes do seu clique. O servidor escuta só em `127.0.0.1`. O Hermes recebe só a chave do cérebro que você
+  escolheu, nunca as outras chaves do Coucou, e o que ele escreve na saída passa por um filtro que apaga as chaves antes
+  de aparecer nas Configurações.
 
 ## Limites, com sinceridade
 
+- **A instalação automática** foi testada no que dá para testar sem um Windows de verdade (o instalador conferido, as
+  etapas lidas do protocolo do instalador, os comandos de configuração, o ambiente do servidor); a primeira instalação
+  real é a sua. Se uma etapa falhar, a tela mostra qual e a última linha que o instalador escreveu.
 - **Testado com um Hermes simulado**: as tarefas do servidor de API, os eventos, as aprovações e o parar, e um cliente
   MCP, ainda não com um Hermes de verdade. A API do Hermes é documentada e versionada (`/v1/capabilities`); o Coucou
   recusa um servidor que não é o Hermes ou que é antigo demais.

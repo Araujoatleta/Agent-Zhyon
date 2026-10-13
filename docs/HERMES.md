@@ -22,6 +22,43 @@ Hermes is **connected, not copied** into Coucou: it is a large Python agent that
 talks to it through its official API server. Whatever Hermes learns or installs is there at once, and Coucou stays
 small.
 
+## The simplest way: Coucou installs and runs it all (Zheus)
+
+No terminal, no file to edit:
+
+1. In Coucou: **Settings → Hermes Agent**. Under **Your assistant's name**, type what you will call it, **Zheus** for
+   instance.
+2. Under **Its brain**, pick one of the AIs Coucou already has (the Anthropic, OpenAI, Google or OpenRouter key you saved
+   in Settings, or the computer's Ollama or LM Studio). Leave **Let it use Mochi's home** ticked to let it use the
+   devices you ticked.
+3. Read **What Coucou will do** and click **Install Hermes**. Coucou:
+   - downloads Hermes' official installer from GitHub, at a pinned version, and **checks its SHA-256** before running
+     anything (if it does not match, nothing runs);
+   - installs Hermes in `%LOCALAPPDATA%\hermes` (`~/.hermes` on Linux) with everything it needs, asking nothing, showing
+     each step (about 1 GB and 5 to 15 minutes). The browser and computer-use tools are left out (`hermes pm install`
+     adds them later);
+   - sets the brain and Mochi's home with Hermes' own `hermes config set`. **The AI key never goes into a file**: it
+     stays in the system's keystore and is handed to Hermes in memory only, when Coucou starts it;
+   - makes a private key between Coucou and Hermes and runs Hermes' server **on this computer only**
+     (`127.0.0.1:8642`), whenever Coucou runs. If it stops, Coucou starts it again (a few times), and quitting Coucou
+     stops Hermes too;
+   - connects the chat, the paired phone and Mochi's home to Hermes.
+4. That is all: talk to it on the island's chat or on the iPhone: *"Zheus, what's on my calendar today?"*.
+
+**Run Hermes with Coucou** turns the server on and off (Hermes stays installed). Hermes' own commands still work:
+`hermes setup` for more providers, `hermes plugins install spotify` and the rest of section 5.
+
+If **Hermes is already installed** on this computer, the button becomes **Let Coucou run Hermes**: Coucou only runs your
+Hermes, without changing its settings (unless you tick **Also give it this brain**). If your Hermes' server already
+runs by itself, Coucou starts no second one (Hermes runs one per computer): it uses the key of Hermes' `.env`, or you
+connect with the form below.
+
+To remove Hermes later: turn **Run Hermes with Coucou** off and run `hermes uninstall`.
+
+## By hand
+
+The rest of this guide is for installing and running Hermes yourself.
+
 ## What you need
 
 - Coucou for Windows or Linux, the version after 0.4.0 (unreleased yet: take the installer from the **Windows
@@ -128,6 +165,12 @@ click (Face ID on the phone) for plugs, switches and the devices set to ask, eve
 - The Hermes plugin of **Settings → Agents** (Hermes sessions on their own pill) still works, and can stay on.
 
 ## For developers
+
+- `windows/src-tauri/src/hermes_setup.rs`: Zheus — the pinned installer (`COMMIT`, its SHA-256 per platform), its stage
+  protocol (`-Manifest`, `-Stage NAME -Json -NonInteractive`), `hermes config set` for the brain and Mochi's home, and
+  the gateway Coucou runs (`hermes gateway run --external-supervisor`, a Windows job object so it ends with Coucou,
+  restarts, the key from Hermes' own `.env` when it has one). To move to a newer Hermes: change `COMMIT` and both
+  hashes (`git cat-file blob <commit>:scripts/install.ps1 | sha256sum`).
 
 - `windows/src-tauri/src/hermes.rs`: the API server as Coucou uses it (capabilities, runs, their events, approvals,
   stop), and the key bound to its address. `windows/src-tauri/src/agent/hermes.rs`: a turn with Hermes on the island

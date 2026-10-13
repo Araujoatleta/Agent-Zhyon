@@ -325,6 +325,12 @@ house through `coucou-hook --mcp`, with Mochi's rules. Guide:
 [docs/HERMES.md](../docs/HERMES.md) (in Portuguese:
 [docs/HERMES.pt-BR.md](../docs/HERMES.pt-BR.md)).
 
+Or let Coucou do it all: name your assistant ("Zheus"), pick its brain among
+the AIs Coucou has a key or a server for, and **Install Hermes**. Coucou runs
+Hermes' official installer at a pinned version, checked by SHA-256 before it
+runs, sets Hermes up with `hermes config set`, and runs its server on
+127.0.0.1 whenever Coucou runs, with the AI key in memory only.
+
 ## Your phone
 
 **Settings… → Phone (Android and iPhone)** is an opt-in server on your local

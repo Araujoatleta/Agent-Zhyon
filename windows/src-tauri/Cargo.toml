@@ -62,6 +62,8 @@ windows = { version = "0.61", features = [
   "Win32_Security_Authorization",
   # "Open terminal": the relay's process tree leads to the session's window.
   "Win32_System_Diagnostics_ToolHelp",
+  # Hermes' gateway, run by Coucou, ends with it (hermes_setup.rs).
+  "Win32_System_JobObjects",
   "Win32_System_Ole",
   "Win32_System_Pipes",
   "Win32_System_SystemInformation",

@@ -1214,6 +1214,11 @@ pub fn phone_link_publish(window: WebviewWindow, link: State<PhoneLink>, session
     Ok(())
 }
 
+/// The phone's chat models as the link keeps them ("provider/model", each once, a few at most).
+pub(crate) fn clean_chat_models(ids: &[String]) -> Vec<String> {
+    chat_backend::clean_models(ids)
+}
+
 /// The app is quitting: withdraw the announcement so phones forget this computer at once, and close what was opened
 /// on the router.
 pub fn stop_on_exit(app: &AppHandle) {

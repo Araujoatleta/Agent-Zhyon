@@ -45,7 +45,8 @@ test("Hermes is connected with the address and key typed, and nothing is sent be
   const section = hermesSection({ settings: () => settings, useInChat: async () => void (settings = { ...settings, chatProvider: "hermes" }), toggle });
   await flush();
   assert.equal(sent("hermes_connect").length, 0);
-  const [address, key] = all(section.el).filter((e) => e.tagName === "INPUT");
+  const address = all(section.el).find((e) => e.tagName === "INPUT" && e.getAttribute("placeholder") === "http://127.0.0.1:8642");
+  const key = all(section.el).find((e) => e.tagName === "INPUT" && e.getAttribute("type") === "password");
   assert.equal(address.getAttribute("placeholder"), "http://127.0.0.1:8642");
   assert.equal(key.getAttribute("type"), "password");
   address.value = "127.0.0.1:8642";

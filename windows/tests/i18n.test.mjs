@@ -259,6 +259,7 @@ const NOT_TEXT = new Set([
   "Resend", // the service's name (the Mac's "Resend" is a button: send again)
   "Stop", // a Claude Code hook event (island/hooks.ts)
   "running", // the state of a step of Mochi's hands (island/hands.ts)
+  "stopped", // the state of Hermes' gateway (settings/hermes.ts)
 ]);
 
 test("no known user-facing English literal outside t() in the views and settings", () => {

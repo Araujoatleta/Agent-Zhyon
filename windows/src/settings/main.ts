@@ -1371,6 +1371,10 @@ async function render() {
       settings.chatProvider = "hermes";
       await save();
     },
+    setName: (name) => {
+      settings.assistantName = name;
+      void save();
+    },
     toggle,
   });
   hermesRedraw = hermes.redraw;

@@ -440,6 +440,14 @@ export const Bridge = {
   /** Settings → Hermes Agent → Connect: the key goes to the keystore with the address; Rust stores the address. */
   hermesConnect: (url: string, key: string) => callOrThrow<HermesConnected>("hermes_connect", { url, key }),
   hermesDisconnect: () => callOrThrow<void>("hermes_disconnect"),
+  // ── Zheus: Hermes installed and run by Coucou (src-tauri/src/hermes_setup.rs) ──
+  hermesSetupStatus: () => call<HermesSetupStatus>("hermes_setup_status"),
+  /** After the plan was shown. `configure`: also give an existing Hermes this brain. */
+  hermesSetupStart: (brain: string, house: boolean, configure: boolean) =>
+    callOrThrow<HermesSetupStatus>("hermes_setup_start", { brain, house, configure }),
+  hermesSetupCancel: () => callOrThrow<HermesSetupStatus>("hermes_setup_cancel"),
+  /** Coucou runs Hermes, or not (Hermes stays installed). */
+  hermesGatewaySet: (on: boolean) => callOrThrow<HermesSetupStatus>("hermes_gateway_set", { on }),
   /** Settings → Hermes Agent → Mochi's home for Hermes (agent/mcp.rs). */
   homeMcpStatus: () => call<HomeMcpStatus>("home_mcp_status"),
   homeMcpSet: (on: boolean) => callOrThrow<HomeMcpStatus>("home_mcp_set", { on }),
@@ -582,6 +590,48 @@ export interface HomeMcpStatus {
 }
 
 /** Hermes Agent answered Connect (hermes.rs `Connected`). */
+/** A brain Coucou can give Hermes: a provider it has a key or an address for (src-tauri/src/hermes_setup.rs). */
+export interface HermesBrain {
+  id: string;
+  name: string;
+  ready: boolean;
+  /** The model Coucou's chat uses with it ("": Hermes picks its own). */
+  model: string;
+}
+
+/** Hermes' installation, while and after it runs. */
+export interface HermesProgress {
+  running: boolean;
+  /** The step being done, in Hermes' installer's words. */
+  step: string;
+  done: number;
+  total: number;
+  /** The last line it printed. */
+  last: string;
+  error: string | null;
+  finished: boolean;
+}
+
+export type HermesGateway =
+  | { state: "off" | "starting" | "running" | "elsewhere" }
+  | { state: "stopped"; reason: string };
+
+/** Settings → Hermes Agent: what Coucou installed and runs. */
+export interface HermesSetupStatus {
+  installed: boolean;
+  managed: boolean;
+  /** Hermes' folder. */
+  home: string;
+  brains: HermesBrain[];
+  brain: string;
+  progress: HermesProgress;
+  gateway: HermesGateway;
+  address: string;
+  /** The Hermes commit Coucou installs, short. */
+  commit: string;
+  installer: string;
+}
+
 export interface HermesConnected {
   /** The address as it is stored. */
   url: string;
