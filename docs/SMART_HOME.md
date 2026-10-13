@@ -111,6 +111,9 @@ lists. When something is ambiguous or not possible, Mochi says so instead of gue
   (`%LOCALAPPDATA%\Coucou` on Windows, `~/.local/share/coucou` on Linux), at most 1,000 lines, on this computer only.
   **Show the latest actions** in Settings reads it.
 - Home Assistant over plain `http://` sends the token in clear on your network: use `https://` if you can.
+- **Other agents** (Hermes Agent, or another MCP client on this computer) reach the house only once you turn on
+  **Settings → Hermes Agent → Mochi's home for Hermes**, with the same rules, and the record names them. See
+  [HERMES.md](HERMES.md).
 
 ## Limits, honestly
 

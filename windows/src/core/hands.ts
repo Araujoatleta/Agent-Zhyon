@@ -35,6 +35,8 @@ export interface HandsRequest {
   newFile: boolean;
   outside: boolean;
   secret: boolean;
+  /** Why another agent asks (Hermes: "recursive delete"). */
+  reason?: string;
 }
 
 /** What Settings → Mochi's hands and the island know (agent::AgentStatus). */
@@ -66,6 +68,8 @@ const VERBS: Record<string, string> = {
 };
 
 export function stepVerb(tool: string): string {
+  // Hermes Agent's own tools: its name, then the tool and what it was given (agent/hermes.rs).
+  if (tool === "hermes") return "Hermes";
   const verb = VERBS[tool];
   return verb ? t(verb) : tool;
 }
@@ -112,6 +116,8 @@ export function requestTitle(r: HandsRequest): string {
       return t("Mochi wants to control a device in your home");
     case "home_routine":
       return t("Mochi wants to run a routine");
+    case "hermes":
+      return t("Hermes Agent asks before doing this");
     default:
       return r.secret ? t("Mochi wants to read a file that may hold secrets") : t("Mochi wants to look outside his folder");
   }
@@ -121,6 +127,8 @@ export function requestTitle(r: HandsRequest): string {
 export function requestWarning(r: HandsRequest): string | null {
   if (r.secret) return t("This file looks like it holds keys or passwords.");
   if (r.outside) return t("Outside the folder Mochi works in.");
+  // Hermes says why in its own words (and language).
+  if (r.reason) return r.reason;
   return null;
 }
 

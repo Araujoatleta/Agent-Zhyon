@@ -403,6 +403,12 @@ export const Bridge = {
 
   localConnect: (provider: "ollama" | "lmstudio" | "custom", url: string) =>
     callOrThrow<LocalServer>("local_connect", { provider, url }),
+  /** Settings → Hermes Agent → Connect: the key goes to the keystore with the address; Rust stores the address. */
+  hermesConnect: (url: string, key: string) => callOrThrow<HermesConnected>("hermes_connect", { url, key }),
+  hermesDisconnect: () => callOrThrow<void>("hermes_disconnect"),
+  /** Settings → Hermes Agent → Mochi's home for Hermes (agent/mcp.rs). */
+  homeMcpStatus: () => call<HomeMcpStatus>("home_mcp_status"),
+  homeMcpSet: (on: boolean) => callOrThrow<HomeMcpStatus>("home_mcp_set", { on }),
   /** Copies a dropped file into the inbox. */
   ingestFile: (path: string) => callOrThrow<DroppedFile>("ingest_file", { path }),
   /** Only ever tells you whether a key exists — never its value. */
@@ -531,6 +537,22 @@ export interface LocalServer {
   url: string;
   models: string[];
   /** The address is this machine. */
+  loopback: boolean;
+}
+
+/** Whether Mochi's home is shared with the agents on this computer, and the program they start (with --mcp). */
+export interface HomeMcpStatus {
+  on: boolean;
+  command: string;
+  homeOn: boolean;
+}
+
+/** Hermes Agent answered Connect (hermes.rs `Connected`). */
+export interface HermesConnected {
+  /** The address as it is stored. */
+  url: string;
+  /** The name it answers as: its profile, "hermes-agent" by default. */
+  model: string;
   loopback: boolean;
 }
 

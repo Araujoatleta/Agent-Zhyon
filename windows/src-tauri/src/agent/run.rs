@@ -34,6 +34,8 @@ pub trait Hands: Send + Sync {
     fn step(&self, step: &Step);
     /// Waits for the user's answer to `request`: true to go ahead. False when denied, unanswered or stopped.
     fn approve<'a>(&'a self, request: Request) -> BoxFuture<'a, bool>;
+    /// The action being asked about was settled another way: its card goes, and the waiting `approve` reads a no.
+    fn release(&self) {}
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]

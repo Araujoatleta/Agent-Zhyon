@@ -228,6 +228,11 @@ export function originLabel(origin: string): string {
       return t("Routine");
     case "settings":
       return t("Settings");
+    // Other agents, through coucou-hook --mcp (agent/mcp.rs).
+    case "hermes":
+      return "Hermes Agent";
+    case "agent":
+      return t("Another agent");
     default:
       return origin;
   }

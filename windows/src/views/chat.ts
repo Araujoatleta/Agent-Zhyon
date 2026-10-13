@@ -358,8 +358,8 @@ export function buildPrompt(onHeightChange: () => void): ViewHost {
     modelName.textContent = activeModel(State.settings) || t(STRINGS.noModel);
     modelBtn.classList.toggle("open", picker.isOpen);
     modelBtn.disabled = sending;
-    // The hands toggle only exists while the hands are on in Settings.
-    handsBtn.hidden = State.settings.agentEnabled !== true;
+    // The hands toggle only exists while the hands are on in Settings, and not for Hermes, which has its own.
+    handsBtn.hidden = State.settings.agentEnabled !== true || State.settings.chatProvider === "hermes";
     handsBtn.classList.toggle("on", handsActive());
     handsBtn.disabled = sending;
     handsBtn.title = t(handsActive() ? STRINGS.handsOn : STRINGS.handsOff);
@@ -402,7 +402,8 @@ export function buildPrompt(onHeightChange: () => void): ViewHost {
     stopSpeaking(); // a new question: the last answer stops being read
     input.value = "";
     sending = true;
-    withHands = handsActive();
+    // A turn with Hermes works like one with hands: its steps show, and the send button stops it.
+    withHands = handsActive() || State.settings.chatProvider === "hermes";
     drawModelButton();
     Sound.play("send");
 

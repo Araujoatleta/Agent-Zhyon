@@ -6512,6 +6512,215 @@
    "pt-BR": "A TV está perguntando se pode permitir o Coucou: escolha Permitir na TV, ou toque em Parear de novo em Configurações → Casa do Mochi.",
    "ru": "Телевизор спрашивает, разрешить ли Coucou: выберите «Разрешить» на телевизоре или снова нажмите «Сопрячь» в «Настройки → Дом Mochi».",
    "id": "TV sedang menanyakan apakah Coucou diizinkan: pilih Izinkan di TV, atau tekan Sandingkan lagi di Pengaturan → Rumah Mochi."
+  },
+  "Hermes Agent asks before doing this": {
+   "zh-Hans": "Hermes Agent 在执行此操作前征求你的同意",
+   "hi": "Hermes Agent यह करने से पहले आपसे पूछ रहा है",
+   "es": "Hermes Agent pregunta antes de hacer esto",
+   "ar": "يستأذنك Hermes Agent قبل تنفيذ هذا",
+   "fr": "Hermes Agent demande avant de faire ceci",
+   "bn": "Hermes Agent এটি করার আগে আপনার অনুমতি চাইছে",
+   "pt-BR": "O Hermes Agent pede permissão antes de fazer isto",
+   "ru": "Hermes Agent спрашивает разрешения, прежде чем сделать это",
+   "id": "Hermes Agent meminta izin sebelum melakukan ini"
+  },
+  "Another agent": {
+   "zh-Hans": "其他智能体",
+   "hi": "दूसरा एजेंट",
+   "es": "Otro agente",
+   "ar": "وكيل آخر",
+   "fr": "Un autre agent",
+   "bn": "অন্য এজেন্ট",
+   "pt-BR": "Outro agente",
+   "ru": "Другой агент",
+   "id": "Agen lain"
+  },
+  "another agent": {
+   "zh-Hans": "其他智能体",
+   "hi": "दूसरा एजेंट",
+   "es": "otro agente",
+   "ar": "وكيل آخر",
+   "fr": "un autre agent",
+   "bn": "অন্য এজেন্ট",
+   "pt-BR": "outro agente",
+   "ru": "другой агент",
+   "id": "agen lain"
+  },
+  "Asked by {agent}": {
+   "zh-Hans": "由 {agent} 发起",
+   "hi": "{agent} ने अनुरोध किया",
+   "es": "Lo pide {agent}",
+   "ar": "بطلب من {agent}",
+   "fr": "Demandé par {agent}",
+   "bn": "{agent} অনুরোধ করেছে",
+   "pt-BR": "Pedido por {agent}",
+   "ru": "Запрос от: {agent}",
+   "id": "Diminta oleh {agent}"
+  },
+  "Mochi's home is off: turn it on in Settings → Mochi's home, and tick the devices Mochi may use.": {
+   "zh-Hans": "Mochi 的家已关闭：请在“设置 → Mochi 的家”中打开它，并勾选 Mochi 可以使用的设备。",
+   "hi": "Mochi का घर बंद है: इसे सेटिंग्स → Mochi का घर में चालू करें, और वे डिवाइस चुनें जिन्हें Mochi इस्तेमाल कर सकता है।",
+   "es": "La casa de Mochi está desactivada: actívala en Configuración → La casa de Mochi y marca los dispositivos que Mochi puede usar.",
+   "ar": "منزل Mochi متوقف: فعّله من الإعدادات ← منزل Mochi، وحدد الأجهزة التي يمكن لـ Mochi استخدامها.",
+   "fr": "La maison de Mochi est désactivée : activez-la dans Réglages → La maison de Mochi, et cochez les appareils que Mochi peut utiliser.",
+   "bn": "Mochi-র বাড়ি বন্ধ আছে: সেটিংস → Mochi-র বাড়ি থেকে এটি চালু করুন, এবং Mochi যে ডিভাইসগুলো ব্যবহার করতে পারবে সেগুলো টিক দিন।",
+   "pt-BR": "A Casa do Mochi está desligada: ligue-a em Configurações → Casa do Mochi e marque os aparelhos que o Mochi pode usar.",
+   "ru": "Дом Mochi выключен: включите его в «Настройки → Дом Mochi» и отметьте устройства, которыми Mochi может пользоваться.",
+   "id": "Rumah Mochi mati: nyalakan di Pengaturan → Rumah Mochi, lalu centang perangkat yang boleh dipakai Mochi."
+  },
+  "Add this to Hermes' config.yaml ({path}), then restart hermes gateway:": {
+   "zh-Hans": "将以下内容添加到 Hermes 的 config.yaml（{path}），然后重启 hermes gateway：",
+   "hi": "इसे Hermes की config.yaml ({path}) में जोड़ें, फिर hermes gateway दोबारा शुरू करें:",
+   "es": "Añade esto al config.yaml de Hermes ({path}) y reinicia hermes gateway:",
+   "ar": "أضف هذا إلى ملف config.yaml الخاص بـ Hermes ({path})، ثم أعد تشغيل hermes gateway:",
+   "fr": "Ajoutez ceci au config.yaml de Hermes ({path}), puis redémarrez hermes gateway :",
+   "bn": "এটি Hermes-এর config.yaml ({path})-এ যোগ করুন, তারপর hermes gateway আবার চালু করুন:",
+   "pt-BR": "Adicione isto ao config.yaml do Hermes ({path}) e reinicie o hermes gateway:",
+   "ru": "Добавьте это в config.yaml Hermes ({path}), затем перезапустите hermes gateway:",
+   "id": "Tambahkan ini ke config.yaml Hermes ({path}), lalu mulai ulang hermes gateway:"
+  },
+  "Mochi's home for Hermes": {
+   "zh-Hans": "让 Hermes 使用 Mochi 的家",
+   "hi": "Hermes के लिए Mochi का घर",
+   "es": "La casa de Mochi para Hermes",
+   "ar": "منزل Mochi لـ Hermes",
+   "fr": "La maison de Mochi pour Hermes",
+   "bn": "Hermes-এর জন্য Mochi-র বাড়ি",
+   "pt-BR": "Casa do Mochi para o Hermes",
+   "ru": "Дом Mochi для Hermes",
+   "id": "Rumah Mochi untuk Hermes"
+  },
+  "Let Hermes (and other agents on this computer that speak MCP) use the devices Mochi may use, with the same rules: only the devices you ticked, a click for what asks first, every action in the record. Off by default.": {
+   "zh-Hans": "让 Hermes（以及这台电脑上其他支持 MCP 的智能体）使用 Mochi 可用的设备，规则相同：只限你勾选的设备，需要先询问的操作要你点击确认，每个操作都会记录。默认关闭。",
+   "hi": "Hermes (और इस कंप्यूटर के अन्य MCP वाले एजेंटों) को वे डिवाइस इस्तेमाल करने दें जिन्हें Mochi इस्तेमाल कर सकता है, उन्हीं नियमों के साथ: केवल आपके चुने हुए डिवाइस, पहले पूछने वाले कामों के लिए एक क्लिक, और हर कार्रवाई रिकॉर्ड में। डिफ़ॉल्ट रूप से बंद।",
+   "es": "Deja que Hermes (y otros agentes de este equipo que hablen MCP) usen los dispositivos que Mochi puede usar, con las mismas reglas: solo los dispositivos que marcaste, un clic para lo que pide confirmación y cada acción en el registro. Desactivado por defecto.",
+   "ar": "اسمح لـ Hermes (وللوكلاء الآخرين على هذا الكمبيوتر الذين يدعمون MCP) باستخدام الأجهزة التي يمكن لـ Mochi استخدامها، بالقواعد نفسها: الأجهزة التي حددتها فقط، ونقرة منك لما يتطلب الإذن أولًا، وكل إجراء مسجّل. متوقف افتراضيًا.",
+   "fr": "Laissez Hermes (et les autres agents de cet ordinateur qui parlent MCP) utiliser les appareils que Mochi peut utiliser, avec les mêmes règles : seulement les appareils cochés, un clic pour ce qui demande d'abord, chaque action dans l'historique. Désactivé par défaut.",
+   "bn": "Hermes (এবং এই কম্পিউটারের MCP-সক্ষম অন্যান্য এজেন্ট)-কে Mochi যে ডিভাইসগুলো ব্যবহার করতে পারে সেগুলো ব্যবহার করতে দিন, একই নিয়মে: শুধু আপনার টিক দেওয়া ডিভাইস, আগে জিজ্ঞেস করার কাজে একটি ক্লিক, আর প্রতিটি কাজ রেকর্ডে। ডিফল্টভাবে বন্ধ।",
+   "pt-BR": "Deixe o Hermes (e outros agentes deste computador que falam MCP) usarem os aparelhos que o Mochi pode usar, com as mesmas regras: só os aparelhos que você marcou, um clique para o que pede confirmação, cada ação no registro. Desligado por padrão.",
+   "ru": "Разрешите Hermes (и другим агентам на этом компьютере, которые поддерживают MCP) пользоваться устройствами, доступными Mochi, по тем же правилам: только отмеченные вами устройства, щелчок для того, что требует подтверждения, каждое действие в журнале. По умолчанию выключено.",
+   "id": "Izinkan Hermes (dan agen lain di komputer ini yang mendukung MCP) memakai perangkat yang boleh dipakai Mochi, dengan aturan yang sama: hanya perangkat yang Anda centang, satu klik untuk yang perlu izin dulu, setiap tindakan tercatat. Mati secara bawaan."
+  },
+  "Hermes answers as {name}. Choose it above the chat box, or for the phone in Settings → Phone.": {
+   "zh-Hans": "Hermes 以 {name} 的身份回答。在聊天框上方选择它，或在“设置 → 手机”中为手机选择它。",
+   "hi": "Hermes {name} के रूप में जवाब देता है। इसे चैट बॉक्स के ऊपर चुनें, या फ़ोन के लिए सेटिंग्स → फ़ोन में।",
+   "es": "Hermes responde como {name}. Elígelo encima del cuadro del chat, o para el teléfono en Configuración → Teléfono.",
+   "ar": "يجيب Hermes باسم {name}. اختره فوق مربع الدردشة، أو للهاتف من الإعدادات ← الهاتف.",
+   "fr": "Hermes répond en tant que {name}. Choisissez-le au-dessus de la zone du chat, ou pour le téléphone dans Réglages → Téléphone.",
+   "bn": "Hermes {name} নামে উত্তর দেয়। চ্যাট বক্সের উপরে এটি বেছে নিন, অথবা ফোনের জন্য সেটিংস → ফোন থেকে।",
+   "pt-BR": "O Hermes responde como {name}. Escolha-o acima da caixa do chat, ou para o celular em Configurações → Celular.",
+   "ru": "Hermes отвечает как {name}. Выберите его над полем чата или для телефона в «Настройки → Телефон».",
+   "id": "Hermes menjawab sebagai {name}. Pilih di atas kotak obrolan, atau untuk ponsel di Pengaturan → Ponsel."
+  },
+  "In Hermes' .env file ({path}): API_SERVER_ENABLED=true and API_SERVER_KEY= a long secret of your choice, then run hermes gateway. Type the same secret above. The key stays in this computer's keystore and only goes to that address.": {
+   "zh-Hans": "在 Hermes 的 .env 文件（{path}）中写入：API_SERVER_ENABLED=true 和 API_SERVER_KEY=你自选的一串长密钥，然后运行 hermes gateway。在上方输入同一个密钥。该密钥保存在这台电脑的密钥库中，只会发送到那个地址。",
+   "hi": "Hermes की .env फ़ाइल ({path}) में: API_SERVER_ENABLED=true और API_SERVER_KEY= आपकी पसंद का एक लंबा गुप्त कोड, फिर hermes gateway चलाएँ। वही गुप्त कोड ऊपर लिखें। कुंजी इस कंप्यूटर के कीस्टोर में रहती है और केवल उसी पते पर जाती है।",
+   "es": "En el archivo .env de Hermes ({path}): API_SERVER_ENABLED=true y API_SERVER_KEY= un secreto largo de tu elección; luego ejecuta hermes gateway. Escribe el mismo secreto arriba. La clave se queda en el almacén de claves de este equipo y solo va a esa dirección.",
+   "ar": "في ملف .env الخاص بـ Hermes ({path}): API_SERVER_ENABLED=true و API_SERVER_KEY= سرّ طويل من اختيارك، ثم شغّل hermes gateway. اكتب السرّ نفسه أعلاه. يبقى المفتاح في مخزن المفاتيح على هذا الكمبيوتر ولا يُرسل إلا إلى ذلك العنوان.",
+   "fr": "Dans le fichier .env de Hermes ({path}) : API_SERVER_ENABLED=true et API_SERVER_KEY= un long secret de votre choix, puis lancez hermes gateway. Saisissez le même secret ci-dessus. La clé reste dans le trousseau de cet ordinateur et ne va qu'à cette adresse.",
+   "bn": "Hermes-এর .env ফাইলে ({path}): API_SERVER_ENABLED=true এবং API_SERVER_KEY= আপনার পছন্দের একটি লম্বা গোপন কোড, তারপর hermes gateway চালান। একই গোপন কোড উপরে লিখুন। কীটি এই কম্পিউটারের কীস্টোরে থাকে এবং শুধু ওই ঠিকানাতেই যায়।",
+   "pt-BR": "No arquivo .env do Hermes ({path}): API_SERVER_ENABLED=true e API_SERVER_KEY= um segredo longo da sua escolha; depois rode hermes gateway. Digite o mesmo segredo acima. A chave fica no cofre de senhas deste computador e só vai para esse endereço.",
+   "ru": "В файле .env Hermes ({path}): API_SERVER_ENABLED=true и API_SERVER_KEY= длинный секрет на ваш выбор, затем запустите hermes gateway. Введите тот же секрет выше. Ключ хранится в хранилище ключей этого компьютера и отправляется только на этот адрес.",
+   "id": "Di file .env Hermes ({path}): API_SERVER_ENABLED=true dan API_SERVER_KEY= rahasia panjang pilihan Anda, lalu jalankan hermes gateway. Ketik rahasia yang sama di atas. Kuncinya disimpan di keystore komputer ini dan hanya dikirim ke alamat itu."
+  },
+  "Let Hermes Agent answer the chat, here and on your phone, with its own tools and memory: your calendar, Spotify, your home, scheduled tasks. Hermes runs on this computer; Coucou shows each thing it does and asks you before what it wants approved.": {
+   "zh-Hans": "让 Hermes Agent 用它自己的工具和记忆来回答聊天，在这里和你的手机上都可以：你的日历、Spotify、你的家、定时任务。Hermes 运行在这台电脑上；Coucou 会显示它做的每一件事，并在它需要批准的操作前先询问你。",
+   "hi": "Hermes Agent को अपने टूल्स और मेमोरी के साथ चैट का जवाब देने दें, यहाँ और आपके फ़ोन पर: आपका कैलेंडर, Spotify, आपका घर, निर्धारित काम। Hermes इसी कंप्यूटर पर चलता है; Coucou उसका हर कदम दिखाता है और जिस काम के लिए उसे मंज़ूरी चाहिए, उससे पहले आपसे पूछता है।",
+   "es": "Deja que Hermes Agent responda el chat, aquí y en tu teléfono, con sus propias herramientas y memoria: tu calendario, Spotify, tu casa, tareas programadas. Hermes se ejecuta en este equipo; Coucou muestra cada cosa que hace y te pregunta antes de lo que necesita aprobación.",
+   "ar": "اسمح لـ Hermes Agent بالرد في الدردشة، هنا وعلى هاتفك، بأدواته وذاكرته الخاصة: تقويمك وSpotify ومنزلك والمهام المجدولة. يعمل Hermes على هذا الكمبيوتر؛ ويعرض Coucou كل ما يفعله ويسألك قبل ما يحتاج إلى موافقتك.",
+   "fr": "Laissez Hermes Agent répondre au chat, ici et sur votre téléphone, avec ses propres outils et sa mémoire : votre agenda, Spotify, votre maison, des tâches planifiées. Hermes tourne sur cet ordinateur ; Coucou montre chaque chose qu'il fait et vous demande avant ce qui doit être approuvé.",
+   "bn": "Hermes Agent-কে তার নিজের টুল ও স্মৃতি দিয়ে চ্যাটের উত্তর দিতে দিন, এখানে ও আপনার ফোনে: আপনার ক্যালেন্ডার, Spotify, আপনার বাড়ি, নির্ধারিত কাজ। Hermes এই কম্পিউটারেই চলে; Coucou তার প্রতিটি কাজ দেখায় এবং যেসব কাজে অনুমোদন লাগে তার আগে আপনাকে জিজ্ঞেস করে।",
+   "pt-BR": "Deixe o Hermes Agent responder o chat, aqui e no seu celular, com as próprias ferramentas e memória: sua agenda, o Spotify, sua casa, tarefas agendadas. O Hermes roda neste computador; o Coucou mostra cada coisa que ele faz e pergunta a você antes do que precisa de aprovação.",
+   "ru": "Пусть Hermes Agent отвечает в чате — здесь и на вашем телефоне — со своими инструментами и памятью: ваш календарь, Spotify, ваш дом, задания по расписанию. Hermes работает на этом компьютере; Coucou показывает каждое его действие и спрашивает вас перед тем, что требует одобрения.",
+   "id": "Biarkan Hermes Agent menjawab obrolan, di sini dan di ponsel Anda, dengan alat dan ingatannya sendiri: kalender Anda, Spotify, rumah Anda, tugas terjadwal. Hermes berjalan di komputer ini; Coucou menampilkan setiap hal yang dilakukannya dan bertanya kepada Anda sebelum hal yang perlu disetujui."
+  },
+  "Hermes stopped answering before the end of its work.": {
+   "zh-Hans": "Hermes 在完成工作前停止了响应。",
+   "hi": "Hermes ने अपना काम पूरा होने से पहले जवाब देना बंद कर दिया।",
+   "es": "Hermes dejó de responder antes de terminar su trabajo.",
+   "ar": "توقف Hermes عن الرد قبل أن ينهي عمله.",
+   "fr": "Hermes a cessé de répondre avant la fin de son travail.",
+   "bn": "কাজ শেষ হওয়ার আগেই Hermes সাড়া দেওয়া বন্ধ করে দিয়েছে।",
+   "pt-BR": "O Hermes parou de responder antes de terminar o trabalho.",
+   "ru": "Hermes перестал отвечать, не закончив работу.",
+   "id": "Hermes berhenti menjawab sebelum pekerjaannya selesai."
+  },
+  "Hermes Agent could not finish: {error}": {
+   "zh-Hans": "Hermes Agent 未能完成：{error}",
+   "hi": "Hermes Agent पूरा नहीं कर सका: {error}",
+   "es": "Hermes Agent no pudo terminar: {error}",
+   "ar": "تعذّر على Hermes Agent الإكمال: {error}",
+   "fr": "Hermes Agent n'a pas pu terminer : {error}",
+   "bn": "Hermes Agent শেষ করতে পারেনি: {error}",
+   "pt-BR": "O Hermes Agent não conseguiu terminar: {error}",
+   "ru": "Hermes Agent не смог завершить: {error}",
+   "id": "Hermes Agent tidak bisa menyelesaikan: {error}"
+  },
+  "Enter the key of Hermes' API server (API_SERVER_KEY in its .env file).": {
+   "zh-Hans": "请输入 Hermes API 服务器的密钥（其 .env 文件中的 API_SERVER_KEY）。",
+   "hi": "Hermes के API सर्वर की कुंजी डालें (उसकी .env फ़ाइल में API_SERVER_KEY)।",
+   "es": "Escribe la clave del servidor API de Hermes (API_SERVER_KEY en su archivo .env).",
+   "ar": "أدخل مفتاح خادم API الخاص بـ Hermes (المتغير API_SERVER_KEY في ملف .env الخاص به).",
+   "fr": "Saisissez la clé du serveur API de Hermes (API_SERVER_KEY dans son fichier .env).",
+   "bn": "Hermes-এর API সার্ভারের কী লিখুন (এর .env ফাইলের API_SERVER_KEY)।",
+   "pt-BR": "Digite a chave do servidor de API do Hermes (API_SERVER_KEY no arquivo .env dele).",
+   "ru": "Введите ключ API-сервера Hermes (API_SERVER_KEY в его файле .env).",
+   "id": "Masukkan kunci server API Hermes (API_SERVER_KEY di file .env-nya)."
+  },
+  "This server is not Hermes Agent, or its Hermes is too old: update it with `hermes update`.": {
+   "zh-Hans": "这个服务器不是 Hermes Agent，或者它的 Hermes 版本太旧：请用 `hermes update` 更新。",
+   "hi": "यह सर्वर Hermes Agent नहीं है, या इसका Hermes बहुत पुराना है: इसे `hermes update` से अपडेट करें।",
+   "es": "Este servidor no es Hermes Agent, o su Hermes es demasiado antiguo: actualízalo con `hermes update`.",
+   "ar": "هذا الخادم ليس Hermes Agent، أو أن إصدار Hermes فيه قديم جدًا: حدّثه بالأمر `hermes update`.",
+   "fr": "Ce serveur n'est pas Hermes Agent, ou son Hermes est trop ancien : mettez-le à jour avec `hermes update`.",
+   "bn": "এই সার্ভারটি Hermes Agent নয়, অথবা এর Hermes খুব পুরোনো: `hermes update` দিয়ে আপডেট করুন।",
+   "pt-BR": "Este servidor não é o Hermes Agent, ou o Hermes dele é antigo demais: atualize com `hermes update`.",
+   "ru": "Этот сервер — не Hermes Agent, или его Hermes слишком старый: обновите его командой `hermes update`.",
+   "id": "Server ini bukan Hermes Agent, atau Hermes-nya terlalu lama: perbarui dengan `hermes update`."
+  },
+  "Connect Hermes Agent first, in Settings → Hermes Agent.": {
+   "zh-Hans": "请先在“设置 → Hermes Agent”中连接 Hermes Agent。",
+   "hi": "पहले सेटिंग्स → Hermes Agent में Hermes Agent कनेक्ट करें।",
+   "es": "Conecta primero Hermes Agent, en Configuración → Hermes Agent.",
+   "ar": "اربط Hermes Agent أولًا من الإعدادات ← ملحق Hermes.",
+   "fr": "Connectez d'abord Hermes Agent, dans Réglages → Hermes Agent.",
+   "bn": "আগে সেটিংস → Hermes প্লাগইন থেকে Hermes Agent যুক্ত করুন।",
+   "pt-BR": "Conecte o Hermes Agent primeiro, em Configurações → Hermes Agent.",
+   "ru": "Сначала подключите Hermes Agent в «Настройки → Hermes Agent».",
+   "id": "Hubungkan Hermes Agent dulu, di Pengaturan → Hermes Agent."
+  },
+  "Hermes Agent does not answer at {url}. Is `hermes gateway` running, with its API server on?": {
+   "zh-Hans": "Hermes Agent 在 {url} 没有响应。`hermes gateway` 是否在运行，并且开启了 API 服务器？",
+   "hi": "Hermes Agent {url} पर जवाब नहीं दे रहा। क्या `hermes gateway` चल रहा है, और उसका API सर्वर चालू है?",
+   "es": "Hermes Agent no responde en {url}. ¿Está en marcha `hermes gateway`, con su servidor API activado?",
+   "ar": "لا يستجيب Hermes Agent على {url}. هل يعمل `hermes gateway` وخادم API الخاص به مفعّل؟",
+   "fr": "Hermes Agent ne répond pas à {url}. `hermes gateway` tourne-t-il, avec son serveur API activé ?",
+   "bn": "Hermes Agent {url}-এ সাড়া দিচ্ছে না। `hermes gateway` কি চলছে, এবং এর API সার্ভার চালু আছে?",
+   "pt-BR": "O Hermes Agent não responde em {url}. O `hermes gateway` está rodando, com o servidor de API ligado?",
+   "ru": "Hermes Agent не отвечает по адресу {url}. Запущен ли `hermes gateway` с включённым API-сервером?",
+   "id": "Hermes Agent tidak menjawab di {url}. Apakah `hermes gateway` berjalan, dengan server API-nya aktif?"
+  },
+  "Hermes refused the key: use the API_SERVER_KEY of its .env file.": {
+   "zh-Hans": "Hermes 拒绝了这个密钥：请使用其 .env 文件中的 API_SERVER_KEY。",
+   "hi": "Hermes ने कुंजी अस्वीकार कर दी: उसकी .env फ़ाइल वाली API_SERVER_KEY इस्तेमाल करें।",
+   "es": "Hermes rechazó la clave: usa la API_SERVER_KEY de su archivo .env.",
+   "ar": "رفض Hermes المفتاح: استخدم قيمة API_SERVER_KEY من ملف .env الخاص به.",
+   "fr": "Hermes a refusé la clé : utilisez l'API_SERVER_KEY de son fichier .env.",
+   "bn": "Hermes কীটি প্রত্যাখ্যান করেছে: এর .env ফাইলের API_SERVER_KEY ব্যবহার করুন।",
+   "pt-BR": "O Hermes recusou a chave: use a API_SERVER_KEY do arquivo .env dele.",
+   "ru": "Hermes отклонил ключ: используйте API_SERVER_KEY из его файла .env.",
+   "id": "Hermes menolak kunci: pakai API_SERVER_KEY dari file .env-nya."
+  },
+  "Hermes Agent answered {status}: {detail}": {
+   "zh-Hans": "Hermes Agent 返回 {status}：{detail}",
+   "hi": "Hermes Agent ने {status} लौटाया: {detail}",
+   "es": "Hermes Agent respondió {status}: {detail}",
+   "ar": "ردّ Hermes Agent بالرمز {status}: {detail}",
+   "fr": "Hermes Agent a répondu {status} : {detail}",
+   "bn": "Hermes Agent {status} ফেরত দিয়েছে: {detail}",
+   "pt-BR": "O Hermes Agent respondeu {status}: {detail}",
+   "ru": "Hermes Agent ответил {status}: {detail}",
+   "id": "Hermes Agent menjawab {status}: {detail}"
   }
  }
 }

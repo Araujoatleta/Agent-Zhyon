@@ -837,6 +837,11 @@ impl HomeRunner for Runner {
 /// What Mochi's hands get for one turn: the devices he may use and the routines, and the way to act on them. None
 /// when the home is off or has nothing for him.
 pub async fn agent_env(app: &AppHandle, from_phone: bool) -> Option<HomeEnv> {
+    agent_env_for(app, if from_phone { "phone" } else { "island" }).await
+}
+
+/// The same, for whoever asks: "island", "phone", or another agent ("hermes", "agent"), which the record names.
+pub async fn agent_env_for(app: &AppHandle, origin: &'static str) -> Option<HomeEnv> {
     let s = setup(app);
     if !s.enabled {
         return None;
@@ -863,7 +868,7 @@ pub async fn agent_env(app: &AppHandle, from_phone: bool) -> Option<HomeEnv> {
     Some(HomeEnv {
         devices,
         routines,
-        runner: Arc::new(Runner { app: app.clone(), origin: if from_phone { "phone" } else { "island" } }),
+        runner: Arc::new(Runner { app: app.clone(), origin }),
     })
 }
 

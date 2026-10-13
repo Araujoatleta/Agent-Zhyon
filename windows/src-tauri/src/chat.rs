@@ -59,6 +59,8 @@ struct Conversation {
     native: Vec<Value>,
     /// `{"role", "content": text}` turns, the same whoever answered.
     plain: Vec<Value>,
+    /// The session Hermes Agent keeps this conversation in (hermes.rs), made on first use; a new chat gets a new one.
+    hermes_session: Option<String>,
 }
 
 /// What a provider needs to build one turn.
@@ -76,6 +78,18 @@ impl Chat {
         let mut c = self.inner.lock().unwrap();
         let epoch = c.epoch + 1;
         *c = Conversation { epoch, ..Default::default() };
+    }
+
+    /// The session Hermes Agent keeps this conversation in: "coucou-" and random hex, the same until "New chat".
+    pub fn hermes_session(&self) -> String {
+        let mut c = self.inner.lock().unwrap();
+        c.hermes_session
+            .get_or_insert_with(|| {
+                let mut bytes = [0u8; 8];
+                let _ = ring::rand::SecureRandom::fill(&ring::rand::SystemRandom::new(), &mut bytes);
+                format!("coucou-{}", bytes.iter().map(|b| format!("{b:02x}")).collect::<String>())
+            })
+            .clone()
     }
 
     /// Starts a turn with `provider`, converting the history if another
@@ -271,6 +285,10 @@ pub async fn models(settings: &Settings, provider: &str) -> Result<Vec<ModelInfo
     }
     if let Some(server) = local_chat::server(settings, provider) {
         return local_chat::models(&server).await;
+    }
+    if provider == crate::hermes::PROVIDER {
+        let models = crate::hermes::Client::from_settings(settings)?.models().await?;
+        return Ok(models.into_iter().map(|id| ModelInfo { label: id.clone(), id }).collect());
     }
     Err(format!("Unknown chat provider: {provider}"))
 }

@@ -50,6 +50,9 @@ pub struct Settings {
     pub lmstudio_url: String,
     /// Any other OpenAI-compatible server; its key, if any, is in the keychain.
     pub custom_url: String,
+    /// Hermes Agent's API server once connected (hermes.rs); empty means not connected. Its key is in the keychain,
+    /// bound to this address. Owned by Rust: only Settings → Hermes Agent's commands change it.
+    pub hermes_url: String,
     /// Global shortcuts the user changed, by action id; the others keep their
     /// default (see shortcuts.rs).
     pub shortcuts: crate::shortcuts::Bindings,
@@ -124,6 +127,9 @@ pub struct Settings {
     /// Every action on the house waits for a click, not only those on plugs, switches and the devices set to ask.
     /// Owned by Rust.
     pub home_ask_all: bool,
+    /// Other agents on this computer (Hermes Agent, through `coucou-hook --mcp`) may use Mochi's home, with the same
+    /// rules as Mochi. Off by default; owned by Rust (agent::mcp::home_mcp_set).
+    pub home_mcp: bool,
     /// Home Assistant's address on the local network ("" none). Its token is in the OS keystore. Owned by Rust.
     pub home_assistant_url: String,
     /// The Philips TVs added by their address; their pairings are in the OS keystore. Owned by Rust.
@@ -185,6 +191,7 @@ impl Default for Settings {
             ollama_url: String::new(),
             lmstudio_url: String::new(),
             custom_url: String::new(),
+            hermes_url: String::new(),
             shortcuts: Default::default(),
             mochi_outfit: "auto".into(),
             pill_colors: BTreeMap::new(),
@@ -209,6 +216,7 @@ impl Default for Settings {
             phone_push_server: String::new(),
             home_enabled: false,
             home_ask_all: false,
+            home_mcp: false,
             home_assistant_url: String::new(),
             home_tvs: Vec::new(),
             home_devices: BTreeMap::new(),
@@ -486,6 +494,7 @@ mod tests {
   "ollamaUrl": "http://127.0.0.1:11434",
   "lmstudioUrl": "http://127.0.0.1:1234",
   "customUrl": "https://llm.example.com",
+  "hermesUrl": "http://127.0.0.1:8642",
   "shortcuts": { "openChat": { "keys": "Ctrl+Shift+K", "enabled": false } },
   "mochiOutfit": "witchHat",
   "pillColors": { "integration_claude": "#2DD4BF" },
@@ -510,6 +519,7 @@ mod tests {
   "phonePushServer": "https://ntfy.example.com",
   "homeEnabled": true,
   "homeAskAll": true,
+  "homeMcp": true,
   "homeAssistantUrl": "http://homeassistant.local:8123/",
   "homeTvs": [
     { "id": "philips:0a1b2c3d", "brand": "", "host": "192.168.1.20", "api": 6, "https": true, "pin": "", "mac": "A4:B1:C2:D3:E4:F5", "name": "Philips TV", "model": "55PUS8007/12", "os": "MSAF_2019_P", "version": "6.4.0", "features": { "inputkey": ["key"] }, "needsPairing": true, "frame": false, "renderer": "", "apps": [] },
@@ -1061,6 +1071,7 @@ mod tests {
                 "ollamaUrl",
                 "lmstudioUrl",
                 "customUrl",
+                "hermesUrl",
                 "shortcuts",
                 "mochiOutfit",
                 "pillColors",
@@ -1085,6 +1096,7 @@ mod tests {
                 "phonePushServer",
                 "homeEnabled",
                 "homeAskAll",
+                "homeMcp",
                 "homeAssistantUrl",
                 "homeTvs",
                 "homeDevices",

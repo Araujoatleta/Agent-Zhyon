@@ -10,6 +10,7 @@ mod config_file;
 mod desktop;
 mod files;
 mod github;
+mod hermes;
 mod hooks;
 mod i18n;
 mod identity;
@@ -112,10 +113,13 @@ fn save_settings(app: AppHandle, shared: State<Shared>, settings: Settings) {
         // Mochi's home too: only Settings → Mochi's home changes it (smart_home/).
         settings.home_enabled = current.home_enabled;
         settings.home_ask_all = current.home_ask_all;
+        settings.home_mcp = current.home_mcp;
         settings.home_assistant_url = current.home_assistant_url.clone();
         settings.home_tvs = current.home_tvs.clone();
         settings.home_devices = current.home_devices.clone();
         settings.home_routines = current.home_routines.clone();
+        // Hermes Agent's address: only its Connect and Disconnect change it (the key is bound to it).
+        settings.hermes_url = current.hermes_url.clone();
         // Mochi's hands too: only Settings → Mochi's hands changes them (agent::agent_settings_set).
         settings.agent_enabled = current.agent_enabled;
         settings.agent_folder = current.agent_folder.clone();
@@ -485,11 +489,55 @@ async fn chat_send(
     hands: Option<bool>,
 ) -> Result<ChatReply, String> {
     let settings = shared.settings.lock().unwrap().clone();
+    // Hermes Agent always works with its own tools, whatever the hands toggle says (agent/hermes.rs).
+    if settings.chat_provider == hermes::PROVIDER {
+        let context = context.map(chat::checked_context).transpose()?;
+        return agent::hermes::run_island(&app, &chat, &settings, query, context).await;
+    }
     if hands == Some(true) && settings.agent_enabled {
         let context = context.map(chat::checked_context).transpose()?;
         return agent::run_island(&app, &chat, &settings, query, context).await;
     }
     chat::send(&app, &chat, &settings, query, context).await
+}
+
+/// Settings → Hermes Agent → Connect: keeps the key with the address, asks Hermes what it is, and on success stores
+/// the address (the only way it changes) and offers Hermes in the chat.
+#[tauri::command]
+async fn hermes_connect(app: AppHandle, shared: State<'_, Shared>, url: String, key: String) -> Result<hermes::Connected, String> {
+    let connected = hermes::connect(&url, &key).await?;
+    let settings = {
+        let mut current = shared.settings.lock().unwrap();
+        current.hermes_url = connected.url.clone();
+        current.chat_models.insert(hermes::PROVIDER.to_string(), connected.model.clone());
+        current.clone()
+    };
+    if let Err(err) = settings::save(&settings) {
+        log::line(format!("could not save settings: {err}"));
+    }
+    log::line(format!("hermes: connected at {}", reqwest::Url::parse(&connected.url).map(|u| net::host_for_log(&u)).unwrap_or_default()));
+    let _ = app.emit("settings-changed", settings);
+    Ok(connected)
+}
+
+/// Settings → Hermes Agent → Disconnect: forgets the address and the key; the chat goes back to Claude if it was
+/// talking to Hermes.
+#[tauri::command]
+fn hermes_disconnect(app: AppHandle, shared: State<Shared>) -> Result<(), String> {
+    let settings = {
+        let mut current = shared.settings.lock().unwrap();
+        current.hermes_url.clear();
+        if current.chat_provider == hermes::PROVIDER {
+            current.chat_provider = chat::ANTHROPIC.into();
+        }
+        current.clone()
+    };
+    let _ = secrets::clear(hermes::KEY);
+    if let Err(err) = settings::save(&settings) {
+        log::line(format!("could not save settings: {err}"));
+    }
+    let _ = app.emit("settings-changed", settings);
+    Ok(())
 }
 
 /// The models a provider offers, for the picker in the chat view. Only asked
@@ -737,6 +785,10 @@ pub fn run() {
             chat_models,
             local_connect,
             local_set_key,
+            hermes_connect,
+            hermes_disconnect,
+            agent::mcp::home_mcp_status,
+            agent::mcp::home_mcp_set,
             chat_reset,
             ingest_file,
             secret_present,

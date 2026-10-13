@@ -311,6 +311,20 @@ Setup, safety and limits (it is tested on simulated devices so far):
 [docs/SMART_HOME.md](../docs/SMART_HOME.md) (in Portuguese:
 [docs/SMART_HOME.pt-BR.md](../docs/SMART_HOME.pt-BR.md)).
 
+## Hermes Agent
+
+**Settings… → Hermes Agent** connects the [Hermes Agent](https://github.com/NousResearch/hermes-agent)
+running on this computer (its API server, `hermes gateway` with
+`API_SERVER_ENABLED=true`): pick **Hermes** above the chat box (or for the
+phone) and Hermes answers with its own memory and tools — calendar, Spotify,
+Home Assistant, scheduled jobs. Each tool it uses shows in the chat, what it
+wants approved comes to the island or the phone (Face ID), and Stop stops it.
+Its key is kept in the keystore, bound to that address (this computer or
+https only). **Mochi's home for Hermes** (off by default) lets Hermes use the
+house through `coucou-hook --mcp`, with Mochi's rules. Guide:
+[docs/HERMES.md](../docs/HERMES.md) (in Portuguese:
+[docs/HERMES.pt-BR.md](../docs/HERMES.pt-BR.md)).
+
 ## Your phone
 
 **Settings… → Phone (Android and iPhone)** is an opt-in server on your local

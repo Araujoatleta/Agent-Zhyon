@@ -319,6 +319,9 @@ pub struct Request {
     pub new_file: bool,
     pub outside: bool,
     pub secret: bool,
+    /// Why it asks, when another agent said so (Hermes: "recursive delete").
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
 }
 
 impl Prepared {
@@ -337,7 +340,7 @@ impl Prepared {
             _ => (None, None, None),
         };
         let new_file = matches!(&self.action, Action::Write { before: None, .. });
-        Request { tool: self.tool.clone(), summary: self.summary.clone(), cwd, before, after, new_file, outside: self.outside, secret: self.secret }
+        Request { tool: self.tool.clone(), summary: self.summary.clone(), cwd, before, after, new_file, outside: self.outside, secret: self.secret, reason: None }
     }
 }
 

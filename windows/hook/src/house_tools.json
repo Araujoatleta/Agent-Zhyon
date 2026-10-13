@@ -1,0 +1,43 @@
+[
+  {
+    "name": "home_devices",
+    "title": "Mochi's home: devices",
+    "description": "List the devices of the user's home that Coucou lets agents use (Settings → Mochi's home): each one's id, name, room, kind, whether it answers, its state right now, the actions it reported it can do, its apps and channels, and the user's routines. Call it when you do not know a device's id or what it can do, or to check a device's state.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "device": { "type": "string", "description": "Optional: one device (id or name) to see in full, with all its apps and channels." }
+      }
+    }
+  },
+  {
+    "name": "home_control",
+    "title": "Mochi's home: control a device",
+    "description": "Do one action on one device of the user's home: turn it on or off, set or step the volume, mute, open an app, change the channel, set a light's brightness. Only actions the device reports in home_devices work. One action per call, in order: to turn on the TV and open an app, call turn_on, read its answer, then open_app. The answer says what the device reports afterwards: tell the user exactly that, and never say an action worked if the answer says otherwise. Plugs, switches and some devices wait for the user's approval in Coucou (on the computer, or on their phone).",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "device": { "type": "string", "description": "The device's id from home_devices, or its name with its room, like \"TV da sala\"." },
+        "action": {
+          "type": "string",
+          "enum": ["turn_on", "turn_off", "set_volume", "volume_up", "volume_down", "mute", "unmute", "open_app", "set_channel", "channel_up", "channel_down", "set_brightness"],
+          "description": "What to do."
+        },
+        "value": { "type": "string", "description": "set_volume and set_brightness: a percent from 0 to 100. open_app: the app's name. set_channel: the channel's number or name. Leave it out for the other actions." }
+      },
+      "required": ["device", "action"]
+    }
+  },
+  {
+    "name": "home_routine",
+    "title": "Mochi's home: run a routine",
+    "description": "Run one of the user's routines, saved sequences of home actions (\"Good night\", \"Movie mode\"…; home_devices lists them). Each step goes to its device in order; the answer says how each went. A routine with a device that asks first waits for the user's approval in Coucou.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "routine": { "type": "string", "description": "The routine's name or id." }
+      },
+      "required": ["routine"]
+    }
+  }
+]

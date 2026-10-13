@@ -12,6 +12,8 @@
 // formats), run.rs (the loop) and text.rs (output and page text). This file holds the one turn that may run at a
 // time, the action waiting for a click, the island's commands and the phone's way in (phone_link/chat.rs).
 
+pub mod hermes;
+pub mod mcp;
 mod policy;
 mod run;
 mod shell;
@@ -140,6 +142,18 @@ impl Agent {
         (id, card)
     }
 
+    /// The action of turn `run` still waiting is no longer asked about (its turn settled it another way): it reads as
+    /// a no, and its card goes.
+    fn release(&self, run: u64) {
+        let mut inner = self.inner.lock().unwrap();
+        match inner.pending.take() {
+            Some(p) if p.run == run => {
+                let _ = p.tx.send(false);
+            }
+            other => inner.pending = other,
+        }
+    }
+
     fn forget(&self, id: &str) {
         let mut inner = self.inner.lock().unwrap();
         if inner.pending.as_ref().is_some_and(|p| p.id == id) {
@@ -227,6 +241,7 @@ fn alias(tool: &str) -> &'static str {
         "open_url" => "Open",
         "system_info" => "Info",
         "home_devices" | "home_control" | "home_routine" => "Home",
+        hermes::TOOL => "Hermes",
         _ => "Tool",
     }
 }
@@ -295,6 +310,9 @@ fn phone_command(request: &Request, folder: &Path, home: &Path) -> String {
         command.push_str(" — looks like a secret file");
     } else if request.outside {
         command.push_str(" — outside the working folder");
+    } else if let Some(reason) = &request.reason {
+        command.push_str(" — ");
+        command.push_str(reason);
     }
     command
 }
@@ -321,6 +339,8 @@ struct LiveHands {
     /// The phone that asked, when it did: one `chatStep` per change.
     phone_steps: Option<UnboundedSender<StepLine>>,
     lines: Mutex<Vec<String>>,
+    /// How long an action waits for a click before it counts as a no.
+    wait: Duration,
 }
 
 impl LiveHands {
@@ -380,14 +400,19 @@ impl Hands for LiveHands {
                     command: phone_command(&request, &self.folder, &self.home),
                 })),
             );
-            let wait = if self.origin == Origin::Phone { WAIT_PHONE } else { WAIT_DESK };
-            let allowed = matches!(tokio::time::timeout(wait, rx).await, Ok(Ok(true)));
+            let allowed = matches!(tokio::time::timeout(self.wait, rx).await, Ok(Ok(true)));
             agent.forget(&id);
             let _ = self.app.emit_to(WINDOW_LABEL, "agent-approval-resolved", json!({ "id": id, "allowed": allowed }));
             show_on_phones(&self.app, None, Some(None));
             log::line(format!("agent: action {id} {}", if allowed { "allowed" } else { "not allowed" }));
             allowed
         })
+    }
+
+    fn release(&self) {
+        if let Some(agent) = self.app.try_state::<Agent>() {
+            agent.release(self.run);
+        }
     }
 }
 
@@ -595,6 +620,7 @@ async fn turn(
         home: env.home.clone(),
         phone_steps,
         lines: Mutex::new(Vec::new()),
+        wait: if origin == Origin::Phone { WAIT_PHONE } else { WAIT_DESK },
     };
     let _ = app.emit_to(WINDOW_LABEL, "agent-run", json!({ "run": run_id, "origin": origin, "running": true }));
     show_on_phones(app, Some(Some(hands.session("thinking", None))), None);
@@ -834,7 +860,7 @@ mod tests {
         assert_eq!(alias("edit_file"), "Edit");
         assert_eq!(alias("something_new"), "Tool");
         let hosts = policy::display(&at(&["etc", "hosts"]));
-        let mut request = Request { tool: "read_file".into(), summary: hosts.clone(), cwd: None, before: None, after: None, new_file: false, outside: true, secret: false };
+        let mut request = Request { tool: "read_file".into(), summary: hosts.clone(), cwd: None, before: None, after: None, new_file: false, outside: true, secret: false, reason: None };
         assert_eq!(phone_command(&request, &folder, &home), format!("{hosts} — outside the working folder"));
         request.secret = true;
         assert_eq!(phone_command(&request, &folder, &home), format!("{hosts} — looks like a secret file"));

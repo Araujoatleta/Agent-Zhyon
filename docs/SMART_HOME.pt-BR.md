@@ -116,6 +116,9 @@ próprio aparelho. Quando algo é ambíguo ou não é possível, o Mochi diz iss
   (`%LOCALAPPDATA%\Coucou` no Windows, `~/.local/share/coucou` no Linux), no máximo 1.000 linhas, só neste
   computador. **Mostrar as últimas ações** nas Configurações lê esse registro.
 - O Home Assistant em `http://` simples manda o token sem criptografia pela sua rede: use `https://` se puder.
+- **Outros agentes** (o Hermes Agent, ou outro cliente MCP deste computador) só chegam à casa depois que você liga
+  **Configurações → Hermes Agent → Casa do Mochi para o Hermes**, com as mesmas regras, e o registro mostra o nome
+  deles. Veja [HERMES.pt-BR.md](HERMES.pt-BR.md).
 
 ## Limites, com sinceridade
 
