@@ -80,7 +80,7 @@ enum PCLinkWireTests {
             checkEqual("hello type", h["type"] as? String, "hello")
             checkEqual("hello v", h["v"] as? Int, 1)
             checkEqual("hello token", h["token"] as? String, "abcdefghijklmnop")
-            checkEqual("hello caps", h["caps"] as? [String], ["chat", "agent", "details", "answers"])
+            checkEqual("hello caps", h["caps"] as? [String], ["chat", "agent", "details", "answers", "remote"])
             let allow = object(PCOutgoing.decision(fingerprint: "f1", allow: true).line)
             checkEqual("allow", allow["decision"] as? String, "allow")
             checkEqual("deny", object(PCOutgoing.decision(fingerprint: "f1", allow: false).line)["decision"] as? String, "deny")
