@@ -6,7 +6,10 @@ Guia em português para duas novidades desta branch:
    como o Codex: olha suas pastas, lê e altera arquivos, roda comandos, abre e lê páginas da web — com qualquer IA que
    o chat estiver usando (Anthropic, OpenAI, Google, OpenRouter, Ollama, LM Studio).
 2. **O iPhone ligado a um PC Windows ou Linux**: antes o app do iPhone só seguia um Mac (via iCloud). Agora ele
-   também se conecta direto ao Coucou do PC, pela rede local, com o mesmo protocolo do app Android.
+   também se conecta direto ao Coucou do PC, pela rede local, com o mesmo protocolo do app Android. Com
+   **notificações mesmo com o Coucou fechado** (pelo app ntfy) e **voz** no chat.
+3. **A Casa do Mochi**: o chat passa a usar os aparelhos da sua casa (Home Assistant e TVs Philips): *"Mochi, liga a
+   TV da sala e abre o YouTube"*. Guia próprio: [SMART_HOME.pt-BR.md](SMART_HOME.pt-BR.md).
 
 ## 1. Os braços do Mochi no PC
 
@@ -85,6 +88,38 @@ a Live Activity do Mac não se aplica; o resto funciona.
 3. As sessões do PC aparecem em **Agents**. O botão 🖥 no canto superior esquerdo abre o **chat com o Mochi do PC**;
    no menu ⋯ você escolhe o modelo e liga ou desliga os braços dele.
 
+### Notificações com o Coucou fechado (ntfy)
+
+O iOS pausa o Coucou uns 30 segundos depois que você sai dele, e só o push da Apple poderia acordá-lo (a versão
+sideload, com conta gratuita, não tem). Para não perder pedidos, o PC pode avisar pelo **ntfy**, um app de
+notificações gratuito:
+
+1. No iPhone, instale o app **ntfy** (App Store) e permita as notificações dele.
+2. No PC: **Configurações → Celular (Android e iPhone) → Notificações com o Coucou fechado** → ligue. Aparece um
+   **Tópico** (um nome aleatório, difícil de adivinhar): **Copiar**.
+3. No ntfy do iPhone: toque em **+**, cole o tópico, deixe o servidor padrão (ntfy.sh) e assine.
+4. No PC: **Enviar notificação de teste**. Ela deve chegar no iPhone em alguns segundos.
+
+Como funciona: quando um pedido (aprovação ou pergunta) fica **8 segundos** esperando e **nenhum celular está
+conectado**, o PC manda um aviso pelo ntfy, por exemplo *"Claude Code está esperando seu OK"*. Tocar no aviso abre o
+Coucou, que reconecta e mostra o pedido para você aprovar com Face ID. No máximo um aviso a cada 20 segundos; um
+pedido respondido no PC antes disso não é avisado.
+
+Privacidade: o aviso passa pelo servidor do ntfy e diz só **quem** está esperando, nunca o comando, um caminho, o
+texto da pergunta ou o nome do computador. Quem souber o tópico consegue ler esses avisos: **Novo tópico** troca o
+nome (aí assine o novo no app). Prefere o seu próprio servidor ntfy? Coloque o endereço em **Servidor** (https, ou
+http só na rede local) e, se ele pedir, um **Token de acesso (opcional)**, guardado no cofre do sistema. Vem
+desligado.
+
+### Falar com o Mochi pelo iPhone
+
+No chat com o computador (botão 🖥), toque no **microfone** ao lado do campo de texto e fale: *"liga a TV da sala e
+abre o YouTube"*. Depois de uma pausa curta a mensagem é enviada sozinha, e a resposta é **lida em voz alta** com as
+vozes do iPhone. No menu ⋯ do chat: **Read answers to spoken messages aloud** (liga ou desliga a leitura) e
+**Dictation language** (o idioma do ditado, por exemplo Português (Brasil)). O reconhecimento de voz roda no próprio
+iPhone quando ele consegue. No PC, aperte **Windows + H** no chat da ilha para ditar (detalhes em
+[SMART_HOME.pt-BR.md](SMART_HOME.pt-BR.md#voz)).
+
 ### No dia a dia
 
 - **Permitir** pede **Face ID**; **Negar** não. Responder a uma pergunta também pede Face ID.
@@ -99,8 +134,9 @@ a Live Activity do Mac não se aplica; o resto funciona.
   certificado antes de confiar).
 - **O iPhone não acorda sozinho**: o iOS pausa o app pouco depois que ele sai da tela, e só o push da Apple poderia
   acordá-lo (isso exige servidor e conta paga). Então os pedidos chegam com o Coucou aberto e nos ~30 segundos depois
-  de sair dele (como notificação, que dá para responder na tela bloqueada). Abriu o app, ele reconecta na hora. O
-  cartão no PC sempre funciona e nunca fica esperando o celular.
+  de sair dele (como notificação, que dá para responder na tela bloqueada); depois disso, só com as **notificações
+  pelo ntfy** ligadas (acima), que avisam e abrem o Coucou com um toque. Abriu o app, ele reconecta na hora. O cartão
+  no PC sempre funciona e nunca fica esperando o celular.
 - **Um código, um celular**: **Parear de novo** no PC gera outro código e desconecta o celular antigo.
 
 ### Segurança
@@ -122,7 +158,7 @@ Não precisa de VS Code nem de compilar nada: o GitHub Actions gera o instalador
    Desinstalar**. Suas configurações e chaves de API ficam guardadas (Credential Manager) e voltam no novo.
 3. Extraia o zip e abra o `.msi`. O instalador não é assinado: se aparecer "O Windows protegeu o computador", clique
    em **Mais informações → Executar assim mesmo**.
-4. Abra o Coucou e ligue **Configurações → Braços do Mochi**.
+4. Abra o Coucou e ligue **Configurações → Braços do Mochi** (e, se quiser, **Configurações → Casa do Mochi**).
 
 Sem instalar nada, também dá para usar o **Coucou-Windows-portable**: extraia e rode o `coucou.exe` (deixe o
 `coucou-hook.exe` na mesma pasta).

@@ -11,12 +11,16 @@ Linux computer**, directly over your local network, with the link Coucou for And
 - **Mochi's chat on the computer**, with the AI providers set up there (the keys never leave the computer), and
   **Mochi's hands**: ask him to look through a folder, change a file or run the tests. Each step shows on the iPhone
   as he works, and every change, command or web request still waits for your Allow.
-- A notification for a request that arrives in the half minute after you leave Coucou (see the limits below).
+- **Talk to Mochi**: the microphone in the chat with the computer; a pause sends what you said, and the answer is read
+  aloud. With **Mochi's home** on the computer, that is "turn on the living room TV and open YouTube"
+  ([SMART_HOME.md](SMART_HOME.md)).
+- A notification for a request that arrives in the half minute after you leave Coucou, and after that **through
+  ntfy**, if you turn it on (see *Notifications with Coucou closed* below).
 
 ## On the computer
 
-Coucou for Windows or Linux 0.4.0 or later (Mochi's hands need the next version, unreleased yet: download the
-installer from the **Windows installer** workflow's artifacts, or build it from
+Coucou for Windows or Linux 0.4.0 or later (Mochi's hands, his home and notifications through ntfy need the next
+version, unreleased yet: download the installer from the **Windows installer** workflow's artifacts, or build it from
 [`windows/`](../windows/README.md#build-it-yourself) meanwhile):
 
 1. **Settings → Phone (Android and iPhone)**: turn on **Phone link**. The iPhone must be on the same Wi-Fi. If Windows
@@ -35,6 +39,35 @@ installer from the **Windows installer** workflow's artifacts, or build it from
 2. Coucou names the computer it found: tap **Pair**. When iOS asks, allow Coucou on the **local network**.
 3. The computer's sessions show up in **Agents**. The 🖥 button at the top left opens the chat with Mochi on the
    computer; the ⋯ menu there picks the model and turns his hands on or off for the chat.
+
+## Notifications with Coucou closed (ntfy)
+
+iOS pauses Coucou about half a minute after you leave it, and only Apple's push could wake it, which the sideload
+build (a free account) cannot have. So the computer can announce a waiting request through **ntfy**, a free
+notification app:
+
+1. On the iPhone, install the **ntfy** app (App Store) and allow its notifications.
+2. On the computer: **Settings → Phone (Android and iPhone) → Notifications with Coucou closed** → on. A **Topic**
+   shows up (a random name, hard to guess): **Copy**.
+3. In ntfy on the iPhone: tap **+**, paste the topic, keep the default server (ntfy.sh) and subscribe.
+4. On the computer: **Send a test notification**. It should show on the iPhone within seconds.
+
+A request (a permission or a question) that still waits **8 seconds** after it came, while **no phone is
+connected**, is announced: "Claude Code is waiting for your OK". A tap opens Coucou, which connects and shows the
+request. At most one notification every 20 seconds; a request answered at the desk first is not announced.
+
+The notification goes through the ntfy server and only says **who** is waiting: never the command, a path, a
+question's text or the computer's name. Whoever knows the topic can read these notifications: **New topic** changes it
+(subscribe again in the app). Your own ntfy server goes in **Server** (https, or plain http on the local network
+only), with an **Access token (optional)** kept in the system's keystore. Off by default.
+
+## Talking to Mochi
+
+In the chat with the computer (🖥), tap the **microphone** next to the text field and speak: "turn on the living room
+TV and open YouTube". After a short pause the message is sent, and the answer is **read aloud** with the iPhone's
+voices. The chat's ⋯ menu has **Read answers to spoken messages aloud** and **Dictation language**. Recognition runs
+on the iPhone when it can. On the computer, press **Windows + H** in the island's chat to dictate
+([SMART_HOME.md](SMART_HOME.md#voice)).
 
 ## Installing the iPhone app without a Mac
 
@@ -62,8 +95,9 @@ Activity started by a Mac does not apply. Everything else on this page works.
   certificate before trusting it.
 - **No wake-up.** iOS pauses an app shortly after it leaves the screen, and only Apple's push can wake it, which needs
   a server and a paid developer account. So requests reach the iPhone while Coucou is open, and in the half minute
-  after you leave it (as notifications you can answer from the Lock Screen). Open Coucou and it connects again at
-  once. The computer's own card always works, and never waits on the phone.
+  after you leave it (as notifications you can answer from the Lock Screen); after that, only with **notifications
+  through ntfy** turned on (above), which announce them and open Coucou with a tap. Open Coucou and it connects again
+  at once. The computer's own card always works, and never waits on the phone.
 - **One code, one phone.** **Pair again** on the computer makes a new code and disconnects the phone that had the old
   one.
 
