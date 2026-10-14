@@ -886,6 +886,8 @@ impl Hub {
     pub fn send_assistant(&self, sub_id: u64, line: Arc<str>) {
         let mut inner = self.inner.lock().unwrap();
         send_where(&mut inner, |s| s.id == sub_id && s.assistant, &line);
+        // That phone may now show something else than the last picture sent to all: the next one goes out, even the same.
+        inner.assistant = None;
     }
 
     /// The house as it is after an action (home.rs), to every phone that has `home`.

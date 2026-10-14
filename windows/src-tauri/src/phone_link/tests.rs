@@ -2509,6 +2509,26 @@ mod assistant_tests {
             }
         });
     }
+
+    #[test]
+    fn a_phone_sent_its_own_picture_still_hears_of_the_next_change_even_back_to_the_last_one() {
+        block_on(async {
+            let fake = Fake::new(zheus());
+            let link = AssistantLink::new(fake.clone());
+            let rig = Rig::start_links(None, Switches::new(true, false), Links { assistant: Some(link.clone()), home: None }).await;
+            let (mut c, _) = phone(&rig, Some(json!(["assistant"]))).await;
+            c.expect("assistant").await;
+            let picture = |name: &str| json!({ "type": "assistant", "name": name }).to_string();
+            assert_eq!(link.changed(&rig.hub, picture("A"), 10_000), None);
+            assert_eq!(c.expect("assistant").await["name"], "A");
+            // Its own picture (it asked, or it came back while nobody was told of a change): Zheus as it is now.
+            c.send(json!({ "type": "assistantGet" })).await;
+            assert_eq!(c.expect("assistant").await["name"], "Zheus");
+            // "A" again is news to it.
+            assert_eq!(link.changed(&rig.hub, picture("A"), 20_000), None);
+            assert_eq!(c.expect("assistant").await["name"], "A");
+        });
+    }
 }
 
 // ── Mochi's home from the phone (home.rs) ────────────────────────────────────

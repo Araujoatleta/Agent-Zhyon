@@ -124,12 +124,19 @@ pub fn run(app: &AppHandle) {
     let path = crate::platform::config_dir().join(FILE);
     let Ok(bytes) = std::fs::read(&path) else { return };
     let deleted = std::fs::remove_file(&path).is_ok();
-    let choice = parse(&bytes);
+    // Once only: one that cannot be deleted is emptied (nothing to do at the next start), and one that cannot be emptied
+    // either is left alone, or it would set the assistant up again at every start.
+    let once = deleted || std::fs::write(&path, b"").is_ok();
+    let choice = parse(&bytes).filter(|_| once);
     // Never what it holds: a name is the user's own.
     log::line(format!(
         "first run: setup.json read ({}){}",
         if choice.is_some() { "the assistant to set up" } else { "nothing to do" },
-        if deleted { "" } else { ", could not be deleted" }
+        match (deleted, once) {
+            (true, _) => "",
+            (false, true) => ", could not be deleted (emptied)",
+            (false, false) => ", could not be deleted or emptied: left alone",
+        }
     ));
     let Some(choice) = choice else { return };
     let updated = {
