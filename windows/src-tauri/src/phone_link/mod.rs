@@ -15,9 +15,12 @@
 // that is still pending (hub.rs). The desktop's own card keeps working all along.
 
 mod admission;
+mod assistant;
 mod chat;
 mod chat_backend;
 mod discovery;
+mod guard;
+mod home;
 mod hub;
 #[cfg(test)]
 mod interop;
@@ -32,12 +35,13 @@ mod tests;
 
 use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, TcpListener as StdListener};
 use std::sync::{Arc, Mutex};
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, State, WebviewWindow};
 
-use crate::{island, log, pipe, recap, secrets, settings, Shared};
+use crate::smart_home::{self, model::Action, routines::Routine};
+use crate::{hermes_setup, island, log, pipe, recap, secrets, settings, Shared};
 pub(crate) use chat::StepLine;
 pub(crate) use pairing::computer_name;
 pub(crate) use hub::{ApprovalIn, SessionIn};
@@ -136,6 +140,92 @@ impl server::Features for TauriFeatures {
     fn remote(&self) -> bool {
         self.app.state::<Shared>().settings.lock().unwrap().phone_remote
     }
+    fn assistant(&self) -> bool {
+        self.app.state::<Shared>().settings.lock().unwrap().phone_assistant
+    }
+    fn home(&self) -> bool {
+        // Both switches: Mochi's home on this computer, and the phone allowed to use it.
+        let s = self.app.state::<Shared>();
+        let s = s.settings.lock().unwrap();
+        s.home_enabled && s.phone_home
+    }
+}
+
+/// Zheus from the phone: the calls Settings → Hermes Agent makes (hermes_setup.rs). What the phone sent is never
+/// logged, only what it asked for.
+struct TauriAssistant {
+    app: AppHandle,
+}
+
+impl assistant::AssistantBackend for TauriAssistant {
+    fn status(&self) -> hermes_setup::SetupStatus {
+        hermes_setup::status_of(&self.app)
+    }
+    fn set(&self, name: Option<String>, persona: Option<String>, persona_text: Option<String>) -> Result<(), String> {
+        log::line("phone link: the phone changed the assistant's name or tone");
+        hermes_setup::set_assistant(&self.app, name, persona, persona_text)
+    }
+    fn brain(&self, brain: &str) -> Result<(), String> {
+        // Hermes is never installed from the phone: the setup would install one that is not there, so this is checked
+        // again right before it starts (assistant.rs checked the status already).
+        if !hermes_setup::installed() {
+            return Err("Hermes is not installed".into());
+        }
+        log::line(format!("phone link: the phone gave the assistant the brain {brain}"));
+        // Mochi's home for Hermes stays as Settings has it; a ChatGPT sign-in shows its code on the phone, which opens
+        // OpenAI's page itself.
+        let house = self.app.state::<Shared>().settings.lock().unwrap().home_mcp;
+        hermes_setup::begin_setup_with(&self.app, brain, house, true, false)
+    }
+    fn skills(&self, skills: Vec<String>) -> Result<(), String> {
+        log::line("phone link: the phone changed the skill packs");
+        hermes_setup::set_skills(&self.app, skills)
+    }
+    fn login(&self) -> Result<(), String> {
+        log::line("phone link: ChatGPT sign-in asked from the phone");
+        hermes_setup::login_start(&self.app, false)
+    }
+    fn login_cancel(&self) {
+        hermes_setup::login_cancel(&self.app);
+    }
+    fn gateway(&self, on: bool) {
+        log::line(format!("phone link: the phone turned Hermes {}", if on { "on" } else { "off" }));
+        hermes_setup::gateway_set(&self.app, on);
+    }
+}
+
+/// Mochi's home from the phone: smart_home's own reading of the house and its own way of acting on it, recorded with
+/// the origin "phone".
+struct TauriHome {
+    app: AppHandle,
+}
+
+impl home::HomeBackend for TauriHome {
+    fn picture(&self) -> chat::BoxFuture<home::HomePicture> {
+        let app = self.app.clone();
+        Box::pin(async move {
+            let (enabled, ask_all, routines, hidden) = {
+                let s = app.state::<Shared>();
+                let s = s.settings.lock().unwrap();
+                (s.home_enabled, s.home_ask_all, s.home_routines.clone(), home::hidden_of(&s.home_assistant_url, &s.home_tvs))
+            };
+            // Nothing is read while Mochi's home is off.
+            if !enabled {
+                return home::HomePicture::default();
+            }
+            let devices = smart_home::read(&app, false).await;
+            let log = tokio::task::spawn_blocking(|| smart_home::journal::recent(home::MAX_LOG)).await.unwrap_or_default();
+            home::HomePicture { enabled, ask_all, devices, routines, log, hidden }
+        })
+    }
+    fn control(&self, device: String, action: Action) -> chat::BoxFuture<smart_home::Outcome> {
+        let app = self.app.clone();
+        Box::pin(async move { smart_home::control(&app, &device, &action, "phone", false).await })
+    }
+    fn run_routine(&self, routine: Routine) -> chat::BoxFuture<smart_home::Outcome> {
+        let app = self.app.clone();
+        Box::pin(async move { smart_home::run_routine(&app, &routine, "phone", false).await })
+    }
 }
 
 /// Away from home, directly (remote.rs), while the link and the switch are both on.
@@ -165,6 +255,9 @@ pub struct PhoneLink {
     hub: Arc<Hub>,
     /// Chat from the phone; offered to phones only while the user's switch is on (chat.rs).
     chat: Arc<chat::ChatLink>,
+    /// The assistant and Mochi's home from the phone, each offered only while its switch is on (assistant.rs, home.rs).
+    assistant: Arc<assistant::AssistantLink>,
+    home: Arc<home::HomeLink>,
     store: Arc<dyn SecretStore>,
     /// The announcement on the local network (discovery.rs): exists only while the link runs.
     advertiser: discovery::Advertiser,
@@ -184,6 +277,8 @@ impl PhoneLink {
     pub fn new(app: AppHandle) -> Self {
         Self {
             chat: chat::ChatLink::new(Arc::new(chat_backend::AppChat::new(app.clone()))),
+            assistant: assistant::AssistantLink::new(Arc::new(TauriAssistant { app: app.clone() })),
+            home: home::HomeLink::new(Arc::new(TauriHome { app: app.clone() })),
             hub: Hub::new(Arc::new(TauriHost { app: app.clone() })),
             app,
             store: Arc::new(Keystore),
@@ -354,8 +449,9 @@ impl PhoneLink {
         std_listener.set_nonblocking(true).map_err(|e| e.to_string())?;
         let port = std_listener.local_addr().map_err(|e| e.to_string())?.port();
         let acceptor = server::tls_acceptor(&identity)?;
-        let shared = server::Shared::with_features(
-            self.hub.clone(), token, pairing::computer_name(), Some(self.chat.clone()), Arc::new(TauriFeatures { app: self.app.clone() }),
+        let links = server::Links { assistant: Some(self.assistant.clone()), home: Some(self.home.clone()) };
+        let shared = server::Shared::with_links(
+            self.hub.clone(), token, pairing::computer_name(), Some(self.chat.clone()), Arc::new(TauriFeatures { app: self.app.clone() }), links,
         );
         let handle = {
             let shared = shared.clone();
@@ -1158,6 +1254,104 @@ pub fn phone_push_set_token(window: WebviewWindow, link: State<PhoneLink>, share
     only_settings(&window)?;
     push::set_token(&*link.store, &token)?;
     Ok(push_status_of(&link, &shared))
+}
+
+// ── The assistant from the phone: the switch (Settings → Phone) ──
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AssistantStatus {
+    pub enabled: bool,
+}
+
+#[tauri::command]
+pub fn phone_assistant_status(shared: State<Shared>) -> AssistantStatus {
+    AssistantStatus { enabled: shared.settings.lock().unwrap().phone_assistant }
+}
+
+/// "Let the phone change the assistant (name, tone, brain, skills)". Off by default. Changing the brain and signing in
+/// to ChatGPT wait for the phone's Face ID, and Hermes is never installed from the phone. A change disconnects the
+/// phones once so they reconnect and are told (or not) about the capability.
+#[tauri::command]
+pub fn phone_assistant_set_enabled(
+    app: AppHandle,
+    window: WebviewWindow,
+    link: State<PhoneLink>,
+    shared: State<Shared>,
+    enabled: bool,
+) -> Result<AssistantStatus, String> {
+    only_settings(&window)?;
+    let updated = {
+        let mut current = shared.settings.lock().unwrap();
+        current.phone_assistant = enabled;
+        if let Err(err) = settings::save(&current) {
+            log::line(format!("could not save settings: {err}"));
+        }
+        current.clone()
+    };
+    link.hub.kick_all("closed", "assistant setting changed");
+    log::line(format!("phone link: the assistant from the phone {}", if enabled { "on" } else { "off" }));
+    let _ = app.emit("settings-changed", updated);
+    Ok(AssistantStatus { enabled })
+}
+
+// ── Mochi's home from the phone: the switch (Settings → Phone) ──
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HomeStatus {
+    pub enabled: bool,
+}
+
+#[tauri::command]
+pub fn phone_home_status(shared: State<Shared>) -> HomeStatus {
+    HomeStatus { enabled: shared.settings.lock().unwrap().phone_home }
+}
+
+/// "Let the phone use Mochi's home". Off by default, and offered only while Mochi's home is on too. Devices and
+/// routines that ask first wait for the phone's Face ID. Turning it off stops the phone's action under way; a change
+/// disconnects the phones once so they reconnect and are told (or not) about the capability.
+#[tauri::command]
+pub fn phone_home_set_enabled(
+    app: AppHandle,
+    window: WebviewWindow,
+    link: State<PhoneLink>,
+    shared: State<Shared>,
+    enabled: bool,
+) -> Result<HomeStatus, String> {
+    only_settings(&window)?;
+    let updated = {
+        let mut current = shared.settings.lock().unwrap();
+        current.phone_home = enabled;
+        if let Err(err) = settings::save(&current) {
+            log::line(format!("could not save settings: {err}"));
+        }
+        current.clone()
+    };
+    if !enabled {
+        link.home.shutdown();
+    }
+    link.hub.kick_all("closed", "home setting changed");
+    log::line(format!("phone link: Mochi's home from the phone {}", if enabled { "on" } else { "off" }));
+    let _ = app.emit("settings-changed", updated);
+    Ok(HomeStatus { enabled })
+}
+
+/// Zheus changed (hermes_setup.rs): the phones that have `assistant` hear of it, at most twice a second, the latest
+/// picture always in the end. Nothing is made while the link is off or no phone has the capability.
+pub(crate) fn assistant_changed(app: &AppHandle, status: &hermes_setup::SetupStatus) {
+    let Some(link) = app.try_state::<PhoneLink>() else { return };
+    if link.running.lock().unwrap().is_none() || !link.hub.wants_assistant() {
+        return;
+    }
+    let Some(wait) = link.assistant.changed(&link.hub, assistant::assistant_line(status), server::now_ms()) else { return };
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        tokio::time::sleep(Duration::from_millis(wait)).await;
+        if let Some(link) = app.try_state::<PhoneLink>() {
+            link.assistant.due(&link.hub, server::now_ms());
+        }
+    });
 }
 
 /// Mochi's hands were switched on or off on this computer: phones learn whether they may use them.

@@ -424,6 +424,10 @@ struct Sub {
     services: Vec<String>,
     /// The phone asked for `remote`: it is told the home's internet addresses whenever they change.
     remote: bool,
+    /// The phone asked for `assistant` and the user's switch was on when it connected: it hears of every change.
+    assistant: bool,
+    /// The phone asked for `home` and both switches were on when it connected: it is sent the house after each action.
+    home: bool,
     /// When this phone asked for a diff lately (ms), to keep it from flooding the island.
     diff_asks: Vec<u64>,
 }
@@ -441,6 +445,10 @@ pub struct Caps {
     pub services: Vec<String>,
     /// The phone understands `remote` (the home's internet addresses, remote.rs).
     pub remote: bool,
+    /// The assistant from the phone (assistant.rs).
+    pub assistant: bool,
+    /// Mochi's home from the phone (home.rs).
+    pub home: bool,
 }
 
 #[derive(Default)]
@@ -461,6 +469,8 @@ struct Inner {
     /// Where the phones can reach this computer from the internet (remote.rs), most direct first. None: not known
     /// yet (nothing is said, so a phone keeps what it knew); empty: nowhere (the switch is off).
     remote: Option<Vec<String>>,
+    /// The last `assistant` line sent to every phone that has the capability (assistant.rs).
+    assistant: Option<Arc<str>>,
     subs: Vec<Sub>,
     next_sub: u64,
 }
@@ -568,7 +578,7 @@ impl Hub {
 
     /// Like [`subscribe`], for a phone that may also have been offered `answers` and `prefs`.
     pub fn subscribe_with(&self, tx: mpsc::Sender<Out>, now: u64, caps: Caps) -> (u64, Arc<AtomicBool>) {
-        let Caps { details, answers, prefs, diffs, usage, relay, services, remote } = caps;
+        let Caps { details, answers, prefs, diffs, usage, relay, services, remote, assistant, home } = caps;
         let mut inner = self.inner.lock().unwrap();
         expire(&mut inner, now);
         let id = inner.next_sub;
@@ -604,7 +614,22 @@ impl Hub {
             }
         }
         let evicted = Arc::new(AtomicBool::new(false));
-        inner.subs.push(Sub { id, tx, evicted: evicted.clone(), details, answers, prefs, diffs, usage, relay, services, remote, diff_asks: Vec::new() });
+        inner.subs.push(Sub {
+            id,
+            tx,
+            evicted: evicted.clone(),
+            details,
+            answers,
+            prefs,
+            diffs,
+            usage,
+            relay,
+            services,
+            remote,
+            assistant,
+            home,
+            diff_asks: Vec::new(),
+        });
         (id, evicted)
     }
 
@@ -842,6 +867,39 @@ impl Hub {
         });
     }
 
+    /// How the assistant is now (assistant.rs), to every phone that has `assistant`. The same picture twice is sent once.
+    pub fn publish_assistant(&self, line: Arc<str>) {
+        let mut inner = self.inner.lock().unwrap();
+        if inner.assistant.as_deref() == Some(&*line) {
+            return;
+        }
+        inner.assistant = Some(line.clone());
+        send_where(&mut inner, |s| s.assistant, &line);
+    }
+
+    /// Some phone has `assistant`: only then is its picture worth making.
+    pub fn wants_assistant(&self) -> bool {
+        self.inner.lock().unwrap().subs.iter().any(|s| s.assistant)
+    }
+
+    /// The assistant as it is now, to one phone (its first picture, or the one it asked for), if it has `assistant`.
+    pub fn send_assistant(&self, sub_id: u64, line: Arc<str>) {
+        let mut inner = self.inner.lock().unwrap();
+        send_where(&mut inner, |s| s.id == sub_id && s.assistant, &line);
+    }
+
+    /// The house as it is after an action (home.rs), to every phone that has `home`.
+    pub fn publish_home(&self, line: Arc<str>) {
+        let mut inner = self.inner.lock().unwrap();
+        send_where(&mut inner, |s| s.home, &line);
+    }
+
+    /// The house, to one phone (its first picture, or the one it asked for), if it has `home`.
+    pub fn send_home(&self, sub_id: u64, line: Arc<str>) {
+        let mut inner = self.inner.lock().unwrap();
+        send_where(&mut inner, |s| s.id == sub_id && s.home, &line);
+    }
+
     /// The question waiting on the island (None: none). Only phones that have `answers` hear of it. One that
     /// does not fit the limits, or whose options cannot be told apart, stays on the island.
     pub fn publish_question(&self, question: Option<QuestionIn>, now: u64) {
@@ -949,6 +1007,20 @@ fn question_line(q: &Question) -> String {
         })
         .collect();
     json!({ "type": "question", "pillId": q.pill_id, "fingerprint": q.fingerprint, "createdAt": q.created_at, "questions": questions }).to_string()
+}
+
+/// To the phones `to` picks; one that cannot keep up is dropped rather than waited for, like everywhere here.
+fn send_where(inner: &mut Inner, to: impl Fn(&Sub) -> bool, line: &Arc<str>) {
+    inner.subs.retain(|s| {
+        if !to(s) {
+            return true;
+        }
+        let kept = s.tx.try_send(Out::Line(line.clone())).is_ok();
+        if !kept {
+            s.evicted.store(true, Ordering::SeqCst);
+        }
+        kept
+    });
 }
 
 /// To the phones that have `answers` only: the others never learn a question existed.

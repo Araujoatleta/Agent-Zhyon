@@ -131,7 +131,7 @@ pub fn installed_in(home: &Path, launcher: Option<&Path>, pending: bool) -> bool
     launcher.is_some() && !(pending && !completed_in(home))
 }
 
-fn installed() -> bool {
+pub(crate) fn installed() -> bool {
     installed_in(&hermes_home(), launcher().as_deref(), pending_mark().exists())
 }
 
@@ -981,9 +981,11 @@ pub(crate) fn status_of(app: &AppHandle) -> SetupStatus {
     }
 }
 
-/// Tells every window (and, through it, the phone link) how Zheus is now.
+/// Tells every window, and the phones allowed to change the assistant (phone_link), how Zheus is now.
 fn changed(app: &AppHandle) {
-    let _ = app.emit("hermes-setup", status_of(app));
+    let status = status_of(app);
+    crate::phone_link::assistant_changed(app, &status);
+    let _ = app.emit("hermes-setup", status);
 }
 
 /// Keeps the settings changed by `change`, and tells both windows.

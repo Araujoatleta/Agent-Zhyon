@@ -96,11 +96,26 @@ fn telling(word: &str) -> bool {
         || w.starts_with('/')
         || w.starts_with("~/")
         || w.contains(":/")
-        || (w.contains('/') && !w.chars().all(|c| c.is_ascii_lowercase() || c == '_' || c == '/'))
+        || path_like(w)
         || ipv4_inside(w)
         || ipv6_or_mac(word)
         || host_and_port(w)
+        || local_host(&lower)
         || key_like(w)
+}
+
+/// "Documents/Coucou/notes.txt", "hermes_cli/main.py", "example.com/login": folders, a file in one, or an address
+/// without its scheme. Two words joined by a slash are words ("Sala/Cozinha", "On/Off", "volume_up/volume_down").
+fn path_like(w: &str) -> bool {
+    let (Some((first, _)), Some((_, last))) = (w.split_once('/'), w.rsplit_once('/')) else { return false };
+    let extension = last.rsplit_once('.').is_some_and(|(name, ext)| !name.is_empty() && (1..=5).contains(&ext.len()) && ext.chars().all(|c| c.is_ascii_alphanumeric()));
+    let domain = first.contains('.') && first.chars().any(|c| c.is_ascii_alphabetic());
+    w.matches('/').count() >= 2 || extension || domain
+}
+
+/// A name of the local network: "homeassistant.local", "tv-sala.lan", "nas.home.arpa".
+fn local_host(lower: &str) -> bool {
+    [".local", ".lan", ".home.arpa", ".internal"].iter().any(|end| lower.len() > end.len() && lower.ends_with(end))
 }
 
 /// Four numbers of 0 to 255 joined by dots, somewhere in the word ("192.168.1.20:1925").
@@ -143,12 +158,18 @@ fn host_and_port(w: &str) -> bool {
         && (host.contains('.') || host.eq_ignore_ascii_case("localhost"))
 }
 
-/// A long run of letters and digits such as keys and tokens are made of (an API key, a JWT, a pairing token).
+/// A long run of letters and digits such as keys and tokens are made of (an API key, a JWT, a pairing token, a
+/// certificate's hash): mixed case, long hexadecimal, or many digits. A long name in words ("media_player.tv_sala_2")
+/// is not one.
 fn key_like(w: &str) -> bool {
-    w.chars().count() >= 24
-        && w.chars().all(|c| c.is_ascii_alphanumeric() || "_-.+=".contains(c))
-        && w.chars().any(|c| c.is_ascii_digit())
-        && w.chars().any(|c| c.is_ascii_alphabetic())
+    let n = w.chars().count();
+    if n < 24 || !w.chars().all(|c| c.is_ascii_alphanumeric() || "_-.+=".contains(c)) {
+        return false;
+    }
+    let digits = w.chars().filter(char::is_ascii_digit).count();
+    let mixed = w.chars().any(|c| c.is_ascii_uppercase()) && w.chars().any(|c| c.is_ascii_lowercase());
+    let hex_run = w.split(|c: char| !c.is_ascii_hexdigit()).map(str::len).max().unwrap_or(0);
+    digits > 0 && (mixed || hex_run >= 24 || digits * 4 >= n)
 }
 
 #[cfg(test)]
@@ -176,6 +197,11 @@ mod tests {
             ("key sk-ant-api03-AbCdEfGhIjKlMnOp1234567890", "sk-ant"),
             ("see www.example.org", "example"),
             ("relative Documents/Coucou/notes.txt", "Documents"),
+            ("in hermes_cli/main.py line 3", "hermes_cli"),
+            ("open example.com/login", "example"),
+            ("TV at tv-sala.lan, NAS at nas.home.arpa", "sala"),
+            ("pin 9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08", "9f86"),
+            ("token sk-test-0123456789abcdefghijkl", "sk-test"),
         ] {
             let out = clean(text);
             assert!(!out.contains(gone), "{text:?} gave {out:?}");
@@ -195,6 +221,9 @@ mod tests {
             "TV @ Sala",
             "Error: 404",
             "Globo News",
+            "Sala/Cozinha · On/Off",
+            "ha:media_player.samsung_tv_sala_2 · Turn on",
+            "Disney+ 4K",
         ] {
             assert_eq!(clean(text), text);
         }

@@ -12,17 +12,19 @@
 //     characters, the skill packs known ones and never Mochi's home, which stays Settings' own switch (`invalid`);
 //   * a brain and the skill packs only for a Hermes that Coucou installed and runs (`not_installed`): Hermes is never
 //     installed from the phone. A brain only once it is ready, its key or its server known here (`not_ready`);
-//   * at most 20 requests per 10 minutes per connection (`rate`), carried out one after the other, off the read loop.
+//   * at most 20 requests per 10 minutes per connection (`rate`), carried out one after the other, off the read loop;
+//     one that waited while the switch went off is refused then.
 // What the phone is told never holds a path, Hermes' address, a key, the installer's address, the account's e-mail or
 // the installer's own output; Hermes' words when it stopped or failed are cleaned first (guard.rs).
 
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use serde_json::{json, Value};
 use tokio::sync::mpsc;
 
 use super::guard::{clean_line, request_id, Rate};
 use super::hub::{Hub, Out};
+use super::server::Features;
 use crate::hermes_setup::{self, GatewayState, LoginState, SetupStatus};
 
 /// Requests that change something, per connection and per RATE_WINDOW_MS.
@@ -225,8 +227,12 @@ fn carry_out(backend: &dyn AssistantBackend, request: Request) -> Result<(), &'s
             if !status.installed {
                 return Err("not_installed");
             }
-            // One sign-in at a time: the setup's own, or one that already shows its code.
-            if status.progress.running || matches!(status.login, LoginState::Waiting { .. }) {
+            // One sign-in at a time. One that already shows its code is the one the phone wants: the code is in the
+            // `assistant` line.
+            if matches!(status.login, LoginState::Waiting { .. }) {
+                return Ok(());
+            }
+            if status.progress.running {
                 return Err("busy");
             }
             backend.login().map_err(failed)
@@ -252,6 +258,8 @@ fn carry_out(backend: &dyn AssistantBackend, request: Request) -> Result<(), &'s
 
 pub struct AssistantLink {
     backend: Arc<dyn AssistantBackend>,
+    /// How often the phones hear of a change.
+    throttle: Mutex<Throttle>,
 }
 
 /// One connection's side: its own line of requests (started with the first, ended with the connection), and how many
@@ -271,21 +279,23 @@ enum Job {
 
 impl AssistantLink {
     pub fn new(backend: Arc<dyn AssistantBackend>) -> Arc<AssistantLink> {
-        Arc::new(AssistantLink { backend })
+        Arc::new(AssistantLink { backend, throttle: Mutex::new(Throttle::default()) })
     }
 
     /// The phone was just offered the capability: its first picture, after its first `sessions`.
-    pub fn greet(&self, conn: &mut AssistantConn, sub: u64, tx: &mpsc::Sender<Out>, hub: &Arc<Hub>) {
-        self.queue(conn, sub, tx, hub, Job::Show);
+    pub fn greet(&self, conn: &mut AssistantConn, sub: u64, tx: &mpsc::Sender<Out>, hub: &Arc<Hub>, features: &Arc<dyn Features>) {
+        self.queue(conn, sub, tx, hub, features, Job::Show);
     }
 
     /// One `assistant…` message of a phone that negotiated the capability (connection `sub`). Never blocks: the work is
-    /// done on the connection's own task, one request after the other. `on`: the user's switch, read now.
+    /// done on the connection's own task, one request after the other. The user's switch is read now, and again when
+    /// the request's turn comes.
     #[allow(clippy::too_many_arguments)]
-    pub fn handle(&self, conn: &mut AssistantConn, sub: u64, tx: &mpsc::Sender<Out>, hub: &Arc<Hub>, msg: &Value, now: u64, on: bool) {
+    pub fn handle(&self, conn: &mut AssistantConn, sub: u64, tx: &mpsc::Sender<Out>, hub: &Arc<Hub>, features: &Arc<dyn Features>, msg: &Value, now: u64) {
+        let on = features.assistant();
         if msg["type"] == "assistantGet" {
             if on && conn.gets.allow(now, MAX_GETS, RATE_WINDOW_MS) {
-                self.queue(conn, sub, tx, hub, Job::Show);
+                self.queue(conn, sub, tx, hub, features, Job::Show);
             }
             return;
         }
@@ -302,36 +312,65 @@ impl AssistantLink {
         if !conn.requests.allow(now, MAX_REQUESTS, RATE_WINDOW_MS) {
             return refuse("rate");
         }
-        if !self.queue(conn, sub, tx, hub, Job::Do { id: id.to_string(), request }) {
+        if !self.queue(conn, sub, tx, hub, features, Job::Do { id: id.to_string(), request }) {
             refuse("busy");
         }
     }
 
     /// Puts a job on the connection's line, which starts with its first job. False when the line is full.
-    fn queue(&self, conn: &mut AssistantConn, sub: u64, tx: &mpsc::Sender<Out>, hub: &Arc<Hub>, job: Job) -> bool {
+    fn queue(&self, conn: &mut AssistantConn, sub: u64, tx: &mpsc::Sender<Out>, hub: &Arc<Hub>, features: &Arc<dyn Features>, job: Job) -> bool {
         let jobs = conn.jobs.get_or_insert_with(|| {
             let (jobs, line) = mpsc::channel(QUEUE);
-            tokio::spawn(work(self.backend.clone(), line, sub, tx.clone(), hub.clone()));
+            tokio::spawn(work(self.backend.clone(), line, sub, tx.clone(), hub.clone(), features.clone()));
             jobs
         });
         jobs.try_send(job).is_ok()
     }
+
+    /// Zheus changed (hermes_setup.rs): `line` goes to every phone that has the capability now, or once MIN_GAP_MS
+    /// has gone by since the last one. Some(wait): a send is planned, and `due` must be called that many ms later.
+    pub fn changed(&self, hub: &Hub, line: String, now: u64) -> Option<u64> {
+        let next = self.throttle.lock().unwrap().offer(line, now);
+        match next {
+            Next::Now(line) => {
+                hub.publish_assistant(line.into());
+                None
+            }
+            Next::Later(wait) => Some(wait),
+            Next::Planned => None,
+        }
+    }
+
+    /// The send `changed` planned: the latest picture.
+    pub fn due(&self, hub: &Hub, now: u64) {
+        let line = self.throttle.lock().unwrap().due(now);
+        if let Some(line) = line {
+            hub.publish_assistant(line.into());
+        }
+    }
 }
 
 /// One connection's requests, one after the other, each on a blocking thread (they read the disk and the keystore, and
-/// some start processes). What arrived is carried out even if the phone left meanwhile; the line ends with the
-/// connection.
-async fn work(backend: Arc<dyn AssistantBackend>, mut line: mpsc::Receiver<Job>, sub: u64, tx: mpsc::Sender<Out>, hub: Arc<Hub>) {
+/// some start processes). What arrived is carried out even if the phone left meanwhile, unless the switch went off;
+/// the line ends with the connection.
+async fn work(backend: Arc<dyn AssistantBackend>, mut line: mpsc::Receiver<Job>, sub: u64, tx: mpsc::Sender<Out>, hub: Arc<Hub>, features: Arc<dyn Features>) {
     while let Some(job) = line.recv().await {
         let backend = backend.clone();
         match job {
             Job::Show => {
+                if !features.assistant() {
+                    continue;
+                }
                 if let Ok(status) = tokio::task::spawn_blocking(move || backend.status()).await {
                     hub.send_assistant(sub, assistant_line(&status).into());
                 }
             }
             Job::Do { id, request } => {
-                let outcome = tokio::task::spawn_blocking(move || carry_out(&*backend, request)).await.unwrap_or(Err("failed"));
+                let outcome = if features.assistant() {
+                    tokio::task::spawn_blocking(move || carry_out(&*backend, request)).await.unwrap_or(Err("failed"))
+                } else {
+                    Err("off")
+                };
                 let _ = tx.send(result_line(&id, outcome)).await;
             }
         }

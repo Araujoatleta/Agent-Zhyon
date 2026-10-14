@@ -34,7 +34,9 @@ use tokio_rustls::rustls::{crypto::ring as ring_provider, ServerConfig};
 use tokio_rustls::TlsAcceptor;
 
 use super::admission::{Admission, Ticket};
+use super::assistant::{AssistantConn, AssistantLink};
 use super::chat::ChatLink;
+use super::home::{HomeConn, HomeLink};
 use super::hub::{constant_eq, Hub, Out};
 use super::pairing::Identity;
 
@@ -92,6 +94,14 @@ pub trait Features: Send + Sync {
     fn remote(&self) -> bool {
         false
     }
+    /// The phone may change the assistant: its name, tone, brain and skill packs (assistant.rs).
+    fn assistant(&self) -> bool {
+        false
+    }
+    /// The phone may use Mochi's home: Mochi's home is on, and the phone allowed to use it (home.rs).
+    fn home(&self) -> bool {
+        false
+    }
 }
 
 /// Nothing extra: how the link behaved before capabilities existed.
@@ -102,6 +112,14 @@ impl Features for NoFeatures {
     fn details(&self) -> bool {
         false
     }
+}
+
+/// What the phone may change on this computer, where the app wires it in (assistant.rs, home.rs). Each is offered only
+/// to a phone that asks, while its switch is on.
+#[derive(Default)]
+pub struct Links {
+    pub assistant: Option<Arc<AssistantLink>>,
+    pub home: Option<Arc<HomeLink>>,
 }
 
 /// What a connection needs to know about the desktop.
@@ -115,13 +133,22 @@ pub struct Shared {
     /// Chat from the phone; None where the feature is not wired in. Offered only to a phone that asks for it.
     pub chat: Option<Arc<ChatLink>>,
     pub features: Arc<dyn Features>,
+    /// The assistant and Mochi's home from the phone; None where they are not wired in.
+    pub assistant: Option<Arc<AssistantLink>>,
+    pub home: Option<Arc<HomeLink>>,
     admission: Arc<Admission>,
     /// When a phone last authenticated from the internet (ms; 0: never since the link started). Shown in Settings.
     pub outside_seen: AtomicU64,
 }
 
 impl Shared {
+    /// Without the assistant and Mochi's home.
+    #[cfg(test)]
     pub fn with_features(hub: Arc<Hub>, token: String, name: String, chat: Option<Arc<ChatLink>>, features: Arc<dyn Features>) -> Arc<Shared> {
+        Shared::with_links(hub, token, name, chat, features, Links::default())
+    }
+
+    pub fn with_links(hub: Arc<Hub>, token: String, name: String, chat: Option<Arc<ChatLink>>, features: Arc<dyn Features>, links: Links) -> Arc<Shared> {
         Arc::new(Shared {
             hub,
             token: Mutex::new(token),
@@ -129,6 +156,8 @@ impl Shared {
             clock: now_ms,
             chat,
             features,
+            assistant: links.assistant,
+            home: links.home,
             admission: Admission::new(),
             outside_seen: AtomicU64::new(0),
         })
@@ -171,6 +200,9 @@ impl Handle {
         self.shared.hub.kick_all("closed", "the phone link was turned off");
         if let Some(chat) = &self.shared.chat {
             chat.shutdown();
+        }
+        if let Some(home) = &self.shared.home {
+            home.shutdown();
         }
     }
 }
@@ -326,6 +358,9 @@ where
     let agent = chat.is_some() && asked("agent") && shared.features.agent();
     // The home's internet addresses, or that there are none (the switch is off): a phone that understands it is told.
     let remote = asked("remote");
+    // What the phone may change here: the assistant, and Mochi's home.
+    let assistant = shared.assistant.clone().filter(|_| asked("assistant") && shared.features.assistant());
+    let home = shared.home.clone().filter(|_| asked("home") && shared.features.home());
     let mut offered: Vec<&str> = Vec::new();
     if chat.is_some() {
         offered.push("chat");
@@ -357,12 +392,39 @@ where
     if remote {
         offered.push("remote");
     }
+    if assistant.is_some() {
+        offered.push("assistant");
+    }
+    if home.is_some() {
+        offered.push("home");
+    }
     let mut welcome = json!({ "type": "welcome", "v": PROTOCOL, "desktop": shared.name, "os": std::env::consts::OS });
     if !offered.is_empty() {
         welcome["caps"] = json!(offered);
     }
     let _ = say(welcome).await;
-    let (id, evicted) = shared.hub.subscribe_with(tx.clone(), (shared.clock)(), crate::phone_link::hub::Caps { details, answers, prefs, diffs, usage, relay, services, remote });
+    let caps = crate::phone_link::hub::Caps {
+        details,
+        answers,
+        prefs,
+        diffs,
+        usage,
+        relay,
+        services,
+        remote,
+        assistant: assistant.is_some(),
+        home: home.is_some(),
+    };
+    let (id, evicted) = shared.hub.subscribe_with(tx.clone(), (shared.clock)(), caps);
+    // Their first picture comes after the first `sessions`, which subscribing has just queued.
+    let mut assistant_conn = AssistantConn::default();
+    let mut home_conn = HomeConn::default();
+    if let Some(link) = &assistant {
+        link.greet(&mut assistant_conn, id, &tx, &shared.hub, &shared.features);
+    }
+    if let Some(link) = &home {
+        link.greet(&home_conn, id, &shared.hub);
+    }
 
     // 2. the conversation
     loop {
@@ -410,6 +472,17 @@ where
             Some(t) if t.starts_with("chat") => {
                 if let Some(chat) = &chat {
                     chat.handle(id, &tx, &msg, (shared.clock)(), agent);
+                }
+            }
+            Some(t) if t.starts_with("assistant") => {
+                // Carried out off this loop, one after the other (assistant.rs): pings and decisions keep flowing.
+                if let Some(link) = &assistant {
+                    link.handle(&mut assistant_conn, id, &tx, &shared.hub, &shared.features, &msg, (shared.clock)());
+                }
+            }
+            Some(t) if t.starts_with("home") => {
+                if let Some(link) = &home {
+                    link.handle(&mut home_conn, id, &tx, &shared.hub, &shared.features, &msg, (shared.clock)());
                 }
             }
             _ => {} // unknown types are ignored

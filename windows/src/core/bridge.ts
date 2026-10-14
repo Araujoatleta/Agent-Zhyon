@@ -386,6 +386,12 @@ export const Bridge = {
   phoneAgentStatus: () => call<{ enabled: boolean }>("phone_agent_status"),
   /** Off by default; only from the switch in Settings. Phones are reconnected so they learn about it. */
   phoneAgentSetEnabled: (enabled: boolean) => callOrThrow<{ enabled: boolean }>("phone_agent_set_enabled", { enabled }),
+  phoneAssistantStatus: () => call<{ enabled: boolean }>("phone_assistant_status"),
+  /** Off by default; only from the switch in Settings. Phones are reconnected so they learn about it. */
+  phoneAssistantSetEnabled: (enabled: boolean) => callOrThrow<{ enabled: boolean }>("phone_assistant_set_enabled", { enabled }),
+  phoneHomeStatus: () => call<{ enabled: boolean }>("phone_home_status"),
+  /** Off by default; only from the switch in Settings. Phones are reconnected so they learn about it. */
+  phoneHomeSetEnabled: (enabled: boolean) => callOrThrow<{ enabled: boolean }>("phone_home_set_enabled", { enabled }),
   // ── Mochi's home (src-tauri/src/smart_home) ────────────────────────────────
   homeStatus: () => call<HomeStatus>("home_status"),
   /** The latest actions on the house, newest first. */
