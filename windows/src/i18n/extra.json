@@ -8096,6 +8096,28 @@
    "pt-BR": "O celular mostra os aparelhos que você marcou para o Mochi em Configurações → Casa do Mochi, as rotinas e o histórico mais recente, e pode usá-los. Precisa da Casa do Mochi ligada. Aparelhos e rotinas que pedem confirmação esperam o Face ID do celular. Endereços e tokens nunca saem deste computador.",
    "ru": "Телефон показывает устройства, отмеченные для Mochi в «Настройки → Дом Mochi», сценарии и последние записи журнала, и может ими управлять. Нужен включённый Дом Mochi. Устройства и сценарии, которые сначала спрашивают, ждут Face ID на телефоне. Адреса и токены никогда не покидают этот компьютер.",
    "id": "Ponsel menampilkan perangkat yang Anda centang untuk Mochi di Pengaturan → Rumah Mochi, rutinitas, dan catatan terbaru, lalu dapat memakainya. Rumah Mochi harus menyala. Perangkat dan rutinitas yang bertanya dulu menunggu Face ID ponsel. Alamat dan token tidak pernah meninggalkan komputer ini."
+  },
+  "Trying that step again…": {
+   "zh-Hans": "正在重试这一步…",
+   "hi": "यह चरण फिर से आज़माया जा रहा है…",
+   "es": "Reintentando este paso…",
+   "ar": "جارٍ إعادة محاولة هذه الخطوة…",
+   "fr": "Nouvel essai de cette étape…",
+   "bn": "এই ধাপটি আবার চেষ্টা করা হচ্ছে…",
+   "pt-BR": "Tentando esta etapa de novo…",
+   "ru": "Повторяем этот шаг…",
+   "id": "Mencoba langkah ini lagi…"
+  },
+  "Its full output is in {path}.": {
+   "zh-Hans": "完整输出保存在 {path}。",
+   "hi": "इसका पूरा आउटपुट {path} में है।",
+   "es": "Su salida completa está en {path}.",
+   "ar": "مخرجاته الكاملة موجودة في {path}.",
+   "fr": "Sa sortie complète se trouve dans {path}.",
+   "bn": "এর পুরো আউটপুট {path}-এ আছে।",
+   "pt-BR": "A saída completa está em {path}.",
+   "ru": "Полный вывод сохранён в {path}.",
+   "id": "Keluaran lengkapnya ada di {path}."
   }
  }
 }
