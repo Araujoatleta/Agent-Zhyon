@@ -269,6 +269,9 @@ targets:
         type: group
       - path: PhoneAssets.xcassets
         buildPhase: resources
+      # The iPhone app's own strings (pt-BR, fr, es); the Mac targets keep Resources/Localizable.xcstrings.
+      - path: Resources/Phone/Localizable.xcstrings
+        buildPhase: resources
       # Mochi's sounds for the iPhone's notifications.
       - path: Resources/sounds/approval.wav
         buildPhase: resources

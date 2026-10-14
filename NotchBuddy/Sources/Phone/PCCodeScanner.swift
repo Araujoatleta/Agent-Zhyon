@@ -21,7 +21,7 @@ struct PCScanSheet: View {
             PCPairingConfirm(pairing: found, pc: pc, paired: paired)
         } else {
             ZStack(alignment: .bottom) {
-                Color.black.ignoresSafeArea()
+                DeepBackdrop()
                 if camera == true {
                     PCCodeScanner { text in read(text) }
                         .ignoresSafeArea()
@@ -36,16 +36,19 @@ struct PCScanSheet: View {
                         }
                     }
                 }
-                VStack(spacing: 12) {
-                    Text(problem ?? "Point the camera at the code in Coucou → Settings → Phone (Android and iPhone) on the computer.")
-                        .font(.callout)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 12)
-                        .glassCard(cornerRadius: 18)
-                    Button("Cancel") { dismiss() }
-                        .buttonStyle(.bordered)
-                        .controlSize(.large)
+                // Clear glass over the camera's picture, the hint and Cancel side by side in one group.
+                CoucouGlassGroup(spacing: 12) {
+                    VStack(spacing: 12) {
+                        Text(problem ?? String(localized: "Point the camera at the code in Coucou → Settings → Phone (Android and iPhone) on the computer."))
+                            .font(.callout)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
+                            .coucouGlass(.clear, cornerRadius: 18)
+                        Button("Cancel") { dismiss() }
+                            .coucouGlassButton()
+                            .controlSize(.large)
+                    }
                 }
                 .padding(24)
             }
@@ -63,7 +66,7 @@ struct PCScanSheet: View {
             Haptics.success()
             found = pairing
         } else if problem == nil {
-            problem = "This QR code isn't a Coucou pairing code. Use the one in Settings → Phone (Android and iPhone) on the computer."
+            problem = String(localized: "This QR code isn't a Coucou pairing code. Use the one in Settings → Phone (Android and iPhone) on the computer.")
             Haptics.warning()
         }
     }

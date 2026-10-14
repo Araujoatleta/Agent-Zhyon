@@ -89,15 +89,15 @@ struct LastTurnView: View {
                                 Text(file.path).font(.caption2).foregroundStyle(.tertiary).lineLimit(1).truncationMode(.head)
                             }
                             Spacer(minLength: 6)
-                            Text("+\(file.added)").font(.caption.monospacedDigit()).foregroundStyle(.green)
-                            Text("−\(file.removed)").font(.caption.monospacedDigit()).foregroundStyle(.red)
+                            Text(verbatim: "+\(file.added)").font(.caption.monospacedDigit()).foregroundStyle(CoucouPalette.ok)
+                            Text(verbatim: "−\(file.removed)").font(.caption.monospacedDigit()).foregroundStyle(CoucouPalette.danger)
                             Image(systemName: "chevron.right").font(.caption2).foregroundStyle(.tertiary)
                         }
                         .padding(.vertical, 8)
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-                    if index < turn.files.count - 1 { Divider() }
+                    if index < turn.files.count - 1 { Divider().overlay(CoucouPalette.hairline) }
                 }
             }
         }
@@ -120,7 +120,7 @@ struct LastTurnView: View {
         }
     }
 
-    private func card<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
+    private func card<Content: View>(title: LocalizedStringKey, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
             content()
@@ -159,7 +159,7 @@ private struct ActionRow: View {
                 HStack(alignment: .firstTextBaseline, spacing: 10) {
                     Image(systemName: action.failed ? "exclamationmark.triangle.fill" : icon)
                         .font(.footnote)
-                        .foregroundStyle(action.failed ? Color.red : Color.secondary)
+                        .foregroundStyle(action.failed ? CoucouPalette.danger : Color.secondary)
                         .frame(width: 18)
                     VStack(alignment: .leading, spacing: 1) {
                         Text(action.tool).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
@@ -171,7 +171,7 @@ private struct ActionRow: View {
                     }
                     Spacer(minLength: 4)
                     if let file {
-                        Text("+\(file.added) −\(file.removed)").font(.caption2.monospacedDigit()).foregroundStyle(.secondary)
+                        Text(verbatim: "+\(file.added) −\(file.removed)").font(.caption2.monospacedDigit()).foregroundStyle(.secondary)
                     } else if !action.output.isEmpty {
                         Image(systemName: open ? "chevron.up" : "chevron.down").font(.caption2).foregroundStyle(.tertiary)
                     }
@@ -187,7 +187,7 @@ private struct ActionRow: View {
                         .textSelection(.enabled)
                         .padding(10)
                 }
-                .background(Color(white: 0.06), in: RoundedRectangle(cornerRadius: 10))
+                .background(Color.black.opacity(0.32), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                 .padding(.leading, 28)
             }
         }
@@ -218,14 +218,15 @@ struct FileDiffView: View {
             }
             .padding(.vertical, 8)
         }
-        .background(Color.black)
+        // Solid, not the glowing backdrop: code reads best on an even dark.
+        .background(CoucouPalette.abyss)
         .navigationTitle(file.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 HStack(spacing: 6) {
-                    Text("+\(file.added)").foregroundStyle(.green)
-                    Text("−\(file.removed)").foregroundStyle(.red)
+                    Text(verbatim: "+\(file.added)").foregroundStyle(CoucouPalette.ok)
+                    Text(verbatim: "−\(file.removed)").foregroundStyle(CoucouPalette.danger)
                 }
                 .font(.footnote.monospacedDigit().weight(.semibold))
             }
@@ -258,16 +259,16 @@ struct FileDiffView: View {
     @ViewBuilder private func row(_ line: TurnDiffLine) -> some View {
         switch line.kind {
         case .gap:
-            Text("⋯")
+            Text(verbatim: "⋯")
                 .font(.caption.monospaced())
                 .foregroundStyle(.tertiary)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
         case .added, .removed, .context:
             HStack(spacing: 0) {
-                Text(line.kind == .added ? "+" : line.kind == .removed ? "−" : " ")
+                Text(verbatim: line.kind == .added ? "+" : line.kind == .removed ? "−" : " ")
                     .frame(width: 18)
-                    .foregroundStyle(line.kind == .added ? Color.green : line.kind == .removed ? Color.red : Color.secondary)
+                    .foregroundStyle(line.kind == .added ? CoucouPalette.ok : line.kind == .removed ? CoucouPalette.danger : Color.secondary)
                 Text(line.text.isEmpty ? " " : line.text)
                     .foregroundStyle(line.kind == .context ? Color.secondary : Color.primary)
                     .fixedSize(horizontal: true, vertical: false)
@@ -277,8 +278,8 @@ struct FileDiffView: View {
             .padding(.vertical, 1)
             .padding(.leading, 6)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(line.kind == .added ? Color.green.opacity(0.14)
-                        : line.kind == .removed ? Color.red.opacity(0.14) : Color.clear)
+            .background(line.kind == .added ? CoucouPalette.ok.opacity(0.14)
+                        : line.kind == .removed ? CoucouPalette.danger.opacity(0.14) : Color.clear)
         }
     }
 }

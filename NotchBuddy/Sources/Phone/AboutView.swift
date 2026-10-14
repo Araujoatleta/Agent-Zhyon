@@ -75,8 +75,9 @@ struct AboutView: View {
             }
             .listRowBackground(GlassRowBackground())
 
-            // How much of the Claude and Codex plans is used, when the computer shares it.
-            if pc.offers("usage") {
+            // How much of the Claude and Codex plans is used, when the computer shares it (a List row would stay
+            // as an empty gap otherwise).
+            if pc.offers("usage"), pc.model.usage?.isEmpty == false {
                 Section {
                     PCUsageCard()
                 }

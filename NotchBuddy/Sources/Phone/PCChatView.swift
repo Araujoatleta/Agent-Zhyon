@@ -176,11 +176,11 @@ struct PCChatView: View {
         switch entry.role {
         case .you:
             PCChatBubble(entry: entry)
-                .contextMenu { menu(for: entry) }
+                .contextMenu { messageMenu(for: entry) }
         case .mochi:
             VStack(alignment: .leading, spacing: 10) {
                 PCChatBubble(entry: entry, live: entry.id == liveEntryID)
-                    .contextMenu { menu(for: entry) }
+                    .contextMenu { messageMenu(for: entry) }
                 if entry.id == waitingEntryID {
                     ForEach(pc.mochiApprovals, id: \.fingerprint) { approval in
                         approvalCard(approval)
@@ -191,7 +191,7 @@ struct PCChatView: View {
     }
 
     /// Long press on a message: copy it, hear it, or send it again (for his answer, the message it answered).
-    @ViewBuilder private func menu(for entry: PCChatEntry) -> some View {
+    @ViewBuilder private func messageMenu(for entry: PCChatEntry) -> some View {
         if !entry.text.isEmpty {
             Button {
                 UIPasteboard.general.string = entry.text

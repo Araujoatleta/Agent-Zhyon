@@ -116,13 +116,13 @@ struct StateSymbol: View {
             Image(systemName: "questionmark.bubble.fill").foregroundStyle(.cyan)
                 .symbolEffect(.breathe)
         case 2:
-            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.red)
+            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(CoucouPalette.danger)
                 .symbolEffect(.wiggle, options: .repeat(2), value: session.updatedAt)
         case 3:
             Image(systemName: "ellipsis").foregroundStyle(.secondary)
                 .symbolEffect(.variableColor.iterative)
         case 4:
-            Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+            Image(systemName: "checkmark.circle.fill").foregroundStyle(CoucouPalette.ok)
                 .symbolEffect(.bounce, value: session.updatedAt)
         default:
             Image(systemName: "moon.zzz.fill").foregroundStyle(.tertiary)

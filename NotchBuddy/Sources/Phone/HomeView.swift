@@ -188,7 +188,7 @@ struct AgentsTab: View {
                                 } label: {
                                     Label("Allow", systemImage: "faceid")
                                 }
-                                .tint(.green)
+                                .tint(CoucouPalette.ok)
                             }
                         }
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
@@ -208,8 +208,8 @@ struct AgentsTab: View {
                     }
                 }
 
-                // What the computer's service Mochi say (read-only), when it shares any.
-                if PCLink.shared.isPaired {
+                // What the computer's service Mochi say (read-only), when it shares any (an empty row would leave a gap).
+                if PCLink.shared.isPaired, !PCLink.shared.model.services.isEmpty {
                     PCServicesSection()
                         .listRowBackground(Color.clear)
                         .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
