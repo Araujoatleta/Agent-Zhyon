@@ -50,6 +50,9 @@ pub struct Settings {
     pub lmstudio_url: String,
     /// Any other OpenAI-compatible server; its key, if any, is in the keychain.
     pub custom_url: String,
+    /// Hermes Agent's API server once connected (hermes.rs); empty means not connected. Its key is in the keychain,
+    /// bound to this address. Owned by Rust: only Settings → Hermes Agent's commands change it.
+    pub hermes_url: String,
     /// Global shortcuts the user changed, by action id; the others keep their
     /// default (see shortcuts.rs).
     pub shortcuts: crate::shortcuts::Bindings,
@@ -118,12 +121,18 @@ pub struct Settings {
     pub phone_push: bool,
     /// The ntfy server ("" is https://ntfy.sh). Not a secret. Owned by Rust.
     pub phone_push_server: String,
+    /// Away from home, directly (phone_link/remote.rs): the router is asked to open the link's port and the phones
+    /// are told the home's internet addresses. Off by default; owned by Rust like the other phone switches.
+    pub phone_remote: bool,
     /// Mochi's home (smart_home/): from the chat, Mochi may use the devices of the house the user picked. Off until the
     /// user turns it on in Settings → Mochi's home; owned by Rust like the hands, so what a webview sends back is ignored.
     pub home_enabled: bool,
     /// Every action on the house waits for a click, not only those on plugs, switches and the devices set to ask.
     /// Owned by Rust.
     pub home_ask_all: bool,
+    /// Other agents on this computer (Hermes Agent, through `coucou-hook --mcp`) may use Mochi's home, with the same
+    /// rules as Mochi. Off by default; owned by Rust (agent::mcp::home_mcp_set).
+    pub home_mcp: bool,
     /// Home Assistant's address on the local network ("" none). Its token is in the OS keystore. Owned by Rust.
     pub home_assistant_url: String,
     /// The Philips TVs added by their address; their pairings are in the OS keystore. Owned by Rust.
@@ -135,6 +144,30 @@ pub struct Settings {
     /// The chat on this computer reads Mochi's answers aloud, with the system's own voices (Settings → Mochi's home →
     /// Voice). Off by default. The island's own choice, like the hands toggle: nothing leaves the computer.
     pub read_aloud: bool,
+    /// Coucou installed Hermes Agent or runs it (hermes_setup.rs): its gateway starts with Coucou. Off by default;
+    /// owned by Rust.
+    pub hermes_managed: bool,
+    /// The provider Coucou handed to Hermes as its brain ("anthropic", "google"…): its key goes to the gateway's
+    /// environment, never to a file. Owned by Rust.
+    pub hermes_brain: String,
+    /// The name the user gives their assistant ("Zheus"; "" shows as that): Hermes is told it answers to it, in its
+    /// SOUL.md and with each message. Owned by Rust: only Settings → Hermes Agent's Save (hermes_setup::set_assistant),
+    /// the installer's page (first_run.rs) and the phone change it.
+    pub assistant_name: String,
+    /// Its tone, one of hermes_setup::PERSONAS ("" is "friendly"). Owned by Rust, like the name.
+    pub assistant_persona: String,
+    /// The user's own tone, for "custom" (at most 1500 characters, kept as typed). Owned by Rust, and never logged.
+    pub assistant_persona_text: String,
+    /// The skill packs the user wants Hermes to have ("search", "news"; Mochi's home is `home_mcp`). Owned by Rust.
+    pub hermes_skills: Vec<String>,
+    /// The packs Coucou itself installed in Hermes: only these are ever removed, never a skill the user installed.
+    /// Owned by Rust.
+    pub hermes_skills_installed: Vec<String>,
+    /// The paired phone may change the assistant (name, tone, brain, skills; cap `assistant`). Off by default; owned
+    /// by Rust like the other phone switches.
+    pub phone_assistant: bool,
+    /// The paired phone may use Mochi's home (cap `home`). Off by default; owned by Rust like the other phone switches.
+    pub phone_home: bool,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -185,6 +218,7 @@ impl Default for Settings {
             ollama_url: String::new(),
             lmstudio_url: String::new(),
             custom_url: String::new(),
+            hermes_url: String::new(),
             shortcuts: Default::default(),
             mochi_outfit: "auto".into(),
             pill_colors: BTreeMap::new(),
@@ -207,13 +241,24 @@ impl Default for Settings {
             phone_agent: false,
             phone_push: false,
             phone_push_server: String::new(),
+            phone_remote: false,
             home_enabled: false,
             home_ask_all: false,
+            home_mcp: false,
             home_assistant_url: String::new(),
             home_tvs: Vec::new(),
             home_devices: BTreeMap::new(),
             home_routines: Vec::new(),
             read_aloud: false,
+            hermes_managed: false,
+            hermes_brain: String::new(),
+            assistant_name: String::new(),
+            assistant_persona: String::new(),
+            assistant_persona_text: String::new(),
+            hermes_skills: Vec::new(),
+            hermes_skills_installed: Vec::new(),
+            phone_assistant: false,
+            phone_home: false,
         }
     }
 }
@@ -486,6 +531,7 @@ mod tests {
   "ollamaUrl": "http://127.0.0.1:11434",
   "lmstudioUrl": "http://127.0.0.1:1234",
   "customUrl": "https://llm.example.com",
+  "hermesUrl": "http://127.0.0.1:8642",
   "shortcuts": { "openChat": { "keys": "Ctrl+Shift+K", "enabled": false } },
   "mochiOutfit": "witchHat",
   "pillColors": { "integration_claude": "#2DD4BF" },
@@ -508,13 +554,27 @@ mod tests {
   "phoneAgent": true,
   "phonePush": true,
   "phonePushServer": "https://ntfy.example.com",
+  "phoneRemote": true,
   "homeEnabled": true,
   "homeAskAll": true,
+  "homeMcp": true,
   "homeAssistantUrl": "http://homeassistant.local:8123/",
-  "homeTvs": [{ "id": "philips:0a1b2c3d", "host": "192.168.1.20", "api": 6, "https": true, "pin": "", "mac": "A4:B1:C2:D3:E4:F5", "name": "Philips TV", "model": "55PUS8007/12", "os": "MSAF_2019_P", "version": "6.4.0", "features": { "inputkey": ["key"] }, "needsPairing": true }],
+  "homeTvs": [
+    { "id": "philips:0a1b2c3d", "brand": "", "host": "192.168.1.20", "api": 6, "https": true, "pin": "", "mac": "A4:B1:C2:D3:E4:F5", "name": "Philips TV", "model": "55PUS8007/12", "os": "MSAF_2019_P", "version": "6.4.0", "features": { "inputkey": ["key"] }, "needsPairing": true, "frame": false, "renderer": "", "apps": [] },
+    { "id": "samsung:0e0f1a1b", "brand": "samsung", "host": "192.168.0.9", "api": 2, "https": true, "pin": "", "mac": "A4:30:7A:12:34:56", "name": "Samsung 7 Series (43)", "model": "UN43AU7700GXZD", "os": "Tizen", "version": "2.0.25", "features": {}, "needsPairing": true, "frame": true, "renderer": "http://192.168.0.9:9197/upnp/control/RenderingControl1", "apps": [{ "id": "111299001912", "name": "YouTube", "kind": 2 }] }
+  ],
   "homeDevices": { "philips:0a1b2c3d": { "name": "TV da sala", "room": "Sala", "exposed": true, "ask": false } },
   "homeRoutines": [{ "id": "r-0a1b2c3d4e5f", "name": "Boa noite", "steps": [{ "device": "philips:0a1b2c3d", "action": "turn_off", "value": "", "wait": 0 }] }],
-  "readAloud": true
+  "readAloud": true,
+  "hermesManaged": true,
+  "hermesBrain": "anthropic",
+  "assistantName": "Zheus",
+  "assistantPersona": "butler",
+  "assistantPersonaText": "Fale como um capitão de navio.\nSempre breve.",
+  "hermesSkills": ["search", "news"],
+  "hermesSkillsInstalled": ["search"],
+  "phoneAssistant": true,
+  "phoneHome": true
 }"##;
 
     fn custom() -> Value {
@@ -725,6 +785,11 @@ mod tests {
         let odd = parse(&custom_with("homeTvs", Some(serde_json::json!("nope")))).unwrap();
         assert!(odd.home_tvs.is_empty());
         assert_eq!(odd.home_routines.len(), 1);
+        // A TV kept before Samsung TVs came is a Philips one.
+        let mut older = custom();
+        older["homeTvs"][0].as_object_mut().unwrap().remove("brand");
+        let tvs = parse(&serde_json::to_vec(&older).unwrap()).unwrap().home_tvs;
+        assert!(!tvs[0].samsung() && tvs[1].samsung());
         // Reading answers aloud is a choice too: off until the user turns it on.
         assert!(!d.read_aloud);
         assert!(!parse(&custom_with("readAloud", None)).unwrap().read_aloud);
@@ -741,12 +806,48 @@ mod tests {
     }
 
     #[test]
+    fn opening_a_port_on_the_router_is_never_on_by_default() {
+        // An older file, or a wrong type, is not consent to be reachable from the internet.
+        assert!(!Settings::default().phone_remote);
+        assert!(!parse(&custom_with("phoneRemote", None)).unwrap().phone_remote);
+        assert!(!parse(&custom_with("phoneRemote", Some(serde_json::json!("yes")))).unwrap().phone_remote);
+        assert!(parse(CUSTOM.as_bytes()).is_some_and(|s| s.phone_remote));
+    }
+
+    #[test]
     fn a_file_from_before_phone_services_shows_none() {
         // Showing a service on the phone is never on by default; an older file is not consent.
         assert!(Settings::default().phone_services.is_empty());
         assert!(parse(&custom_with("phoneServices", None)).unwrap().phone_services.is_empty());
         assert_eq!(parse(&custom_with("phoneServices", Some(serde_json::json!(["integration_stripe"])))).unwrap().phone_services, vec!["integration_stripe".to_string()]);
         assert!(parse(&custom_with("phoneServices", Some(serde_json::json!("integration_stripe")))).unwrap().phone_services.is_empty(), "a wrong type shows none");
+    }
+
+    #[test]
+    fn a_file_from_before_the_assistant_and_home_on_the_phone_keeps_them_off() {
+        // Changing the assistant or using the house from the phone is never on by default; an older file is not consent.
+        let d = Settings::default();
+        assert!(!d.phone_assistant && !d.phone_home);
+        for key in ["phoneAssistant", "phoneHome"] {
+            let old = parse(&custom_with(key, None)).unwrap();
+            assert!(!(if key == "phoneAssistant" { old.phone_assistant } else { old.phone_home }), "{key}");
+            let odd = parse(&custom_with(key, Some(json!("yes")))).unwrap();
+            assert!(!(if key == "phoneAssistant" { odd.phone_assistant } else { odd.phone_home }), "a wrong type does not switch {key} on");
+            assert_eq!(odd.assistant_persona, "butler");
+        }
+    }
+
+    #[test]
+    fn a_file_from_before_the_tone_and_skills_gives_the_friendly_tone_and_no_skill() {
+        let old = parse(&custom_with("assistantPersona", None)).unwrap();
+        assert_eq!(old.assistant_persona, "", "\"\" is the friendly tone");
+        assert_eq!(old.assistant_name, "Zheus");
+        let loaded = parse(CUSTOM.as_bytes()).unwrap();
+        assert_eq!(loaded.assistant_persona_text, "Fale como um capitão de navio.\nSempre breve.", "kept as typed");
+        assert_eq!(loaded.hermes_skills, ["search", "news"]);
+        assert_eq!(loaded.hermes_skills_installed, ["search"]);
+        let bad = parse(&custom_with("hermesSkills", Some(json!("search")))).unwrap();
+        assert!(bad.hermes_skills.is_empty() && bad.hermes_skills_installed == ["search"], "a wrong type costs only itself");
     }
 
     #[test]
@@ -1053,6 +1154,7 @@ mod tests {
                 "ollamaUrl",
                 "lmstudioUrl",
                 "customUrl",
+                "hermesUrl",
                 "shortcuts",
                 "mochiOutfit",
                 "pillColors",
@@ -1075,13 +1177,24 @@ mod tests {
                 "phoneAgent",
                 "phonePush",
                 "phonePushServer",
+                "phoneRemote",
                 "homeEnabled",
                 "homeAskAll",
+                "homeMcp",
                 "homeAssistantUrl",
                 "homeTvs",
                 "homeDevices",
                 "homeRoutines",
                 "readAloud",
+                "hermesManaged",
+                "hermesBrain",
+                "assistantName",
+                "assistantPersona",
+                "assistantPersonaText",
+                "hermesSkills",
+                "hermesSkillsInstalled",
+                "phoneAssistant",
+                "phoneHome",
             ]
         );
         let _ = std::fs::remove_dir_all(&dir);

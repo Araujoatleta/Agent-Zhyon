@@ -45,6 +45,10 @@ futures-util = { version = "0.3", default-features = false, features = ["sink"] 
 # Mochi's hands (agent/): searching file contents and matching file names. Already in the tree (through tauri), so
 # nothing new is downloaded.
 regex = "1"
+# Away from home, directly (phone_link/remote.rs): this computer's IPv6 addresses (if-addrs) and a listener for IPv6
+# only beside the IPv4 one (socket2). Both already in the tree through mdns-sd, so nothing new is downloaded.
+if-addrs = "0.15"
+socket2 = "0.6"
 
 [target.'cfg(windows)'.dependencies]
 keyring = { version = "3", features = ["windows-native"] }
@@ -58,6 +62,8 @@ windows = { version = "0.61", features = [
   "Win32_Security_Authorization",
   # "Open terminal": the relay's process tree leads to the session's window.
   "Win32_System_Diagnostics_ToolHelp",
+  # Hermes' gateway, run by Coucou, ends with it (hermes_setup.rs).
+  "Win32_System_JobObjects",
   "Win32_System_Ole",
   "Win32_System_Pipes",
   "Win32_System_SystemInformation",

@@ -11,6 +11,10 @@ import UserNotifications
 /// the computer's certificate pinned. Its sessions and requests join the Mac's on every screen (PhoneLink.sessions);
 /// Allow, Deny, answers and the chat with Mochi go back on the same link. The wire itself is PCLinkWire.swift.
 ///
+/// Away from home, the computer's own addresses on the internet (which it gives over the link once its router opened
+/// a port for it: windows/src-tauri/src/phone_link/remote.rs) are tried after the local one, with the same pinned
+/// certificate and the same token. No server of anyone is in between, and no name is looked up.
+///
 /// What it cannot do: wake the iPhone. iOS suspends an app soon after it leaves the screen, and only Apple's push can
 /// wake it again, which needs a server and a paid developer account. So requests arrive while Coucou is open, or in
 /// the half minute iOS grants after leaving it (as notifications); the link comes back by itself when Coucou opens.
@@ -46,8 +50,26 @@ final class PCLink {
     /// The chat's model ("provider/model") and whether Mochi may use his hands on the computer.
     private(set) var chatModel: String
     private(set) var chatHands: Bool
+    /// The link goes over the internet, to the computer's router, not the local network.
+    private(set) var viaOutside = false
+    /// What is being done in Mochi's home from here (a device's or a routine's id): one action at a time, as on the
+    /// computer.
+    private(set) var homeWorking: String?
+    /// Assistant changes on their way to the computer.
+    private(set) var assistantPending = 0
 
     @ObservationIgnored private var connection: NWConnection?
+    /// The ways being tried, by their place in `plan`, until one has a link.
+    @ObservationIgnored private var dialing: [Int: Attempt] = [:]
+    @ObservationIgnored private var plan: [Route] = []
+    @ObservationIgnored private var planned = 0
+    @ObservationIgnored private var failures: [Failure] = []
+    @ObservationIgnored private var dialTask: Task<Void, Never>?
+    /// The way the link took (its place in `plan`).
+    @ObservationIgnored private var linkID = -1
+    /// The iPhone is on Wi-Fi or a wire, where the computer may be; not on cellular only.
+    @ObservationIgnored private var onLocalNetwork = true
+    @ObservationIgnored private var pathMonitor: NWPathMonitor?
     /// Counts connections, so what an old one reports late is ignored.
     @ObservationIgnored private var generation = 0
     @ObservationIgnored private var reader = PCLineReader()
@@ -68,6 +90,12 @@ final class PCLink {
     /// Requests already notified, so a reconnection does not ring again; kept a few minutes across launches, so
     /// a notification's Allow or Deny still finds its way here after iOS ended the app.
     @ObservationIgnored private var notified: [String: Date] = [:]
+    /// Assistant and home requests waiting for the computer's answer, by the id they carry.
+    @ObservationIgnored private var requests: [String: CheckedContinuation<PCRequestResult, Never>] = [:]
+    /// When the assistant and the home were last asked for, so screens opening again do not flood the link.
+    @ObservationIgnored private var asked: [String: Date] = [:]
+    /// The diff sheet waiting for its lines.
+    @ObservationIgnored private var diffWaiter: DiffWaiter?
 
     nonisolated private static let queue = DispatchQueue(label: "fr.louisraille.Coucou.pc-link")
     private static let notifiedKey = "pcLinkNotified"
@@ -83,6 +111,9 @@ final class PCLink {
         chatModel = UserDefaults.standard.string(forKey: Self.chatModelKey) ?? ""
         chatHands = UserDefaults.standard.object(forKey: Self.chatHandsKey) as? Bool ?? true
         notified = recent.filter { Date.now.timeIntervalSince($0.value) < 600 }
+        // The chat as it was when Coucou closed; none without a computer.
+        if paired != nil { model.restoreChat(PCChatStore.load()) } else { PCChatStore.save([]) }
+        pathMonitor = Self.watchPath(link: self)
     }
 
     var isPaired: Bool { computer != nil }
@@ -100,6 +131,8 @@ final class PCLink {
         disconnect(sayBye: true)
         computer = pairing.computer
         model = PCLinkModel()
+        // A new pairing starts a new conversation there: the one kept here goes.
+        PCChatStore.save([])
         rebuild()
         lastError = nil
         attempt = 0
@@ -113,6 +146,7 @@ final class PCLink {
         stopSearching()
         retryTask?.cancel()
         PCLinkStore.forget()
+        PCChatStore.save([])
         computer = nil
         model = PCLinkModel()
         rebuild()
@@ -131,7 +165,7 @@ final class PCLink {
 
     /// A link that is down tries again now (the app came back, or a pull to refresh).
     func reconnectIfNeeded() {
-        guard computer != nil, connection == nil, status != .refused else { return }
+        guard computer != nil, !busy, status != .refused else { return }
         retryTask?.cancel()
         attempt = 0
         connect()
@@ -140,7 +174,8 @@ final class PCLink {
     /// Coucou left the screen: the link stays up for the time iOS grants, then says goodbye.
     func appWentAway() {
         onScreen = false
-        guard connection != nil, backgroundTask == .invalid else { return }
+        saveChat()
+        guard busy, backgroundTask == .invalid else { return }
         backgroundTask = UIApplication.shared.beginBackgroundTask(withName: "Coucou computer link") { [weak self] in
             MainActor.assumeIsolated { self?.backgroundTimeOver() }
         }
@@ -148,7 +183,7 @@ final class PCLink {
 
     private func backgroundTimeOver() {
         disconnect(sayBye: true)
-        model.connectionLost()
+        modelConnectionLost()
         rebuild()
         if computer != nil, status != .refused { status = .offline("") }
         endBackgroundTime()
@@ -162,32 +197,122 @@ final class PCLink {
 
     // MARK: Connecting
 
+    /// One way to the computer: an address, and whether it goes over the internet.
+    private struct Route {
+        let endpoint: NWEndpoint
+        let outside: Bool
+    }
+
+    /// A way being tried.
+    private struct Attempt {
+        let connection: NWConnection
+        let outside: Bool
+    }
+
+    private struct Failure {
+        let reason: String
+        let outside: Bool
+    }
+
+    /// The next way starts when the one before has not answered for this long, or at once when it failed.
+    private static let headStart: Double = 1.5
+
+    /// A link is up or being made.
+    private var busy: Bool { connection != nil || !dialing.isEmpty }
+
+    /// Where to try, in order: the address on the local network (skipped on cellular when there is another way), then
+    /// the computer's addresses on the internet, if it gave any.
+    private func routes(to computer: PCComputer) -> [Route] {
+        let outside: [Route] = computer.remote.compactMap { text in
+            guard let parsed = PCRemote.parse(text), let port = NWEndpoint.Port(rawValue: parsed.port) else { return nil }
+            return Route(endpoint: .hostPort(host: NWEndpoint.Host(parsed.host), port: port), outside: true)
+        }
+        let local = Route(endpoint: .hostPort(host: NWEndpoint.Host(computer.host),
+                                              port: NWEndpoint.Port(rawValue: computer.port) ?? 47821),
+                          outside: false)
+        return onLocalNetwork || outside.isEmpty ? [local] + outside : outside
+    }
+
     private func connect(to endpoint: NWEndpoint? = nil) {
         guard let computer else { status = .unpaired; return }
         guard PCLinkStore.token() != nil else { status = .refused; return }
-        // One way at a time: the saved address, or the one the search found.
+        // One attempt at a time: the saved address and then the ways over the internet, or the one the search found.
         stopSearching()
         disconnect(sayBye: false)
         generation += 1
         let generation = generation
         viaSearch = endpoint != nil
         if !viaSearch { status = .connecting }
-        let target = endpoint ?? .hostPort(host: NWEndpoint.Host(computer.host),
-                                           port: NWEndpoint.Port(rawValue: computer.port) ?? 47821)
-        let connection = NWConnection(to: target, using: Self.parameters(pinned: computer.fingerprint))
-        self.connection = connection
+        plan = endpoint.map { [Route(endpoint: $0, outside: false)] } ?? routes(to: computer)
+        planned = 0
+        failures = []
         reader = PCLineReader()
         welcomed = false
         lastInbound = .now
-        Self.watch(connection, generation: generation, link: self)
-        connection.start(queue: Self.queue)
-        Self.receive(on: connection, generation: generation, link: self)
-        // No welcome within 10 s (a wrong address, a computer asleep): try again later.
+        dialNext(generation: generation)
+        // No welcome within 10 s, and a little more per way to try (a wrong address, a computer asleep): later.
+        let wait = 10 + Self.headStart * Double(max(0, plan.count - 1))
         handshakeTask = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(10))
+            try? await Task.sleep(for: .seconds(wait))
             guard !Task.isCancelled, let self, self.generation == generation, !self.welcomed else { return }
-            self.lost("The computer can't be reached. Same Wi-Fi? Computer awake and Coucou running?")
+            self.lost(self.unreachableReason())
         }
+    }
+
+    /// Starts the next way of the plan, and the one after it if this one has not answered within its head start.
+    private func dialNext(generation: Int) {
+        guard generation == self.generation, connection == nil, planned < plan.count, let computer else { return }
+        let id = planned
+        let route = plan[id]
+        planned += 1
+        let candidate = NWConnection(to: route.endpoint, using: Self.parameters(pinned: computer.fingerprint))
+        dialing[id] = Attempt(connection: candidate, outside: route.outside)
+        Self.watch(candidate, generation: generation, id: id, link: self)
+        candidate.start(queue: Self.queue)
+        dialTask?.cancel()
+        guard planned < plan.count else { return }
+        dialTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(Self.headStart))
+            guard !Task.isCancelled, let self else { return }
+            self.dialNext(generation: generation)
+        }
+    }
+
+    /// The first way whose certificate checked out: the link goes on there, the others are dropped.
+    private func adopt(_ trial: Attempt, id: Int, generation: Int) {
+        dialing[id] = nil
+        for other in dialing.values {
+            other.connection.stateUpdateHandler = nil
+            other.connection.cancel()
+        }
+        dialing = [:]
+        dialTask?.cancel()
+        let chosen = trial.connection
+        connection = chosen
+        linkID = id
+        viaOutside = trial.outside
+        guard let token = PCLinkStore.token() else { status = .refused; disconnect(sayBye: false); return }
+        if viaSearch, let address = Self.address(of: chosen.currentPath?.remoteEndpoint), var computer {
+            // The certificate matched: this is the paired computer, at a new address.
+            computer.host = address.host
+            computer.port = address.port
+            self.computer = computer
+            PCLinkStore.save(computer)
+        }
+        Self.receive(on: chosen, generation: generation, link: self)
+        send(.hello(token: token, device: UIDevice.current.name, caps: PCWire.capabilities))
+    }
+
+    /// Why no way worked, in words. Away from home the local address may be another device's (a café's Wi-Fi), so
+    /// what it answered is not taken for the computer's, except the iPhone's own setting for the local network.
+    private func unreachableReason() -> String {
+        let reasons = failures.map(\.reason)
+        if reasons.contains(LinkEvent.noLocalNetwork) { return LinkEvent.noLocalNetwork }
+        if !reasons.isEmpty, reasons.allSatisfy({ $0 == LinkEvent.otherCertificate }) { return LinkEvent.otherCertificate }
+        if plan.contains(where: { $0.outside }) {
+            return "\(name) can't be reached, at home or over the internet. Is it awake, with Coucou running?"
+        }
+        return failures.first?.reason ?? LinkEvent.unreachable
     }
 
     /// TLS 1.2 or later, and exactly one certificate: the one whose SHA-256 the QR code carried. No authority, no
@@ -220,10 +345,39 @@ final class PCLink {
         return zip(actual, expected).reduce(UInt8(0)) { $0 | ($1.0 ^ $1.1) } == 0
     }
 
-    nonisolated private static func watch(_ connection: NWConnection, generation: Int, link: PCLink) {
+    nonisolated private static func watch(_ connection: NWConnection, generation: Int, id: Int, link: PCLink) {
         connection.stateUpdateHandler = { [weak link] state in
             guard let event = LinkEvent(state), let link else { return }
-            Task { @MainActor in link.connectionChanged(event, generation: generation) }
+            Task { @MainActor in link.connectionChanged(event, generation: generation, id: id) }
+        }
+    }
+
+    /// Which network the iPhone is on, as it changes.
+    nonisolated private static func watchPath(link: PCLink) -> NWPathMonitor {
+        let monitor = NWPathMonitor()
+        monitor.pathUpdateHandler = { [weak link] path in
+            let local = path.usesInterfaceType(.wifi) || path.usesInterfaceType(.wiredEthernet)
+            let up = path.status == .satisfied
+            guard let link else { return }
+            Task { @MainActor in link.pathChanged(local: local, up: up) }
+        }
+        monitor.start(queue: queue)
+        return monitor
+    }
+
+    /// The iPhone changed network. Leaving the Wi-Fi while linked through it moves the link to the internet now (when
+    /// the computer gave addresses for it); a network coming back is tried at once rather than after the wait.
+    private func pathChanged(local: Bool, up: Bool) {
+        let left = onLocalNetwork && !local
+        onLocalNetwork = local
+        guard let computer, up, status != .refused, onScreen || backgroundTask != .invalid else { return }
+        if left, welcomed, !viaOutside, !computer.remote.isEmpty {
+            lost("")
+            retryTask?.cancel()
+            attempt = 0
+            connect()
+        } else if !busy, browser == nil {
+            reconnectIfNeeded()
         }
     }
 
@@ -239,23 +393,35 @@ final class PCLink {
         connection.send(content: data, completion: .contentProcessed { _ in })
     }
 
-    private func connectionChanged(_ event: LinkEvent, generation: Int) {
-        guard generation == self.generation, let connection else { return }
-        switch event {
-        case .ready:
-            guard let token = PCLinkStore.token() else { status = .refused; disconnect(sayBye: false); return }
-            if viaSearch, let address = Self.address(of: connection.currentPath?.remoteEndpoint), var computer {
-                // The certificate matched: this is the paired computer, at a new address.
-                computer.host = address.host
-                computer.port = address.port
-                self.computer = computer
-                PCLinkStore.save(computer)
+    private func connectionChanged(_ event: LinkEvent, generation: Int, id: Int) {
+        guard generation == self.generation else { return }
+        if let trial = dialing[id] {
+            switch event {
+            case .ready:
+                adopt(trial, id: id, generation: generation)
+            case .waiting(let reason), .failed(let reason):
+                // This way does not answer: the next one now, or, when none is left, try again later.
+                trial.connection.stateUpdateHandler = nil
+                trial.connection.cancel()
+                dialing[id] = nil
+                failures.append(Failure(reason: reason, outside: trial.outside))
+                guard dialing.isEmpty else { return }
+                if planned < plan.count {
+                    dialNext(generation: generation)
+                } else {
+                    lost(unreachableReason())
+                }
+            case .cancelled:
+                break
             }
-            send(.hello(token: token, device: UIDevice.current.name, caps: PCWire.capabilities))
+            return
+        }
+        guard connection != nil, id == linkID else { return }
+        switch event {
+        case .ready, .cancelled:
+            break
         case .waiting(let reason), .failed(let reason):
             lost(reason)
-        case .cancelled:
-            break
         }
     }
 
@@ -274,7 +440,7 @@ final class PCLink {
             }
         }
         if ended {
-            lost(welcomed ? "The computer closed the link." : "The computer can't be reached. Same Wi-Fi? Computer awake and Coucou running?")
+            lost(welcomed ? "The computer closed the link." : LinkEvent.unreachable)
             return
         }
         Self.receive(on: connection, generation: generation, link: self)
@@ -286,6 +452,13 @@ final class PCLink {
             return
         }
         switch message {
+        case .remote(let endpoints):
+            // Where to try from outside next time (none: the computer's switch is off). Kept with the pairing.
+            if var computer, computer.remote != endpoints {
+                computer.remote = endpoints
+                self.computer = computer
+                PCLinkStore.save(computer)
+            }
         case .welcome:
             welcomed = true
             attempt = 0
@@ -298,7 +471,7 @@ final class PCLink {
             if code == "auth" {
                 // The token is not the computer's any more: retrying would only be refused again.
                 disconnect(sayBye: false)
-                model.connectionLost()
+                modelConnectionLost()
                 rebuild()
                 status = .refused
                 finishWaiters(false)
@@ -312,6 +485,11 @@ final class PCLink {
         let effects = model.apply(message, now: .now)
         if case .welcome = message {
             if model.chatAllowed { send(.chatModels) }
+            // A new link: the assistant and the home are asked for again (the computer also sends them after the
+            // sessions).
+            asked = [:]
+            refreshAssistant()
+            refreshHome()
             finishWaiters(true)
         }
         if case .chatModels(let list) = message, !list.contains(where: { $0.id == chatModel }), let first = list.first {
@@ -321,6 +499,14 @@ final class PCLink {
         case .sessions, .approval, .question, .resolved:
             rebuild()
             notifyEvents()
+        case .assistantResult(let result), .homeResult(let result):
+            finishRequest(result)
+        case .diff(let part):
+            if model.diff?.complete == true {
+                finishDiffWaiter(true) { $0.pillId == part.pillId && $0.fileId == part.fileId }
+            }
+        case .chatDone, .chatError:
+            saveChat()
         default:
             break
         }
@@ -331,7 +517,7 @@ final class PCLink {
     private func lost(_ reason: String) {
         let wasUp = welcomed
         disconnect(sayBye: false)
-        model.connectionLost()
+        modelConnectionLost()
         rebuild()
         finishWaiters(false)
         guard computer != nil else { status = .unpaired; return }
@@ -349,10 +535,11 @@ final class PCLink {
         let delays: [Double] = [1, 2, 4, 8, 16, 30]
         let delay = delays[min(attempt, delays.count - 1)]
         attempt += 1
-        let search = attempt == 2 || attempt % 4 == 0
+        // On cellular only, the local network cannot be searched.
+        let search = onLocalNetwork && (attempt == 2 || attempt % 4 == 0)
         retryTask = Task { [weak self] in
             try? await Task.sleep(for: .seconds(delay))
-            guard !Task.isCancelled, let self, self.connection == nil else { return }
+            guard !Task.isCancelled, let self, !self.busy else { return }
             if search { self.search() } else { self.connect() }
         }
     }
@@ -360,6 +547,13 @@ final class PCLink {
     private func disconnect(sayBye: Bool) {
         handshakeTask?.cancel()
         pingTask?.cancel()
+        dialTask?.cancel()
+        for trial in dialing.values {
+            trial.connection.stateUpdateHandler = nil
+            trial.connection.cancel()
+        }
+        dialing = [:]
+        if viaOutside { viaOutside = false }
         if let connection {
             if sayBye && welcomed { Self.write(PCOutgoing.bye.line, on: connection) }
             connection.stateUpdateHandler = nil
@@ -368,6 +562,9 @@ final class PCLink {
         connection = nil
         welcomed = false
         generation += 1
+        // Nothing asked on this link can be answered any more.
+        finishRequests()
+        finishDiffWaiter(false)
     }
 
     private func send(_ message: PCOutgoing) {
@@ -402,7 +599,7 @@ final class PCLink {
     private func ensureConnected(within seconds: Double = 8) async -> Bool {
         if welcomed, connection != nil { return true }
         guard computer != nil, status != .refused else { return false }
-        if connection == nil {
+        if !busy {
             retryTask?.cancel()
             attempt = 0
             connect()
@@ -439,7 +636,7 @@ final class PCLink {
             try? await Task.sleep(for: .seconds(12))
             guard !Task.isCancelled, let self, self.browser != nil else { return }
             self.stopSearching()
-            if self.connection == nil {
+            if !self.busy {
                 self.status = .offline(self.onScreen ? "\(self.name) isn't on this network. Same Wi-Fi? Computer awake and Coucou running? Guest networks and hotspots can keep devices apart." : "")
                 self.scheduleRetry()
             }
@@ -566,6 +763,7 @@ final class PCLink {
         let hands = chatHands && model.handsAllowed
         model.startChat(id: id, text: text, hands: hands)
         send(.chatSend(id: id, model: chatModel, text: text, agent: hands))
+        saveChat()
     }
 
     func stopChat() {
@@ -577,10 +775,243 @@ final class PCLink {
     func newChat() {
         if welcomed { send(.chatReset) }
         model.resetChat()
+        saveChat()
     }
 
     func refreshModels() {
         if welcomed, model.chatAllowed { send(.chatModels) }
+    }
+
+    /// The chat as it is now, to Application Support (nothing secret is in it).
+    private func saveChat() {
+        PCChatStore.save(model.chat)
+    }
+
+    /// The link closed: the model forgets what waited on it, and an answer cut short is kept as it stopped.
+    private func modelConnectionLost() {
+        let cut = model.running != nil
+        model.connectionLost()
+        if cut { saveChat() }
+    }
+
+    // MARK: What the computer offers
+
+    /// The computer offered this capability in its last `welcome` (each one is a switch there, off by default).
+    func offers(_ cap: String) -> Bool {
+        model.caps.contains(cap)
+    }
+
+    /// What Mochi (and Hermes through him) waits on the user's OK for, oldest first: the chat shows Allow and Deny
+    /// for them inline and answers with `decide(allow:fingerprint:)`.
+    var mochiApprovals: [PCApproval] {
+        model.approvals.filter { $0.pillId == Self.mochiPill }.sorted { $0.receivedAt < $1.receivedAt }
+    }
+
+    /// Face ID, or the passcode: the same check as Allow (Decisions.swift), never skipped. Asked before another
+    /// brain, the ChatGPT sign-in, and a home action or routine that asks first.
+    func confirmWithDeviceOwner(reason: String) async -> Bool {
+        await OwnerCheck.confirm(reason: reason)
+    }
+
+    // MARK: Requests with an answer (the assistant, Mochi's home)
+
+    /// Sends a request and waits for the computer's answer with the same id, `timeout` seconds at most. Not
+    /// connected, or `cap` not offered: nothing is sent.
+    private func request(_ cap: String, timeout: Double, id: String, message: PCOutgoing) async -> PCRequestResult {
+        guard await ensureConnected() else { return .local("offline", id: id) }
+        guard model.caps.contains(cap) else { return .local("off", id: id) }
+        return await withCheckedContinuation { continuation in
+            guard welcomed, connection != nil else {
+                continuation.resume(returning: .local("offline", id: id))
+                return
+            }
+            requests[id] = continuation
+            send(message)
+            Task { [weak self] in
+                try? await Task.sleep(for: .seconds(timeout))
+                self?.finishRequest(.local("timeout", id: id))
+            }
+        }
+    }
+
+    private func finishRequest(_ result: PCRequestResult) {
+        requests.removeValue(forKey: result.id)?.resume(returning: result)
+    }
+
+    /// The link closed: no answer can come for what was asked on it.
+    private func finishRequests() {
+        let all = requests
+        requests = [:]
+        for (id, continuation) in all { continuation.resume(returning: .local("offline", id: id)) }
+    }
+
+    /// Connected, and the computer does not offer `cap`: why the request cannot go, before Face ID is asked for
+    /// nothing. Not connected yet: the request itself tries to connect.
+    private func refusal(_ cap: String) -> PCRequestResult? {
+        guard computer != nil else { return .local("offline") }
+        return welcomed && !model.caps.contains(cap) ? .local("off") : nil
+    }
+
+    // MARK: The assistant (Hermes Agent on the computer)
+
+    /// An assistant change is on its way: its buttons wait.
+    var assistantWorking: Bool { assistantPending > 0 }
+
+    /// Asks for the assistant's state (Settings → Assistant opening); at most every 2 seconds.
+    func refreshAssistant() { ask("assistant", .assistantGet) }
+
+    private func assistantRequest(_ make: (String) -> PCOutgoing) async -> PCRequestResult {
+        let id = PCLinkModel.newChatID()
+        assistantPending += 1
+        defer { assistantPending -= 1 }
+        return await request("assistant", timeout: 20, id: id, message: make(id))
+    }
+
+    /// The assistant's name and tone: one line of at most 40 characters, a tone the computer listed, a custom text of
+    /// at most 1500 (the computer checks them again). A nil field stays as it is.
+    func setAssistant(name: String?, persona: String?, personaText: String?) async -> PCRequestResult {
+        let name = name.map { PCText.line($0, max: PCAssistant.maxName) }
+        let personaText = personaText.map { PCText.clip($0, max: PCAssistant.maxPersonaText) }
+        if let persona, !(model.assistant?.personas ?? PCAssistant.knownPersonas).contains(persona) { return .local("invalid") }
+        return await assistantRequest { .assistantSet(id: $0, name: name, persona: persona, personaText: personaText) }
+    }
+
+    /// Another brain for the assistant, Face ID first: it changes who reads the conversations, and who bills them.
+    /// Only once Coucou has set Hermes up on the computer, and only a brain whose key or address is there: the
+    /// iPhone installs nothing, and no key travels.
+    func setAssistantBrain(_ brain: String) async -> PCRequestResult {
+        if let refusal = refusal("assistant") { return refusal }
+        guard let assistant = model.assistant, let choice = assistant.brains.first(where: { $0.id == brain }) else {
+            return .local("invalid")
+        }
+        guard assistant.changeable else { return .local("not_installed") }
+        guard choice.ready else { return .local("not_ready") }
+        guard await confirmWithDeviceOwner(reason: String(localized: "Change the assistant's brain on \(name)")) else {
+            return .local("declined")
+        }
+        return await assistantRequest { .assistantBrain(id: $0, brain: brain) }
+    }
+
+    /// The skill packs wanted, in the computer's order (Mochi's home aside: it is set on the computer).
+    func setAssistantSkills(_ skills: [String]) async -> PCRequestResult {
+        guard let assistant = model.assistant else { return .local("invalid") }
+        guard assistant.changeable else { return .local("not_installed") }
+        let wanted = assistant.optionalSkills.filter { skills.contains($0) }
+        return await assistantRequest { .assistantSkills(id: $0, skills: wanted) }
+    }
+
+    /// Starts the ChatGPT sign-in on the computer, Face ID first. Its browser stays shut: the code comes here
+    /// (`model.assistant?.login`) and OpenAI's page opens in Safari on this iPhone.
+    func signInWithChatGPT() async -> PCRequestResult {
+        if let refusal = refusal("assistant") { return refusal }
+        guard await confirmWithDeviceOwner(reason: String(localized: "Sign in with ChatGPT on \(name)")) else {
+            return .local("declined")
+        }
+        return await assistantRequest { .assistantLogin(id: $0) }
+    }
+
+    func cancelChatGPTSignIn() async -> PCRequestResult {
+        await assistantRequest { .assistantLoginCancel(id: $0) }
+    }
+
+    /// Hermes' gateway on the computer, on or off.
+    func setAssistantGateway(_ on: Bool) async -> PCRequestResult {
+        await assistantRequest { .assistantGateway(id: $0, on: on) }
+    }
+
+    // MARK: Mochi's home
+
+    /// Asks for Mochi's home (the Home tab opening); at most every 2 seconds.
+    func refreshHome() { ask("home", .homeGet) }
+
+    /// An action on a device, if the device itself said it can do it. One that asks first asks Face ID here, and the
+    /// computer checks again (`confirmed`).
+    func homeControl(_ device: PCHome.Device, action: String, value: PCHomeValue? = nil) async -> PCRequestResult {
+        guard PCHome.accepts(device, action: action, value: value) else { return .local("invalid") }
+        let asks = device.ask || model.home?.askAll == true
+        return await homeAction(device.id, asks: asks,
+                                reason: String(localized: "Control \(device.name) on \(name)")) { id, confirmed in
+            .homeControl(id: id, device: device.id, action: action, value: value, confirmed: confirmed)
+        }
+    }
+
+    /// Runs a routine; one that asks first asks Face ID.
+    func runRoutine(_ routine: PCHome.Routine) async -> PCRequestResult {
+        let asks = routine.ask || model.home?.askAll == true
+        return await homeAction(routine.id, asks: asks,
+                                reason: String(localized: "Run “\(routine.name)” on \(name)")) { id, confirmed in
+            .homeRoutine(id: id, routine: routine.id, confirmed: confirmed)
+        }
+    }
+
+    /// One home action at a time. Face ID first when it asks, and once more if the computer answers that it asks
+    /// (its rule changed meanwhile); the computer sends the home again after every action.
+    private func homeAction(_ target: String, asks: Bool, reason: String,
+                            _ make: (String, Bool) -> PCOutgoing) async -> PCRequestResult {
+        if let refusal = refusal("home") { return refusal }
+        guard homeWorking == nil else { return .local("busy") }
+        homeWorking = target
+        defer { homeWorking = nil }
+        var confirmed = false
+        if asks {
+            guard await confirmWithDeviceOwner(reason: reason) else { return .local("declined") }
+            confirmed = true
+        }
+        let first = PCLinkModel.newChatID()
+        let result = await request("home", timeout: 40, id: first, message: make(first, confirmed))
+        guard !result.ok, result.reason == "confirm", !confirmed else { return result }
+        guard await confirmWithDeviceOwner(reason: reason) else { return .local("declined") }
+        let again = PCLinkModel.newChatID()
+        return await request("home", timeout: 40, id: again, message: make(again, true))
+    }
+
+    private func ask(_ cap: String, _ message: PCOutgoing) {
+        guard welcomed, connection != nil, model.caps.contains(cap) else { return }
+        if let last = asked[cap], Date.now.timeIntervalSince(last) < 2 { return }
+        asked[cap] = .now
+        send(message)
+    }
+
+    // MARK: The lines of a file a session changed
+
+    private struct DiffWaiter {
+        let token: UUID
+        let pillId: String
+        let fileId: Int
+        let continuation: CheckedContinuation<Bool, Never>
+    }
+
+    /// Asks for a file's lines and waits for them, 15 s at most. They stay in `model.diff` until `closeDiff`: while
+    /// its sheet is open, never on disk.
+    func loadDiff(pillID: String, fileID: Int) async -> Bool {
+        finishDiffWaiter(false)
+        guard await ensureConnected(), model.caps.contains("diffs") else { return false }
+        model.wantDiff(pillId: pillID, fileId: fileID)
+        let token = UUID()
+        return await withCheckedContinuation { continuation in
+            guard welcomed, connection != nil else {
+                continuation.resume(returning: false)
+                return
+            }
+            diffWaiter = DiffWaiter(token: token, pillId: pillID, fileId: fileID, continuation: continuation)
+            send(.getDiff(pillId: pillID, fileId: fileID))
+            Task { [weak self] in
+                try? await Task.sleep(for: .seconds(15))
+                self?.finishDiffWaiter(false) { $0.token == token }
+            }
+        }
+    }
+
+    /// The sheet closed: its lines are forgotten.
+    func closeDiff(pillID: String, fileID: Int) {
+        model.closeDiff(pillId: pillID, fileId: fileID)
+        finishDiffWaiter(false) { $0.pillId == pillID && $0.fileId == fileID }
+    }
+
+    private func finishDiffWaiter(_ ok: Bool, where matches: (DiffWaiter) -> Bool = { _ in true }) {
+        guard let waiter = diffWaiter, matches(waiter) else { return }
+        diffWaiter = nil
+        waiter.continuation.resume(returning: ok)
     }
 
     // MARK: Sessions for the screens
@@ -696,6 +1127,10 @@ private enum LinkEvent: Sendable {
     case failed(String)
     case cancelled
 
+    static let unreachable = "The computer can't be reached. Same Wi-Fi? Computer awake and Coucou running?"
+    static let otherCertificate = "The computer's certificate doesn't match the pairing. Pair again with the code in Settings → Phone on the computer."
+    static let noLocalNetwork = "Coucou may not use the local network: iPhone Settings → Privacy & Security → Local Network → Coucou."
+
     init?(_ state: NWConnection.State) {
         switch state {
         case .ready: self = .ready
@@ -709,13 +1144,13 @@ private enum LinkEvent: Sendable {
     static func describe(_ error: NWError) -> String {
         switch error {
         case .tls:
-            return "The computer's certificate doesn't match the pairing. Pair again with the code in Settings → Phone on the computer."
+            return otherCertificate
         case .dns(let code) where code == -65570:
-            return "Coucou may not use the local network: iPhone Settings → Privacy & Security → Local Network → Coucou."
+            return noLocalNetwork
         case .posix(let code) where code == .ECONNREFUSED:
             return "The computer refused the connection. Is the phone link on, in Coucou's Settings → Phone?"
         default:
-            return "The computer can't be reached. Same Wi-Fi? Computer awake and Coucou running?"
+            return unreachable
         }
     }
 }
@@ -771,6 +1206,40 @@ enum PCLinkStore {
                                     kSecAttrAccount as String: account]
         SecItemDelete(query as CFDictionary)
         UserDefaults.standard.removeObject(forKey: computerKey)
+    }
+}
+
+/// The chat with Mochi on the computer, kept between launches in Application Support (pc-chat.json): the messages and
+/// his steps as shown, nothing secret (no key, token, address or model). "New chat" and "Forget this computer" delete
+/// it; it stays on this iPhone.
+enum PCChatStore {
+    private static let fileName = "pc-chat.json"
+    /// Writes go one after the other, off the main thread.
+    private static let disk = DispatchQueue(label: "fr.louisraille.Coucou.pc-chat")
+
+    private static var url: URL? {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?
+            .appendingPathComponent(fileName, isDirectory: false)
+    }
+
+    static func load() -> [PCChatEntry] {
+        guard let url, let data = try? Data(contentsOf: url) else { return [] }
+        return PCChatArchive.entries(from: data)
+    }
+
+    /// An empty chat deletes the file.
+    static func save(_ entries: [PCChatEntry]) {
+        guard let url else { return }
+        let data = entries.isEmpty ? nil : PCChatArchive(entries: entries).data
+        disk.async {
+            let files = FileManager.default
+            guard let data else {
+                try? files.removeItem(at: url)
+                return
+            }
+            try? files.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try? data.write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+        }
     }
 }
 

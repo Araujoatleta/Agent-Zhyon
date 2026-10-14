@@ -120,6 +120,44 @@ vozes do iPhone. No menu ⋯ do chat: **Read answers to spoken messages aloud** 
 iPhone quando ele consegue. No PC, aperte **Windows + H** no chat da ilha para ditar (detalhes em
 [SMART_HOME.pt-BR.md](SMART_HOME.pt-BR.md#voz)).
 
+### Fora de casa, direto no PC (sem servidor de ninguém)
+
+O iPhone pode falar com o PC de qualquer lugar (4G, o Wi-Fi do trabalho) **sem nenhum servidor no meio**: nada de
+Cloudflare, VPS ou serviço de terceiros. Quem abre a porta é o **seu próprio roteador**:
+
+1. No PC: **Configurações → Celular (Android e iPhone) → Fora de casa, direto** → ligue.
+2. O Coucou pede ao roteador (pelo **UPnP**, o mesmo que videogames e chamadas de vídeo usam) para abrir a porta do
+   link para este PC, e pergunta a ele o endereço da sua casa na internet. Em alguns segundos a tela mostra o que o
+   roteador respondeu, por exemplo **Por IPv4: 198.51.100.7:47821** e **Por IPv6: [2804:…]:47821**.
+3. Abra o Coucou no iPhone **uma vez em casa**, no Wi-Fi: ele aprende esses endereços. Em **⚙︎ → Windows or Linux
+   computer**, a linha **Away from home** passa a dizer *Ready*.
+4. Pronto. Fora de casa, o iPhone tenta a rede local e, se ela não responder em um segundo e meio, vai direto nos
+   endereços da sua casa; no 4G ele já vai direto. Conectado assim, aparece *Over the internet, directly to your
+   computer*.
+
+Para testar: desligue o Wi-Fi do iPhone e abra o Coucou. No PC, **Última conexão de fora** mostra a hora.
+
+O que precisa dar certo (a tela diz qual falhou, em palavras):
+
+- **UPnP ligado no roteador.** Se aparecer *"Nenhum roteador respondeu na rede local"*, ative o UPnP nas configurações
+  do roteador (costuma ficar em "Rede", "NAT" ou "Avançado").
+- **Um endereço de internet de verdade.** Muitas operadoras dividem um único IPv4 entre várias casas (**CGNAT**): aí
+  nada entra por IPv4, e a tela avisa. O **IPv6** costuma resolver, porque cada aparelho tem o seu: as grandes
+  operadoras do Brasil já entregam IPv6, inclusive no 4G. Se o roteador fecha o IPv6 para conexões de fora, procure
+  nele a opção de permitir conexões IPv6 de entrada. Se o roteador estiver atrás do modem da operadora (dois
+  roteadores), coloque o modem em **modo bridge** ou peça um IP público à operadora.
+- **O endereço da casa pode mudar.** O Coucou confere o roteador a cada 10 minutos e avisa o iPhone conectado na
+  hora. Se mudar enquanto o iPhone está fora e desconectado, ele aprende o novo na próxima vez que conectar em casa.
+- **PC ligado e com o Coucou aberto**, como sempre.
+
+Segurança: é o **mesmo link** de casa, com TLS, o certificado fixado no QR code e o mesmo código de pareamento. Quem
+vier da internet sem o código não passa do primeiro passo; esses desconhecidos têm só **2 lugares** separados, então
+nunca tiram o lugar do iPhone em casa, e com a opção desligada o PC nem responde à internet. Só o roteador é
+consultado: nenhum serviço de "qual é o meu IP", nenhum DNS de ninguém. O endereço da sua casa não vai para o log.
+Vem **desligado**; desligar fecha a porta no roteador na hora, e fechar o Coucou também. Se o PC desligar de repente,
+o roteador fecha a porta sozinho em até uma hora (alguns roteadores só aceitam porta permanente: aí ela fica aberta
+para um PC que não responde, até você desligar a opção).
+
 ### No dia a dia
 
 - **Permitir** pede **Face ID**; **Negar** não. Responder a uma pergunta também pede Face ID.
@@ -129,9 +167,9 @@ iPhone quando ele consegue. No PC, aperte **Windows + H** no chat da ilha para d
 
 ### Limites (sem enrolação)
 
-- **Só na rede local**: mesmo Wi-Fi (ou o hotspot do próprio PC). Rede de convidados com isolamento, VPN ou firewall
-  bloqueando a porta impedem a conexão. Se o IP do PC mudar, o iPhone o encontra de novo sozinho (e confere o
-  certificado antes de confiar).
+- **Na rede local, ou fora de casa direto** (acima): mesmo Wi-Fi (ou o hotspot do próprio PC). Rede de convidados com
+  isolamento, VPN ou firewall bloqueando a porta impedem a conexão. Se o IP do PC mudar, o iPhone o encontra de novo
+  sozinho (e confere o certificado antes de confiar).
 - **O iPhone não acorda sozinho**: o iOS pausa o app pouco depois que ele sai da tela, e só o push da Apple poderia
   acordá-lo (isso exige servidor e conta paga). Então os pedidos chegam com o Coucou aberto e nos ~30 segundos depois
   de sair dele (como notificação, que dá para responder na tela bloqueada); depois disso, só com as **notificações

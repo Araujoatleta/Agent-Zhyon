@@ -1,8 +1,10 @@
 import SwiftUI
 import UIKit
 
-/// Settings and About: how the iPhone is linked, the links Apple and people
-/// look for, and the setup guide again.
+/// Settings and About: the computer and its assistant, plan usage, how the
+/// iPhone is linked, notifications, the look, the links Apple and people look
+/// for, and the setup guide again. A tab of its own with a Windows or Linux
+/// computer; behind the Agents tab's gear with a Mac only.
 struct AboutView: View {
     let link: PhoneLink
     @State private var showGuide = false
@@ -13,6 +15,8 @@ struct AboutView: View {
     @AppStorage(PhoneSettings.quietToKey) private var quietTo = 8 * 60
     @AppStorage(SpotlightIndex.enabledKey) private var spotlight = true
     @State private var currentIcon = AppIconChoice.current
+
+    private var pc: PCLink { PCLink.shared }
 
     private var version: String {
         let info = Bundle.main.infoDictionary
@@ -28,28 +32,63 @@ struct AboutView: View {
                     MochiLive(state: .idle)
                         .padding(6)
                         .frame(width: 64, height: 64)
-                        .background(Color(white: 0.16), in: RoundedRectangle(cornerRadius: 16))
+                        .coucouGlass(.regular, cornerRadius: 16)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Coucou").font(.title3.weight(.semibold))
+                        Text(verbatim: "Coucou").font(.title3.weight(.semibold))
                         Text("Version \(version)").font(.footnote).foregroundStyle(.secondary)
                     }
                 }
                 .padding(.vertical, 4)
+            }
+            .listRowBackground(Color.clear)
+
+            Section {
+                NavigationLink {
+                    PCLinkSettingsView(pc: pc)
+                } label: {
+                    LabeledContent {
+                        Text(pc.status.shortText)
+                            .foregroundStyle(pc.status == .connected ? CoucouPalette.ok : Color.secondary)
+                    } label: {
+                        Label("Windows or Linux computer", systemImage: "desktopcomputer")
+                    }
+                }
+                // The assistant on the computer (Hermes Agent): name, tone, brain, skills, its gateway.
+                if pc.isPaired {
+                    NavigationLink {
+                        PCAssistantSettingsView()
+                    } label: {
+                        Label {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Assistant")
+                                Text("Name, tone, brain and skills of the assistant on \(pc.name)")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        } icon: {
+                            Image(systemName: "sparkles")
+                        }
+                    }
+                }
+            } header: {
+                Text("Computer")
+            }
+            .listRowBackground(GlassRowBackground())
+
+            // How much of the Claude and Codex plans is used, when the computer shares it.
+            if pc.offers("usage") {
+                Section {
+                    PCUsageCard()
+                }
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
             }
 
             Section("Connection") {
                 if PhoneLink.cloudAvailable {
                     LabeledContent("iCloud") {
                         Label(iCloudText, systemImage: link.status == .ready ? "checkmark.icloud" : "exclamationmark.icloud")
-                            .foregroundStyle(link.status == .ready ? .green : .orange)
-                    }
-                }
-                NavigationLink {
-                    PCLinkSettingsView(pc: PCLink.shared)
-                } label: {
-                    LabeledContent("Windows or Linux computer") {
-                        Text(PCLink.shared.status.shortText)
-                            .foregroundStyle(PCLink.shared.status == .connected ? Color.green : Color.secondary)
+                            .foregroundStyle(link.status == .ready ? CoucouPalette.ok : .orange)
                     }
                 }
                 LabeledContent("Notifications") {
@@ -67,6 +106,7 @@ struct AboutView: View {
                 }
                 Button(PhoneLink.cloudAvailable ? "How to connect your Mac" : "How to connect your computer") { showGuide = true }
             }
+            .listRowBackground(GlassRowBackground())
 
             Section {
                 Toggle("When an agent finishes or fails", isOn: $notifyDone)
@@ -84,6 +124,7 @@ struct AboutView: View {
                      ? "In the quiet hours, only what waits on you (a command to allow, a question) makes a sound. The rest arrives silently."
                      : "Approvals and questions always notify you. Mochi's sounds are the ones he makes in your Mac's notch.")
             }
+            .listRowBackground(GlassRowBackground())
 
             Section {
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -99,7 +140,7 @@ struct AboutView: View {
                                         .frame(width: 58, height: 58)
                                         .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
                                         .overlay(RoundedRectangle(cornerRadius: 13, style: .continuous)
-                                            .strokeBorder(currentIcon == choice ? Color.accentColor : .clear, lineWidth: 2.5)
+                                            .strokeBorder(currentIcon == choice ? CoucouPalette.accent : .clear, lineWidth: 2.5)
                                             .padding(-4))
                                     Text(choice.title).font(.caption2).foregroundStyle(.secondary)
                                 }
@@ -117,6 +158,26 @@ struct AboutView: View {
             } footer: {
                 Text("The Home Screen icon follows your choice; dark and tinted icons follow the Home Screen style. Spotlight's index stays on this iPhone.")
             }
+            .listRowBackground(GlassRowBackground())
+
+            // With the computer's tabs, what the Mac-only layout has as tabs of its own.
+            if CoucouTab.computerLayout {
+                Section("Activity") {
+                    NavigationLink {
+                        HistoryView(link: link)
+                    } label: {
+                        Label("Decisions you took", systemImage: "clock.arrow.circlepath")
+                    }
+                    if PhoneLink.cloudAvailable {
+                        NavigationLink {
+                            SearchScreen(link: link)
+                        } label: {
+                            Label("Search your Mac's turns", systemImage: "magnifyingglass")
+                        }
+                    }
+                }
+                .listRowBackground(GlassRowBackground())
+            }
 
             Section("Coucou") {
                 Link("Website", destination: URL(string: "https://louis-cfm.github.io/coucou/")!)
@@ -124,6 +185,7 @@ struct AboutView: View {
                 Link("Privacy Policy", destination: URL(string: "https://louis-cfm.github.io/coucou/privacy.html")!)
                 Link("Terms", destination: URL(string: "https://louis-cfm.github.io/coucou/terms.html")!)
             }
+            .listRowBackground(GlassRowBackground())
 
             Section {
                 Text(PhoneLink.cloudAvailable
@@ -132,13 +194,16 @@ struct AboutView: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
+            .listRowBackground(GlassRowBackground())
         }
+        .listStyle(.insetGrouped)
+        .deepBackdrop()
         .navigationTitle("Settings")
         .sheet(isPresented: $showGuide) {
             if PhoneLink.cloudAvailable {
                 OnboardingView()
             } else {
-                PCOnboardingView(pc: PCLink.shared)
+                PCOnboardingView(pc: pc)
             }
         }
     }
@@ -155,11 +220,11 @@ struct AboutView: View {
 
     private var iCloudText: String {
         switch link.status {
-        case .ready: "Linked"
-        case .starting: "Connecting…"
-        case .zoneMissing: "Waiting for your Mac"
-        case .noAccount: "Not signed in"
-        case .failed: "Can't reach iCloud"
+        case .ready: String(localized: "Linked")
+        case .starting: String(localized: "Connecting…")
+        case .zoneMissing: String(localized: "Waiting for your Mac")
+        case .noAccount: String(localized: "Not signed in")
+        case .failed: String(localized: "Can't reach iCloud")
         }
     }
 }
@@ -180,32 +245,39 @@ struct OnboardingView: View {
                         .font(.body)
                         .foregroundStyle(.secondary)
                 }
-                step(1, "Coucou on your Mac",
-                     "Install Coucou for Mac (Mac App Store or the website) and set up its Claude Code hooks.",
-                     icon: "laptopcomputer")
-                step(2, "Turn on the iPhone switch",
-                     "On the Mac: Coucou Settings → General → iPhone → \"Show my agent sessions on my iPhone\".",
-                     icon: "switch.2")
-                step(3, "Same Apple Account",
-                     "Sign in to iCloud with the same Apple Account on both. Your sessions go through your private iCloud, encrypted.",
-                     icon: "icloud")
+                CoucouGlassGroup(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 22) {
+                        step(1, "Coucou on your Mac",
+                             "Install Coucou for Mac (Mac App Store or the website) and set up its Claude Code hooks.",
+                             icon: "laptopcomputer")
+                        step(2, "Turn on the iPhone switch",
+                             "On the Mac: Coucou Settings → General → iPhone → \"Show my agent sessions on my iPhone\".",
+                             icon: "switch.2")
+                        step(3, "Same Apple Account",
+                             "Sign in to iCloud with the same Apple Account on both. Your sessions go through your private iCloud, encrypted.",
+                             icon: "icloud")
+                    }
+                }
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Then, from here").font(.headline)
                     Text("• Allow or deny a command, right from the Lock Screen\n• Answer Claude's questions\n• See what Claude did, file by file\n• Write or dictate the next instruction, or ask Siri (GitHub version on the Mac)\n• Mochi in your Dynamic Island when your Mac is locked")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
+                .padding(16)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .glassCard(cornerRadius: 18)
             }
             .padding(24)
         }
-        .background(Color.black)
+        .background { DeepBackdrop() }
         .safeAreaInset(edge: .bottom) {
             Button {
                 dismiss()
             } label: {
                 Text("Got it").font(.headline).frame(maxWidth: .infinity).padding(.vertical, 6)
             }
-            .buttonStyle(.borderedProminent)
+            .coucouGlassButton(prominent: true)
             .controlSize(.large)
             .padding(.horizontal, 24)
             .padding(.bottom, 12)
@@ -213,15 +285,19 @@ struct OnboardingView: View {
         .preferredColorScheme(.dark)
     }
 
-    private func step(_ number: Int, _ title: String, _ text: String, icon: String) -> some View {
+    private func step(_ number: Int, _ title: LocalizedStringKey, _ text: LocalizedStringKey, icon: String) -> some View {
         HStack(alignment: .top, spacing: 14) {
             Image(systemName: icon)
                 .font(.title3)
                 .foregroundStyle(.tint)
                 .frame(width: 44, height: 44)
-                .background(Color(white: 0.14), in: RoundedRectangle(cornerRadius: 12))
+                .coucouGlass(.regular, cornerRadius: 12)
             VStack(alignment: .leading, spacing: 3) {
-                Text("\(number). \(title)").font(.headline)
+                HStack(spacing: 0) {
+                    Text(verbatim: "\(number). ")
+                    Text(title)
+                }
+                .font(.headline)
                 Text(text).font(.callout).foregroundStyle(.secondary)
             }
         }
@@ -235,7 +311,8 @@ enum AppIconChoice: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var title: String {
+    /// Shown under the icon, in the iPhone's language.
+    var title: LocalizedStringKey {
         switch self {
         case .orange: "Orange"
         case .blue: "Blue"
@@ -246,7 +323,17 @@ enum AppIconChoice: String, CaseIterable, Identifiable {
         }
     }
 
-    var previewName: String { "IconPreview-\(title)" }
+    /// The preview's image in the asset catalog (English names, whatever the language).
+    var previewName: String {
+        switch self {
+        case .orange: "IconPreview-Orange"
+        case .blue: "IconPreview-Blue"
+        case .green: "IconPreview-Green"
+        case .purple: "IconPreview-Purple"
+        case .pink: "IconPreview-Pink"
+        case .graphite: "IconPreview-Graphite"
+        }
+    }
 
     @MainActor static var current: AppIconChoice {
         AppIconChoice(rawValue: UIApplication.shared.alternateIconName ?? "") ?? .orange

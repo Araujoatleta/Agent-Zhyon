@@ -146,21 +146,31 @@ impl ServerCertVerifier for PinnedCertificate {
     }
 }
 
+/// Where the certificate a connection met is written (its SHA-256), for pinning it.
+pub type Seen = Arc<Mutex<Option<[u8; 32]>>>;
+
+/// A TLS client configuration that takes the TV's own certificate the first time and then only that one
+/// (PinnedCertificate); Samsung TVs are reached the same way (samsung.rs).
+pub fn pinned_tls(expected: Option<[u8; 32]>) -> Result<(rustls::ClientConfig, Seen), String> {
+    let seen: Seen = Arc::new(Mutex::new(None));
+    let provider = Arc::new(provider::default_provider());
+    let config = rustls::ClientConfig::builder_with_provider(provider.clone())
+        .with_safe_default_protocol_versions()
+        .map_err(|e| e.to_string())?
+        .dangerous()
+        .with_custom_certificate_verifier(Arc::new(PinnedCertificate { expected, seen: seen.clone(), provider }))
+        .with_no_client_auth();
+    Ok((config, seen))
+}
+
 /// A client for one endpoint, and where the certificate it met is written.
-fn client(endpoint: &Endpoint) -> Result<(reqwest::Client, Arc<Mutex<Option<[u8; 32]>>>), String> {
-    let seen = Arc::new(Mutex::new(None));
+fn client(endpoint: &Endpoint) -> Result<(reqwest::Client, Seen), String> {
     let builder = reqwest::Client::builder().no_proxy().connect_timeout(Duration::from_secs(4)).timeout(TIMEOUT);
-    let builder = if endpoint.https {
-        let provider = Arc::new(provider::default_provider());
-        let config = rustls::ClientConfig::builder_with_provider(provider.clone())
-            .with_safe_default_protocol_versions()
-            .map_err(|e| e.to_string())?
-            .dangerous()
-            .with_custom_certificate_verifier(Arc::new(PinnedCertificate { expected: endpoint.pin, seen: seen.clone(), provider }))
-            .with_no_client_auth();
-        builder.use_preconfigured_tls(config)
+    let (builder, seen) = if endpoint.https {
+        let (config, seen) = pinned_tls(endpoint.pin)?;
+        (builder.use_preconfigured_tls(config), seen)
     } else {
-        builder
+        (builder, Arc::new(Mutex::new(None)))
     };
     Ok((builder.build().map_err(|e| e.to_string())?, seen))
 }

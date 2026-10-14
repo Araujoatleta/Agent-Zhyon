@@ -44,6 +44,8 @@ const DECISION_TIMEOUT: Duration = Duration::from_secs(108);
 /// see for nearly two minutes.
 const ACK_TIMEOUT: Duration = Duration::from_millis(800);
 const MAX_PAYLOAD: usize = 1 << 20;
+/// What `coucou-hook --mcp` calls its relayed calls (hook/src/mcp.rs).
+const MCP_EVENT: &str = "CoucouMcp";
 
 /// What the island can say about a permission request.
 pub enum Reply {
@@ -211,6 +213,16 @@ async fn handle(app: AppHandle, mut pipe: impl Relay) {
         .and_then(Value::as_str)
         .unwrap_or_default()
         .to_string();
+
+    // Not a hook: another agent calling Mochi's home through `coucou-hook --mcp` (agent/mcp.rs). The answer goes back
+    // on the same connection, as one line.
+    if event == MCP_EVENT {
+        let answer = crate::agent::mcp::call(&app, &payload).await;
+        let _ = pipe.write_all(format!("{answer}\n").as_bytes()).await;
+        let _ = pipe.flush().await;
+        pipe.finish();
+        return;
+    }
 
     note_session_window(&pipe, &payload, &event);
     // Counts for the weekly recap — never the command, path or prompt itself.

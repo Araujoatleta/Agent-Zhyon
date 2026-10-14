@@ -25,11 +25,12 @@ mod pairing;
 pub mod push;
 mod relay_client;
 mod relay_crypto;
+mod remote;
 mod server;
 #[cfg(test)]
 mod tests;
 
-use std::net::{Ipv4Addr, SocketAddr, TcpListener as StdListener};
+use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, TcpListener as StdListener};
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
@@ -132,6 +133,31 @@ impl server::Features for TauriFeatures {
         let s = s.settings.lock().unwrap();
         s.agent_enabled && s.phone_agent
     }
+    fn remote(&self) -> bool {
+        self.app.state::<Shared>().settings.lock().unwrap().phone_remote
+    }
+}
+
+/// Away from home, directly (remote.rs), while the link and the switch are both on.
+struct Remote {
+    checker: remote::Handle,
+    /// The way in over IPv6, on the same port (None: it could not be opened, `v6_error` says why).
+    v6: Option<tokio::task::JoinHandle<()>>,
+    v6_error: Option<String>,
+}
+
+/// A listener on every IPv6 address of this computer, IPv6 only (the IPv4 one is the link's own).
+fn listen_v6(port: u16) -> std::io::Result<StdListener> {
+    use socket2::{Domain, Protocol, Socket, Type};
+    let socket = Socket::new(Domain::IPV6, Type::STREAM, Some(Protocol::TCP))?;
+    socket.set_only_v6(true)?;
+    // As std does for the IPv4 listener on Unix; on Windows the flag would let another program take the port.
+    #[cfg(not(windows))]
+    socket.set_reuse_address(true)?;
+    socket.bind(&SocketAddr::from((Ipv6Addr::UNSPECIFIED, port)).into())?;
+    socket.listen(16)?;
+    socket.set_nonblocking(true)?;
+    Ok(socket.into())
 }
 
 pub struct PhoneLink {
@@ -146,6 +172,10 @@ pub struct PhoneLink {
     error: Mutex<Option<String>>,
     /// The connection to the user's relay (relay_client.rs): exists only while the link runs AND the relay switch is on.
     relay: Mutex<Option<relay_client::Handle>>,
+    /// Away from home, directly: exists only while the link runs AND its switch is on.
+    remote: Mutex<Option<Remote>>,
+    /// The last one switched off, still closing the router's port: a new start waits for it.
+    remote_closing: Mutex<Option<tauri::async_runtime::JoinHandle<()>>>,
     /// Notifications with Coucou closed (push.rs): which requests were pushed, and when.
     pusher: push::Pusher,
 }
@@ -161,6 +191,8 @@ impl PhoneLink {
             running: Mutex::new(None),
             error: Mutex::new(None),
             relay: Mutex::new(None),
+            remote: Mutex::new(None),
+            remote_closing: Mutex::new(None),
             pusher: push::Pusher::default(),
         }
     }
@@ -223,6 +255,64 @@ impl PhoneLink {
         *self.relay.lock().unwrap() = Some(handle);
     }
 
+    /// Away from home, directly: (re)starts asking the router and the IPv6 way in from the settings, or stops them and
+    /// has the router's port closed. Never fails the link: what does not work is a status in Settings.
+    fn sync_remote(&self) {
+        let previous = self.remote.lock().unwrap().take().map(|old| {
+            if let Some(v6) = old.v6 {
+                v6.abort();
+            }
+            old.checker.stop()
+        });
+        let previous = previous.or_else(|| self.remote_closing.lock().unwrap().take());
+        let on = self.app.state::<Shared>().settings.lock().unwrap().phone_remote;
+        let running = self.running.lock().unwrap().as_ref().map(|r| (r.shared.clone(), r.port, server::tls_acceptor(&r.identity)));
+        let Some((shared, port, acceptor)) = running.filter(|_| on) else {
+            // Off: the phones forget where they were told to try; the old task closes the port on the router.
+            self.hub.set_remote(Some(Vec::new()));
+            *self.remote_closing.lock().unwrap() = previous;
+            return;
+        };
+        // Not known until the router has answered: a phone connecting meanwhile keeps what it knew.
+        self.hub.set_remote(None);
+        let (v6, v6_error) = match (acceptor, listen_v6(port)) {
+            (Ok(acceptor), Ok(listener)) => {
+                let started = tauri::async_runtime::block_on(async move {
+                    tokio::net::TcpListener::from_std(listener).map(|l| server::serve_more(l, acceptor, shared))
+                });
+                match started {
+                    Ok(task) => (Some(task), None),
+                    Err(e) => (None, Some(e.to_string())),
+                }
+            }
+            (Err(e), _) => (None, Some(e)),
+            (_, Err(e)) => (None, Some(e.to_string())),
+        };
+        if let Some(e) = &v6_error {
+            log::line(format!("phone link: no IPv6 way in: {e}"));
+        }
+        let (app, hub) = (self.app.clone(), self.hub.clone());
+        let checker = remote::start(port, v6.is_some(), previous, move |reach| {
+            let endpoints = reach.endpoints();
+            let told = hub.set_remote(Some(endpoints.clone()));
+            // How many ways in, never which: the home's addresses stay out of the log.
+            log::line(format!("phone link: away from home, directly: {} way(s) in, {told} phone(s) told", endpoints.len()));
+            let _ = app.emit("phone-remote-changed", ());
+        });
+        log::line("phone link: away from home, directly: asking the router");
+        *self.remote.lock().unwrap() = Some(Remote { checker, v6, v6_error });
+    }
+
+    /// The app is quitting: the router's port is closed before the process ends (a few seconds at most).
+    fn stop_remote_now(&self) {
+        if let Some(old) = self.remote.lock().unwrap().take() {
+            if let Some(v6) = old.v6 {
+                v6.abort();
+            }
+            old.checker.stop_now();
+        }
+    }
+
     /// Starts listening. Fails without side effects if the keystore is missing:
     /// nothing is ever kept on disk instead.
     pub fn start(&self) -> Result<(), String> {
@@ -243,6 +333,7 @@ impl PhoneLink {
                 *self.error.lock().unwrap() = None;
                 drop(running);
                 self.sync_relay();
+                self.sync_remote();
                 Ok(())
             }
             Err(e) => {
@@ -294,7 +385,10 @@ impl PhoneLink {
             relay.stop();
         }
         self.advertiser.stop();
-        if let Some(r) = self.running.lock().unwrap().take() {
+        let was_running = self.running.lock().unwrap().take();
+        // With the link off, the router's port is closed too (sync_remote sees it is no longer running).
+        self.sync_remote();
+        if let Some(r) = was_running {
             r.handle.stop();
             log::line("phone link: stopped");
         }
@@ -534,6 +628,85 @@ pub fn phone_relay_set_access(
     }
     link.sync_relay();
     Ok(relay_status_of(&link, &shared))
+}
+
+// ── Away from home, directly: the router (Settings → Phone) ──
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RemoteStatus {
+    pub enabled: bool,
+    /// The phone link is on: without it the switch does nothing.
+    pub link_on: bool,
+    /// Still waiting for the router's first answer.
+    pub checking: bool,
+    #[serde(flatten)]
+    pub reach: remote::Reach,
+    /// Why there is no IPv6 way in on this computer.
+    pub v6_error: Option<String>,
+    /// When a phone last connected from the internet (ms since 1970; 0: not since the link started).
+    pub last_outside: u64,
+}
+
+fn remote_status_of(link: &PhoneLink, shared: &Shared) -> RemoteStatus {
+    let enabled = shared.settings.lock().unwrap().phone_remote;
+    let last_outside = link.running.lock().unwrap().as_ref().map_or(0, |r| r.shared.outside_seen.load(std::sync::atomic::Ordering::SeqCst));
+    let remote = link.remote.lock().unwrap();
+    let reach = remote.as_ref().and_then(|r| r.checker.reach.lock().unwrap().clone());
+    RemoteStatus {
+        enabled,
+        link_on: link.running.lock().unwrap().is_some(),
+        checking: remote.is_some() && reach.is_none(),
+        reach: reach.unwrap_or_default(),
+        v6_error: remote.as_ref().and_then(|r| r.v6_error.clone()),
+        last_outside,
+    }
+}
+
+/// The home's addresses are in it: only the settings window may ask.
+#[tauri::command]
+pub fn phone_remote_status(window: WebviewWindow, link: State<PhoneLink>, shared: State<Shared>) -> Result<RemoteStatus, String> {
+    only_settings(&window)?;
+    Ok(remote_status_of(&link, &shared))
+}
+
+/// "Use away from home, directly". Off by default. On: the router is asked to open the link's port (UPnP) and the
+/// phones are told where to try. Off: the port is closed on the router, and the phones are disconnected once so the
+/// ones that came from the internet are cut off.
+#[tauri::command]
+pub fn phone_remote_set(
+    app: AppHandle,
+    window: WebviewWindow,
+    link: State<PhoneLink>,
+    shared: State<Shared>,
+    enabled: bool,
+) -> Result<RemoteStatus, String> {
+    only_settings(&window)?;
+    let updated = {
+        let mut current = shared.settings.lock().unwrap();
+        current.phone_remote = enabled;
+        if let Err(err) = settings::save(&current) {
+            log::line(format!("could not save settings: {err}"));
+        }
+        current.clone()
+    };
+    link.sync_remote();
+    if !enabled {
+        link.hub.kick_all("closed", "away from home setting changed");
+    }
+    log::line(format!("phone link: away from home, directly {}", if enabled { "on" } else { "off" }));
+    let _ = app.emit("settings-changed", updated);
+    Ok(remote_status_of(&link, &shared))
+}
+
+/// Asks the router again now (after the user changed something on it).
+#[tauri::command]
+pub fn phone_remote_check(window: WebviewWindow, link: State<PhoneLink>, shared: State<Shared>) -> Result<RemoteStatus, String> {
+    only_settings(&window)?;
+    if let Some(r) = link.remote.lock().unwrap().as_ref() {
+        r.checker.check_now();
+    }
+    Ok(remote_status_of(&link, &shared))
 }
 
 // ── Session details for the phone: the switch (Settings → Android phone) ──
@@ -1041,9 +1214,16 @@ pub fn phone_link_publish(window: WebviewWindow, link: State<PhoneLink>, session
     Ok(())
 }
 
-/// The app is quitting: withdraw the announcement so phones forget this computer at once.
+/// The phone's chat models as the link keeps them ("provider/model", each once, a few at most).
+pub(crate) fn clean_chat_models(ids: &[String]) -> Vec<String> {
+    chat_backend::clean_models(ids)
+}
+
+/// The app is quitting: withdraw the announcement so phones forget this computer at once, and close what was opened
+/// on the router.
 pub fn stop_on_exit(app: &AppHandle) {
     if let Some(link) = app.try_state::<PhoneLink>() {
+        link.stop_remote_now();
         link.stop();
     }
 }

@@ -28,7 +28,7 @@ const MAX_DESCRIPTION: usize = 256 * 1024;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Found {
-    /// "homeAssistant", "philipsTv" or "otherTv" (a TV of another maker: not controlled directly).
+    /// "homeAssistant", "philipsTv", "samsungTv" or "otherTv" (a TV of another maker: not controlled directly).
     pub kind: String,
     pub name: String,
     pub host: String,
@@ -130,9 +130,12 @@ pub fn from_mdns(service: &MdnsService) -> Option<Found> {
 
 /// The M-SEARCH for media renderers (TVs, speakers), to the multicast group or to one address.
 pub fn m_search(host: &str) -> String {
-    format!(
-        "M-SEARCH * HTTP/1.1\r\nHOST: {host}:1900\r\nMAN: \"ssdp:discover\"\r\nMX: 2\r\nST: urn:schemas-upnp-org:device:MediaRenderer:1\r\n\r\n"
-    )
+    m_search_for(host, "urn:schemas-upnp-org:device:MediaRenderer:1")
+}
+
+/// An M-SEARCH for `target` ("ssdp:all": everything a device offers).
+pub fn m_search_for(host: &str, target: &str) -> String {
+    format!("M-SEARCH * HTTP/1.1\r\nHOST: {host}:1900\r\nMAN: \"ssdp:discover\"\r\nMX: 2\r\nST: {target}\r\n\r\n")
 }
 
 /// The headers of an SSDP answer, by lower-case name. None if it is not an answer.
@@ -183,6 +186,32 @@ pub async fn search(target: Option<Ipv4Addr>, wait: Duration) -> BTreeMap<Ipv4Ad
     out
 }
 
+/// What the device at `ip` says it offers over SSDP (its search targets: a media renderer, DIAL…), asked to that
+/// address only. For telling the user what a TV Coucou does not know does answer.
+pub async fn services_of(ip: Ipv4Addr, wait: Duration) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    let Ok(socket) = tokio::net::UdpSocket::bind(("0.0.0.0", 0)).await else { return out };
+    let request = m_search_for(&ip.to_string(), "ssdp:all");
+    for _ in 0..2 {
+        let _ = socket.send_to(request.as_bytes(), SocketAddr::from((ip, 1900))).await;
+    }
+    let deadline = tokio::time::Instant::now() + wait;
+    let mut buf = vec![0u8; 4096];
+    while let Ok(Ok((n, from))) = tokio::time::timeout_at(deadline, socket.recv_from(&mut buf)).await {
+        if from.ip() != IpAddr::V4(ip) {
+            continue;
+        }
+        let Some(headers) = parse_reply(&String::from_utf8_lossy(&buf[..n])) else { continue };
+        if let Some(target) = headers.get("st").filter(|t| !t.is_empty() && t.len() < 200) {
+            if !out.contains(target) {
+                out.push(target.clone());
+            }
+        }
+    }
+    out.sort();
+    out
+}
+
 /// A device's UPnP description: who made it and which model it is.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Description {
@@ -198,7 +227,7 @@ fn unescape(s: &str) -> String {
 }
 
 /// The text of the first `<tag>` (any namespace prefix) in `xml`.
-fn tag(xml: &str, name: &str) -> Option<String> {
+pub fn tag(xml: &str, name: &str) -> Option<String> {
     let mut rest = xml;
     while let Some(start) = rest.find('<') {
         rest = &rest[start + 1..];
@@ -233,6 +262,11 @@ impl Description {
             .any(|f| f.as_deref().is_some_and(|v| v.to_ascii_lowercase().contains("philips") || v.to_ascii_lowercase().contains("tp vision")))
     }
 
+    /// Made by Samsung: its TVs are controlled directly (samsung.rs).
+    pub fn samsung(&self) -> bool {
+        [&self.manufacturer, &self.friendly_name].iter().any(|f| f.as_deref().is_some_and(|v| v.to_ascii_lowercase().contains("samsung")))
+    }
+
     /// "55PUS8007/12": the model number when it says more than the name.
     pub fn model(&self) -> Option<String> {
         match (&self.model_name, &self.model_number) {
@@ -243,8 +277,8 @@ impl Description {
     }
 }
 
-/// Reads a description from the device (local addresses only, small, quick).
-pub async fn describe(location: &str) -> Option<Description> {
+/// A device's description as it sent it (local addresses only, small, quick).
+pub async fn fetch_description(location: &str) -> Option<String> {
     let url = Url::parse(location).ok()?;
     if url.scheme() != "http" || !url.host_str().is_some_and(net::is_local_host) {
         return None;
@@ -255,7 +289,12 @@ pub async fn describe(location: &str) -> Option<Description> {
         return None;
     }
     let bytes = net::read_capped(response, MAX_DESCRIPTION).await.ok()?;
-    Some(parse_description(&String::from_utf8_lossy(&bytes)))
+    Some(String::from_utf8_lossy(&bytes).into_owned())
+}
+
+/// Reads a description from the device.
+pub async fn describe(location: &str) -> Option<Description> {
+    fetch_description(location).await.map(|xml| parse_description(&xml))
 }
 
 /// The TV's model, from its UPnP description, asked directly (for a TV added by its address).
@@ -290,7 +329,14 @@ pub async fn scan() -> Vec<Found> {
             continue;
         }
         found.push(Found {
-            kind: if d.philips() { "philipsTv" } else { "otherTv" }.into(),
+            kind: if d.philips() {
+                "philipsTv"
+            } else if d.samsung() {
+                "samsungTv"
+            } else {
+                "otherTv"
+            }
+            .into(),
             name: d.friendly_name.clone().unwrap_or_else(|| host.clone()),
             host,
             url: None,
@@ -350,7 +396,8 @@ mod tests {
         assert_eq!(d.model().as_deref(), Some("55PUS8007/12"));
         assert_eq!(d.friendly_name.as_deref(), Some("55PUS8007/12"));
         let samsung = parse_description("<root><device><deviceType>urn:schemas-upnp-org:device:MediaRenderer:1</deviceType><friendlyName>[TV] Samsung Q60 &amp; co</friendlyName><manufacturer>Samsung Electronics</manufacturer><modelName>QN55Q60</modelName></device></root>");
-        assert!(!samsung.philips());
+        assert!(!samsung.philips() && samsung.samsung());
+        assert!(!d.samsung());
         assert_eq!(samsung.friendly_name.as_deref(), Some("[TV] Samsung Q60 & co"));
         assert_eq!(samsung.model().as_deref(), Some("QN55Q60"));
         assert_eq!(m_search("239.255.255.250").lines().next(), Some("M-SEARCH * HTTP/1.1"));

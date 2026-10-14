@@ -7,7 +7,7 @@ import { N_ } from "../i18n/i18n";
 
 export type ProviderId =
   | "anthropic" | "openai" | "google" | "openrouter"
-  | "ollama" | "lmstudio" | "custom";
+  | "ollama" | "lmstudio" | "custom" | "hermes";
 
 export interface ProviderDef {
   id: ProviderId;
@@ -17,7 +17,7 @@ export interface ProviderDef {
   /** Credential store entry of its key; null for the model servers. */
   key: string | null;
   /** Settings field holding a model server's address. */
-  urlField: "ollamaUrl" | "lmstudioUrl" | "customUrl" | null;
+  urlField: "ollamaUrl" | "lmstudioUrl" | "customUrl" | "hermesUrl" | null;
   defaultModel: string;
   /** When the saved model is not offered, the first one containing this is picked. */
   prefer: string | null;
@@ -31,6 +31,8 @@ export const PROVIDERS: readonly ProviderDef[] = [
   { id: "ollama", name: "Ollama", accent: "#FACC15", key: null, urlField: "ollamaUrl", defaultModel: "", prefer: null },
   { id: "lmstudio", name: "LM Studio", accent: "#A3E635", key: null, urlField: "lmstudioUrl", defaultModel: "", prefer: null },
   { id: "custom", name: N_("Custom server"), accent: "#C0C4CC", key: null, urlField: "customUrl", defaultModel: "", prefer: null },
+  // Hermes Agent (Settings → Hermes Agent): it works with its own tools; its "model" is the name it answers as.
+  { id: "hermes", name: "Hermes", accent: "#F2C14E", key: null, urlField: "hermesUrl", defaultModel: "hermes-agent", prefer: null },
 ];
 
 /** Credential store entry of the custom server's optional key. */

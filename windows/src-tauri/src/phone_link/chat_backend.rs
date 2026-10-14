@@ -19,7 +19,7 @@ use crate::{chat, claude, log, openai_compat, secrets, Shared};
 pub const MAX_ALLOWED: usize = 50;
 const MAX_MODEL_CHARS: usize = 200;
 
-const PROVIDERS: [&str; 7] = ["anthropic", "google", "openai", "openrouter", "ollama", "lmstudio", "custom"];
+const PROVIDERS: [&str; 8] = ["anthropic", "google", "openai", "openrouter", "ollama", "lmstudio", "custom", crate::hermes::PROVIDER];
 
 pub struct AppChat {
     app: AppHandle,
@@ -44,10 +44,13 @@ impl ChatBackend for AppChat {
 
     fn send(&self, model_id: &str, text: String, deltas: UnboundedSender<String>) -> BoxFuture<Result<String, ChatFail>> {
         let settings = self.settings();
-        let chat = self.chat.clone();
+        let (app, chat) = (self.app.clone(), self.chat.clone());
         let id = model_id.to_string();
         Box::pin(async move {
             let Some((provider, model)) = parse_model_id(&id) else { return Err(ChatFail::Internal) };
+            if provider == crate::hermes::PROVIDER {
+                return hermes_turn(&app, &chat, &settings, text, None, Some(deltas)).await;
+            }
             if let Some(key) = key_name(provider) {
                 if secrets::get(key).is_none() {
                     return Err(ChatFail::NoKey);
@@ -78,6 +81,9 @@ impl ChatBackend for AppChat {
         let (app, chat, id) = (self.app.clone(), self.chat.clone(), model_id.to_string());
         Box::pin(async move {
             let Some((provider, model)) = parse_model_id(&id) else { return Err(ChatFail::Internal) };
+            if provider == crate::hermes::PROVIDER {
+                return hermes_turn(&app, &chat, &settings, text, Some(steps), None).await;
+            }
             if let Some(key) = key_name(provider) {
                 if secrets::get(key).is_none() {
                     return Err(ChatFail::NoKey);
@@ -99,10 +105,34 @@ impl ChatBackend for AppChat {
     }
 }
 
+/// One turn of the phone's chat with Hermes Agent (agent/hermes.rs): with steps for a phone with Mochi's hands, with
+/// the text so far for one without. Hermes runs on this computer, so a failure is Hermes not answering, Hermes
+/// refusing the key, or Hermes' own error.
+async fn hermes_turn(
+    app: &AppHandle,
+    chat: &Chat,
+    settings: &Settings,
+    text: String,
+    steps: Option<UnboundedSender<super::chat::StepLine>>,
+    deltas: Option<UnboundedSender<String>>,
+) -> Result<String, ChatFail> {
+    match crate::agent::hermes::run_for_phone(app, chat, settings, text, steps, deltas).await {
+        Ok(answer) => Ok(answer),
+        Err(crate::agent::PhoneError::Busy) => Err(ChatFail::Busy),
+        Err(crate::agent::PhoneError::Canceled) => Err(ChatFail::Canceled),
+        Err(crate::agent::PhoneError::HandsOff) => Err(ChatFail::Internal),
+        Err(crate::agent::PhoneError::Failed(err)) => {
+            let kind = classify(true, &err);
+            log::line(format!("phone link: chat via Hermes failed ({kind:?})"));
+            Err(kind)
+        }
+    }
+}
+
 // ── Pure helpers (tested below) ───────────────────────────────────────────────
 
 fn is_local(provider: &str) -> bool {
-    matches!(provider, "ollama" | "lmstudio" | "custom")
+    matches!(provider, "ollama" | "lmstudio" | "custom" | crate::hermes::PROVIDER)
 }
 
 /// The credential store entry a provider's key lives in; None for the model servers.
@@ -121,6 +151,7 @@ pub fn provider_name(provider: &str) -> String {
         "openrouter" => "OpenRouter".into(),
         "ollama" => "Ollama".into(),
         "lmstudio" => "LM Studio".into(),
+        crate::hermes::PROVIDER => "Hermes Agent".into(),
         _ => "Custom server".into(),
     }
 }
@@ -207,6 +238,7 @@ mod tests {
         let o = options(&ids(&["anthropic/claude-x", "lmstudio/qwen"]));
         assert_eq!(o[0], ModelOption { id: "anthropic/claude-x".into(), provider: "anthropic".into(), label: "Anthropic · claude-x".into() });
         assert_eq!(o[1].label, "LM Studio · qwen");
+        assert_eq!(options(&ids(&["hermes/zheus"]))[0].label, "Hermes Agent · zheus");
     }
 
     #[test]

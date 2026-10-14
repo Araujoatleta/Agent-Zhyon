@@ -131,6 +131,8 @@ export interface Settings {
   ollamaUrl: string;
   lmstudioUrl: string;
   customUrl: string;
+  /** Hermes Agent's API server once connected (Settings → Hermes Agent); empty means not connected. Rust owns it. */
+  hermesUrl: string;
   /** Global shortcuts the user changed, by action id (see core/shortcuts.ts). */
   shortcuts: Bindings;
   /**
@@ -165,6 +167,8 @@ export interface Settings {
   /** Notifications with Coucou closed, through ntfy, and its server ("" is ntfy.sh). Rust owns them too. */
   phonePush?: boolean;
   phonePushServer?: string;
+  /** Away from home, directly: the router opens the link's port (UPnP). Rust owns it too. */
+  phoneRemote?: boolean;
   /**
    * Mochi's hands (src-tauri/src/agent): the chat may act on this computer. Rust owns these three: only
    * Settings → Mochi's hands changes them, whatever the page sends back.
@@ -176,6 +180,21 @@ export interface Settings {
   chatHands: boolean;
   /** The chat reads Mochi's answers aloud with the system's voices (core/voice.ts). Off by default. */
   readAloud?: boolean;
+  /** Coucou installed or runs Hermes Agent, and the brain it gave it (src-tauri/src/hermes_setup.rs). Rust owns them. */
+  hermesManaged?: boolean;
+  hermesBrain?: string;
+  /**
+   * The assistant: its name ("Zheus"), tone and own tone, the skill packs wanted and those Coucou installed
+   * (src-tauri/src/hermes_setup.rs). Rust owns them: only Settings → Hermes Agent's commands change them.
+   */
+  assistantName?: string;
+  assistantPersona?: string;
+  assistantPersonaText?: string;
+  hermesSkills?: string[];
+  hermesSkillsInstalled?: string[];
+  /** The phone may change the assistant, and use Mochi's home. Rust owns them, like the other phone switches. */
+  phoneAssistant?: boolean;
+  phoneHome?: boolean;
   /** Mochi on the desktop. Rust owns it: whatever the page sends back is ignored. */
   desktopMochi?: {
     onDesktop: boolean;
@@ -205,6 +224,7 @@ export const DEFAULT_SETTINGS: Settings = {
   ollamaUrl: "",
   lmstudioUrl: "",
   customUrl: "",
+  hermesUrl: "",
   shortcuts: {},
   mochiOutfit: DEFAULT_OUTFIT,
   pillColors: {},

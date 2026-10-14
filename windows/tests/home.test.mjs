@@ -207,3 +207,74 @@ test("the voice block keeps the choice, reads a sentence to try, and says how to
   assert.equal(spoken.length, 1, "nothing read without a voice");
   assert.ok(all(without).some((e) => e.tagName === "DIV" && e.className === "notice err" && e.textContent === advice));
 });
+
+const samsung = (fields = {}) => ({
+  id: "samsung:0e0f1a1b",
+  brand: "samsung",
+  name: "Samsung 7 Series (43)",
+  host: "192.168.0.9",
+  model: "UN43AU7700GXZD",
+  version: "2.0.25",
+  os: "Tizen",
+  android: false,
+  https: true,
+  needsPairing: true,
+  paired: false,
+  mac: "A4:30:7A:12:34:56",
+  features: ["volume"],
+  ...fields,
+});
+
+test("a Samsung TV found on the network is added, then paired by choosing Allow on its screen", async () => {
+  assert.equal(tvLine(samsung()), "UN43AU7700GXZD · Tizen · API 2.0.25 · encrypted (port 8002) · volume by UPnP");
+  assert.equal(foundLine({ kind: "samsungTv", name: "43\" Crystal UHD", host: "192.168.0.9", model: "AllShare1.0" }), "Samsung TV · 192.168.0.9 · AllShare1.0");
+
+  answers = {
+    home_status: status({ tvs: [] }),
+    home_scan: [{ kind: "samsungTv", name: "43\" Crystal UHD", host: "192.168.0.9", model: "AllShare1.0", maker: "Samsung Electronics" }],
+  };
+  const section = homeSection(toggle);
+  await flush();
+  byText(section, "BUTTON", "Search the network").fire("click");
+  await flush();
+  await flush();
+  assert.ok(byText(section, "SPAN", "43\" Crystal UHD"));
+  answers.home_tv_add = samsung();
+  answers.home_status = status({ tvs: [samsung()] });
+  all(section).find((e) => e.tagName === "BUTTON" && e.textContent === "Add").fire("click");
+  await flush();
+  await flush();
+  assert.deepEqual(sent("home_tv_add").at(-1), { host: "192.168.0.9" });
+  assert.ok(byText(section, "SPAN", "Needs pairing: press Pair, then choose Allow on the TV."));
+
+  // Pairing: the TV asks on its screen; the page says so while it waits, and asks for no PIN.
+  let allow;
+  const pinsBefore = sent("home_tv_pin").length;
+  answers.home_tv_pair = () => new Promise((resolve) => (allow = resolve));
+  byText(section, "BUTTON", "Pair").fire("click");
+  await flush();
+  assert.ok(byText(section, "DIV", "Look at the TV: it asks whether to allow Coucou. Choose Allow."));
+  answers.home_status = status({ tvs: [samsung({ paired: true })] });
+  allow(samsung({ paired: true }));
+  await flush();
+  await flush();
+  await flush();
+  assert.deepEqual(sent("home_tv_pair").at(-1), { id: "samsung:0e0f1a1b" });
+  assert.ok(byText(section, "DIV", "Paired. Mochi can now use this TV."));
+  assert.equal(all(section).find((e) => e.tagName === "INPUT" && e.getAttribute("placeholder") === "PIN"), undefined, "no PIN for a Samsung TV");
+  assert.equal(sent("home_tv_pin").length, pinsBefore);
+});
+
+test("a TV that is neither Samsung nor Philips is not added, and what it answers on is said", async () => {
+  const why = "This TV answers neither as a Samsung nor as a Philips TV. It does answer on: ADB (Android) (5555). Send this line to whoever helps you with Coucou: it tells how this TV could be controlled.";
+  answers = { home_status: status({ tvs: [] }), home_tv_add: new Error(why) };
+  const section = homeSection(toggle);
+  await flush();
+  const host = all(section).find((e) => e.tagName === "INPUT" && e.getAttribute("placeholder") === "192.168.1.20");
+  host.value = "192.168.0.60";
+  all(section).find((e) => e.tagName === "BUTTON" && e.textContent === "Add").fire("click");
+  await flush();
+  await flush();
+  assert.deepEqual(sent("home_tv_add").at(-1), { host: "192.168.0.60" });
+  assert.ok(all(section).some((e) => e.className === "notice err" && e.textContent === why));
+});

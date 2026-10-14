@@ -13,11 +13,11 @@ struct ApprovalCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Waiting for your OK").font(.subheadline.weight(.semibold)).foregroundStyle(.orange)
-            Text(session.approvalCommand.isEmpty ? "The agent asks for a permission." : session.approvalCommand)
+            Text(session.approvalCommand.isEmpty ? String(localized: "The agent asks for a permission.") : session.approvalCommand)
                 .font(.callout.monospaced())
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(12)
-                .background(Color.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
+                .background(Color.black.opacity(0.28), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                 .textSelection(.enabled)
             if let sent {
                 HStack(spacing: 12) {
@@ -25,12 +25,12 @@ struct ApprovalCard: View {
                         // Apple Pay's "Done": the ring, then the check, draw themselves.
                         DrawnCheckmark(size: 34)
                     } else {
-                        Image(systemName: "xmark.circle.fill").font(.title).foregroundStyle(.red)
+                        Image(systemName: "xmark.circle.fill").font(.title).foregroundStyle(CoucouPalette.danger)
                             .symbolEffect(.bounce, value: sent)
                     }
                     Text(sent == .allow ? "Allowed, sent to \(session.hostName)" : "Denied, sent to \(session.hostName)")
                         .font(.callout.weight(.semibold))
-                        .foregroundStyle(sent == .allow ? .green : .red)
+                        .foregroundStyle(sent == .allow ? CoucouPalette.ok : CoucouPalette.danger)
                 }
                 .transition(.scale(scale: 0.8).combined(with: .opacity))
             } else if session.approvalFingerprint.isEmpty {
@@ -46,12 +46,12 @@ struct ApprovalCard: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
             if let error {
-                Text(error).font(.caption).foregroundStyle(.red)
+                Text(error).font(.caption).foregroundStyle(CoucouPalette.danger)
             }
         }
         .padding(16)
-        .glassCard()
-        .overlay(RoundedRectangle(cornerRadius: 22).strokeBorder(Color.orange.opacity(0.35), lineWidth: 1))
+        .glassCard(tint: .orange)
+        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).strokeBorder(Color.orange.opacity(0.4), lineWidth: 1))
         .animation(.spring(duration: 0.5, bounce: 0.3), value: sent)
         .onChange(of: session.approvalFingerprint) { sent = nil; error = nil }
     }
@@ -61,20 +61,21 @@ struct ApprovalCard: View {
         defer { sending = nil }
         error = nil
         if decision == .allow {
-            guard await OwnerCheck.confirm(reason: "Allow this command on \(session.hostName)") else {
-                error = "Face ID didn't confirm. Nothing was sent."
+            guard await OwnerCheck.confirm(reason: String(localized: "Allow this command on \(session.hostName)")) else {
+                error = String(localized: "Face ID didn't confirm. Nothing was sent.")
                 Haptics.warning()
                 return
             }
         }
-        let summary = session.approvalCommand.isEmpty ? "Permission" : session.approvalCommand
+        let summary = session.approvalCommand.isEmpty ? String(localized: "Permission") : session.approvalCommand
         if await link.decide(decision, fingerprint: session.approvalFingerprint, pillId: session.id,
                              summary: String(summary.prefix(200))) {
             sent = decision
             if decision == .allow { Haptics.success() } else { Haptics.impact() }
         } else {
             Haptics.error()
-            error = link.lastPong ?? "Couldn't reach iCloud."
+            error = link.lastPong ?? (session.fromComputer ? String(localized: "Can't reach \(session.hostName).")
+                                                           : String(localized: "Couldn't reach iCloud."))
         }
     }
 }
@@ -96,7 +97,7 @@ struct ReviewSheet: View {
                             MochiLive(state: session.state)
                                 .padding(6)
                                 .frame(width: 52, height: 52)
-                                .background(Color.mochiTile(hex: session.color), in: RoundedRectangle(cornerRadius: 14))
+                                .background(Color.mochiTile(hex: session.color), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("\(session.pillName) · \(session.title)").font(.headline)
                                 if !session.macName.isEmpty {
@@ -114,7 +115,7 @@ struct ReviewSheet: View {
                 }
                 .padding(16)
             }
-            .background(Color.black)
+            .deepBackdrop()
             .navigationTitle("Review")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -155,8 +156,10 @@ struct HistoryView: View {
                 Section(Self.dayTitle(day.day)) {
                     ForEach(day.logs) { log in row(log) }
                 }
+                .listRowBackground(GlassRowBackground())
             }
         }
+        .deepBackdrop()
         .navigationTitle("History")
     }
 
@@ -166,7 +169,7 @@ struct HistoryView: View {
             MochiStill(state: log.decision == .allow ? .finished : .error, bodyHex: pill?.color ?? "#FFFFFF")
                 .padding(3)
                 .frame(width: 34, height: 34)
-                .background(Color(white: 0.16), in: RoundedRectangle(cornerRadius: 9))
+                .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
             VStack(alignment: .leading, spacing: 3) {
                 Text(log.summary)
                     .font(.callout.monospaced())
@@ -174,8 +177,8 @@ struct HistoryView: View {
                 HStack(spacing: 6) {
                     Label(log.decision == .allow ? "Allowed" : "Denied",
                           systemImage: log.decision == .allow ? "checkmark.circle.fill" : "xmark.circle.fill")
-                        .foregroundStyle(log.decision == .allow ? .green : .red)
-                    Text(pill?.name ?? log.pillId).foregroundStyle(.secondary)
+                        .foregroundStyle(log.decision == .allow ? CoucouPalette.ok : CoucouPalette.danger)
+                    Text(pill?.name ?? (log.pillId == PCLink.mochiPill ? "Mochi" : log.pillId)).foregroundStyle(.secondary)
                     Spacer(minLength: 0)
                     Text(log.date, format: .dateTime.hour().minute()).foregroundStyle(.tertiary)
                 }
@@ -187,8 +190,8 @@ struct HistoryView: View {
 
     static func dayTitle(_ day: Date) -> String {
         let calendar = Calendar.current
-        if calendar.isDateInToday(day) { return "Today" }
-        if calendar.isDateInYesterday(day) { return "Yesterday" }
+        if calendar.isDateInToday(day) { return String(localized: "Today") }
+        if calendar.isDateInYesterday(day) { return String(localized: "Yesterday") }
         return day.formatted(.dateTime.weekday(.wide).day().month(.wide))
     }
 }

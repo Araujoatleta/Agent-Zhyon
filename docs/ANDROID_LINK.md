@@ -7,8 +7,8 @@ the local network.
 Status: the Android client, `android/tools/dev-desktop.mjs` (a stand-in desktop for testing) and the
 real desktop server of the Windows/Linux app (`windows/src-tauri/src/phone_link/`) implement this.
 The iPhone app implements the client side too, for Windows and Linux computers
-(`NotchBuddy/Sources/Phone/PCLink*.swift`, [IPHONE_PC.md](IPHONE_PC.md)): capabilities `chat`, `agent`, `details`
-and `answers`; no relay. The Mac app is left to its author.
+(`NotchBuddy/Sources/Phone/PCLink*.swift`, [IPHONE_PC.md](IPHONE_PC.md)): capabilities `chat`, `agent`, `details`,
+`answers` and `remote`; no relay. The Mac app is left to its author.
 
 ## Transport
 
@@ -396,6 +396,29 @@ every connection). The conversation itself is unchanged and runs inside an end-t
 relay; the wire is in `docs/RELAY_LINK.md`. When the user replaces the relay's access key, each phone that negotiated `relay`
 is sent `{"type":"relayAccess","access":"<43 base64url characters>"}` and follows the new key. A phone that did not negotiate
 `relay` is never sent it.
+
+## Away from home, directly (optional capability `remote`)
+
+When the user turns on "Away from home, directly" in Settings > Phone (off by default), the computer asks the user's own
+router, found by SSDP on the local network, to forward the link's port to it (UPnP IGD `AddPortMapping`, renewed every
+10 minutes; `WANIPv6FirewallControl` pinholes for its global IPv6 addresses when the router offers them), and reads the
+home's internet address from that router (`GetExternalIPAddress`; a shared or private one is reported, not used). No
+other host is contacted. The server then also accepts callers from the internet, with the same TLS, certificate and
+token, and an admission pool of their own: **2** unauthenticated connections from addresses that never authenticated,
+always on the short 3 s wait, apart from the local network's 4 (`phone_link/remote.rs`, `admission.rs`). Switched off,
+callers from the internet are dropped before any byte is read, as before.
+
+A phone that sends `caps: ["remote"]` is offered `remote` in `welcome.caps` (whatever the switch says) and is sent where
+to try, most direct first, right after connecting once the router has answered, and again whenever it changes:
+
+```json
+{"type":"remote","endpoints":["[2804:14c:1:2::10]:47821","198.51.100.7:47821"]}
+```
+
+Each endpoint is an IP literal and a port, IPv6 in brackets; at most six. An empty list means nowhere (the switch is
+off): the phone forgets what it knew. The phone keeps the list with the pairing and tries it, with the same pinned
+certificate and token, when the paired address does not answer (the iPhone gives the local address a 1.5 s head
+start, and skips it on cellular). It never resolves a name from this list. A phone that did not ask is never sent it.
 
 ## Keeping the link alive while the phone sleeps
 

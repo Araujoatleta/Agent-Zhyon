@@ -38,6 +38,28 @@ a machine-learning false positive); Microsoft reviewed it and removed the detect
 If Defender still blocks it on your PC, update its definitions (`Update-MpSignature`
 in PowerShell) and try again.
 
+### Your assistant, set up by the installer
+
+The setup.exe has one more page, right after the install folder: **Your assistant**.
+With **Set up the assistant now** ticked (the default, except on a reinstall or an
+update), pick the brain of [Hermes Agent](#hermes-agent) — **ChatGPT (your
+subscription)**, signed in with your ChatGPT Plus or Pro account after the install
+(Coucou opens OpenAI's page and shows a code, no key needed), an API key (OpenAI,
+Anthropic Claude, Google Gemini, OpenRouter), or Ollama or LM Studio on this
+computer — then its name (Zheus unless you type another), its tone, its skills
+(Mochi's home, free web search with DuckDuckGo, news and feeds) and whether your
+iPhone may change the assistant and use Mochi's home. The page says what Coucou
+will do before you click, in English, French or Portuguese (Brazil).
+
+- An API key typed there goes straight into Windows Credential Manager, where Coucou
+  keeps its keys. It is never written to a file.
+- The other choices go to `%APPDATA%\Coucou\setup.json`. At its next start Coucou
+  reads the file, deletes it, then installs and sets up Hermes the way
+  **Settings… → Hermes Agent** does, and opens Settings there to show the progress.
+- `/S`, `/P` and `/UPDATE` runs skip the page, and the .msi has none: set the
+  assistant up in **Settings… → Hermes Agent** instead. Everything chosen on the
+  page can be changed there later.
+
 You can also [build it yourself](#build-it-yourself).
 
 ## Using it
@@ -291,8 +313,10 @@ Settings window can turn it on.
 **Settings… → Mochi's home** lets the chat (and a paired phone's chat) use the
 devices of your house through Mochi's hands: "turn on the living room TV and
 open YouTube". Through **Home Assistant**'s REST API (media players, lights,
-switches) with a long-lived token, or straight to **Philips TVs** on your
-network (JointSpace, Android TVs paired once with a PIN). Off by default.
+switches) with a long-lived token, or straight to **Samsung TVs** (2016 and
+later: they ask once on their screen whether to allow Coucou) and **Philips
+TVs** (JointSpace, Android TVs paired once with a PIN) on your network. A TV of
+another kind is not added: Coucou says what it does answer on. Off by default.
 
 - Mochi only sees the devices you tick, and only does what each one reported it
   can do; every action becomes one call of a fixed list. Plugs and switches
@@ -308,6 +332,26 @@ network (JointSpace, Android TVs paired once with a PIN). Off by default.
 Setup, safety and limits (it is tested on simulated devices so far):
 [docs/SMART_HOME.md](../docs/SMART_HOME.md) (in Portuguese:
 [docs/SMART_HOME.pt-BR.md](../docs/SMART_HOME.pt-BR.md)).
+
+## Hermes Agent
+
+**Settings… → Hermes Agent** connects the [Hermes Agent](https://github.com/NousResearch/hermes-agent)
+running on this computer (its API server, `hermes gateway` with
+`API_SERVER_ENABLED=true`): pick **Hermes** above the chat box (or for the
+phone) and Hermes answers with its own memory and tools — calendar, Spotify,
+Home Assistant, scheduled jobs. Each tool it uses shows in the chat, what it
+wants approved comes to the island or the phone (Face ID), and Stop stops it.
+Its key is kept in the keystore, bound to that address (this computer or
+https only). **Mochi's home for Hermes** (off by default) lets Hermes use the
+house through `coucou-hook --mcp`, with Mochi's rules. Guide:
+[docs/HERMES.md](../docs/HERMES.md) (in Portuguese:
+[docs/HERMES.pt-BR.md](../docs/HERMES.pt-BR.md)).
+
+Or let Coucou do it all: name your assistant ("Zheus"), pick its brain among
+the AIs Coucou has a key or a server for, and **Install Hermes**. Coucou runs
+Hermes' official installer at a pinned version, checked by SHA-256 before it
+runs, sets Hermes up with `hermes config set`, and runs its server on
+127.0.0.1 whenever Coucou runs, with the AI key in memory only.
 
 ## Your phone
 
@@ -325,6 +369,13 @@ install the iPhone app without a Mac. The protocol is
 app shortly after you leave it, so a request still waiting while no phone is
 connected can be announced through [ntfy](https://ntfy.sh) (ntfy.sh or your
 own server). The notification only says who is waiting; a tap opens Coucou.
+
+**Away from home, directly** (off by default): Coucou asks your own router
+(UPnP) to open the link's port and tells the paired iPhone your home's
+internet addresses, so it reaches this computer from anywhere with the same
+pinned certificate and code, and no server in between. Settings shows what the
+router answered and what cannot work (UPnP off, CGNAT, IPv6 kept closed).
+Turning it off, or quitting Coucou, closes the port again.
 
 ## GitHub
 
@@ -374,6 +425,13 @@ workflow publishes:
 Coucou-Windows-X.Y.Z-setup.exe    the versioned installer
 Coucou-Windows-setup.exe          the same file under the rolling name
 ```
+
+The setup.exe is built from `src-tauri/nsis/installer.nsi`, a copy of the NSIS
+template of `@tauri-apps/cli` 2.12.0 that adds the assistant page after the install
+folder (the page itself is in `src-tauri/nsis/hooks.nsh`). That is why
+`package.json` pins the CLI to exactly that version: when you bump it, diff the
+copy against the new version's template and carry Coucou's two changes over —
+`tests/installer.test.mjs` fails until you do.
 
 Installing is optional — `target/release/coucou.exe` runs on its own. There is no
 window in the taskbar and no console: the island at the top of the screen and the

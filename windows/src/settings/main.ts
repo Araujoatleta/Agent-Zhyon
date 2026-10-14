@@ -20,6 +20,7 @@ import { agentsSection } from "./agents";
 import { phoneSection } from "./phone";
 import { handsSection } from "./hands";
 import { homeSection } from "./home";
+import { hermesSection } from "./hermes";
 import { colorDot } from "./colors";
 import { renderDiff, statusDot } from "./parts";
 import {
@@ -599,6 +600,8 @@ type LocalId = "ollama" | "lmstudio" | "custom";
 
 /** Redraws the local models section after a change made elsewhere (the island). */
 let localRedraw: (() => void) | null = null;
+/** Redraws Settings → Hermes Agent after Connect, Disconnect or a change of provider elsewhere. */
+let hermesRedraw: (() => void) | null = null;
 
 const LOCAL: Record<LocalId, { name: string; usual: string }> = {
   ollama: { name: "Ollama", usual: "http://127.0.0.1:11434" },
@@ -1293,7 +1296,14 @@ async function rerender() {
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
 
+/** Brings a section into view: "hermes" when the installer's page set the assistant up (src-tauri/src/first_run.rs). */
+function focusSection(id: string) {
+  if (id !== "hermes") return;
+  document.getElementById("hermes")?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 async function main() {
+  void onEvent<string>("settings-focus", focusSection);
   const boot = await Bridge.boot();
   if (boot) {
     settings = { ...settings, ...boot.settings };
@@ -1306,15 +1316,18 @@ async function main() {
     void rerender();
   });
   await render();
+  if (boot?.focus) focusSection(boot.focus);
 
   void onEvent<ShortcutsReport>("shortcuts-status", (fresh) => shortcutsListener?.report(fresh));
   void onEvent<Settings>("settings-changed", (s) => {
     const before = `${settings.chatProvider}|${settings.ollamaUrl}|${settings.lmstudioUrl}|${settings.customUrl}`;
+    const hermesBefore = `${settings.chatProvider}|${settings.hermesUrl}|${settings.chatModels.hermes ?? ""}`;
     settings = { ...settings, ...s };
     shortcutsListener?.settingsChanged();
     for (const redraw of declaredViews) redraw();
     const after = `${settings.chatProvider}|${settings.ollamaUrl}|${settings.lmstudioUrl}|${settings.customUrl}`;
     if (before !== after) localRedraw?.();
+    if (hermesBefore !== `${settings.chatProvider}|${settings.hermesUrl}|${settings.chatModels.hermes ?? ""}`) hermesRedraw?.();
     applyLanguage();
   });
 }
@@ -1360,6 +1373,15 @@ async function render() {
 
   declaredViews.length = 0;
   localRedraw = null;
+  const hermes = hermesSection({
+    settings: () => settings,
+    useInChat: async () => {
+      settings.chatProvider = "hermes";
+      await save();
+    },
+    toggle,
+  });
+  hermesRedraw = hermes.redraw;
   shortcutsListener = null;
   clear(root);
   root.append(
@@ -1370,6 +1392,7 @@ async function render() {
     apiSection(hasKey),
     chatProvidersSection(chatKeys, keyChanged),
     localSection(customKey),
+    hermes.el,
     handsSection(toggle),
     homeSection(toggle, { on: settings.readAloud === true, set: (on) => { settings.readAloud = on; void save(); } }),
     activePillsSection(connected),

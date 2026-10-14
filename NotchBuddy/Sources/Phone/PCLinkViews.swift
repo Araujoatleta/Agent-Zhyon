@@ -2,8 +2,8 @@ import SwiftUI
 import UIKit
 
 // The screens of the link to a Windows or Linux computer (PCLink): pairing with the code Coucou shows there, the
-// link's state, the chat with Mochi on the computer (his hands included) and, in a sideloaded build that has no
-// Mac to talk to, the first-launch guide. New screens in the app's own style; the Mac's screens are unchanged.
+// link's state and, in a sideloaded build that has no Mac to talk to, the first-launch guide. The chat with Mochi on
+// the computer is PCChatView.swift. In the app's deep dark glass (CoucouGlass.swift); the Mac's screens are unchanged.
 
 extension PCPairing: Identifiable {
     var id: String { computer.fingerprint + token }
@@ -12,28 +12,28 @@ extension PCPairing: Identifiable {
 extension SessionItem {
     /// Where the agent runs, for "sent to …" and Face ID's reason: the Mac, or the paired computer by its name.
     var hostName: String {
-        guard fromComputer else { return "your Mac" }
-        return macName.isEmpty ? "your computer" : macName
+        guard fromComputer else { return String(localized: "your Mac") }
+        return macName.isEmpty ? String(localized: "your computer") : macName
     }
 }
 
 extension PCLink.Status {
     var text: String {
         switch self {
-        case .unpaired: "Not paired"
-        case .connecting: "Connecting…"
-        case .searching: "Looking for it on the network…"
-        case .connected: "Connected"
-        case .offline(let reason): reason.isEmpty ? "Not connected" : reason
-        case .refused: "It refused this iPhone: pair again with the code it shows now."
+        case .unpaired: String(localized: "Not paired")
+        case .connecting: String(localized: "Connecting…")
+        case .searching: String(localized: "Looking for it on the network…")
+        case .connected: String(localized: "Connected")
+        case .offline(let reason): reason.isEmpty ? String(localized: "Not connected") : reason
+        case .refused: String(localized: "It refused this iPhone: pair again with the code it shows now.")
         }
     }
 
     var color: Color {
         switch self {
-        case .connected: .green
+        case .connected: CoucouPalette.ok
         case .connecting, .searching: .secondary
-        case .refused: .red
+        case .refused: CoucouPalette.danger
         case .unpaired, .offline: .orange
         }
     }
@@ -41,11 +41,11 @@ extension PCLink.Status {
     /// One or two words, for the Settings row.
     var shortText: String {
         switch self {
-        case .unpaired: "Not paired"
-        case .connecting, .searching: "Connecting…"
-        case .connected: "Connected"
-        case .offline: "Not connected"
-        case .refused: "Pair again"
+        case .unpaired: String(localized: "Not paired")
+        case .connecting, .searching: String(localized: "Connecting…")
+        case .connected: String(localized: "Connected")
+        case .offline: String(localized: "Not connected")
+        case .refused: String(localized: "Pair again")
         }
     }
 
@@ -74,13 +74,19 @@ struct PCLinkSettingsView: View {
                     MochiLive(state: pc.status.mochi)
                         .padding(6)
                         .frame(width: 56, height: 56)
-                        .background(Color(white: 0.16), in: RoundedRectangle(cornerRadius: 14))
+                        .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                     VStack(alignment: .leading, spacing: 3) {
-                        Text(pc.computer.map { $0.name.isEmpty ? "Your computer" : $0.name } ?? "No computer yet")
+                        Text(pc.computer.map { $0.name.isEmpty ? String(localized: "Your computer") : $0.name }
+                             ?? String(localized: "No computer yet"))
                             .font(.headline)
                         Text(pc.status.text)
                             .font(.subheadline)
                             .foregroundStyle(pc.status.color)
+                        if pc.status == .connected, pc.viaOutside {
+                            Text("Over the internet, directly to your computer")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
                 .padding(.vertical, 4)
@@ -88,6 +94,7 @@ struct PCLinkSettingsView: View {
                     Button("Try again now") { pc.reconnectIfNeeded() }
                 }
             }
+            .listRowBackground(GlassRowBackground())
 
             if let computer = pc.computer {
                 Section {
@@ -98,11 +105,15 @@ struct PCLinkSettingsView: View {
                     if !pc.model.os.isEmpty {
                         LabeledContent("System", value: pc.model.os.capitalized)
                     }
+                    if let away = awayFromHome(computer) {
+                        LabeledContent("Away from home", value: away)
+                    }
                 } header: {
                     Text("Link")
                 } footer: {
                     Text("Only this computer is accepted: its certificate is checked at every connection. If its address changes, Coucou finds it again on the local network.")
                 }
+                .listRowBackground(GlassRowBackground())
 
                 if pc.status == .connected {
                     Section {
@@ -111,11 +122,17 @@ struct PCLinkSettingsView: View {
                         capability("Mochi's hands from the phone", on: pc.model.handsAllowed)
                         capability("Answer Claude Code's questions", on: pc.model.caps.contains("answers"))
                         capability("Session details", on: pc.model.caps.contains("details"))
+                        capability("Files an agent changed", on: pc.model.caps.contains("diffs"))
+                        capability("Plan usage", on: pc.model.caps.contains("usage"))
+                        capability("Service cards", on: pc.model.caps.contains("services"))
+                        capability("Change the assistant", on: pc.model.caps.contains("assistant"))
+                        capability("Mochi's home", on: pc.model.caps.contains("home"))
                     } header: {
                         Text("Allowed by the computer")
                     } footer: {
-                        Text("Each one is a switch in Coucou's Settings → Phone on the computer, off until you turn it on there. Mochi's hands also need Settings → Mochi's hands.")
+                        Text("Each one is a switch in Coucou's Settings → Phone on the computer, off until you turn it on there. Mochi's hands also need Settings → Mochi's hands, and Mochi's home needs Settings → Mochi's home.")
                     }
+                    .listRowBackground(GlassRowBackground())
                 }
             }
 
@@ -137,13 +154,14 @@ struct PCLinkSettingsView: View {
                 Button("Pair") { review() }
                     .disabled(link.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 if let error {
-                    Text(error).font(.footnote).foregroundStyle(.red)
+                    Text(error).font(.footnote).foregroundStyle(CoucouPalette.danger)
                 }
             } header: {
                 Text(pc.isPaired ? "Pair again" : "Pair")
             } footer: {
                 Text("On the computer: Coucou → Settings → Phone (Android and iPhone) → turn the link on and show the pairing code, then scan it here. Or copy the link there and paste it here. (The iPhone's Camera app can't open Coucou codes.)")
             }
+            .listRowBackground(GlassRowBackground())
 
             if pc.isPaired {
                 Section {
@@ -152,6 +170,7 @@ struct PCLinkSettingsView: View {
                         Haptics.impact()
                     }
                 }
+                .listRowBackground(GlassRowBackground())
             }
 
             Section {
@@ -159,10 +178,10 @@ struct PCLinkSettingsView: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
+            .listRowBackground(GlassRowBackground())
         }
         .listStyle(.insetGrouped)
-        .scrollContentBackground(.hidden)
-        .background(Color.black)
+        .deepBackdrop()
         .navigationTitle("Windows or Linux computer")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $pending) { pairing in
@@ -176,17 +195,29 @@ struct PCLinkSettingsView: View {
     private func review() {
         error = nil
         guard let pairing = PCPairing.parse(link) else {
-            error = "This isn't a Coucou pairing link. It starts with coucou://pair?v=1"
+            error = String(localized: "This isn't a Coucou pairing link. It starts with coucou://pair?v=1")
             Haptics.warning()
             return
         }
         pending = pairing
     }
 
-    private func capability(_ title: String, on: Bool) -> some View {
+    /// What the iPhone can do away from home (windows/src-tauri/src/phone_link/remote.rs). Nil when the computer
+    /// has never said: an older Coucou there.
+    private func awayFromHome(_ computer: PCComputer) -> String? {
+        if pc.status == .connected, pc.viaOutside { return String(localized: "Connected") }
+        if !computer.remote.isEmpty {
+            return computer.remote.count == 1 ? String(localized: "Ready, 1 address")
+                : String(localized: "Ready, \(computer.remote.count) addresses")
+        }
+        if pc.model.caps.contains("remote") { return String(localized: "Off on the computer") }
+        return nil
+    }
+
+    private func capability(_ title: LocalizedStringKey, on: Bool) -> some View {
         LabeledContent(title) {
             Image(systemName: on ? "checkmark.circle.fill" : "minus.circle")
-                .foregroundStyle(on ? Color.green : Color.secondary)
+                .foregroundStyle(on ? CoucouPalette.ok : Color.secondary)
         }
     }
 }
@@ -209,7 +240,7 @@ struct PCPairingConfirm: View {
             VStack(alignment: .leading, spacing: 18) {
                 MochiLive(state: .question)
                     .frame(width: 72, height: 72)
-                Text("Pair with \(pairing.computer.name.isEmpty ? "this computer" : pairing.computer.name)?")
+                Text(pairing.computer.name.isEmpty ? "Pair with this computer?" : "Pair with \(pairing.computer.name)?")
                     .font(.title2.weight(.bold))
                 Text("This iPhone will show the agents running on it and answer their permission requests, on your local network only. Allow always asks for Face ID.")
                     .foregroundStyle(.secondary)
@@ -228,14 +259,14 @@ struct PCPairingConfirm: View {
                         .foregroundStyle(.orange)
                 }
                 if failed {
-                    Text(pc.lastError ?? "Couldn't pair.")
+                    Text(pc.lastError ?? String(localized: "Couldn't pair."))
                         .font(.footnote)
-                        .foregroundStyle(.red)
+                        .foregroundStyle(CoucouPalette.danger)
                 }
             }
             .padding(24)
         }
-        .background(Color.black)
+        .background { DeepBackdrop() }
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: 10) {
                 Button {
@@ -250,7 +281,7 @@ struct PCPairingConfirm: View {
                 } label: {
                     Text("Pair").font(.headline).frame(maxWidth: .infinity).padding(.vertical, 6)
                 }
-                .buttonStyle(.borderedProminent)
+                .coucouGlassButton(prominent: true)
                 .controlSize(.large)
                 Button("Cancel", role: .cancel) { dismiss() }
             }
@@ -259,296 +290,6 @@ struct PCPairingConfirm: View {
         }
         .presentationDetents([.large])
         .preferredColorScheme(.dark)
-    }
-}
-
-/// Mochi on the computer, from the iPhone: the computer's chat, with his hands when they are on there (each step
-/// shows up as he works; what changes something waits for Allow, here or on the computer).
-struct PCChatView: View {
-    let pc: PCLink
-    @State private var text = ""
-    @FocusState private var focused: Bool
-    /// Dictation as in the instruction composer (on the iPhone when it can); a pause sends what was said.
-    @State private var dictation = Dictation()
-    @State private var silence: Task<Void, Never>?
-    /// The message being answered was spoken: the answer is read aloud.
-    @State private var spoken = false
-    @AppStorage("pcReadAnswersAloud") private var readAloud = true
-
-    private var scrollKey: String {
-        let last = pc.model.chat.last
-        return "\(pc.model.chat.count)|\(last?.text.count ?? 0)|\(last?.steps.map(\.status).joined() ?? "")"
-    }
-
-    var body: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 14) {
-                    if pc.model.chat.isEmpty { intro }
-                    ForEach(pc.model.chat) { entry in
-                        PCChatBubble(entry: entry).id(entry.id)
-                    }
-                }
-                .padding(16)
-            }
-            .onChange(of: scrollKey) {
-                guard let id = pc.model.chat.last?.id else { return }
-                withAnimation(.easeOut(duration: 0.25)) { proxy.scrollTo(id, anchor: .bottom) }
-            }
-        }
-        .scrollDismissesKeyboard(.immediately)
-        .background(Color.black)
-        .safeAreaInset(edge: .bottom) { composer }
-        .toolbarVisibility(.hidden, for: .tabBar)
-        .navigationTitle("Mochi")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) { menu }
-        }
-        .onAppear { pc.refreshModels() }
-        .onDisappear {
-            dictation.stop()
-            MochiVoice.shared.stop()
-        }
-        .onChange(of: dictation.transcript) { _, words in
-            guard dictation.isRecording else { return }
-            text = dictation.prefix + words
-            // A short pause after the words: done talking, the message goes.
-            silence?.cancel()
-            guard !words.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-            silence = Task { @MainActor in
-                try? await Task.sleep(for: .seconds(1.8))
-                guard !Task.isCancelled, dictation.isRecording else { return }
-                dictation.stop()
-                send(spoken: true)
-            }
-        }
-        .onChange(of: pc.chatRunning) { was, now in
-            guard was, !now, spoken else { return }
-            spoken = false
-            if readAloud, let answer = pc.model.chat.last, answer.role == .mochi, !answer.failed {
-                MochiVoice.shared.say(answer.text, language: dictation.localeID)
-            }
-        }
-    }
-
-    private func send(spoken voice: Bool = false) {
-        silence?.cancel()
-        dictation.stop()
-        pc.sendChat(text)
-        if pc.lastError == nil {
-            text = ""
-            spoken = voice
-            Haptics.impact()
-        } else {
-            Haptics.warning()
-        }
-    }
-
-    private var intro: some View {
-        VStack(spacing: 12) {
-            MochiLive(state: pc.status == .connected ? .idle : .sleeping)
-                .frame(width: 80, height: 80)
-            Text(pc.model.handsAllowed && pc.chatHands
-                 ? "Ask Mochi to do something on \(pc.name): look through a folder, change a file, run the tests…"
-                 : "Chat with Mochi, with the AI providers set up on \(pc.name).")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.top, 60)
-    }
-
-    private var menu: some View {
-        Menu {
-            if !pc.chatModels.isEmpty {
-                Picker("Model", selection: Binding(get: { pc.chatModel }, set: { pc.setChatModel($0) })) {
-                    ForEach(pc.chatModels) { model in
-                        Text(model.label).tag(model.id)
-                    }
-                }
-            }
-            if pc.model.handsAllowed {
-                Toggle(isOn: Binding(get: { pc.chatHands }, set: { pc.setChatHands($0) })) {
-                    Label("Mochi's hands", systemImage: "hand.raised")
-                }
-            }
-            Toggle(isOn: $readAloud) {
-                Label("Read answers to spoken messages aloud", systemImage: "speaker.wave.2")
-            }
-            Picker("Dictation language", selection: $dictation.localeID) {
-                ForEach(Dictation.languages, id: \.self) { id in
-                    Text(Locale.current.localizedString(forIdentifier: id) ?? id).tag(id)
-                }
-            }
-            Button {
-                pc.newChat()
-                Haptics.impact()
-            } label: {
-                Label("New chat", systemImage: "square.and.pencil")
-            }
-        } label: {
-            Image(systemName: "ellipsis.circle")
-        }
-    }
-
-    private var composer: some View {
-        let empty = text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        let running = pc.chatRunning
-        return VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .bottom, spacing: 8) {
-                HStack(alignment: .bottom, spacing: 2) {
-                    TextField(pc.model.handsAllowed && pc.chatHands ? "Ask Mochi to do something…" : "Message Mochi…",
-                              text: $text, axis: .vertical)
-                        .lineLimit(1...8)
-                        .focused($focused)
-                        .padding(.leading, 16)
-                        .padding(.vertical, 11)
-                    // Talk to Mochi: "liga a TV da sala e abre o YouTube". A pause sends it.
-                    Button {
-                        MochiVoice.shared.stop()
-                        Task { await dictation.toggle(startingFrom: text) }
-                    } label: {
-                        Image(systemName: dictation.isRecording ? "waveform" : "mic.fill")
-                            .font(.body)
-                            .foregroundStyle(dictation.isRecording ? Color.red : Color.secondary)
-                            .symbolEffect(.variableColor.iterative, isActive: dictation.isRecording)
-                            .frame(width: 38, height: 42)
-                    }
-                    .disabled(running || pc.status != .connected)
-                    .padding(.trailing, 4)
-                }
-                .glassPill(RoundedRectangle(cornerRadius: 22, style: .continuous))
-                Button {
-                    if running {
-                        pc.stopChat()
-                        Haptics.impact()
-                    } else {
-                        send()
-                    }
-                } label: {
-                    Image(systemName: running ? "stop.fill" : "arrow.up")
-                        .font(.body.weight(.bold))
-                        .foregroundStyle(running || !empty ? Color.black : Color.secondary)
-                        .frame(width: 44, height: 44)
-                        .background(running || !empty ? Color.white : Color.white.opacity(0.12), in: Circle())
-                        .contentTransition(.symbolEffect(.replace))
-                }
-                .buttonStyle(PressableButtonStyle())
-                .disabled(!running && (empty || pc.status != .connected))
-            }
-            if let note {
-                Text(note)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 6)
-            }
-        }
-        .padding(.horizontal, 12)
-        .padding(.top, 14)
-        .padding(.bottom, 6)
-        .background(alignment: .bottom) {
-            LinearGradient(colors: [.clear, .black.opacity(0.85), .black], startPoint: .top, endPoint: .bottom)
-                .ignoresSafeArea()
-                .allowsHitTesting(false)
-        }
-    }
-
-    /// What stands in the way, or which model answers.
-    private var note: String? {
-        if let error = pc.lastError { return error }
-        if pc.status != .connected { return pc.status.text }
-        if !pc.model.chatAllowed {
-            return "The chat is off on \(pc.name): Settings → Phone → \"Let the phone chat with my AI providers\"."
-        }
-        if pc.chatModels.isEmpty { return "No model allowed for the phone yet: tick one in Settings → Phone on the computer." }
-        let model = pc.chatModels.first { $0.id == pc.chatModel }?.label ?? pc.chatModel
-        let hands = pc.model.handsAllowed && pc.chatHands ? " · with his hands" : ""
-        return "\(model)\(hands)"
-    }
-}
-
-/// One message of the chat: yours on the right; Mochi's on the left, with what he did on the computer.
-struct PCChatBubble: View {
-    let entry: PCChatEntry
-
-    var body: some View {
-        switch entry.role {
-        case .you:
-            HStack {
-                Spacer(minLength: 48)
-                Text(entry.text)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .background(Color.accentColor.opacity(0.85), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                    .foregroundStyle(.white)
-                    .textSelection(.enabled)
-            }
-        case .mochi:
-            VStack(alignment: .leading, spacing: 8) {
-                if !entry.steps.isEmpty {
-                    VStack(alignment: .leading, spacing: 6) {
-                        ForEach(entry.steps, id: \.index) { step in
-                            PCStepRow(step: step)
-                        }
-                    }
-                    .padding(12)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .glassCard(cornerRadius: 16)
-                }
-                if entry.text.isEmpty && !entry.finished {
-                    HStack(spacing: 8) {
-                        ProgressView().controlSize(.small)
-                        Text(entry.steps.last?.status == "waiting" ? "Waiting for your OK…" : "Mochi is on it…")
-                            .font(.callout)
-                            .foregroundStyle(.secondary)
-                    }
-                } else if !entry.text.isEmpty {
-                    Text(Self.rich(entry.text))
-                        .foregroundStyle(entry.failed ? Color.orange : Color.primary)
-                        .textSelection(.enabled)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-            }
-            .padding(.trailing, 24)
-        }
-    }
-
-    /// Bold, italics, code and links, as the island shows them; plain text when it does not parse.
-    private static func rich(_ text: String) -> AttributedString {
-        let options = AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
-        return (try? AttributedString(markdown: text, options: options)) ?? AttributedString(text)
-    }
-}
-
-/// "Bash · npm test" with how it went.
-struct PCStepRow: View {
-    let step: PCChatStep
-
-    var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            mark.frame(width: 16)
-            Text(step.text)
-                .font(.footnote.monospaced())
-                .lineLimit(2)
-                .foregroundStyle(step.status == "denied" ? Color.secondary : Color.primary)
-        }
-    }
-
-    @ViewBuilder private var mark: some View {
-        switch step.status {
-        case "ok":
-            Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
-        case "error":
-            Image(systemName: "xmark.circle.fill").foregroundStyle(.red)
-        case "denied":
-            Image(systemName: "hand.raised.fill").foregroundStyle(.secondary)
-        case "waiting":
-            Image(systemName: "exclamationmark.circle.fill").foregroundStyle(.orange)
-        default:
-            ProgressView().controlSize(.mini)
-        }
     }
 }
 
@@ -572,22 +313,26 @@ struct PCOnboardingView: View {
                         .font(.body)
                         .foregroundStyle(.secondary)
                 }
-                step(1, "Coucou on the computer",
-                     "Install Coucou for Windows or Linux and set up its Claude Code hooks.",
-                     icon: "desktopcomputer")
-                step(2, "Turn on the phone link",
-                     "On the computer: Coucou Settings → Phone (Android and iPhone) → turn it on and show the pairing code. Same Wi-Fi as this iPhone.",
-                     icon: "switch.2")
-                step(3, "Scan the code",
-                     "Tap Scan the pairing code below and point the camera at the computer's screen. Or copy the link on the computer and paste it here.",
-                     icon: "qrcode.viewfinder")
+                CoucouGlassGroup(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 22) {
+                        step(1, "Coucou on the computer",
+                             "Install Coucou for Windows or Linux and set up its Claude Code hooks.",
+                             icon: "desktopcomputer")
+                        step(2, "Turn on the phone link",
+                             "On the computer: Coucou Settings → Phone (Android and iPhone) → turn it on and show the pairing code. Same Wi-Fi as this iPhone.",
+                             icon: "switch.2")
+                        step(3, "Scan the code",
+                             "Tap Scan the pairing code below and point the camera at the computer's screen. Or copy the link on the computer and paste it here.",
+                             icon: "qrcode.viewfinder")
+                    }
+                }
                 if let error {
-                    Text(error).font(.footnote).foregroundStyle(.red)
+                    Text(error).font(.footnote).foregroundStyle(CoucouPalette.danger)
                 }
             }
             .padding(24)
         }
-        .background(Color.black)
+        .background { DeepBackdrop() }
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: 10) {
                 Button {
@@ -596,12 +341,12 @@ struct PCOnboardingView: View {
                     Label("Scan the pairing code", systemImage: "qrcode.viewfinder")
                         .font(.headline).frame(maxWidth: .infinity).padding(.vertical, 6)
                 }
-                .buttonStyle(.borderedProminent)
+                .coucouGlassButton(prominent: true)
                 .controlSize(.large)
                 HStack(spacing: 24) {
                     Button("Paste the link") {
                         guard let pairing = PCPairing.parse(UIPasteboard.general.string ?? "") else {
-                            error = "No pairing link to paste. Copy it on the computer first (Settings → Phone)."
+                            error = String(localized: "No pairing link to paste. Copy it on the computer first (Settings → Phone).")
                             Haptics.warning()
                             return
                         }
@@ -622,15 +367,19 @@ struct PCOnboardingView: View {
         .preferredColorScheme(.dark)
     }
 
-    private func step(_ number: Int, _ title: String, _ text: String, icon: String) -> some View {
+    private func step(_ number: Int, _ title: LocalizedStringKey, _ text: LocalizedStringKey, icon: String) -> some View {
         HStack(alignment: .top, spacing: 14) {
             Image(systemName: icon)
                 .font(.title3)
                 .foregroundStyle(.tint)
                 .frame(width: 44, height: 44)
-                .background(Color(white: 0.14), in: RoundedRectangle(cornerRadius: 12))
+                .coucouGlass(.regular, cornerRadius: 12)
             VStack(alignment: .leading, spacing: 3) {
-                Text("\(number). \(title)").font(.headline)
+                HStack(spacing: 0) {
+                    Text(verbatim: "\(number). ")
+                    Text(title)
+                }
+                .font(.headline)
                 Text(text).font(.callout).foregroundStyle(.secondary)
             }
         }

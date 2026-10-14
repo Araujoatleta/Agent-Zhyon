@@ -49,16 +49,19 @@ export interface DevicePrefs {
 
 export interface TvSummary {
   id: string;
+  brand: "philips" | "samsung";
   name: string;
   host: string;
   model: string;
   version: string;
+  /** "Tizen", or a Philips TV's OS. */
+  os: string;
   android: boolean;
   https: boolean;
   needsPairing: boolean;
   paired: boolean;
   mac: string;
-  /** What its features say: "keys", "apps". */
+  /** What its features say: "keys", "apps" (Philips); "volume" when a Samsung TV has a UPnP renderer. */
   features: string[];
 }
 
@@ -86,7 +89,7 @@ export interface HomeStatus {
 }
 
 export interface Found {
-  kind: "homeAssistant" | "philipsTv" | "otherTv";
+  kind: "homeAssistant" | "philipsTv" | "samsungTv" | "otherTv";
   name: string;
   host: string;
   url?: string | null;
@@ -191,12 +194,22 @@ export function roomsOf(devices: HomeDevice[], prefs: Record<string, DevicePrefs
 
 /** A found thing in words: "Philips TV · 192.168.1.20 · 55PUS8007/12". */
 export function foundLine(f: Found): string {
-  const kind = f.kind === "homeAssistant" ? "Home Assistant" : f.kind === "philipsTv" ? "Philips TV" : (f.maker ?? t("TV"));
+  const kind =
+    f.kind === "homeAssistant" ? "Home Assistant"
+    : f.kind === "philipsTv" ? "Philips TV"
+    : f.kind === "samsungTv" ? "Samsung TV"
+    : (f.maker ?? t("TV"));
   return [kind, f.host, f.model ?? "", f.version ?? ""].filter(Boolean).join(" · ");
 }
 
-/** A TV in words: "JointSpace 6.4.0 · Android TV · encrypted". */
+/** A TV in words: "JointSpace 6.4.0 · Android TV · encrypted", "UN43AU7700GXZD · Tizen · API 2.0.25 · volume by UPnP". */
 export function tvLine(tv: TvSummary): string {
+  if (tv.brand === "samsung") {
+    const parts = [tv.model, tv.os || "Tizen", tv.version ? `API ${tv.version}` : ""].filter(Boolean);
+    parts.push(tv.https ? t("encrypted (port 8002)") : t("unencrypted (port 8001)"));
+    if (tv.features.includes("volume")) parts.push(t("volume by UPnP"));
+    return parts.join(" · ");
+  }
   const parts = [`JointSpace ${tv.version}`];
   if (tv.android) parts.push("Android TV");
   parts.push(tv.https ? t("encrypted (port 1926)") : t("unencrypted (port 1925)"));
@@ -215,6 +228,11 @@ export function originLabel(origin: string): string {
       return t("Routine");
     case "settings":
       return t("Settings");
+    // Other agents, through coucou-hook --mcp (agent/mcp.rs).
+    case "hermes":
+      return "Hermes Agent";
+    case "agent":
+      return t("Another agent");
     default:
       return origin;
   }

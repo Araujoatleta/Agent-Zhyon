@@ -5,6 +5,15 @@ import UniformTypeIdentifiers
 /// The Search tab: every turn this iPhone saw (prompts, answers, file names).
 struct SearchTab: View {
     let link: PhoneLink
+
+    var body: some View {
+        NavigationStack { SearchScreen(link: link) }
+    }
+}
+
+/// The search itself, also opened from Settings when the computer's tabs replace the Mac's.
+struct SearchScreen: View {
+    let link: PhoneLink
     @State private var query = ""
 
     private struct Hit: Identifiable {
@@ -31,33 +40,35 @@ struct SearchTab: View {
     }
 
     var body: some View {
-        NavigationStack {
-            List {
-                if allTurns.isEmpty {
-                    ContentUnavailableView("No turn yet", systemImage: "text.magnifyingglass",
-                                           description: Text("What Claude does on your Mac shows up here, ready to search."))
-                } else if hits.isEmpty {
-                    ContentUnavailableView.search(text: query)
-                } else {
-                    Section(query.isEmpty ? "Recent turns" : "Results") {
-                        ForEach(hits) { hit in
-                            NavigationLink {
-                                ScrollView {
-                                    LastTurnView(turn: hit.turn, working: false).padding(16)
-                                }
-                                .background(Color.black)
-                                .navigationTitle(hit.turn.project.isEmpty ? hit.agent : hit.turn.project)
-                                .navigationBarTitleDisplayMode(.inline)
-                            } label: {
-                                row(hit)
+        List {
+            if allTurns.isEmpty {
+                ContentUnavailableView("No turn yet", systemImage: "text.magnifyingglass",
+                                       description: Text("What Claude does on your Mac shows up here, ready to search."))
+                    .listRowBackground(Color.clear)
+            } else if hits.isEmpty {
+                ContentUnavailableView.search(text: query)
+                    .listRowBackground(Color.clear)
+            } else {
+                Section(query.isEmpty ? "Recent turns" : "Results") {
+                    ForEach(hits) { hit in
+                        NavigationLink {
+                            ScrollView {
+                                LastTurnView(turn: hit.turn, working: false).padding(16)
                             }
+                            .deepBackdrop()
+                            .navigationTitle(hit.turn.project.isEmpty ? hit.agent : hit.turn.project)
+                            .navigationBarTitleDisplayMode(.inline)
+                        } label: {
+                            row(hit)
                         }
                     }
                 }
+                .listRowBackground(GlassRowBackground())
             }
-            .navigationTitle("Search")
-            .searchable(text: $query, prompt: "Prompts, answers, files")
         }
+        .deepBackdrop()
+        .navigationTitle("Search")
+        .searchable(text: $query, prompt: "Prompts, answers, files")
     }
 
     private func row(_ hit: Hit) -> some View {
@@ -66,7 +77,7 @@ struct SearchTab: View {
             MochiStill(state: .idle, bodyHex: pill?.color ?? "#FFFFFF")
                 .padding(4)
                 .frame(width: 34, height: 34)
-                .background(Color.mochiTile(hex: pill?.color ?? "#3B4A6B"), in: RoundedRectangle(cornerRadius: 9))
+                .background(Color.mochiTile(hex: pill?.color ?? "#3B4A6B"), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
             VStack(alignment: .leading, spacing: 3) {
                 HStack {
                     Text(hit.turn.project.isEmpty ? hit.agent : "\(hit.turn.project) · \(hit.agent)")

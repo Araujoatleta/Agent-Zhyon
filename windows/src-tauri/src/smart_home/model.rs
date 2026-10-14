@@ -1,6 +1,7 @@
 // What the house is made of, as Mochi and Settings see it: the devices, what each one can do — as the device itself
 // reported it, never assumed from its brand — and the actions asked of them, checked against that before anything is
-// sent. Pure data and rules, tested below; the drivers (home_assistant.rs, philips.rs) fill it and carry it out.
+// sent. Pure data and rules, tested below; the drivers (home_assistant.rs, samsung.rs, philips.rs) fill it and carry it
+// out.
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -94,13 +95,13 @@ pub struct DeviceState {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Device {
-    /// `ha:<entity_id>` or `philips:<id>`: stable, used by Settings, routines and Mochi.
+    /// `ha:<entity_id>`, `samsung:<id>` or `philips:<id>`: stable, used by Settings, routines and Mochi.
     pub id: String,
     pub name: String,
     /// The room, "" when none is set.
     pub room: String,
     pub kind: Kind,
-    /// "Home Assistant" or "Philips TV".
+    /// "Home Assistant", "Samsung TV" or "Philips TV".
     pub source: String,
     /// The model, when the device or its description says it.
     pub model: Option<String>,

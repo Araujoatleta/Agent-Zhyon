@@ -27,11 +27,15 @@ pub mod journal;
 pub mod model;
 pub mod philips;
 pub mod routines;
+pub mod samsung;
+pub mod upnp;
 
 use std::collections::{BTreeMap, HashMap};
+use std::net::Ipv4Addr;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
+use reqwest::Url;
 use serde::Serialize;
 use serde_json::Value;
 use tauri::{AppHandle, Emitter, Manager, State, WebviewWindow};
@@ -39,8 +43,8 @@ use tauri::{AppHandle, Emitter, Manager, State, WebviewWindow};
 use crate::agent::{BoxFuture, HomeEnv, HomeRunner, HomeResult, RoutineInfo};
 use crate::i18n::{t, tf};
 use crate::phone_link::only_settings;
-use crate::{log, settings, Shared};
-use config::{DevicePrefs, TvConf};
+use crate::{log, net, settings, Shared};
+use config::{DevicePrefs, TvConf, SAMSUNG};
 use home_assistant::HomeAssistant;
 use model::{Action, Capability, Device, DeviceState, Kind};
 use philips::{Tv, TvError};
@@ -59,6 +63,8 @@ const CONFIRM_WAIT: Duration = Duration::from_secs(8);
 pub struct Home {
     cache: Mutex<Option<(Instant, Vec<Device>)>>,
     lists: Mutex<HashMap<String, TvLists>>,
+    /// When each Samsung TV was last asked for its apps.
+    samsung_asked: Mutex<HashMap<String, Instant>>,
     pairings: Mutex<HashMap<String, philips::PairingState>>,
     /// One reading of the house at a time.
     reading: tokio::sync::Mutex<()>,
@@ -138,7 +144,11 @@ pub async fn read(app: &AppHandle, fresh: bool) -> Vec<Device> {
     let mut reads = tokio::task::JoinSet::new();
     for conf in s.tvs.clone() {
         let prefs = s.prefs.get(&conf.id).cloned().unwrap_or_default();
-        reads.spawn(tv_device(app.clone(), conf, prefs, s.ask_all));
+        if conf.samsung() {
+            reads.spawn(samsung_device(app.clone(), conf, prefs, s.ask_all));
+        } else {
+            reads.spawn(tv_device(app.clone(), conf, prefs, s.ask_all));
+        }
     }
     while let Some(Ok(d)) = reads.join_next().await {
         devices.push(d);
@@ -438,6 +448,244 @@ async fn tv_act(app: &AppHandle, conf: &TvConf, device: &Device, action: &Action
     }
 }
 
+// ── Samsung TVs (samsung.rs) ──────────────────────────────────────────────────
+
+/// A Samsung TV as Mochi sees it: what its API says (on or in standby), its volume from its UPnP renderer, its apps
+/// from its own list, and only what that allows.
+async fn samsung_device(app: AppHandle, conf: TvConf, prefs: DevicePrefs, ask_all: bool) -> Device {
+    let info = samsung::info(&conf.samsung_tv()).await;
+    let paired = !conf.needs_pairing || config::samsung_token(&conf.id).is_some();
+    let mut state = samsung_reading(&conf, info.as_ref().ok()).await;
+    // The remote is opened only on a TV that is on: on some models, opening it turns the TV on.
+    let apps = if paired && state.on == Some(true) { samsung_apps(&app, &conf, false).await } else { conf.apps.clone() };
+    let caps = samsung_caps(paired, state.online, conf.mac().is_some(), Url::parse(&conf.renderer).is_ok(), !apps.is_empty());
+    if state.on != Some(true) {
+        state.volume = None;
+        state.muted = None;
+    }
+    Device {
+        id: conf.id.clone(),
+        name: if prefs.name.trim().is_empty() { conf.name.clone() } else { prefs.name.trim().to_string() },
+        room: prefs.room.trim().to_string(),
+        kind: Kind::Tv,
+        source: "Samsung TV".into(),
+        model: (!conf.model.is_empty()).then(|| conf.model.clone()),
+        caps,
+        apps: apps.into_iter().map(|a| a.name).collect(),
+        channels: Vec::new(),
+        state,
+        exposed: prefs.exposed.unwrap_or(true),
+        ask: ask_all || prefs.ask.unwrap_or(false),
+    }
+}
+
+/// What a Samsung TV can do from here: its remote's keys once it allowed Coucou (`paired`); turning it on with the
+/// power key while its network is on, or with Wake-on-LAN (`mac`); the volume as a number and mute through its UPnP
+/// renderer; apps from its own list.
+fn samsung_caps(paired: bool, online: bool, mac: bool, renderer: bool, apps: bool) -> Vec<Capability> {
+    let mut caps = Vec::new();
+    if mac || (paired && online) {
+        caps.push(Capability::TurnOn);
+    }
+    if paired {
+        caps.extend([Capability::TurnOff, Capability::VolumeStep, Capability::ChannelStep]);
+    }
+    if renderer {
+        caps.extend([Capability::VolumeSet, Capability::Mute]);
+    }
+    if paired && apps {
+        caps.push(Capability::Apps);
+    }
+    caps.sort();
+    caps.dedup();
+    caps
+}
+
+/// The state from what the API said (None: it did not answer), with the volume when the TV is on.
+async fn samsung_reading(conf: &TvConf, info: Option<&samsung::Info>) -> DeviceState {
+    let Some(info) = info else { return DeviceState::default() };
+    // A TV that does not say is on: its API answers only then (or for a few seconds after it is turned off).
+    let on = info.power.unwrap_or(true);
+    let mut state = DeviceState { online: true, on: Some(on), ..DeviceState::default() };
+    if let (true, Ok(renderer)) = (on, Url::parse(&conf.renderer)) {
+        state.volume = upnp::volume(&renderer).await.ok();
+        state.muted = upnp::muted(&renderer).await.ok();
+    }
+    state
+}
+
+async fn samsung_state(conf: TvConf) -> DeviceState {
+    let info = samsung::info(&conf.samsung_tv()).await.ok();
+    samsung_reading(&conf, info.as_ref()).await
+}
+
+/// The TV's apps: the list kept in its settings, asked again to the TV (on and paired) when it is older than LISTS.
+/// A new list is kept.
+async fn samsung_apps(app: &AppHandle, conf: &TvConf, renew: bool) -> Vec<samsung::App> {
+    let home = app.state::<Home>();
+    let recent = home.samsung_asked.lock().unwrap().get(&conf.id).is_some_and(|at| at.elapsed() < LISTS);
+    if recent && !renew {
+        return conf.apps.clone();
+    }
+    home.samsung_asked.lock().unwrap().insert(conf.id.clone(), Instant::now());
+    let fresh = match open_remote(app, conf).await {
+        Ok(mut remote) => {
+            let apps = remote.apps().await.ok().flatten();
+            remote.close().await;
+            apps
+        }
+        Err(_) => None,
+    };
+    match fresh {
+        Some(apps) if !apps.is_empty() => {
+            if apps != conf.apps {
+                keep_samsung_apps(app, &conf.id, &apps);
+            }
+            apps
+        }
+        _ => conf.apps.clone(),
+    }
+}
+
+fn keep_samsung_apps(app: &AppHandle, id: &str, apps: &[samsung::App]) {
+    save(app, |s| {
+        if let Some(tv) = s.home_tvs.iter_mut().find(|tv| tv.id == id) {
+            tv.apps = apps.to_vec();
+        }
+    });
+}
+
+/// Opens the TV's remote with the token it gave; a new token, or the certificate met for the first time, is kept.
+async fn open_remote(app: &AppHandle, conf: &TvConf) -> Result<samsung::Remote, String> {
+    let token = config::samsung_token(&conf.id);
+    if conf.needs_pairing && token.is_none() {
+        return Err(t("Pair this TV first, in Settings → Mochi's home."));
+    }
+    let remote = samsung::connect(&conf.samsung_tv(), token.as_deref(), false).await.map_err(|e| samsung_error(e, conf))?;
+    if let Some(new) = remote.token.as_deref().filter(|new| token.as_deref() != Some(*new)) {
+        let _ = config::set_samsung_token(&conf.id, Some(new));
+    }
+    if let (true, true, Some(pin)) = (conf.https, conf.pin.is_empty(), remote.certificate) {
+        let id = conf.id.clone();
+        save(app, |s| {
+            if let Some(tv) = s.home_tvs.iter_mut().find(|tv| tv.id == id) {
+                tv.pin = config::pin_hex(&pin);
+            }
+        });
+    }
+    Ok(remote)
+}
+
+/// Presses `key` on the TV's remote (held for a Frame TV's power key).
+async fn samsung_key(app: &AppHandle, conf: &TvConf, key: &str, hold: bool) -> Result<(), String> {
+    let mut remote = open_remote(app, conf).await?;
+    let sent = if hold { remote.hold(key, Duration::from_secs(3)).await } else { remote.key(key).await };
+    sent.map_err(|e| samsung_error(e, conf))?;
+    remote.close().await;
+    Ok(())
+}
+
+fn samsung_wake_hint() -> String {
+    t("To turn it on from standby, turn on \"Power On with Mobile\" in the TV's network settings (Settings → General → Network → Expert Settings).")
+}
+
+fn samsung_error(e: TvError, conf: &TvConf) -> String {
+    match e {
+        TvError::Auth => t("The TV refused Coucou: press Pair in Settings → Mochi's home, then choose Allow on the TV."),
+        TvError::Unreachable(_) if conf.mac().is_none() => format!("{} {}", e.message(), samsung_wake_hint()),
+        e => e.message(),
+    }
+}
+
+async fn samsung_act(app: &AppHandle, conf: &TvConf, device: &Device, action: &Action) -> Result<Done, String> {
+    let tv = conf.samsung_tv();
+    let reader = {
+        let conf = conf.clone();
+        move || -> BoxFuture<'static, DeviceState> { Box::pin(samsung_state(conf.clone())) }
+    };
+    let renderer = || Url::parse(&conf.renderer).map_err(|_| tf("{device} does not offer that.", &[("device", &device.name)]));
+    let now = || samsung_state(conf.clone());
+    match action {
+        Action::TurnOn => {
+            match samsung::info(&tv).await {
+                Ok(info) if info.power != Some(false) => return Ok(Done { confirmed: true, state: now().await, already: true }),
+                // In standby with its network on: the power key wakes it (or Wake-on-LAN, before it is paired).
+                Ok(_) => match (config::samsung_token(&conf.id).is_some() || !conf.needs_pairing, conf.mac()) {
+                    (false, Some(mac)) => philips::wake(&mac).await?,
+                    _ => samsung_key(app, conf, "KEY_POWER", false).await?,
+                },
+                Err(TvError::Unreachable(_)) => match conf.mac() {
+                    Some(mac) => philips::wake(&mac).await?,
+                    None => return Err(format!("{} {}", TvError::Unreachable(String::new()).message(), samsung_wake_hint())),
+                },
+                Err(e) => return Err(samsung_error(e, conf)),
+            }
+            let (confirmed, state) = until(TURN_ON_WAIT, reader, |s| s.on == Some(true)).await;
+            Ok(Done { confirmed, state, already: false })
+        }
+        Action::TurnOff => {
+            match samsung::info(&tv).await {
+                Err(TvError::Unreachable(_)) => return Ok(Done { confirmed: true, state: DeviceState::default(), already: true }),
+                Ok(info) if info.power == Some(false) => return Ok(Done { confirmed: true, state: now().await, already: true }),
+                Ok(info) => samsung_key(app, conf, "KEY_POWER", info.frame || conf.frame).await?,
+                Err(e) => return Err(samsung_error(e, conf)),
+            }
+            let (confirmed, state) = until(CONFIRM_WAIT, reader, |s| s.on != Some(true)).await;
+            Ok(Done { confirmed, state, already: false })
+        }
+        Action::SetVolume(p) => {
+            upnp::set_volume(&renderer()?, *p).await?;
+            let target = *p;
+            let (confirmed, state) = until(Duration::from_secs(3), reader, move |s| s.volume.is_some_and(|v| v.abs_diff(target) <= 2)).await;
+            Ok(Done { confirmed, state, already: false })
+        }
+        Action::VolumeUp | Action::VolumeDown => {
+            samsung_key(app, conf, if *action == Action::VolumeUp { "KEY_VOLUP" } else { "KEY_VOLDOWN" }, false).await?;
+            Ok(Done { confirmed: true, state: now().await, already: false })
+        }
+        Action::Mute(m) => {
+            let control = renderer()?;
+            if upnp::muted(&control).await.ok() == Some(*m) {
+                return Ok(Done { confirmed: true, state: now().await, already: true });
+            }
+            upnp::set_muted(&control, *m).await?;
+            let want = *m;
+            let (confirmed, state) = until(Duration::from_secs(3), reader, move |s| s.muted == Some(want)).await;
+            Ok(Done { confirmed, state, already: false })
+        }
+        Action::OpenApp(name) => {
+            let label = model::resolve_app(device, name)?;
+            let entry = samsung_apps(app, conf, false)
+                .await
+                .into_iter()
+                .find(|a| a.name == label)
+                .ok_or_else(|| format!("{label} is not in the TV's list any more."))?;
+            let mut remote = open_remote(app, conf).await?;
+            remote.launch(&entry).await.map_err(|e| samsung_error(e, conf))?;
+            remote.close().await;
+            // Confirmed on the TVs that say which app is on screen; the others are only sent to.
+            let deadline = Instant::now() + CONFIRM_WAIT;
+            let confirmed = loop {
+                match samsung::app_visible(&tv, &entry.id).await {
+                    Some(true) => break true,
+                    Some(false) if Instant::now() < deadline => tokio::time::sleep(Duration::from_millis(1000)).await,
+                    _ => break false,
+                }
+            };
+            let mut state = now().await;
+            if confirmed {
+                state.app = Some(label);
+            }
+            Ok(Done { confirmed, state, already: false })
+        }
+        Action::ChannelUp | Action::ChannelDown => {
+            samsung_key(app, conf, if *action == Action::ChannelUp { "KEY_CHUP" } else { "KEY_CHDOWN" }, false).await?;
+            Ok(Done { confirmed: true, state: now().await, already: false })
+        }
+        Action::SetChannel(_) | Action::SetBrightness(_) => Err(tf("{device} does not offer that.", &[("device", &device.name)])),
+    }
+}
+
 async fn ha_state(url: String, token: String, entity: String, prefs: home_assistant::Prefs) -> DeviceState {
     let Ok(ha) = HomeAssistant::new(&url, &token) else { return DeviceState::default() };
     match ha.state(&entity).await {
@@ -499,7 +747,7 @@ pub async fn control(app: &AppHandle, id: &str, action: &Action, origin: &str, u
         return Outcome { ok: false, detail: e.clone(), text: e };
     }
     let result = if let Some(conf) = s.tvs.iter().find(|c| c.id == device.id) {
-        tv_act(app, conf, &device, action).await
+        if conf.samsung() { samsung_act(app, conf, &device, action).await } else { tv_act(app, conf, &device, action).await }
     } else if device.id.starts_with("ha:") {
         ha_act(&s, &device, action).await
     } else {
@@ -589,6 +837,11 @@ impl HomeRunner for Runner {
 /// What Mochi's hands get for one turn: the devices he may use and the routines, and the way to act on them. None
 /// when the home is off or has nothing for him.
 pub async fn agent_env(app: &AppHandle, from_phone: bool) -> Option<HomeEnv> {
+    agent_env_for(app, if from_phone { "phone" } else { "island" }).await
+}
+
+/// The same, for whoever asks: "island", "phone", or another agent ("hermes", "agent"), which the record names.
+pub async fn agent_env_for(app: &AppHandle, origin: &'static str) -> Option<HomeEnv> {
     let s = setup(app);
     if !s.enabled {
         return None;
@@ -615,7 +868,7 @@ pub async fn agent_env(app: &AppHandle, from_phone: bool) -> Option<HomeEnv> {
     Some(HomeEnv {
         devices,
         routines,
-        runner: Arc::new(Runner { app: app.clone(), origin: if from_phone { "phone" } else { "island" } }),
+        runner: Arc::new(Runner { app: app.clone(), origin }),
     })
 }
 
@@ -626,10 +879,14 @@ pub async fn agent_env(app: &AppHandle, from_phone: bool) -> Option<HomeEnv> {
 #[serde(rename_all = "camelCase")]
 pub struct TvSummary {
     pub id: String,
+    /// "philips" or "samsung".
+    pub brand: String,
     pub name: String,
     pub host: String,
     pub model: String,
     pub version: String,
+    /// "Tizen", or a Philips TV's OS.
+    pub os: String,
     pub android: bool,
     pub https: bool,
     pub needs_pairing: bool,
@@ -640,6 +897,23 @@ pub struct TvSummary {
 }
 
 fn summary(c: &TvConf) -> TvSummary {
+    if c.samsung() {
+        return TvSummary {
+            id: c.id.clone(),
+            brand: SAMSUNG.into(),
+            name: c.name.clone(),
+            host: c.host.clone(),
+            model: c.model.clone(),
+            version: c.version.clone(),
+            os: c.os.clone(),
+            android: false,
+            https: c.https,
+            needs_pairing: c.needs_pairing,
+            paired: config::samsung_token(&c.id).is_some(),
+            mac: c.mac.clone(),
+            features: if Url::parse(&c.renderer).is_ok() { vec!["volume".to_string()] } else { Vec::new() },
+        };
+    }
     let system = c.system();
     let mut features = Vec::new();
     if system.keys() {
@@ -650,10 +924,12 @@ fn summary(c: &TvConf) -> TvSummary {
     }
     TvSummary {
         id: c.id.clone(),
+        brand: "philips".into(),
         name: c.name.clone(),
         host: c.host.clone(),
         model: c.model.clone(),
         version: c.version.clone(),
+        os: c.os.clone(),
         android: system.android(),
         https: c.https,
         needs_pairing: c.needs_pairing,
@@ -756,24 +1032,60 @@ pub async fn home_scan(window: WebviewWindow) -> Result<Vec<discovery::Found>, S
     Ok(found)
 }
 
-/// Adds the Philips TV at `host` (or updates it): asks it which API it speaks and what it has, reads its model from
-/// its UPnP description and its MAC from the network's table, and keeps all that.
+/// Adds the TV at `host` (or updates it). It is asked what it is: a Samsung TV (its API on 8001), then a Philips TV
+/// (JointSpace); what it says is kept, with its model and MAC address. A TV that is neither is not added, and the
+/// answer says which known ways in it does answer on (`unknown_tv`), so the next step is chosen from facts.
 #[tauri::command]
 pub async fn home_tv_add(app: AppHandle, window: WebviewWindow, host: String) -> Result<TvSummary, String> {
     only_settings(&window)?;
-    let probe = philips::probe(&host).await?;
-    let ip = probe.endpoint.host.parse::<std::net::Ipv4Addr>().ok();
+    let host = host.trim().trim_start_matches('[').trim_end_matches(']').to_string();
+    if host.is_empty() {
+        return Err(t("Enter the TV's address first."));
+    }
+    match samsung::info(&samsung::Tv::new(&host, true, None)).await {
+        Ok(info) => return add_samsung(&app, &host, info).await,
+        // Not on the local network: nothing else is tried.
+        Err(TvError::Other(why)) => return Err(why),
+        Err(_) => {}
+    }
+    match philips::probe(&host).await {
+        Ok(probe) => Ok(add_philips(&app, probe).await),
+        Err(_) => Err(unknown_tv(&host).await),
+    }
+}
+
+fn new_tv_id(brand: &str) -> String {
+    let mut bytes = [0u8; 4];
+    let _ = ring::rand::SecureRandom::fill(&ring::rand::SystemRandom::new(), &mut bytes);
+    format!("{brand}:{}", bytes.iter().map(|b| format!("{b:02x}")).collect::<String>())
+}
+
+/// Keeps a TV's settings (a new one, or the same one again) and forgets what was read of it.
+fn keep_tv(app: &AppHandle, conf: &TvConf) -> TvSummary {
+    let out = summary(conf);
+    save(app, |settings| {
+        settings.home_tvs.retain(|tv| tv.id != conf.id);
+        settings.home_tvs.push(conf.clone());
+    });
+    if let Some(home) = app.try_state::<Home>() {
+        home.lists.lock().unwrap().remove(&conf.id);
+        home.samsung_asked.lock().unwrap().remove(&conf.id);
+    }
+    out
+}
+
+async fn add_philips(app: &AppHandle, probe: philips::Probe) -> TvSummary {
+    let ip = probe.endpoint.host.parse::<Ipv4Addr>().ok();
     let model = match ip {
         Some(ip) => discovery::model_of(ip).await,
         None => None,
     };
     let mac = philips::learn_mac(&probe.endpoint.host).map(|m| philips::format_mac(&m));
-    let existing = setup(&app).tvs.into_iter().find(|tv| tv.host == probe.endpoint.host);
-    let mut id_bytes = [0u8; 4];
-    let _ = ring::rand::SecureRandom::fill(&ring::rand::SystemRandom::new(), &mut id_bytes);
+    let existing = setup(app).tvs.into_iter().find(|tv| tv.host == probe.endpoint.host && !tv.samsung());
     let s = &probe.system;
     let conf = TvConf {
-        id: existing.as_ref().map(|e| e.id.clone()).unwrap_or_else(|| format!("philips:{}", id_bytes.iter().map(|b| format!("{b:02x}")).collect::<String>())),
+        id: existing.as_ref().map(|e| e.id.clone()).unwrap_or_else(|| new_tv_id("philips")),
+        brand: String::new(),
         host: probe.endpoint.host.clone(),
         api: probe.endpoint.api,
         https: probe.endpoint.https,
@@ -785,17 +1097,124 @@ pub async fn home_tv_add(app: AppHandle, window: WebviewWindow, host: String) ->
         version: format!("{}.{}.{}", s.version.0, s.version.1, s.version.2),
         features: s.features.iter().cloned().collect(),
         needs_pairing: s.needs_pairing,
+        frame: false,
+        renderer: String::new(),
+        apps: Vec::new(),
     };
-    let summary_out = summary(&conf);
-    save(&app, |settings| {
-        settings.home_tvs.retain(|tv| tv.id != conf.id);
-        settings.home_tvs.push(conf.clone());
-    });
-    if let Some(home) = app.try_state::<Home>() {
-        home.lists.lock().unwrap().remove(&conf.id);
-    }
+    let out = keep_tv(app, &conf);
     log::line(format!("home: Philips TV added (API {}, {})", conf.version, if conf.https { "https" } else { "http" }));
-    Ok(summary_out)
+    out
+}
+
+/// A Samsung TV: what its API said, its renderer for the volume (asked over SSDP), its MAC address. Every Samsung TV
+/// asks once on its screen whether to allow Coucou: that is its pairing.
+async fn add_samsung(app: &AppHandle, host: &str, info: samsung::Info) -> Result<TvSummary, String> {
+    let existing = setup(app).tvs.into_iter().find(|tv| tv.host == host && tv.samsung());
+    let renderer = match host.parse::<Ipv4Addr>() {
+        Ok(ip) => upnp::rendering_control(ip).await.map(|u| u.to_string()),
+        Err(_) => None,
+    };
+    let mac = info.mac.or_else(|| philips::learn_mac(host)).map(|m| philips::format_mac(&m));
+    // The certificate pinned stays while the TV is reached the same way.
+    let pin = existing.as_ref().filter(|e| e.https == info.token_auth).map(|e| e.pin.clone()).unwrap_or_default();
+    let conf = TvConf {
+        id: existing.as_ref().map(|e| e.id.clone()).unwrap_or_else(|| new_tv_id(SAMSUNG)),
+        brand: SAMSUNG.into(),
+        host: host.to_string(),
+        api: 2,
+        https: info.token_auth,
+        pin,
+        mac: mac.or_else(|| existing.as_ref().map(|e| e.mac.clone())).unwrap_or_default(),
+        name: info.name.clone(),
+        model: if info.model.is_empty() { existing.as_ref().map(|e| e.model.clone()).unwrap_or_default() } else { info.model.clone() },
+        os: info.os.clone(),
+        version: info.version.clone(),
+        features: BTreeMap::new(),
+        needs_pairing: true,
+        frame: info.frame,
+        renderer: renderer.or_else(|| existing.as_ref().map(|e| e.renderer.clone())).unwrap_or_default(),
+        apps: existing.as_ref().map(|e| e.apps.clone()).unwrap_or_default(),
+    };
+    let out = keep_tv(app, &conf);
+    log::line(format!(
+        "home: Samsung TV added (API {}, {}, {})",
+        conf.version,
+        if conf.https { "token" } else { "no token" },
+        if conf.renderer.is_empty() { "no renderer" } else { "UPnP volume" }
+    ));
+    Ok(out)
+}
+
+/// The ways in a TV may answer on, and what each is, for a TV that is neither a Samsung nor a Philips one.
+const KNOWN_PORTS: &[(u16, &str)] = &[
+    (80, "HTTP"),
+    (1925, "Philips JointSpace"),
+    (3000, "LG webOS"),
+    (3001, "LG webOS"),
+    (5555, "ADB (Android)"),
+    (6466, "Android TV Remote"),
+    (6467, "Android TV Remote"),
+    (8001, "Samsung"),
+    (8008, "Google Cast"),
+    (8009, "Google Cast"),
+    (8060, "Roku"),
+    (8080, "HTTP"),
+    (9197, "UPnP"),
+    (55000, "Samsung (2010–2015)"),
+];
+
+/// The ways in found, in words: "ADB (Android) (5555)", "DIAL"… The services every UPnP device has are left out.
+fn ways_in(open: &[(u16, &str)], services: &[String]) -> Vec<String> {
+    let mut found: Vec<String> = open.iter().map(|(port, what)| format!("{what} ({port})")).collect();
+    for service in services {
+        let short = match service.as_str() {
+            s if s.contains("dial-multiscreen-org") => "DIAL".to_string(),
+            s if s.contains("MediaRenderer") => "UPnP MediaRenderer".to_string(),
+            s if s.contains("RenderingControl") || s.contains("AVTransport") || s.contains("ConnectionManager") || s == "upnp:rootdevice" || s.starts_with("uuid:") => continue,
+            s => s.chars().take(80).collect(),
+        };
+        if !found.contains(&short) {
+            found.push(short);
+        }
+    }
+    found
+}
+
+/// What a TV that is neither a Samsung nor a Philips one does answer on: the known ports open, and what it offers over
+/// SSDP. Said to the user, and kept in the log.
+async fn unknown_tv(host: &str) -> String {
+    if !net::resolves_locally(host, 80).await {
+        return t("Only devices on your local network can be used.");
+    }
+    let mut checks = tokio::task::JoinSet::new();
+    for &(port, what) in KNOWN_PORTS {
+        let host = host.to_string();
+        checks.spawn(async move {
+            let open = matches!(tokio::time::timeout(Duration::from_millis(1500), tokio::net::TcpStream::connect((host.as_str(), port))).await, Ok(Ok(_)));
+            (port, what, open)
+        });
+    }
+    let services = match host.parse::<Ipv4Addr>() {
+        Ok(ip) => discovery::services_of(ip, Duration::from_millis(1500)).await,
+        Err(_) => Vec::new(),
+    };
+    let mut open = Vec::new();
+    while let Some(checked) = checks.join_next().await {
+        if let Ok((port, what, true)) = checked {
+            open.push((port, what));
+        }
+    }
+    open.sort();
+    let found = ways_in(&open, &services);
+    log::line(format!("home: {} is neither Samsung nor Philips; it answers on: {}", host, if found.is_empty() { "nothing known".into() } else { found.join(", ") }));
+    if found.is_empty() {
+        t("This TV answers neither as a Samsung nor as a Philips TV, and on none of the other known ways in. Check that it is on and that the address is right; it may not be controllable over the network.")
+    } else {
+        tf(
+            "This TV answers neither as a Samsung nor as a Philips TV. It does answer on: {found}. Send this line to whoever helps you with Coucou: it tells how this TV could be controlled.",
+            &[("found", &found.join(", "))],
+        )
+    }
 }
 
 fn tv_conf(app: &AppHandle, id: &str) -> Result<TvConf, String> {
@@ -804,13 +1223,44 @@ fn tv_conf(app: &AppHandle, id: &str) -> Result<TvConf, String> {
 
 /// Starts pairing: the TV shows a PIN.
 #[tauri::command]
-pub async fn home_tv_pair(app: AppHandle, window: WebviewWindow, id: String) -> Result<(), String> {
+pub async fn home_tv_pair(app: AppHandle, window: WebviewWindow, id: String) -> Result<Option<TvSummary>, String> {
     only_settings(&window)?;
     let conf = tv_conf(&app, &id)?;
+    if conf.samsung() {
+        return pair_samsung(&app, conf).await.map(Some);
+    }
     let state = philips::pair_request(&conf.endpoint(), &conf.system()).await?;
     app.state::<Home>().pairings.lock().unwrap().insert(id, state);
     log::line("home: pairing started, the TV shows a PIN");
-    Ok(())
+    Ok(None)
+}
+
+/// A Samsung TV asks on its screen whether to allow Coucou (for up to half a minute). Allowed, its token (or "-") is
+/// kept in the OS keystore and the certificate met is pinned from then on.
+async fn pair_samsung(app: &AppHandle, mut conf: TvConf) -> Result<TvSummary, String> {
+    log::line("home: pairing a Samsung TV, it asks on its screen");
+    let remote = samsung::connect(&conf.samsung_tv(), None, true).await.map_err(|e| match e {
+        TvError::Auth => t("The TV says Coucou was denied. To allow it, remove Coucou from the TV's list of devices (Settings → General → External Device Manager → Device Connection Manager → Device List), then press Pair again."),
+        e => e.message(),
+    })?;
+    let mut remote = remote;
+    let token = remote.token.clone();
+    let certificate = remote.certificate;
+    // The TV is on (its question was answered on it): its apps are read now, for when Mochi turns it on later.
+    let apps = remote.apps().await.ok().flatten().unwrap_or_default();
+    remote.close().await;
+    config::set_samsung_token(&conf.id, token.as_deref())?;
+    if let (true, Some(pin)) = (conf.https, certificate) {
+        conf.pin = config::pin_hex(&pin);
+    }
+    if !apps.is_empty() {
+        conf.apps = apps;
+        app.state::<Home>().samsung_asked.lock().unwrap().insert(conf.id.clone(), Instant::now());
+    }
+    let out = keep_tv(app, &conf);
+    forget_cache(app);
+    log::line(format!("home: Samsung TV paired ({})", if token.is_some() { "token kept" } else { "no token given" }));
+    Ok(out)
 }
 
 /// Finishes pairing with the PIN the TV shows. The pairing is kept in the OS keystore.
@@ -818,6 +1268,9 @@ pub async fn home_tv_pair(app: AppHandle, window: WebviewWindow, id: String) -> 
 pub async fn home_tv_pin(app: AppHandle, window: WebviewWindow, id: String, pin: String) -> Result<TvSummary, String> {
     only_settings(&window)?;
     let conf = tv_conf(&app, &id)?;
+    if conf.samsung() {
+        return Err(t("This TV has no PIN: press Pair, then choose Allow on the TV."));
+    }
     let state = app.state::<Home>().pairings.lock().unwrap().get(&id).cloned().ok_or_else(|| t("Press Pair first: the TV shows a PIN."))?;
     let creds = philips::pair_grant(&conf.endpoint(), &state, &pin).await?;
     config::set_credentials(&id, Some(&creds))?;
@@ -862,8 +1315,9 @@ pub fn home_tv_remove(app: AppHandle, window: WebviewWindow, id: String) -> Resu
     });
     if let Some(home) = app.try_state::<Home>() {
         home.lists.lock().unwrap().remove(&id);
+        home.samsung_asked.lock().unwrap().remove(&id);
     }
-    log::line("home: Philips TV removed");
+    log::line("home: TV removed");
     Ok(())
 }
 
@@ -957,6 +1411,36 @@ mod tests {
         assert_eq!(state_words(&s), "On · Volume 20% · YouTube");
         assert_eq!(state_text(&DeviceState::default()), "not answering");
         assert_eq!(state_text(&DeviceState { online: true, ..DeviceState::default() }), "answering");
+    }
+
+    #[test]
+    fn a_samsung_tv_offers_only_what_its_pairing_its_network_and_its_renderer_allow() {
+        use Capability::*;
+        // Added, not paired, no MAC, no renderer: nothing yet.
+        assert!(samsung_caps(false, true, false, false, false).is_empty());
+        // Its renderer alone: the volume as a number and mute, without pairing.
+        assert_eq!(samsung_caps(false, true, false, true, false), [VolumeSet, Mute]);
+        // Paired and answering: the remote's keys, and its apps once it listed some.
+        assert_eq!(samsung_caps(true, true, false, false, true), [TurnOn, TurnOff, VolumeStep, Apps, ChannelStep]);
+        // Asleep: only Wake-on-LAN turns it on, and only with its MAC.
+        assert!(!samsung_caps(true, false, false, false, false).contains(&TurnOn));
+        assert!(samsung_caps(true, false, true, false, false).contains(&TurnOn));
+    }
+
+    #[test]
+    fn a_tv_coucou_does_not_know_is_described_by_what_it_answers_on() {
+        let found = ways_in(
+            &[(5555, "ADB (Android)"), (8008, "Google Cast")],
+            &[
+                "upnp:rootdevice".into(),
+                "urn:dial-multiscreen-org:service:dial:1".into(),
+                "urn:schemas-upnp-org:device:MediaRenderer:1".into(),
+                "urn:schemas-upnp-org:service:AVTransport:1".into(),
+                "uuid:1234".into(),
+            ],
+        );
+        assert_eq!(found, ["ADB (Android) (5555)", "Google Cast (8008)", "DIAL", "UPnP MediaRenderer"]);
+        assert!(ways_in(&[], &["upnp:rootdevice".into()]).is_empty());
     }
 
     /// Reads this file: every command that changes something, or reaches out to the network, checks the calling

@@ -32,6 +32,8 @@ export interface BootInfo {
   hookPath: string;
   /** False where the OS has no global cursor (Wayland): see Island.followPageCursor. */
   cursorPoll: boolean;
+  /** The settings window only: the section to bring into view once drawn ("hermes" after the installer's page). */
+  focus?: string | null;
 }
 
 /** The phone link (src-tauri/src/phone_link): how it is, never its secrets. */
@@ -64,6 +66,34 @@ export interface PhonePushStatus {
   server: string;
   hasTopic: boolean;
   hasToken: boolean;
+}
+
+/**
+ * Away from home, directly (phone_link/remote.rs): what the router answered. The home's addresses are in it, so only
+ * the settings window may ask.
+ */
+export interface PhoneRemoteStatus {
+  enabled: boolean;
+  /** The phone link is on: without it the switch does nothing. */
+  linkOn: boolean;
+  /** Still waiting for the router's first answer. */
+  checking: boolean;
+  router: string | null;
+  /** The home's internet address with the router's port: "198.51.100.7:47821". */
+  v4: string | null;
+  /** Why there is none, in the user's words. */
+  v4Problem: string | null;
+  /** This computer's internet (IPv6) addresses with the port. */
+  v6: string[];
+  v6Note: string | null;
+  /** The router confirmed they are let in. */
+  v6Confirmed: boolean;
+  /** The router's IPv6 firewall lets nothing in: they are not given to the phone. */
+  v6Blocked: boolean;
+  /** Why there is no IPv6 way in on this computer. */
+  v6Error: string | null;
+  /** When a phone last connected from the internet (ms; 0: not since the link started). */
+  lastOutside: number;
 }
 
 /** Session details for the phone: the switch (off by default). */
@@ -366,8 +396,8 @@ export const Bridge = {
   /** Searches the local network for Home Assistant and TVs (about three seconds). */
   homeScan: () => callOrThrow<Found[]>("home_scan"),
   homeTvAdd: (host: string) => callOrThrow<TvSummary>("home_tv_add", { host }),
-  /** The TV shows a PIN. */
-  homeTvPair: (id: string) => callOrThrow<void>("home_tv_pair", { id }),
+  /** A Philips TV shows a PIN (null: type it next); a Samsung TV asks on its screen, and is paired when this resolves. */
+  homeTvPair: (id: string) => callOrThrow<TvSummary | null>("home_tv_pair", { id }),
   homeTvPin: (id: string, pin: string) => callOrThrow<TvSummary>("home_tv_pin", { id, pin }),
   homeTvSetMac: (id: string, mac: string) => callOrThrow<TvSummary>("home_tv_set_mac", { id, mac }),
   homeTvRemove: (id: string) => callOrThrow<void>("home_tv_remove", { id }),
@@ -391,6 +421,12 @@ export const Bridge = {
   phonePushSetToken: (token: string) => callOrThrow<PhonePushStatus>("phone_push_set_token", { token }),
   /** Sends a test notification now. Throws with what went wrong. */
   phonePushTest: () => callOrThrow<void>("phone_push_test"),
+  // ── Away from home, directly (src-tauri/src/phone_link/remote.rs) ──
+  phoneRemoteStatus: () => call<PhoneRemoteStatus>("phone_remote_status"),
+  /** The switch: on asks the router to open the link's port, off closes it. */
+  phoneRemoteSet: (enabled: boolean) => callOrThrow<PhoneRemoteStatus>("phone_remote_set", { enabled }),
+  /** Asks the router again now. */
+  phoneRemoteCheck: () => callOrThrow<PhoneRemoteStatus>("phone_remote_check"),
   chatReset: () => call<void>("chat_reset"),
   /**
    * The models a provider offers, for the picker in the chat view. Rust asks
@@ -403,6 +439,29 @@ export const Bridge = {
 
   localConnect: (provider: "ollama" | "lmstudio" | "custom", url: string) =>
     callOrThrow<LocalServer>("local_connect", { provider, url }),
+  /** Settings → Hermes Agent → Connect: the key goes to the keystore with the address; Rust stores the address. */
+  hermesConnect: (url: string, key: string) => callOrThrow<HermesConnected>("hermes_connect", { url, key }),
+  hermesDisconnect: () => callOrThrow<void>("hermes_disconnect"),
+  // ── Zheus: Hermes installed and run by Coucou (src-tauri/src/hermes_setup.rs) ──
+  hermesSetupStatus: () => call<HermesSetupStatus>("hermes_setup_status"),
+  /** After the plan was shown. `configure`: also give an existing Hermes this brain. */
+  hermesSetupStart: (brain: string, house: boolean, configure: boolean) =>
+    callOrThrow<HermesSetupStatus>("hermes_setup_start", { brain, house, configure }),
+  hermesSetupCancel: () => callOrThrow<HermesSetupStatus>("hermes_setup_cancel"),
+  /** Coucou runs Hermes, or not (Hermes stays installed). */
+  hermesGatewaySet: (on: boolean) => callOrThrow<HermesSetupStatus>("hermes_gateway_set", { on }),
+  /** "Save": the assistant's name (one line, 40 characters at most) and tone. Throws with the reason Rust refused it. */
+  hermesAssistantSet: (name: string, persona: string, personaText: string) =>
+    callOrThrow<HermesSetupStatus>("hermes_assistant_set", { name, persona, personaText }),
+  /** The skill packs wanted (not "home": that one is Mochi's home for Hermes). */
+  hermesSkillsSet: (skills: string[]) => callOrThrow<HermesSetupStatus>("hermes_skills_set", { skills }),
+  /** "Sign in with ChatGPT": OpenAI's page opens, and the code comes in the status (`login`). */
+  hermesLoginStart: () => callOrThrow<HermesSetupStatus>("hermes_login_start"),
+  hermesLoginCancel: () => callOrThrow<HermesSetupStatus>("hermes_login_cancel"),
+  hermesLogout: () => callOrThrow<HermesSetupStatus>("hermes_logout"),
+  /** Settings → Hermes Agent → Mochi's home for Hermes (agent/mcp.rs). */
+  homeMcpStatus: () => call<HomeMcpStatus>("home_mcp_status"),
+  homeMcpSet: (on: boolean) => callOrThrow<HomeMcpStatus>("home_mcp_set", { on }),
   /** Copies a dropped file into the inbox. */
   ingestFile: (path: string) => callOrThrow<DroppedFile>("ingest_file", { path }),
   /** Only ever tells you whether a key exists — never its value. */
@@ -531,6 +590,87 @@ export interface LocalServer {
   url: string;
   models: string[];
   /** The address is this machine. */
+  loopback: boolean;
+}
+
+/** Whether Mochi's home is shared with the agents on this computer, and the program they start (with --mcp). */
+export interface HomeMcpStatus {
+  on: boolean;
+  command: string;
+  homeOn: boolean;
+}
+
+/** Hermes Agent answered Connect (hermes.rs `Connected`). */
+/** A brain Coucou can give Hermes: a provider it has a key or an address for (src-tauri/src/hermes_setup.rs). */
+export interface HermesBrain {
+  id: string;
+  name: string;
+  ready: boolean;
+  /** The model Hermes runs with it ("": Hermes picks its own). */
+  model: string;
+  /** Signed in to with the user's subscription (ChatGPT) rather than a key. */
+  login?: boolean;
+}
+
+/** The ChatGPT sign-in (`hermes auth add openai-codex`): never the account's e-mail. */
+export type HermesLogin =
+  | { state: "unknown" | "signedOut" | "signedIn" }
+  | { state: "waiting"; code: string; url: string; expiresAt: number }
+  | { state: "failed"; reason: string };
+
+/** The assistant's name ("Zheus" when none was given) and tone. */
+export interface HermesAssistant {
+  name: string;
+  persona: string;
+  personaText: string;
+}
+
+/** Hermes' installation, while and after it runs. */
+export interface HermesProgress {
+  running: boolean;
+  /** The step being done, in Hermes' installer's words. */
+  step: string;
+  done: number;
+  total: number;
+  /** The last line it printed. */
+  last: string;
+  error: string | null;
+  finished: boolean;
+}
+
+export type HermesGateway =
+  | { state: "off" | "starting" | "running" | "elsewhere" }
+  | { state: "stopped"; reason: string };
+
+/** Settings → Hermes Agent: what Coucou installed and runs. */
+export interface HermesSetupStatus {
+  installed: boolean;
+  managed: boolean;
+  /** Hermes' folder. */
+  home: string;
+  brains: HermesBrain[];
+  brain: string;
+  progress: HermesProgress;
+  gateway: HermesGateway;
+  address: string;
+  /** The Hermes commit Coucou installs, short. */
+  commit: string;
+  installer: string;
+  assistant: HermesAssistant;
+  /** The tones and the skill packs offered, in order. */
+  personas: string[];
+  skillPacks: string[];
+  /** The packs wanted, besides Mochi's home (`house`). */
+  skills: string[];
+  house: boolean;
+  login: HermesLogin;
+}
+
+export interface HermesConnected {
+  /** The address as it is stored. */
+  url: string;
+  /** The name it answers as: its profile, "hermes-agent" by default. */
+  model: string;
   loopback: boolean;
 }
 

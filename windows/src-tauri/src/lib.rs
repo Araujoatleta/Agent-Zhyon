@@ -9,7 +9,10 @@ mod codex_plan;
 mod config_file;
 mod desktop;
 mod files;
+mod first_run;
 mod github;
+mod hermes;
+mod hermes_setup;
 mod hooks;
 mod i18n;
 mod identity;
@@ -66,10 +69,13 @@ pub struct BootInfo {
     /// False where the OS has no global cursor (Wayland): the page then reports
     /// the cursor from its own mouse events.
     cursor_poll: bool,
+    /// The settings window only: the section to bring into view once it is drawn ("hermes" after the installer's
+    /// page, first_run.rs), handed out once.
+    focus: Option<String>,
 }
 
 #[tauri::command]
-fn boot(app: AppHandle, shared: State<Shared>) -> BootInfo {
+fn boot(app: AppHandle, window: tauri::WebviewWindow, shared: State<Shared>) -> BootInfo {
     let mut settings = shared.settings.lock().unwrap().clone();
     // The real state of ~/.claude/settings.json wins over whatever we stored.
     let hooks_status = hooks::status();
@@ -82,6 +88,7 @@ fn boot(app: AppHandle, shared: State<Shared>) -> BootInfo {
         version: env!("CARGO_PKG_VERSION").to_string(),
         hook_path: settings::hook_exe_path().to_string_lossy().to_string(),
         cursor_poll: platform::CURSOR_POLL,
+        focus: (window.label() == "settings").then(first_run::take_focus).flatten(),
     }
 }
 
@@ -109,13 +116,28 @@ fn save_settings(app: AppHandle, shared: State<Shared>, settings: Settings) {
         settings.phone_agent = current.phone_agent;
         settings.phone_push = current.phone_push;
         settings.phone_push_server = current.phone_push_server.clone();
+        settings.phone_remote = current.phone_remote;
         // Mochi's home too: only Settings → Mochi's home changes it (smart_home/).
         settings.home_enabled = current.home_enabled;
         settings.home_ask_all = current.home_ask_all;
+        settings.home_mcp = current.home_mcp;
         settings.home_assistant_url = current.home_assistant_url.clone();
         settings.home_tvs = current.home_tvs.clone();
         settings.home_devices = current.home_devices.clone();
         settings.home_routines = current.home_routines.clone();
+        // Hermes Agent's address: only its Connect and Disconnect change it (the key is bound to it).
+        settings.hermes_url = current.hermes_url.clone();
+        // Whether Coucou runs Hermes, and with which brain: only Settings → Hermes Agent's own commands (hermes_setup).
+        settings.hermes_managed = current.hermes_managed;
+        settings.hermes_brain = current.hermes_brain.clone();
+        // The assistant's name, tone and skill packs: only Settings → Hermes Agent's own commands (and the phone).
+        settings.assistant_name = current.assistant_name.clone();
+        settings.assistant_persona = current.assistant_persona.clone();
+        settings.assistant_persona_text = current.assistant_persona_text.clone();
+        settings.hermes_skills = current.hermes_skills.clone();
+        settings.hermes_skills_installed = current.hermes_skills_installed.clone();
+        settings.phone_assistant = current.phone_assistant;
+        settings.phone_home = current.phone_home;
         // Mochi's hands too: only Settings → Mochi's hands changes them (agent::agent_settings_set).
         settings.agent_enabled = current.agent_enabled;
         settings.agent_folder = current.agent_folder.clone();
@@ -485,11 +507,55 @@ async fn chat_send(
     hands: Option<bool>,
 ) -> Result<ChatReply, String> {
     let settings = shared.settings.lock().unwrap().clone();
+    // Hermes Agent always works with its own tools, whatever the hands toggle says (agent/hermes.rs).
+    if settings.chat_provider == hermes::PROVIDER {
+        let context = context.map(chat::checked_context).transpose()?;
+        return agent::hermes::run_island(&app, &chat, &settings, query, context).await;
+    }
     if hands == Some(true) && settings.agent_enabled {
         let context = context.map(chat::checked_context).transpose()?;
         return agent::run_island(&app, &chat, &settings, query, context).await;
     }
     chat::send(&app, &chat, &settings, query, context).await
+}
+
+/// Settings → Hermes Agent → Connect: keeps the key with the address, asks Hermes what it is, and on success stores
+/// the address (the only way it changes) and offers Hermes in the chat.
+#[tauri::command]
+async fn hermes_connect(app: AppHandle, shared: State<'_, Shared>, url: String, key: String) -> Result<hermes::Connected, String> {
+    let connected = hermes::connect(&url, &key).await?;
+    let settings = {
+        let mut current = shared.settings.lock().unwrap();
+        current.hermes_url = connected.url.clone();
+        current.chat_models.insert(hermes::PROVIDER.to_string(), connected.model.clone());
+        current.clone()
+    };
+    if let Err(err) = settings::save(&settings) {
+        log::line(format!("could not save settings: {err}"));
+    }
+    log::line(format!("hermes: connected at {}", reqwest::Url::parse(&connected.url).map(|u| net::host_for_log(&u)).unwrap_or_default()));
+    let _ = app.emit("settings-changed", settings);
+    Ok(connected)
+}
+
+/// Settings → Hermes Agent → Disconnect: forgets the address and the key; the chat goes back to Claude if it was
+/// talking to Hermes.
+#[tauri::command]
+fn hermes_disconnect(app: AppHandle, shared: State<Shared>) -> Result<(), String> {
+    let settings = {
+        let mut current = shared.settings.lock().unwrap();
+        current.hermes_url.clear();
+        if current.chat_provider == hermes::PROVIDER {
+            current.chat_provider = chat::ANTHROPIC.into();
+        }
+        current.clone()
+    };
+    let _ = secrets::set_internal(hermes::KEY, "");
+    if let Err(err) = settings::save(&settings) {
+        log::line(format!("could not save settings: {err}"));
+    }
+    let _ = app.emit("settings-changed", settings);
+    Ok(())
 }
 
 /// The models a provider offers, for the picker in the chat view. Only asked
@@ -701,6 +767,7 @@ pub fn run() {
         .manage(Chat::default())
         .manage(agent::Agent::default())
         .manage(smart_home::Home::default())
+        .manage(hermes_setup::Zheus::default())
         .manage(shortcuts::Registry::default())
         .manage(recap::load())
         .invoke_handler(tauri::generate_handler![
@@ -737,6 +804,10 @@ pub fn run() {
             chat_models,
             local_connect,
             local_set_key,
+            hermes_connect,
+            hermes_disconnect,
+            agent::mcp::home_mcp_status,
+            agent::mcp::home_mcp_set,
             chat_reset,
             ingest_file,
             secret_present,
@@ -782,6 +853,18 @@ pub fn run() {
             phone_link::phone_push_topic,
             phone_link::phone_push_new_topic,
             phone_link::phone_push_set_token,
+            phone_link::phone_remote_status,
+            hermes_setup::hermes_setup_status,
+            hermes_setup::hermes_setup_start,
+            hermes_setup::hermes_setup_cancel,
+            hermes_setup::hermes_gateway_set,
+            hermes_setup::hermes_assistant_set,
+            hermes_setup::hermes_skills_set,
+            hermes_setup::hermes_login_start,
+            hermes_setup::hermes_login_cancel,
+            hermes_setup::hermes_logout,
+            phone_link::phone_remote_set,
+            phone_link::phone_remote_check,
             phone_link::push::phone_push_test,
             agent::agent_status,
             agent::agent_decide,
@@ -867,6 +950,10 @@ pub fn run() {
             hooks::ensure_hook_exe(&handle);
             pipe::start(handle.clone());
             phone_link::start_if_enabled(&handle);
+            hermes_setup::start_if_managed(&handle);
+            hermes_setup::login_refresh_at_start(&handle);
+            // What the installer's page asked for (setup.exe), once.
+            first_run::run(&handle);
             integrations::start(handle.clone());
             spotify::sync(&handle, &loaded.active_integrations);
             shortcuts::apply(&handle, &loaded.shortcuts);
@@ -878,6 +965,7 @@ pub fn run() {
             // Withdraw the phone link's announcement on the local network before the process ends.
             if let tauri::RunEvent::Exit = event {
                 phone_link::stop_on_exit(app);
+                hermes_setup::stop_on_exit(app);
             }
         });
 }

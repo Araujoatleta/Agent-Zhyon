@@ -75,6 +75,8 @@ pub const INTERNAL_KEYS: &[&str] = &[
     // Mochi's home (smart_home/config.rs): Home Assistant's long-lived access token, and the Philips TVs' pairings.
     "home-assistant-token",
     "home-philips",
+    // Hermes Agent (hermes.rs): its API server's key, bound to its address; only ever sent there.
+    "hermes-api-key",
 ];
 
 /// Whether the keystore would accept this key through `get_internal` / `set_internal`.
@@ -122,6 +124,13 @@ mod tests {
         }
         // And the other way round: a key of the island is not an internal one.
         assert!(set_internal("github-token", "x").is_err());
+    }
+
+    #[test]
+    fn hermes_key_is_kept_by_rust_and_out_of_the_islands_reach() {
+        // It used to be in neither list, so storing it always failed and Connect could never work.
+        assert!(is_internal(crate::hermes::KEY));
+        assert!(entry(crate::hermes::KEY).is_none(), "the island's secret_* commands must not reach it");
     }
 
     /// Windows Credential Manager caps a secret's size. The phone link stores its certificate (about
