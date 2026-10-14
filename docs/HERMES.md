@@ -27,10 +27,11 @@ small.
 No terminal, no file to edit:
 
 1. In Coucou: **Settings → Hermes Agent**. Under **Your assistant's name**, type what you will call it, **Zheus** for
-   instance.
-2. Under **Its brain**, pick one of the AIs Coucou already has (the Anthropic, OpenAI, Google or OpenRouter key you saved
-   in Settings, or the computer's Ollama or LM Studio). Leave **Let it use Mochi's home** ticked to let it use the
-   devices you ticked.
+   instance; pick **Its tone** (below) and click **Save**.
+2. Under **Its brain**, pick **ChatGPT (your subscription)** to use your ChatGPT Plus or Pro plan (below), or one of the
+   AIs Coucou already has (the Anthropic, OpenAI, Google or OpenRouter key you saved in Settings, or the computer's
+   Ollama or LM Studio). Leave **Let it use Mochi's home** ticked to let it use the devices you ticked, and tick the
+   **skill packs** you want (below).
 3. Read **What Coucou will do** and click **Install Hermes**. Coucou:
    - downloads Hermes' official installer from GitHub, at a pinned version, and **checks its SHA-256** before running
      anything (if it does not match, nothing runs);
@@ -38,7 +39,10 @@ No terminal, no file to edit:
      each step (about 1 GB and 5 to 15 minutes). The browser and computer-use tools are left out (`hermes pm install`
      adds them later);
    - sets the brain and Mochi's home with Hermes' own `hermes config set`. **The AI key never goes into a file**: it
-     stays in the system's keystore and is handed to Hermes in memory only, when Coucou starts it;
+     stays in the system's keystore and is handed to Hermes in memory only, when Coucou starts it. With ChatGPT, there
+     is no key: Coucou signs you in (below);
+   - writes the name and tone to Hermes' `SOUL.md` (an existing one is backed up first), and installs the skill packs
+     you ticked;
    - makes a private key between Coucou and Hermes and runs Hermes' server **on this computer only**
      (`127.0.0.1:8642`), whenever Coucou runs. If it stops, Coucou starts it again (a few times), and quitting Coucou
      stops Hermes too;
@@ -53,7 +57,68 @@ Hermes, without changing its settings (unless you tick **Also give it this brain
 runs by itself, Coucou starts no second one (Hermes runs one per computer): it uses the key of Hermes' `.env`, or you
 connect with the form below.
 
+**Change its brain** gives the Hermes Coucou runs another brain, after the same kind of plan: Coucou stops its server,
+sets the new brain and starts it again with the new key (or signs you in to ChatGPT).
+
 To remove Hermes later: turn **Run Hermes with Coucou** off and run `hermes uninstall`.
+
+### ChatGPT: your subscription, no key
+
+Pick **ChatGPT (your subscription)** as its brain to use your **ChatGPT Plus or Pro** plan instead of an API key. This is
+Hermes' own sign-in to OpenAI (`hermes auth add openai-codex`):
+
+- during the setup, once Hermes is installed, Coucou opens OpenAI's page (`https://auth.openai.com/codex/device`) and
+  shows a code, large, in Settings, with **Copy code**, **Open the page** and **Cancel**. Sign in there with your
+  ChatGPT account and type the code: it works for 15 minutes. Only OpenAI's own page is ever opened;
+- Hermes keeps the sign-in in its own `auth.json`, in Hermes' folder. **Coucou never reads it** and never sees your
+  password: nothing of it goes into Coucou's settings, its logs or the phone link;
+- Hermes uses the model `gpt-5.5`, one of those OpenAI offers to ChatGPT accounts;
+- afterwards, **Sign in with ChatGPT** and **Sign out** stay under its brain. Cancel ends a sign-in, and Hermes keeps
+  nothing of it. The limits are your plan's (a 5-hour and a weekly window): `hermes usage` shows them.
+
+### Its name and tone (SOUL.md)
+
+Under **Its tone**, pick **Friendly**, **Direct**, **Professional**, **Playful**, **Butler (formal, witty)**, or
+**Custom** to say it in your own words (up to 1,500 characters), then click **Save**. When Coucou runs Hermes, it writes
+the name and tone to Hermes' personality file, `SOUL.md` in Hermes' folder (*"You are Zheus, the user's personal
+assistant…"*), and also tells Hermes the tone with each message, so the change applies from your next message.
+
+A `SOUL.md` that Coucou did not write (Hermes' default one, or yours) is **copied first** to
+`SOUL.backup-YYYYMMDD-HHMMSS.md`, beside it. Coucou's own ends with the line *"Set up in Coucou (Settings → Hermes
+Agent)…"*, and Coucou writes it again whenever the name or tone changes there. If you edit it yourself, remove that line:
+Coucou then copies your version aside before it writes the next one. What you type as a tone stays on this computer, in
+Coucou's settings and Hermes' `SOUL.md`, and never goes in Coucou's log.
+
+### Skill packs
+
+- **Mochi's home (TVs, lights…)**: the devices of Mochi's home, through MCP (section 6).
+- **Free web search (DuckDuckGo)**: Hermes' official `duckduckgo-search` skill, no key.
+- **News and feeds (RSS)**: Hermes' official `rss-feeds` skill, no key.
+
+Coucou installs a pack with Hermes' own command, `hermes skills install official/research/… --yes` (official skills
+that come with Hermes), and, when you untick it, removes it with `hermes skills uninstall … --yes`, **only if Coucou
+installed it**: a skill you installed yourself is never removed. While Coucou runs Hermes, a pack you tick is installed
+at once; otherwise during the setup. A pack that does not install is said in Settings, and Hermes runs without it.
+
+Already included with Hermes, with nothing to install: Google Workspace, Notion, maps, Obsidian, e-mail triage and
+reminders (its scheduled jobs).
+
+### Straight from the installer (setup.exe)
+
+The Windows installer (`setup.exe`) asks the same questions on a page of its own, **Your assistant**, right after the
+install folder: **Set up the assistant now (recommended)**, its brain (ChatGPT first), the API key for a brain that needs
+one (kept in Windows Credential Manager, never in a file), the name, the tone, the skill packs, and **Let my iPhone change
+the assistant and use Mochi's home**. The page says what will happen before you click: download Hermes' official
+installer (a fixed version, checked by SHA-256), install Hermes and its Python in your user folder, set the brain, write
+the personality to `SOUL.md` (an existing one is backed up), and install the ticked skills.
+
+The installer leaves your choices, never the key, in `%APPDATA%\Coucou\setup.json`. At its first start Coucou reads
+that file once, **deletes it**, and starts the same setup as the Install button, with Settings open on Hermes Agent: with
+ChatGPT, that is where the code shows. Then there is nothing left to do: just talk to it. On a reinstall or an update
+the box comes unticked, so a Hermes already set up is left as it is.
+
+The MSI installer and Linux have no such page: use Settings → Hermes Agent as above. Whatever you picked in `setup.exe`
+can be changed there later, and from the paired iPhone when you let it.
 
 ## By hand
 
@@ -170,7 +235,13 @@ click (Face ID on the phone) for plugs, switches and the devices set to ask, eve
   protocol (`-Manifest`, `-Stage NAME -Json -NonInteractive`), `hermes config set` for the brain and Mochi's home, and
   the gateway Coucou runs (`hermes gateway run --external-supervisor`, a Windows job object so it ends with Coucou,
   restarts, the key from Hermes' own `.env` when it has one). To move to a newer Hermes: change `COMMIT` and both
-  hashes (`git cat-file blob <commit>:scripts/install.ps1 | sha256sum`).
+  hashes (`git cat-file blob <commit>:scripts/install.ps1 | sha256sum`). Also the ChatGPT sign-in
+  (`hermes auth add|status|logout openai-codex`, its output read for the code; `PYTHONUNBUFFERED=1` or Python holds
+  the code back in the pipe), `soul_text` and the `SOUL.md` backup, and `skill_commands`. The window-free functions
+  (`status_of`, `begin_setup`, `set_assistant`, `set_skills`, `login_start`, `login_cancel`, `logout`, `gateway_set`)
+  are what Settings, the installer's page and the phone link call.
+- `windows/src-tauri/src/first_run.rs`: `setup.json` from `setup.exe` (UTF-16LE with a BOM, or UTF-8), read once and
+  deleted.
 
 - `windows/src-tauri/src/hermes.rs`: the API server as Coucou uses it (capabilities, runs, their events, approvals,
   stop), and the key bound to its address. `windows/src-tauri/src/agent/hermes.rs`: a turn with Hermes on the island

@@ -38,6 +38,28 @@ a machine-learning false positive); Microsoft reviewed it and removed the detect
 If Defender still blocks it on your PC, update its definitions (`Update-MpSignature`
 in PowerShell) and try again.
 
+### Your assistant, set up by the installer
+
+The setup.exe has one more page, right after the install folder: **Your assistant**.
+With **Set up the assistant now** ticked (the default, except on a reinstall or an
+update), pick the brain of [Hermes Agent](#hermes-agent) — **ChatGPT (your
+subscription)**, signed in with your ChatGPT Plus or Pro account after the install
+(Coucou opens OpenAI's page and shows a code, no key needed), an API key (OpenAI,
+Anthropic Claude, Google Gemini, OpenRouter), or Ollama or LM Studio on this
+computer — then its name (Zheus unless you type another), its tone, its skills
+(Mochi's home, free web search with DuckDuckGo, news and feeds) and whether your
+iPhone may change the assistant and use Mochi's home. The page says what Coucou
+will do before you click, in English, French or Portuguese (Brazil).
+
+- An API key typed there goes straight into Windows Credential Manager, where Coucou
+  keeps its keys. It is never written to a file.
+- The other choices go to `%APPDATA%\Coucou\setup.json`. At its next start Coucou
+  reads the file, deletes it, then installs and sets up Hermes the way
+  **Settings… → Hermes Agent** does, and opens Settings there to show the progress.
+- `/S`, `/P` and `/UPDATE` runs skip the page, and the .msi has none: set the
+  assistant up in **Settings… → Hermes Agent** instead. Everything chosen on the
+  page can be changed there later.
+
 You can also [build it yourself](#build-it-yourself).
 
 ## Using it
@@ -403,6 +425,13 @@ workflow publishes:
 Coucou-Windows-X.Y.Z-setup.exe    the versioned installer
 Coucou-Windows-setup.exe          the same file under the rolling name
 ```
+
+The setup.exe is built from `src-tauri/nsis/installer.nsi`, a copy of the NSIS
+template of `@tauri-apps/cli` 2.12.0 that adds the assistant page after the install
+folder (the page itself is in `src-tauri/nsis/hooks.nsh`). That is why
+`package.json` pins the CLI to exactly that version: when you bump it, diff the
+copy against the new version's template and carry Coucou's two changes over —
+`tests/installer.test.mjs` fails until you do.
 
 Installing is optional — `target/release/coucou.exe` runs on its own. There is no
 window in the taskbar and no console: the island at the top of the screen and the

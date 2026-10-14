@@ -32,6 +32,8 @@ export interface BootInfo {
   hookPath: string;
   /** False where the OS has no global cursor (Wayland): see Island.followPageCursor. */
   cursorPoll: boolean;
+  /** The settings window only: the section to bring into view once drawn ("hermes" after the installer's page). */
+  focus?: string | null;
 }
 
 /** The phone link (src-tauri/src/phone_link): how it is, never its secrets. */
@@ -448,6 +450,15 @@ export const Bridge = {
   hermesSetupCancel: () => callOrThrow<HermesSetupStatus>("hermes_setup_cancel"),
   /** Coucou runs Hermes, or not (Hermes stays installed). */
   hermesGatewaySet: (on: boolean) => callOrThrow<HermesSetupStatus>("hermes_gateway_set", { on }),
+  /** "Save": the assistant's name (one line, 40 characters at most) and tone. Throws with the reason Rust refused it. */
+  hermesAssistantSet: (name: string, persona: string, personaText: string) =>
+    callOrThrow<HermesSetupStatus>("hermes_assistant_set", { name, persona, personaText }),
+  /** The skill packs wanted (not "home": that one is Mochi's home for Hermes). */
+  hermesSkillsSet: (skills: string[]) => callOrThrow<HermesSetupStatus>("hermes_skills_set", { skills }),
+  /** "Sign in with ChatGPT": OpenAI's page opens, and the code comes in the status (`login`). */
+  hermesLoginStart: () => callOrThrow<HermesSetupStatus>("hermes_login_start"),
+  hermesLoginCancel: () => callOrThrow<HermesSetupStatus>("hermes_login_cancel"),
+  hermesLogout: () => callOrThrow<HermesSetupStatus>("hermes_logout"),
   /** Settings → Hermes Agent → Mochi's home for Hermes (agent/mcp.rs). */
   homeMcpStatus: () => call<HomeMcpStatus>("home_mcp_status"),
   homeMcpSet: (on: boolean) => callOrThrow<HomeMcpStatus>("home_mcp_set", { on }),
@@ -595,8 +606,23 @@ export interface HermesBrain {
   id: string;
   name: string;
   ready: boolean;
-  /** The model Coucou's chat uses with it ("": Hermes picks its own). */
+  /** The model Hermes runs with it ("": Hermes picks its own). */
   model: string;
+  /** Signed in to with the user's subscription (ChatGPT) rather than a key. */
+  login?: boolean;
+}
+
+/** The ChatGPT sign-in (`hermes auth add openai-codex`): never the account's e-mail. */
+export type HermesLogin =
+  | { state: "unknown" | "signedOut" | "signedIn" }
+  | { state: "waiting"; code: string; url: string; expiresAt: number }
+  | { state: "failed"; reason: string };
+
+/** The assistant's name ("Zheus" when none was given) and tone. */
+export interface HermesAssistant {
+  name: string;
+  persona: string;
+  personaText: string;
 }
 
 /** Hermes' installation, while and after it runs. */
@@ -630,6 +656,14 @@ export interface HermesSetupStatus {
   /** The Hermes commit Coucou installs, short. */
   commit: string;
   installer: string;
+  assistant: HermesAssistant;
+  /** The tones and the skill packs offered, in order. */
+  personas: string[];
+  skillPacks: string[];
+  /** The packs wanted, besides Mochi's home (`house`). */
+  skills: string[];
+  house: boolean;
+  login: HermesLogin;
 }
 
 export interface HermesConnected {

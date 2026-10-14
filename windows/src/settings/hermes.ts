@@ -1,11 +1,13 @@
 // Settings → Hermes Agent: connect the Hermes Agent running on this computer (its API server and key), and let it answer
 // the chat — here and on the paired phone — with its own tools and memory. Rust owns the address and keeps the key in
-// the keystore, bound to that address (src-tauri/src/hermes.rs); the page only asks. See docs/HERMES.md.
+// the keystore, bound to that address (src-tauri/src/hermes.rs); the page only asks. Above the form, Zheus: Hermes
+// installed and run by Coucou, with its brain (a key, a local server or the user's ChatGPT subscription), the
+// assistant's name and tone, and skill packs (src-tauri/src/hermes_setup.rs). See docs/HERMES.md.
 
-import { Bridge, type HermesBrain, type HermesGateway, type HermesProgress, type HermesSetupStatus, type HomeMcpStatus } from "../core/bridge";
+import { Bridge, type HermesBrain, type HermesGateway, type HermesLogin, type HermesProgress, type HermesSetupStatus, type HomeMcpStatus } from "../core/bridge";
 import type { Settings } from "../core/state";
 import { h } from "../views/dom";
-import { t } from "../i18n/i18n";
+import { N_, labels, t } from "../i18n/i18n";
 import { renderDiff, statusDot } from "./parts";
 
 /** Where `hermes gateway` serves its API by default. */
@@ -22,24 +24,88 @@ export interface HermesHost {
   settings: () => Settings;
   /** Makes Hermes the chat's provider. */
   useInChat: () => Promise<void>;
-  /** Keeps the name the user gives their assistant. */
-  setName: (name: string) => void;
   toggle: Toggle;
 }
 
-/** What Coucou will do when the user clicks Install, step by step, before anything happens. */
-export function zheusPlan(status: Pick<HermesSetupStatus, "home" | "commit" | "address">, brain: HermesBrain, house: boolean): string[] {
-  const key = brain.id === "ollama" || brain.id === "lmstudio"
+/** The assistant's tones (src-tauri/src/hermes_setup.rs PERSONAS), as Settings names them. */
+const PERSONAS = labels({
+  friendly: N_("Friendly"),
+  direct: N_("Direct"),
+  professional: N_("Professional"),
+  playful: N_("Playful"),
+  butler: N_("Butler (formal, witty)"),
+  custom: N_("Custom"),
+});
+/** The skill packs Hermes installs (Mochi's home is the checkbox and the switch of its own). */
+const PACKS = labels({
+  search: N_("Free web search (DuckDuckGo)"),
+  news: N_("News and feeds (RSS)"),
+});
+const OWN_TONE = "custom";
+const MAX_TONE = 1500;
+/** Looks like the settings window's text fields, for the tone of the user's own. */
+const AREA_STYLE =
+  "font:400 12.5px var(--font);background:rgba(255,255,255,0.07);border:1px solid var(--hairline);border-radius:8px;color:var(--ink);padding:6px 8px;resize:vertical;min-height:64px;width:100%;box-sizing:border-box";
+
+/** A brain's name in the picker: ChatGPT says it runs on the user's subscription. */
+const brainName = (brain: HermesBrain) => (brain.login ? t("ChatGPT (your subscription)") : brain.name);
+
+/** The packs' names, for the plan. */
+const packNames = (skills: string[]) => skills.filter((id) => id in PACKS).map((id) => PACKS[id as keyof typeof PACKS]).join(", ");
+
+/** What Coucou does with the brain, in one line of the plan. */
+function brainPlan(brain: HermesBrain): string {
+  if (brain.login) {
+    return t("Sign in with your ChatGPT account (Plus or Pro): Coucou opens OpenAI's page and shows a code to type there. No key: the sign-in stays in Hermes' own files.");
+  }
+  return brain.id === "ollama" || brain.id === "lmstudio"
     ? t("Point Hermes at {brain} on this computer, the server Coucou already uses.", { brain: brain.name })
     : t("Give Hermes your {brain} key that Coucou already keeps: only in memory, when Coucou starts it, never in a file.", { brain: brain.name });
+}
+
+/**
+ * What Coucou will do when the user clicks Install, step by step, before anything happens: the download and the
+ * installation (unless Hermes is there), the brain, SOUL.md, the skill packs ticked, and the gateway.
+ */
+export function zheusPlan(
+  status: Pick<HermesSetupStatus, "home" | "commit" | "address"> & { installed?: boolean },
+  brain: HermesBrain,
+  house: boolean,
+  skills: string[] = [],
+  name = "Zheus",
+): string[] {
+  const install = status.installed
+    ? []
+    : [
+        t("Download Hermes Agent's official installer from GitHub (version {commit}) and check it (SHA-256) before running it.", { commit: status.commit }),
+        t("Install Hermes in {path} with everything it needs (its Python and its own Git): about 1 GB, 5 to 15 minutes. Nothing is asked along the way.", { path: status.home }),
+      ];
+  const packs = packNames(skills);
   return [
-    t("Download Hermes Agent's official installer from GitHub (version {commit}) and check it (SHA-256) before running it.", { commit: status.commit }),
-    t("Install Hermes in {path} with everything it needs (its Python and its own Git): about 1 GB, 5 to 15 minutes. Nothing is asked along the way.", { path: status.home }),
-    key,
+    ...install,
+    brainPlan(brain),
+    t("Write {name}'s name and tone to Hermes' SOUL.md (one that is already there is backed up first).", { name }),
+    ...(packs ? [t("Install the skill packs you ticked with Hermes' own command (hermes skills install): {packs}.", { packs })] : []),
     house
       ? t("Start Hermes on this computer only ({address}) with a private key, whenever Coucou runs, and connect the chat, the phone and Mochi's home to it.", { address: status.address })
       : t("Start Hermes on this computer only ({address}) with a private key, whenever Coucou runs, and connect the chat and the phone to it.", { address: status.address }),
   ];
+}
+
+/** The ChatGPT sign-in in words. */
+export function loginText(login: HermesLogin): string {
+  switch (login.state) {
+    case "signedIn":
+      return t("Signed in with your ChatGPT account.");
+    case "waiting":
+      return t("Waiting for you on OpenAI's page…");
+    case "failed":
+      return t("The ChatGPT sign-in did not go through: {reason}", { reason: login.reason });
+    case "signedOut":
+      return t("Not signed in to ChatGPT: Hermes cannot answer until you sign in.");
+    default:
+      return t("Hermes uses your ChatGPT subscription (Plus or Pro): sign in with your account.");
+  }
 }
 
 /** The gateway's state in words. */
@@ -113,26 +179,98 @@ function houseBlock(makeToggle: Toggle): HTMLElement {
 
 const errorText = (err: unknown) => String(err).replace(/^Error:\s*/, "");
 
+/** The code to type on OpenAI's page, large, with what to do with it. */
+function codePanel(login: Extract<HermesLogin, { state: "waiting" }>, cancel: () => void): HTMLElement {
+  const copy = h("button", { text: t("Copy code") });
+  copy.addEventListener("click", () => {
+    void navigator.clipboard?.writeText(login.code).then(() => {
+      copy.textContent = t("Copied");
+      window.setTimeout(() => (copy.textContent = t("Copy code")), 1500);
+    });
+  });
+  const open = h("button", { class: "primary", text: t("Open the page") });
+  open.addEventListener("click", () => void Bridge.openUrl(login.url));
+  const stop = h("button", { text: t("Cancel") });
+  stop.addEventListener("click", cancel);
+  return h(
+    "div",
+    { class: "notice", style: "display:flex;flex-direction:column;gap:8px;border:1px solid var(--hairline)" },
+    h("div", { text: t("On OpenAI's page, signed in with your ChatGPT Plus or Pro account, type this code:") }),
+    h("div", { class: "path", style: "font:600 26px ui-monospace,Consolas,monospace;letter-spacing:3px;user-select:all", text: login.code }),
+    h("div", { class: "row" }, copy, open, stop),
+    h("div", { class: "hint", text: t("The code works for 15 minutes. Hermes keeps nothing until you finish on OpenAI's page.") }),
+  );
+}
+
+const PLAN_STYLE = "margin:0;padding-left:18px;display:flex;flex-direction:column;gap:2px";
+
 /**
- * Zheus: the assistant's name, and Hermes installed, set up and run by Coucou (src-tauri/src/hermes_setup.rs). The
- * plan is on screen before the click; nothing is downloaded or installed before it.
+ * Zheus: the assistant's name and tone, and Hermes installed, set up and run by Coucou (src-tauri/src/hermes_setup.rs)
+ * with its brain (an AI key Coucou keeps, a server on this computer, or the user's ChatGPT subscription) and its skill
+ * packs. The plan is on screen before the click; nothing is downloaded, installed or written before it.
  */
 function zheusBlock(host: HermesHost): HTMLElement {
   const box = h("div", { style: "display:flex;flex-direction:column;gap:6px" });
   const name = h("input", { type: "text", placeholder: "Zheus", style: "flex:1 1 auto;min-width:0", maxlength: "40", spellcheck: "false", autocomplete: "off" }) as HTMLInputElement;
-  name.value = host.settings().assistantName ?? "";
-  name.addEventListener("change", () => host.setName(name.value.trim()));
+  const tone = h("select", {}) as HTMLSelectElement;
+  for (const id of Object.keys(PERSONAS) as (keyof typeof PERSONAS)[]) tone.append(h("option", { value: id, text: PERSONAS[id] }));
+  const own = h("textarea", { rows: "3", maxlength: String(MAX_TONE), spellcheck: "true", style: AREA_STYLE, placeholder: t("In your own words: how it speaks, how it calls you, what it keeps in mind.") }) as HTMLTextAreaElement;
+  const ownBox = h("div", {});
+  const saved = h("div", {});
+  const save = h("button", { text: t("Save") }) as HTMLButtonElement;
   const state = h("div", { style: "display:flex;flex-direction:column;gap:6px" });
   let last: HermesSetupStatus | null = null;
   let chosen = "";
   let house = true;
   let configure = false;
+  /** The name or the tone changed and was not saved yet: what Rust says does not overwrite it. */
+  let edited = false;
+  /** "Sign in with ChatGPT" was clicked and the code is not there yet. */
+  let signingIn = false;
+
+  const fail = (err: unknown) => state.append(h("div", { class: "notice err", text: errorText(err) }));
+  const showOwn = () => ownBox.replaceChildren(...(tone.value === OWN_TONE ? [own] : []));
+  const fill = (assistant: { name: string; persona: string; personaText: string }) => {
+    // Rust says "Zheus" when no name was given: the empty field already shows it.
+    if (!(assistant.name === "Zheus" && name.value.trim() === "")) name.value = assistant.name;
+    tone.value = assistant.persona in PERSONAS ? assistant.persona : "friendly";
+    own.value = assistant.personaText;
+    showOwn();
+  };
+  const initial = host.settings();
+  fill({ name: initial.assistantName ?? "", persona: initial.assistantPersona ?? "", personaText: initial.assistantPersonaText ?? "" });
+  const touched = () => {
+    edited = true;
+    saved.replaceChildren();
+  };
+  name.addEventListener("input", touched);
+  own.addEventListener("input", touched);
+  tone.addEventListener("change", () => {
+    touched();
+    showOwn();
+  });
+  save.addEventListener("click", () => {
+    save.disabled = true;
+    Bridge.hermesAssistantSet(name.value.trim(), tone.value, own.value).then(
+      (status) => {
+        edited = false;
+        save.disabled = false;
+        const managed = status?.managed ?? false;
+        saved.replaceChildren(h("div", { class: "notice ok", text: managed ? t("Saved: Hermes uses it from your next message.") : t("Saved: Hermes gets it when Coucou sets it up.") }));
+        show(status);
+      },
+      (err) => {
+        save.disabled = false;
+        saved.replaceChildren(h("div", { class: "notice err", text: errorText(err) }));
+      },
+    );
+  });
 
   const brainPicker = (status: HermesSetupStatus) => {
     const select = h("select", {}) as HTMLSelectElement;
     const ready = status.brains.filter((b) => b.ready);
     for (const b of status.brains) {
-      const option = h("option", { value: b.id, text: b.ready ? b.name : t("{name} (add its key in Settings first)", { name: b.name }) }) as HTMLOptionElement;
+      const option = h("option", { value: b.id, text: b.ready ? brainName(b) : t("{name} (add its key in Settings first)", { name: b.name }) }) as HTMLOptionElement;
       option.disabled = !b.ready;
       select.append(option);
     }
@@ -145,9 +283,87 @@ function zheusBlock(host: HermesHost): HTMLElement {
     return select;
   };
 
+  /** The ChatGPT sign-in: where it is, and the button that moves it on. */
+  const chatgptLine = (status: HermesSetupStatus): HTMLElement[] => {
+    const login = status.login;
+    if (login.state === "waiting") return [codePanel(login, () => void Bridge.hermesLoginCancel().then(show, fail))];
+    if (login.state === "signedIn") {
+      const out = h("button", { text: t("Sign out") }) as HTMLButtonElement;
+      out.addEventListener("click", () => {
+        out.disabled = true;
+        Bridge.hermesLogout().then(show, (err) => {
+          out.disabled = false;
+          fail(err);
+        });
+      });
+      return [h("div", { class: "row" }, statusDot(true), h("span", { class: "hint", text: loginText(login) }), out)];
+    }
+    const start = h("button", { class: "primary", text: signingIn ? t("Asking OpenAI for a sign-in code…") : t("Sign in with ChatGPT") }) as HTMLButtonElement;
+    start.disabled = signingIn;
+    start.addEventListener("click", () => {
+      signingIn = true;
+      start.disabled = true;
+      start.textContent = t("Asking OpenAI for a sign-in code…");
+      Bridge.hermesLoginStart().then(show, (err) => {
+        signingIn = false;
+        start.disabled = false;
+        start.textContent = t("Sign in with ChatGPT");
+        fail(err);
+      });
+    });
+    return [
+      h("div", { class: "row" }, statusDot(false), h("span", { class: "hint", text: loginText(login) })),
+      h("div", { class: "row" }, start),
+      h("div", { class: "hint", text: t("Coucou opens OpenAI's page and shows a code to type there. The sign-in stays in Hermes' own files; Coucou never sees your password.") }),
+    ];
+  };
+
+  /** The skill packs (Mochi's home has its own switch): ticked ones are installed with Hermes. */
+  const skillsBlock = (status: HermesSetupStatus): HTMLElement[] => {
+    const boxes: [string, HTMLInputElement][] = [];
+    const rows = status.skillPacks
+      .filter((id): id is keyof typeof PACKS => id in PACKS)
+      .map((id) => {
+        const tick = h("input", { type: "checkbox" }) as HTMLInputElement;
+        tick.checked = status.skills.includes(id);
+        boxes.push([id, tick]);
+        tick.addEventListener("change", () => {
+          Bridge.hermesSkillsSet(boxes.filter(([, b]) => b.checked).map(([pack]) => pack)).then(show, fail);
+        });
+        return h("label", { class: "row" }, tick, h("span", { text: PACKS[id] }));
+      });
+    return [
+      h("div", { class: "hint", text: status.managed ? t("Skill packs: one you tick is installed in Hermes at once (hermes skills install); unticking one removes only what Coucou installed.") : t("Skill packs to install with Hermes:") }),
+      ...rows,
+      h("div", { class: "hint", text: t("Already included with Hermes: Google Workspace, Notion, maps, Obsidian, e-mail triage and reminders.") }),
+    ];
+  };
+
+  /** Another brain for the Hermes Coucou runs: its settings change and it starts again. */
+  const changeBrain = (status: HermesSetupStatus): HTMLElement[] => {
+    const picker = brainPicker(status);
+    const target = status.brains.find((b) => b.id === chosen);
+    const apply = h("button", { text: t("Give it this brain") }) as HTMLButtonElement;
+    apply.disabled = !target || chosen === status.brain;
+    apply.addEventListener("click", () => {
+      apply.disabled = true;
+      Bridge.hermesSetupStart(chosen, status.house, true).then(show, (err) => {
+        apply.disabled = false;
+        fail(err);
+      });
+    });
+    const rows: HTMLElement[] = [h("div", { class: "row" }, h("label", { text: t("Change its brain") }), picker, apply)];
+    if (target && chosen !== status.brain) {
+      rows.push(h("ol", { class: "hint", style: PLAN_STYLE }, h("li", { text: brainPlan(target) }), h("li", { text: t("Start Hermes again with it, on this computer only.") })));
+    }
+    return rows;
+  };
+
   const show = (status: HermesSetupStatus | null) => {
     if (!status) return;
     last = status;
+    if (status.login.state !== "unknown") signingIn = false;
+    if (!edited && status.assistant) fill(status.assistant);
     state.replaceChildren();
     const p = status.progress;
     if (p.running) {
@@ -156,18 +372,22 @@ function zheusBlock(host: HermesHost): HTMLElement {
       state.append(
         h("div", { class: "row" }, statusDot(true), h("span", { text: progressText(p) }), stop),
         ...(p.last ? [h("div", { class: "hint path", text: p.last })] : []),
+        ...(status.login.state === "waiting" ? [codePanel(status.login, () => void Bridge.hermesLoginCancel().then(show, fail))] : []),
       );
       return;
     }
     if (p.error) state.append(h("div", { class: "notice err", text: p.error }));
     if (status.managed) {
       const on = status.gateway.state !== "off";
-      const sw = host.toggle(on, (next) => void Bridge.hermesGatewaySet(next).then(show, (err) => state.append(h("div", { class: "notice err", text: errorText(err) }))));
+      const sw = host.toggle(on, (next) => void Bridge.hermesGatewaySet(next).then(show, fail));
       const brain = status.brains.find((b) => b.id === status.brain);
       state.append(
         h("div", { class: "row" }, h("label", { text: t("Run Hermes with Coucou") }), sw),
         h("div", { class: "row" }, statusDot(status.gateway.state === "running"), h("span", { class: "hint", text: gatewayText(status.gateway) })),
-        ...(brain ? [h("div", { class: "hint", text: t("Its brain: {brain}, with the key Coucou keeps.", { brain: brain.name }) })] : []),
+        ...(brain ? [h("div", { class: "hint", text: brain.login ? t("Its brain: ChatGPT, with your subscription.") : t("Its brain: {brain}, with the key Coucou keeps.", { brain: brain.name }) })] : []),
+        ...(brain?.login ? chatgptLine(status) : []),
+        ...changeBrain(status),
+        ...skillsBlock(status),
       );
       return;
     }
@@ -189,22 +409,31 @@ function zheusBlock(host: HermesHost): HTMLElement {
       install.disabled = true;
       Bridge.hermesSetupStart(chosen, house, !status.installed || configure).then(show, (err) => {
         install.disabled = false;
-        state.append(h("div", { class: "notice err", text: errorText(err) }));
+        fail(err);
       });
     });
     const rows: HTMLElement[] = [h("div", { class: "row" }, h("label", { text: t("Its brain") }), picker)];
+    if (brain.login) {
+      rows.push(h("div", { class: "hint", text: t("Needs ChatGPT Plus or Pro. During the setup Coucou opens OpenAI's page and shows a code: sign in there with your ChatGPT account. No key needed.") }));
+    }
     if (status.installed) {
       const configureBox = h("input", { type: "checkbox" }) as HTMLInputElement;
       configureBox.checked = configure;
-      configureBox.addEventListener("change", () => (configure = configureBox.checked));
+      configureBox.addEventListener("change", () => {
+        configure = configureBox.checked;
+        show(last);
+      });
       rows.unshift(h("div", { class: "hint", text: t("Hermes is already on this computer ({path}): Coucou can run it, without changing its settings unless you tick it below.", { path: status.home }) }));
       rows.push(h("label", { class: "row" }, configureBox, h("span", { text: t("Also give it this brain (its model and provider change)") })));
     }
     rows.push(h("label", { class: "row" }, houseBox, h("span", { text: t("Let it use Mochi's home (the devices you ticked, with the same rules)") })));
-    const plan = h("ol", { class: "hint", style: "margin:0;padding-left:18px;display:flex;flex-direction:column;gap:2px" }, ...zheusPlan(status, brain, house).map((line) => h("li", { text: line })));
+    rows.push(...skillsBlock(status));
+    // Nothing is changed in a Hermes that is already there unless asked: no plan then.
+    const changes = !status.installed || configure;
+    const plan = h("ol", { class: "hint", style: PLAN_STYLE }, ...zheusPlan(status, brain, house, status.skills, status.assistant?.name).map((line) => h("li", { text: line })));
     state.append(
       ...rows,
-      ...(status.installed ? [] : [h("div", { class: "hint", text: t("What Coucou will do:") }), plan]),
+      ...(changes ? [h("div", { class: "hint", text: t("What Coucou will do:") }), plan] : []),
       h("div", { class: "row" }, install),
       h("div", { class: "hint", text: t("Hermes Agent is free and open source (MIT), by Nous Research. Its own tools then ask you before anything risky, here or on your phone.") }),
     );
@@ -213,14 +442,19 @@ function zheusBlock(host: HermesHost): HTMLElement {
   box.append(
     h("div", { class: "row" }, h("label", { text: t("Your assistant's name") }), name),
     h("div", { class: "hint", text: t("Hermes is told it answers to this name, here and on your phone: \"Zheus, what's on my calendar today?\"") }),
+    h("div", { class: "row" }, h("label", { text: t("Its tone") }), tone),
+    ownBox,
+    h("div", { class: "row" }, h("span", { class: "hint", text: t("Coucou writes the name and tone to Hermes' SOUL.md when it runs Hermes, and tells Hermes with each message.") }), save),
+    saved,
     state,
   );
   void Bridge.hermesSetupStatus().then(show);
-  // The installation and the gateway move on by themselves: kept up to date while the section is shown.
+  // The installation, the sign-in and the gateway move on by themselves: kept up to date while the section is shown.
   const watch = window.setInterval(() => {
     if (!box.isConnected) return window.clearInterval(watch);
     if (document.visibilityState !== "visible") return;
-    if (last && !last.progress.running && last.gateway.state !== "starting" && !(last.managed && last.gateway.state === "off")) return;
+    const moving = !last || last.progress.running || last.gateway.state === "starting" || (last.managed && last.gateway.state === "off") || last.login.state === "waiting" || signingIn;
+    if (!moving) return;
     void Bridge.hermesSetupStatus().then(show);
   }, 2000);
   return box;
@@ -288,9 +522,10 @@ export function hermesSection(host: HermesHost): { el: HTMLElement; redraw: () =
   }
 
   redraw();
+  // id: the installer's page brings Settings here (settings-focus, src/settings/main.ts).
   const el = h(
     "section",
-    {},
+    { id: "hermes" },
     h("h2", {}, h("span", { text: t("Hermes Agent") })),
     h("div", { class: "hint", text: t("Let Hermes Agent answer the chat, here and on your phone, with its own tools and memory: your calendar, Spotify, your home, scheduled tasks. Hermes runs on this computer; Coucou shows each thing it does and asks you before what it wants approved.") }),
     zheusBlock(host),

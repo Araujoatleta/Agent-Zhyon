@@ -150,8 +150,24 @@ pub struct Settings {
     /// The provider Coucou handed to Hermes as its brain ("anthropic", "google"…): its key goes to the gateway's
     /// environment, never to a file. Owned by Rust.
     pub hermes_brain: String,
-    /// The name the user gives their assistant ("Zheus"): Hermes is told it answers to it. The window's own choice.
+    /// The name the user gives their assistant ("Zheus"; "" shows as that): Hermes is told it answers to it, in its
+    /// SOUL.md and with each message. Owned by Rust: only Settings → Hermes Agent's Save (hermes_setup::set_assistant),
+    /// the installer's page (first_run.rs) and the phone change it.
     pub assistant_name: String,
+    /// Its tone, one of hermes_setup::PERSONAS ("" is "friendly"). Owned by Rust, like the name.
+    pub assistant_persona: String,
+    /// The user's own tone, for "custom" (at most 1500 characters, kept as typed). Owned by Rust, and never logged.
+    pub assistant_persona_text: String,
+    /// The skill packs the user wants Hermes to have ("search", "news"; Mochi's home is `home_mcp`). Owned by Rust.
+    pub hermes_skills: Vec<String>,
+    /// The packs Coucou itself installed in Hermes: only these are ever removed, never a skill the user installed.
+    /// Owned by Rust.
+    pub hermes_skills_installed: Vec<String>,
+    /// The paired phone may change the assistant (name, tone, brain, skills; cap `assistant`). Off by default; owned
+    /// by Rust like the other phone switches.
+    pub phone_assistant: bool,
+    /// The paired phone may use Mochi's home (cap `home`). Off by default; owned by Rust like the other phone switches.
+    pub phone_home: bool,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -237,6 +253,12 @@ impl Default for Settings {
             hermes_managed: false,
             hermes_brain: String::new(),
             assistant_name: String::new(),
+            assistant_persona: String::new(),
+            assistant_persona_text: String::new(),
+            hermes_skills: Vec::new(),
+            hermes_skills_installed: Vec::new(),
+            phone_assistant: false,
+            phone_home: false,
         }
     }
 }
@@ -546,7 +568,13 @@ mod tests {
   "readAloud": true,
   "hermesManaged": true,
   "hermesBrain": "anthropic",
-  "assistantName": "Zheus"
+  "assistantName": "Zheus",
+  "assistantPersona": "butler",
+  "assistantPersonaText": "Fale como um capitão de navio.\nSempre breve.",
+  "hermesSkills": ["search", "news"],
+  "hermesSkillsInstalled": ["search"],
+  "phoneAssistant": true,
+  "phoneHome": true
 }"##;
 
     fn custom() -> Value {
@@ -793,6 +821,33 @@ mod tests {
         assert!(parse(&custom_with("phoneServices", None)).unwrap().phone_services.is_empty());
         assert_eq!(parse(&custom_with("phoneServices", Some(serde_json::json!(["integration_stripe"])))).unwrap().phone_services, vec!["integration_stripe".to_string()]);
         assert!(parse(&custom_with("phoneServices", Some(serde_json::json!("integration_stripe")))).unwrap().phone_services.is_empty(), "a wrong type shows none");
+    }
+
+    #[test]
+    fn a_file_from_before_the_assistant_and_home_on_the_phone_keeps_them_off() {
+        // Changing the assistant or using the house from the phone is never on by default; an older file is not consent.
+        let d = Settings::default();
+        assert!(!d.phone_assistant && !d.phone_home);
+        for key in ["phoneAssistant", "phoneHome"] {
+            let old = parse(&custom_with(key, None)).unwrap();
+            assert!(!(if key == "phoneAssistant" { old.phone_assistant } else { old.phone_home }), "{key}");
+            let odd = parse(&custom_with(key, Some(json!("yes")))).unwrap();
+            assert!(!(if key == "phoneAssistant" { odd.phone_assistant } else { odd.phone_home }), "a wrong type does not switch {key} on");
+            assert_eq!(odd.assistant_persona, "butler");
+        }
+    }
+
+    #[test]
+    fn a_file_from_before_the_tone_and_skills_gives_the_friendly_tone_and_no_skill() {
+        let old = parse(&custom_with("assistantPersona", None)).unwrap();
+        assert_eq!(old.assistant_persona, "", "\"\" is the friendly tone");
+        assert_eq!(old.assistant_name, "Zheus");
+        let loaded = parse(CUSTOM.as_bytes()).unwrap();
+        assert_eq!(loaded.assistant_persona_text, "Fale como um capitão de navio.\nSempre breve.", "kept as typed");
+        assert_eq!(loaded.hermes_skills, ["search", "news"]);
+        assert_eq!(loaded.hermes_skills_installed, ["search"]);
+        let bad = parse(&custom_with("hermesSkills", Some(json!("search")))).unwrap();
+        assert!(bad.hermes_skills.is_empty() && bad.hermes_skills_installed == ["search"], "a wrong type costs only itself");
     }
 
     #[test]
@@ -1134,6 +1189,12 @@ mod tests {
                 "hermesManaged",
                 "hermesBrain",
                 "assistantName",
+                "assistantPersona",
+                "assistantPersonaText",
+                "hermesSkills",
+                "hermesSkillsInstalled",
+                "phoneAssistant",
+                "phoneHome",
             ]
         );
         let _ = std::fs::remove_dir_all(&dir);

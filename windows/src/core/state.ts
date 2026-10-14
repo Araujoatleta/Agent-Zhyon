@@ -183,8 +183,18 @@ export interface Settings {
   /** Coucou installed or runs Hermes Agent, and the brain it gave it (src-tauri/src/hermes_setup.rs). Rust owns them. */
   hermesManaged?: boolean;
   hermesBrain?: string;
-  /** The name the user gives their assistant ("Zheus"): Hermes is told it answers to it. */
+  /**
+   * The assistant: its name ("Zheus"), tone and own tone, the skill packs wanted and those Coucou installed
+   * (src-tauri/src/hermes_setup.rs). Rust owns them: only Settings → Hermes Agent's commands change them.
+   */
   assistantName?: string;
+  assistantPersona?: string;
+  assistantPersonaText?: string;
+  hermesSkills?: string[];
+  hermesSkillsInstalled?: string[];
+  /** The phone may change the assistant, and use Mochi's home. Rust owns them, like the other phone switches. */
+  phoneAssistant?: boolean;
+  phoneHome?: boolean;
   /** Mochi on the desktop. Rust owns it: whatever the page sends back is ignored. */
   desktopMochi?: {
     onDesktop: boolean;

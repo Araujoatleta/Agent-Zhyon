@@ -1296,7 +1296,14 @@ async function rerender() {
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
 
+/** Brings a section into view: "hermes" when the installer's page set the assistant up (src-tauri/src/first_run.rs). */
+function focusSection(id: string) {
+  if (id !== "hermes") return;
+  document.getElementById("hermes")?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 async function main() {
+  void onEvent<string>("settings-focus", focusSection);
   const boot = await Bridge.boot();
   if (boot) {
     settings = { ...settings, ...boot.settings };
@@ -1309,6 +1316,7 @@ async function main() {
     void rerender();
   });
   await render();
+  if (boot?.focus) focusSection(boot.focus);
 
   void onEvent<ShortcutsReport>("shortcuts-status", (fresh) => shortcutsListener?.report(fresh));
   void onEvent<Settings>("settings-changed", (s) => {
@@ -1370,10 +1378,6 @@ async function render() {
     useInChat: async () => {
       settings.chatProvider = "hermes";
       await save();
-    },
-    setName: (name) => {
-      settings.assistantName = name;
-      void save();
     },
     toggle,
   });

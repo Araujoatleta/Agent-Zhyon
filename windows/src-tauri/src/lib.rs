@@ -9,6 +9,7 @@ mod codex_plan;
 mod config_file;
 mod desktop;
 mod files;
+mod first_run;
 mod github;
 mod hermes;
 mod hermes_setup;
@@ -68,10 +69,13 @@ pub struct BootInfo {
     /// False where the OS has no global cursor (Wayland): the page then reports
     /// the cursor from its own mouse events.
     cursor_poll: bool,
+    /// The settings window only: the section to bring into view once it is drawn ("hermes" after the installer's
+    /// page, first_run.rs), handed out once.
+    focus: Option<String>,
 }
 
 #[tauri::command]
-fn boot(app: AppHandle, shared: State<Shared>) -> BootInfo {
+fn boot(app: AppHandle, window: tauri::WebviewWindow, shared: State<Shared>) -> BootInfo {
     let mut settings = shared.settings.lock().unwrap().clone();
     // The real state of ~/.claude/settings.json wins over whatever we stored.
     let hooks_status = hooks::status();
@@ -84,6 +88,7 @@ fn boot(app: AppHandle, shared: State<Shared>) -> BootInfo {
         version: env!("CARGO_PKG_VERSION").to_string(),
         hook_path: settings::hook_exe_path().to_string_lossy().to_string(),
         cursor_poll: platform::CURSOR_POLL,
+        focus: (window.label() == "settings").then(first_run::take_focus).flatten(),
     }
 }
 
@@ -125,6 +130,14 @@ fn save_settings(app: AppHandle, shared: State<Shared>, settings: Settings) {
         // Whether Coucou runs Hermes, and with which brain: only Settings → Hermes Agent's own commands (hermes_setup).
         settings.hermes_managed = current.hermes_managed;
         settings.hermes_brain = current.hermes_brain.clone();
+        // The assistant's name, tone and skill packs: only Settings → Hermes Agent's own commands (and the phone).
+        settings.assistant_name = current.assistant_name.clone();
+        settings.assistant_persona = current.assistant_persona.clone();
+        settings.assistant_persona_text = current.assistant_persona_text.clone();
+        settings.hermes_skills = current.hermes_skills.clone();
+        settings.hermes_skills_installed = current.hermes_skills_installed.clone();
+        settings.phone_assistant = current.phone_assistant;
+        settings.phone_home = current.phone_home;
         // Mochi's hands too: only Settings → Mochi's hands changes them (agent::agent_settings_set).
         settings.agent_enabled = current.agent_enabled;
         settings.agent_folder = current.agent_folder.clone();
@@ -845,6 +858,11 @@ pub fn run() {
             hermes_setup::hermes_setup_start,
             hermes_setup::hermes_setup_cancel,
             hermes_setup::hermes_gateway_set,
+            hermes_setup::hermes_assistant_set,
+            hermes_setup::hermes_skills_set,
+            hermes_setup::hermes_login_start,
+            hermes_setup::hermes_login_cancel,
+            hermes_setup::hermes_logout,
             phone_link::phone_remote_set,
             phone_link::phone_remote_check,
             phone_link::push::phone_push_test,
@@ -933,6 +951,9 @@ pub fn run() {
             pipe::start(handle.clone());
             phone_link::start_if_enabled(&handle);
             hermes_setup::start_if_managed(&handle);
+            hermes_setup::login_refresh_at_start(&handle);
+            // What the installer's page asked for (setup.exe), once.
+            first_run::run(&handle);
             integrations::start(handle.clone());
             spotify::sync(&handle, &loaded.active_integrations);
             shortcuts::apply(&handle, &loaded.shortcuts);

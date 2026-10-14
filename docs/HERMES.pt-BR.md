@@ -28,10 +28,11 @@ hora, e o Coucou continua leve.
 Você não precisa abrir terminal nem editar arquivo:
 
 1. No Coucou: **Configurações → Hermes Agent**. Em **O nome do seu assistente**, escreva o nome que vai chamar, por
-   exemplo **Zheus**.
-2. Em **O cérebro dele**, escolha uma das IAs que o Coucou já tem (a chave da Anthropic, OpenAI, Google ou OpenRouter
-   que você salvou nas Configurações, ou o Ollama ou LM Studio do computador). Deixe marcado **Deixar ele usar a casa do
-   Mochi** se quiser que ele controle os aparelhos que você marcou.
+   exemplo **Zheus**; escolha **O tom dele** (veja abaixo) e clique em **Salvar**.
+2. Em **O cérebro dele**, escolha **ChatGPT (sua assinatura)** para usar o seu plano ChatGPT Plus ou Pro (veja abaixo),
+   ou uma das IAs que o Coucou já tem (a chave da Anthropic, OpenAI, Google ou OpenRouter que você salvou nas
+   Configurações, ou o Ollama ou LM Studio do computador). Deixe marcado **Deixar ele usar a casa do Mochi** se quiser
+   que ele controle os aparelhos que você marcou, e marque os **pacotes de skills** que quiser (veja abaixo).
 3. Leia **O que o Coucou vai fazer** e clique em **Instalar o Hermes**. O Coucou:
    - baixa o instalador oficial do Hermes do GitHub, numa versão fixa, e **confere o SHA-256** antes de rodar
      qualquer coisa (se não bater, nada roda);
@@ -39,7 +40,10 @@ Você não precisa abrir terminal nem editar arquivo:
      nada, mostrando cada etapa (1 GB e 5 a 15 minutos, mais ou menos). As ferramentas de navegador e de controle da
      tela ficam de fora (o comando `hermes pm install` adiciona depois);
    - configura o cérebro e a casa do Mochi com o próprio `hermes config set`. **A chave de IA nunca vai para um
-     arquivo**: ela fica no cofre do sistema e só é entregue ao Hermes na memória, quando o Coucou o inicia;
+     arquivo**: ela fica no cofre do sistema e só é entregue ao Hermes na memória, quando o Coucou o inicia. Com o
+     ChatGPT não existe chave: o Coucou faz você entrar na sua conta (veja abaixo);
+   - grava o nome e o tom no `SOUL.md` do Hermes (um que já exista ganha uma cópia de segurança antes) e instala os
+     pacotes de skills que você marcou;
    - cria uma chave particular entre o Coucou e o Hermes e liga o servidor do Hermes **só neste computador**
      (`127.0.0.1:8642`), sempre que o Coucou estiver aberto. Se ele parar, o Coucou liga de novo (algumas vezes), e
      fechar o Coucou desliga o Hermes junto;
@@ -54,7 +58,72 @@ roda o seu Hermes, sem mudar as configurações dele (a não ser que você marqu
 servidor do seu Hermes já estiver rodando por conta própria, o Coucou não abre um segundo (o Hermes roda um por
 computador): ele usa a chave do `.env` do Hermes, ou você conecta pelo formulário abaixo.
 
+**Trocar o cérebro dele** dá outro cérebro ao Hermes que o Coucou roda, depois do mesmo tipo de plano: o Coucou para o
+servidor dele, configura o novo cérebro e liga de novo com a nova chave (ou faz você entrar no ChatGPT).
+
 Para tirar o Hermes depois: desligue **Rodar o Hermes com o Coucou** e rode `hermes uninstall`.
+
+### ChatGPT: a sua assinatura, sem chave
+
+Escolha **ChatGPT (sua assinatura)** como cérebro para usar o seu plano **ChatGPT Plus ou Pro** no lugar de uma chave de
+API. É o próprio login do Hermes na OpenAI (`hermes auth add openai-codex`):
+
+- durante a configuração, depois que o Hermes estiver instalado, o Coucou abre a página da OpenAI
+  (`https://auth.openai.com/codex/device`) e mostra um código, grande, nas Configurações, com **Copiar código**,
+  **Abrir a página** e **Cancelar**. Entre lá com a sua conta do ChatGPT e digite o código: ele vale por 15 minutos.
+  Só a página da própria OpenAI é aberta;
+- o Hermes guarda o login no `auth.json` dele, na pasta do Hermes. **O Coucou nunca lê esse arquivo** e nunca vê a sua
+  senha: nada dele vai para as configurações do Coucou, para o log ou para a ligação com o celular;
+- o Hermes usa o modelo `gpt-5.5`, um dos que a OpenAI oferece às contas do ChatGPT;
+- depois, **Entrar com o ChatGPT** e **Sair** ficam embaixo do cérebro dele. Cancelar encerra um login, e o Hermes não
+  guarda nada dele. Os limites são os do seu plano (uma janela de 5 horas e outra semanal): `hermes usage` mostra.
+
+### O nome e o tom dele (SOUL.md)
+
+Em **O tom dele**, escolha **Amigável**, **Direto**, **Profissional**, **Divertido**, **Mordomo (formal e
+espirituoso)** ou **Personalizado** para descrever com as suas palavras (até 1.500 caracteres), e clique em **Salvar**.
+Quando o Coucou roda o Hermes, ele grava o nome e o tom no arquivo de personalidade do Hermes, o `SOUL.md` na pasta do
+Hermes (*"You are Zheus, the user's personal assistant…"*), e também lembra o tom ao Hermes a cada mensagem: a mudança
+vale a partir da sua próxima mensagem.
+
+Um `SOUL.md` que não foi o Coucou que escreveu (o padrão do Hermes, ou o seu) é **copiado antes** para
+`SOUL.backup-AAAAMMDD-HHMMSS.md`, ao lado dele. O do Coucou termina com a linha *"Set up in Coucou (Settings → Hermes
+Agent)…"*, e o Coucou escreve de novo sempre que o nome ou o tom mudam ali. Se você editar o arquivo, apague essa linha:
+assim o Coucou copia a sua versão antes de escrever a próxima. O que você digita como tom fica neste computador, nas
+configurações do Coucou e no `SOUL.md` do Hermes, e nunca vai para o log do Coucou.
+
+### Pacotes de skills
+
+- **Casa do Mochi (TVs, luzes…)**: os aparelhos da casa do Mochi, por MCP (seção 6).
+- **Busca na web grátis (DuckDuckGo)**: a skill oficial `duckduckgo-search` do Hermes, sem chave.
+- **Notícias e feeds (RSS)**: a skill oficial `rss-feeds` do Hermes, sem chave.
+
+O Coucou instala um pacote com o próprio comando do Hermes, `hermes skills install official/research/… --yes` (skills
+oficiais que vêm com o Hermes), e, quando você desmarca, remove com `hermes skills uninstall … --yes`, **só se foi o
+Coucou que instalou**: uma skill que você instalou por conta própria nunca é removida. Enquanto o Coucou roda o Hermes,
+um pacote marcado é instalado na hora; senão, durante a configuração. Um pacote que não instalar aparece nas
+Configurações, e o Hermes roda sem ele.
+
+Já vêm com o Hermes, sem nada para instalar: Google Workspace, Notion, mapas, Obsidian, triagem de e-mail e lembretes
+(as tarefas agendadas dele).
+
+### Direto no instalador (setup.exe)
+
+O instalador do Windows (`setup.exe`) faz as mesmas perguntas numa página própria, **Seu assistente**, logo depois da
+pasta de instalação: **Configurar o assistente agora (recomendado)**, o cérebro (ChatGPT primeiro), a chave de API para
+um cérebro que precise de uma (guardada no Gerenciador de Credenciais do Windows, nunca num arquivo), o nome, o tom, os
+pacotes de skills e **Deixar meu iPhone alterar o assistente e usar a Casa do Mochi**. A página diz o que vai acontecer
+antes do clique: baixar o instalador oficial do Hermes (numa versão fixa, conferida por SHA-256), instalar o Hermes e o
+Python dele na sua pasta de usuário, configurar o cérebro, gravar a personalidade no `SOUL.md` (um que já exista ganha
+uma cópia de segurança) e instalar as skills marcadas.
+
+O instalador deixa as suas escolhas, nunca a chave, em `%APPDATA%\Coucou\setup.json`. Na primeira vez que abre, o
+Coucou lê esse arquivo uma vez, **apaga ele** e começa a mesma configuração do botão Instalar, com as Configurações
+abertas em Hermes Agent: com o ChatGPT, é ali que o código aparece. Depois disso não sobra nada para fazer: é só
+conversar. Numa reinstalação ou atualização a caixa vem desmarcada, então um Hermes já configurado fica como está.
+
+O instalador MSI e o Linux não têm essa página: use Configurações → Hermes Agent como acima. Tudo o que você escolheu no
+`setup.exe` pode ser mudado ali depois, e pelo iPhone pareado quando você deixar.
 
 ## Do jeito manual
 
