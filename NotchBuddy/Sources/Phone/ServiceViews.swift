@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Every service Mochi, connected on the Mac or not.
+/// Every service Mochi, connected on the Mac or not, in one glass card.
 struct ServicesList: View {
     let services: [String: ServiceSnapshot]
 
@@ -18,12 +18,12 @@ struct ServicesList: View {
                     }
                     .buttonStyle(.plain)
                     if id != ids.last {
-                        Divider().padding(.leading, 64)
+                        Divider().overlay(CoucouPalette.hairline).padding(.leading, 64)
                     }
                 }
             }
             .padding(.vertical, 6)
-            .background(Color(white: 0.11), in: RoundedRectangle(cornerRadius: 22))
+            .glassCard()
         }
     }
 }
@@ -42,7 +42,7 @@ struct ServiceRow: View {
                 Text(pill?.name ?? pillId)
                     .font(.body.weight(.semibold))
                     .lineLimit(1)
-                Text(snapshot?.headline ?? "Not connected on your Mac")
+                Text(snapshot?.headline ?? String(localized: "Not connected on your Mac"))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -69,7 +69,8 @@ struct ServiceRow: View {
     }
 }
 
-/// A service Mochi in his own color, like the little ones in the Mac's notch.
+/// A service Mochi in his own color, like the little ones in the Mac's notch. A plain tile, not glass: he sits in
+/// glass cards.
 struct ServiceMochi: View {
     let pillId: String
     let tone: ServiceTone?
@@ -79,7 +80,8 @@ struct ServiceMochi: View {
         let color = PillCatalog.definition(for: pillId)?.color ?? "#C0C4CC"
         MochiLive(state: tone?.botState ?? .sleeping, bodyHex: color, fps: 60)
             .padding(4)
-            .background(Color(white: 0.16), in: RoundedRectangle(cornerRadius: corner))
+            .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: corner, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: corner, style: .continuous).strokeBorder(CoucouPalette.hairline, lineWidth: 0.75))
     }
 }
 
@@ -132,8 +134,8 @@ struct ServiceDetailView: View {
             }
             .padding(16)
         }
-        .background(Color.black)
-        .navigationTitle(pill?.name ?? "Service")
+        .deepBackdrop()
+        .navigationTitle(pill?.name ?? String(localized: "Service"))
         .navigationBarTitleDisplayMode(.inline)
         .task { macSilent = !(await link.requestServiceDetail(pillId)) && link.serviceDetails[pillId] == nil }
         .refreshable {
@@ -183,7 +185,7 @@ struct ServiceDetailView: View {
         .glassCard()
         .overlay {
             if snapshot.tone == .error || snapshot.tone == .warning {
-                RoundedRectangle(cornerRadius: 22).strokeBorder(snapshot.tone.color.opacity(0.7), lineWidth: 1.5)
+                RoundedRectangle(cornerRadius: 22, style: .continuous).strokeBorder(snapshot.tone.color.opacity(0.6), lineWidth: 1.2)
             }
         }
     }
@@ -193,12 +195,12 @@ struct ServiceDetailView: View {
             Text(section.title).font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
             ForEach(Array(section.items.enumerated()), id: \.offset) { index, item in
                 itemRow(item)
-                if index < section.items.count - 1 { Divider() }
+                if index < section.items.count - 1 { Divider().overlay(CoucouPalette.hairline) }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
-        .background(Color(white: 0.11), in: RoundedRectangle(cornerRadius: 22))
+        .glassCard()
     }
 
     @ViewBuilder private func itemRow(_ item: ServiceItem) -> some View {
@@ -242,6 +244,6 @@ struct ServiceDetailView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
-        .background(Color(white: 0.11), in: RoundedRectangle(cornerRadius: 22))
+        .glassCard()
     }
 }

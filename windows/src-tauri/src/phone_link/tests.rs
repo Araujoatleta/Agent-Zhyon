@@ -60,10 +60,15 @@ impl Rig {
     }
 
     async fn start_full(chat: Option<Arc<super::chat::ChatLink>>, features: Arc<dyn server::Features>) -> Rig {
+        Rig::start_links(chat, features, server::Links::default()).await
+    }
+
+    /// With the assistant and Mochi's home wired in, as the app has them.
+    async fn start_links(chat: Option<Arc<super::chat::ChatLink>>, features: Arc<dyn server::Features>, links: server::Links) -> Rig {
         let identity = pairing::load_or_create_identity(&MemStore::default()).unwrap();
         let host = Arc::new(Recorder::default());
         let hub = Hub::new(host.clone());
-        let shared = server::Shared::with_features(hub.clone(), TOKEN.to_string(), "Test PC".to_string(), chat, features);
+        let shared = server::Shared::with_links(hub.clone(), TOKEN.to_string(), "Test PC".to_string(), chat, features, links);
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let port = listener.local_addr().unwrap().port();
         let handle = server::serve(listener, server::tls_acceptor(&identity).unwrap(), shared.clone());
@@ -2113,6 +2118,821 @@ mod remote_tests {
                     break;
                 }
             }
+        });
+    }
+}
+
+// ── The assistant from the phone (assistant.rs) ──────────────────────────────
+
+mod assistant_tests {
+    use super::*;
+    use crate::hermes_setup::{self, Assistant, BrainOption, GatewayState, LoginState, Progress, SetupStatus};
+    use crate::phone_link::assistant::{self, AssistantBackend, AssistantLink};
+    use crate::phone_link::server::{Features, Links};
+    use std::sync::atomic::{AtomicBool, Ordering};
+
+    /// The user's switches: the assistant from the phone, and Mochi's home from the phone (with Mochi's home itself).
+    pub struct Switches {
+        pub assistant: AtomicBool,
+        pub home: AtomicBool,
+    }
+
+    impl Switches {
+        pub fn new(assistant: bool, home: bool) -> Arc<Switches> {
+            Arc::new(Switches { assistant: AtomicBool::new(assistant), home: AtomicBool::new(home) })
+        }
+    }
+
+    impl Features for Switches {
+        fn details(&self) -> bool {
+            false
+        }
+        fn assistant(&self) -> bool {
+            self.assistant.load(Ordering::SeqCst)
+        }
+        fn home(&self) -> bool {
+            self.home.load(Ordering::SeqCst)
+        }
+    }
+
+    /// Zheus as Settings would show it, and what the phone had done to it.
+    pub struct Fake {
+        pub status: Mutex<SetupStatus>,
+        calls: Mutex<Vec<String>>,
+    }
+
+    impl Fake {
+        pub fn new(status: SetupStatus) -> Arc<Fake> {
+            Arc::new(Fake { status: Mutex::new(status), calls: Mutex::new(Vec::new()) })
+        }
+        fn calls(&self) -> Vec<String> {
+            self.calls.lock().unwrap().clone()
+        }
+        fn did(&self, what: String) {
+            self.calls.lock().unwrap().push(what);
+        }
+    }
+
+    impl AssistantBackend for Fake {
+        fn status(&self) -> SetupStatus {
+            self.status.lock().unwrap().clone()
+        }
+        fn set(&self, name: Option<String>, persona: Option<String>, persona_text: Option<String>) -> Result<(), String> {
+            self.did(format!("set {name:?} {persona:?} {persona_text:?}"));
+            Ok(())
+        }
+        fn brain(&self, brain: &str) -> Result<(), String> {
+            self.did(format!("brain {brain}"));
+            Ok(())
+        }
+        fn skills(&self, skills: Vec<String>) -> Result<(), String> {
+            self.did(format!("skills {skills:?}"));
+            Ok(())
+        }
+        fn login(&self) -> Result<(), String> {
+            self.did("login".into());
+            Ok(())
+        }
+        fn login_cancel(&self) {
+            self.did("login cancel".into());
+        }
+        fn gateway(&self, on: bool) {
+            self.did(format!("gateway {on}"));
+        }
+    }
+
+    /// Zheus installed and run by Coucou on ChatGPT, with what a line must never carry in its paths and addresses.
+    pub fn zheus() -> SetupStatus {
+        SetupStatus {
+            installed: true,
+            managed: true,
+            home: r"C:\Users\Lea\AppData\Local\hermes".into(),
+            brains: vec![
+                BrainOption { id: "chatgpt".into(), name: "ChatGPT".into(), ready: true, model: "gpt-5.5".into(), login: true },
+                BrainOption { id: "openai".into(), name: "OpenAI".into(), ready: false, model: String::new(), login: false },
+            ],
+            brain: "chatgpt".into(),
+            progress: Progress::default(),
+            gateway: GatewayState::Running,
+            address: "http://127.0.0.1:8642".into(),
+            commit: "6e7b83a2f1".into(),
+            installer: "https://raw.githubusercontent.com/NousResearch/hermes-agent/6e7b83a2f1/scripts/install.ps1".into(),
+            assistant: Assistant { name: "Zheus".into(), persona: "friendly".into(), persona_text: String::new() },
+            personas: hermes_setup::PERSONAS.iter().map(|p| p.to_string()).collect(),
+            skill_packs: hermes_setup::SKILL_PACKS.iter().map(|p| p.to_string()).collect(),
+            skills: vec!["search".into()],
+            house: true,
+            login: LoginState::SignedIn,
+        }
+    }
+
+    pub fn links(fake: &Arc<Fake>) -> Links {
+        Links { assistant: Some(AssistantLink::new(fake.clone())), home: None }
+    }
+
+    pub async fn phone(rig: &Rig, caps: Option<Value>) -> (Client, Value) {
+        let mut c = Client::connect(rig.port, &rig.fingerprint).await.unwrap();
+        let mut hello = json!({ "type": "hello", "v": 1, "token": TOKEN, "device": "Test phone" });
+        if let Some(caps) = caps {
+            hello["caps"] = caps;
+        }
+        c.send(hello).await;
+        let welcome = c.expect("welcome").await;
+        (c, welcome)
+    }
+
+    /// The answer to the request `id` (the pictures that come meanwhile are skipped). Requests are carried out in order,
+    /// so an answer to anything sent before would come first.
+    async fn result(c: &mut Client, id: &str) -> Value {
+        let m = c.expect("assistantResult").await;
+        assert_eq!(m["id"], id, "{m}");
+        m
+    }
+
+    fn refused(m: &Value) -> (Option<bool>, Option<&str>) {
+        (m["ok"].as_bool(), m["reason"].as_str())
+    }
+
+    #[test]
+    fn the_assistant_is_offered_only_to_a_phone_that_asks_while_the_switch_is_on() {
+        block_on(async {
+            let fake = Fake::new(zheus());
+            let rig = Rig::start_links(None, Switches::new(true, true), links(&fake)).await;
+            let (_c, welcome) = phone(&rig, Some(json!(["assistant", "home"]))).await;
+            assert_eq!(welcome["caps"], json!(["assistant"]), "Mochi's home is not wired in here");
+            let (_c, welcome) = phone(&rig, Some(json!(["chat", "details"]))).await;
+            assert!(welcome.get("caps").is_none(), "{welcome}");
+            let (_c, welcome) = phone(&rig, None).await;
+            assert!(welcome.get("caps").is_none(), "an older phone is never offered it");
+            let off = Rig::start_links(None, Switches::new(false, false), links(&fake)).await;
+            let (_c, welcome) = phone(&off, Some(json!(["assistant"]))).await;
+            assert!(welcome.get("caps").is_none(), "{welcome}");
+            let unwired = Rig::start_full(None, Switches::new(true, true)).await;
+            let (_c, welcome) = phone(&unwired, Some(json!(["assistant", "home"]))).await;
+            assert!(welcome.get("caps").is_none(), "where the app wired nothing in: {welcome}");
+        });
+    }
+
+    #[test]
+    fn the_first_picture_follows_the_sessions_in_the_contracts_shape_and_tells_nothing_it_must_not() {
+        block_on(async {
+            let mut status = zheus();
+            status.gateway = GatewayState::Stopped { reason: r"config.yaml unreadable in C:\Users\Lea\AppData\Local\hermes (http://127.0.0.1:8642)".into() };
+            status.progress = Progress {
+                running: true,
+                step: "Install Python dependencies".into(),
+                done: 2,
+                total: 6,
+                last: "pip install --index-url https://pypi.org/simple".into(),
+                error: Some("token sk-ant-api03-AbCdEfGhIjKlMnOp1234567890 refused by https://api.anthropic.com".into()),
+                finished: false,
+            };
+            status.login = LoginState::Failed { reason: "Login failed: lea.martin@example.com has no Plus plan".into() };
+            let fake = Fake::new(status);
+            let rig = Rig::start_links(None, Switches::new(true, false), links(&fake)).await;
+            let (mut c, _) = phone(&rig, Some(json!(["assistant"]))).await;
+            assert_eq!(c.recv().await.unwrap()["type"], "sessions", "the sessions come first");
+            let m = c.expect("assistant").await;
+            let text = m.to_string();
+            for secret in ["http", "127.0.0.1", "8642", "Lea", "AppData", "example.com", "@", "sk-ant", "pypi", "githubusercontent", "gpt-5.5", "6e7b83a2"] {
+                assert!(!text.contains(secret), "{secret} in {text}");
+            }
+            let mut keys: Vec<&str> = m.as_object().unwrap().keys().map(String::as_str).collect();
+            keys.sort_unstable();
+            assert_eq!(keys, ["brain", "brains", "hermes", "house", "login", "name", "persona", "personaText", "personas", "skillPacks", "skills", "type"]);
+            assert_eq!((m["name"].as_str(), m["persona"].as_str(), m["personaText"].as_str(), m["brain"].as_str()), (Some("Zheus"), Some("friendly"), Some(""), Some("chatgpt")));
+            assert_eq!(m["personas"], json!(["friendly", "direct", "professional", "playful", "butler", "custom"]));
+            assert_eq!(m["brains"], json!([{ "id": "chatgpt", "name": "ChatGPT", "ready": true, "login": true }, { "id": "openai", "name": "OpenAI", "ready": false, "login": false }]));
+            assert_eq!((m["skills"].clone(), m["skillPacks"].clone(), m["house"].clone()), (json!(["search"]), json!(["home", "search", "news"]), json!(true)));
+            assert_eq!(m["hermes"]["installed"], true);
+            assert_eq!(m["hermes"]["managed"], true);
+            assert_eq!(m["hermes"]["gateway"], "stopped");
+            assert!(m["hermes"]["reason"].as_str().unwrap().starts_with("config.yaml unreadable in •••"), "{m}");
+            assert_eq!(m["hermes"]["setup"], json!({ "running": true, "step": "Install Python dependencies", "done": 2, "total": 6, "error": "token ••• refused by •••" }));
+            assert_eq!(m["login"], json!({ "state": "failed", "reason": "Login failed: ••• has no Plus plan" }));
+
+            // A code to type: shown, with OpenAI's page only, whatever was printed.
+            fake.status.lock().unwrap().login = LoginState::Waiting { code: "ABCD-1234".into(), url: "https://auth.openai.com.example.net/device".into(), expires_at: 1_900_000_000_000 };
+            fake.status.lock().unwrap().gateway = GatewayState::Running;
+            c.send(json!({ "type": "assistantGet" })).await;
+            let m = c.expect("assistant").await;
+            assert_eq!(m["login"], json!({ "state": "waiting", "code": "ABCD-1234", "url": "https://auth.openai.com/codex/device", "expiresAt": 1_900_000_000_000u64 }));
+            assert_eq!((m["hermes"]["gateway"].as_str(), m["hermes"]["reason"].as_str()), (Some("running"), Some("")));
+        });
+    }
+
+    #[test]
+    fn each_request_is_checked_carried_out_and_answered_once_by_its_id() {
+        block_on(async {
+            let fake = Fake::new(zheus());
+            let rig = Rig::start_links(None, Switches::new(true, false), links(&fake)).await;
+            let (mut c, _) = phone(&rig, Some(json!(["assistant"]))).await;
+            c.expect("assistant").await;
+            c.send(json!({ "type": "assistantSet", "id": "a1", "name": " Athena ", "persona": "butler" })).await;
+            assert_eq!(result(&mut c, "a1").await, json!({ "type": "assistantResult", "id": "a1", "ok": true }));
+            for (id, mut bad) in [
+                ("a2", json!({ "type": "assistantSet", "name": "two\nlines" })),
+                ("a3", json!({ "type": "assistantSet", "name": "x".repeat(41) })),
+                ("a4", json!({ "type": "assistantSet", "persona": "pirate" })),
+                ("a5", json!({ "type": "assistantSet", "persona": "custom", "personaText": "é".repeat(1501) })),
+                ("a6", json!({ "type": "assistantSet" })),
+                ("a7", json!({ "type": "assistantSkills", "skills": ["home"] })),
+                ("a8", json!({ "type": "assistantSkills", "skills": ["search", "weather"] })),
+                ("a9", json!({ "type": "assistantBrain", "brain": "skynet" })),
+                ("a10", json!({ "type": "assistantGateway", "on": "yes" })),
+            ] {
+                bad["id"] = json!(id);
+                c.send(bad).await;
+                let m = result(&mut c, id).await;
+                assert_eq!(refused(&m), (Some(false), Some("invalid")), "{m}");
+                assert_eq!(m["message"], assistant::reason("invalid"));
+            }
+            c.send(json!({ "type": "assistantBrain", "id": "b1", "brain": "openai" })).await;
+            assert_eq!(refused(&result(&mut c, "b1").await), (Some(false), Some("not_ready")), "no key for it on the computer");
+            for (id, mut good) in [
+                ("c1", json!({ "type": "assistantSkills", "skills": ["search", "news"] })),
+                ("c2", json!({ "type": "assistantBrain", "brain": "chatgpt" })),
+                ("c3", json!({ "type": "assistantLogin" })),
+                ("c4", json!({ "type": "assistantLoginCancel" })),
+                ("c5", json!({ "type": "assistantGateway", "on": false })),
+            ] {
+                good["id"] = json!(id);
+                c.send(good).await;
+                assert_eq!(result(&mut c, id).await["ok"], true);
+            }
+            assert_eq!(
+                fake.calls(),
+                [r#"set Some("Athena") Some("butler") None"#, r#"skills ["search", "news"]"#, "brain chatgpt", "login", "login cancel", "gateway false"]
+            );
+
+            // Without a usable id, or of a type this computer does not know: ignored, and nothing is carried out.
+            c.send(json!({ "type": "assistantSet", "name": "Nobody" })).await;
+            c.send(json!({ "type": "assistantSet", "id": "", "name": "Nobody" })).await;
+            c.send(json!({ "type": "assistantSet", "id": "x".repeat(65), "name": "Nobody" })).await;
+            c.send(json!({ "type": "assistantSelfDestruct", "id": "d1" })).await;
+            c.send(json!({ "type": "assistantResult", "id": "d2", "ok": true })).await;
+            c.send(json!({ "type": "assistantLoginCancel", "id": "d3" })).await;
+            assert_eq!(result(&mut c, "d3").await["ok"], true, "the next answer is the last request's");
+            assert_eq!(fake.calls().len(), 7);
+        });
+    }
+
+    #[test]
+    fn a_brain_and_skills_only_for_a_hermes_coucou_runs_and_nothing_is_ever_installed_from_the_phone() {
+        block_on(async {
+            let mut status = zheus();
+            status.installed = false;
+            status.managed = false;
+            let fake = Fake::new(status);
+            let rig = Rig::start_links(None, Switches::new(true, false), links(&fake)).await;
+            let (mut c, _) = phone(&rig, Some(json!(["assistant"]))).await;
+            c.expect("assistant").await;
+            let ask = |id: &'static str, mut msg: Value| {
+                msg["id"] = json!(id);
+                msg
+            };
+            for (id, msg) in [
+                ("n1", json!({ "type": "assistantBrain", "brain": "chatgpt" })),
+                ("n2", json!({ "type": "assistantSkills", "skills": ["search"] })),
+                ("n3", json!({ "type": "assistantLogin" })),
+                ("n4", json!({ "type": "assistantGateway", "on": true })),
+            ] {
+                c.send(ask(id, msg)).await;
+                let m = result(&mut c, id).await;
+                assert_eq!(refused(&m), (Some(false), Some("not_installed")), "{m}");
+                assert_eq!(m["message"], assistant::reason("not_installed"));
+            }
+            // Installed, but not run by Coucou: its brain and packs are not the phone's to change.
+            fake.status.lock().unwrap().installed = true;
+            c.send(ask("m1", json!({ "type": "assistantBrain", "brain": "chatgpt" }))).await;
+            assert_eq!(refused(&result(&mut c, "m1").await), (Some(false), Some("not_installed")));
+            c.send(ask("m2", json!({ "type": "assistantSkills", "skills": [] }))).await;
+            assert_eq!(refused(&result(&mut c, "m2").await), (Some(false), Some("not_installed")));
+            // The name and the tone are the assistant's own, whoever runs it.
+            c.send(ask("m3", json!({ "type": "assistantSet", "name": "Athena" }))).await;
+            assert_eq!(result(&mut c, "m3").await["ok"], true);
+            // While a setup runs, a new brain waits.
+            {
+                let mut s = fake.status.lock().unwrap();
+                s.managed = true;
+                s.progress.running = true;
+            }
+            c.send(ask("m4", json!({ "type": "assistantBrain", "brain": "chatgpt" }))).await;
+            assert_eq!(refused(&result(&mut c, "m4").await), (Some(false), Some("busy")));
+            // A sign-in that already shows its code is the one the phone wants: nothing new is started.
+            {
+                let mut s = fake.status.lock().unwrap();
+                s.progress.running = false;
+                s.login = LoginState::Waiting { code: "ABCD-1234".into(), url: hermes_setup::LOGIN_URL.into(), expires_at: 1_900_000_000_000 };
+            }
+            c.send(ask("m5", json!({ "type": "assistantLogin" }))).await;
+            assert_eq!(result(&mut c, "m5").await["ok"], true);
+            assert_eq!(fake.calls(), [r#"set Some("Athena") None None"#]);
+        });
+    }
+
+    #[test]
+    fn the_switch_is_read_again_for_every_request() {
+        block_on(async {
+            let fake = Fake::new(zheus());
+            let switches = Switches::new(true, false);
+            let rig = Rig::start_links(None, switches.clone(), links(&fake)).await;
+            let (mut c, _) = phone(&rig, Some(json!(["assistant"]))).await;
+            c.expect("assistant").await;
+            switches.assistant.store(false, Ordering::SeqCst);
+            c.send(json!({ "type": "assistantGet" })).await;
+            c.send(json!({ "type": "assistantSet", "id": "o1", "name": "Athena" })).await;
+            let m = c.recv().await.unwrap();
+            assert_eq!(m["type"], "assistantResult", "no picture any more: {m}");
+            assert_eq!(refused(&m), (Some(false), Some("off")));
+            assert_eq!(m["message"], assistant::reason("off"));
+            assert!(fake.calls().is_empty());
+        });
+    }
+
+    #[test]
+    fn at_most_twenty_requests_in_ten_minutes_per_connection() {
+        block_on(async {
+            let fake = Fake::new(zheus());
+            let rig = Rig::start_links(None, Switches::new(true, false), links(&fake)).await;
+            let (mut c, _) = phone(&rig, Some(json!(["assistant"]))).await;
+            c.expect("assistant").await;
+            for n in 0..assistant::MAX_REQUESTS {
+                let id = format!("r{n}");
+                c.send(json!({ "type": "assistantLoginCancel", "id": id })).await;
+                assert_eq!(result(&mut c, &id).await["ok"], true);
+            }
+            c.send(json!({ "type": "assistantLoginCancel", "id": "over" })).await;
+            let m = result(&mut c, "over").await;
+            assert_eq!(refused(&m), (Some(false), Some("rate")));
+            assert_eq!(m["message"], assistant::reason("rate"));
+            assert_eq!(fake.calls().len(), assistant::MAX_REQUESTS);
+            // The picture is still there to read, and another connection has its own count.
+            c.send(json!({ "type": "assistantGet" })).await;
+            c.expect("assistant").await;
+            let (mut other, _) = phone(&rig, Some(json!(["assistant"]))).await;
+            other.send(json!({ "type": "assistantLoginCancel", "id": "o1" })).await;
+            assert_eq!(result(&mut other, "o1").await["ok"], true);
+        });
+    }
+
+    #[test]
+    fn a_burst_of_changes_reaches_the_phones_twice_a_second_at_most_and_the_latest_last() {
+        block_on(async {
+            let fake = Fake::new(zheus());
+            let link = AssistantLink::new(fake.clone());
+            let rig = Rig::start_links(None, Switches::new(true, false), Links { assistant: Some(link.clone()), home: None }).await;
+            let (mut old, _) = phone(&rig, None).await;
+            assert!(!rig.hub.wants_assistant(), "no phone has it: no picture is made");
+            let (mut c, _) = phone(&rig, Some(json!(["assistant"]))).await;
+            c.expect("assistant").await;
+            assert!(rig.hub.wants_assistant());
+            let picture = |name: &str| json!({ "type": "assistant", "name": name }).to_string();
+            assert_eq!(link.changed(&rig.hub, picture("A"), 10_000), None, "the first one goes at once");
+            assert_eq!(c.expect("assistant").await["name"], "A");
+            assert_eq!(link.changed(&rig.hub, picture("B"), 10_100), Some(400));
+            assert_eq!(link.changed(&rig.hub, picture("C"), 10_200), None, "a send is planned already");
+            link.due(&rig.hub, 10_500);
+            assert_eq!(c.expect("assistant").await["name"], "C", "the latest; B never went");
+            // The same picture again is sent once.
+            assert_eq!(link.changed(&rig.hub, picture("C"), 20_000), None);
+            c.send(json!({ "type": "ping" })).await;
+            assert_eq!(c.recv().await.unwrap()["type"], "pong");
+            // A phone that did not ask never hears of the assistant.
+            old.send(json!({ "type": "ping" })).await;
+            loop {
+                let m = old.recv().await.expect("closed");
+                assert_ne!(m["type"], "assistant");
+                if m["type"] == "pong" {
+                    break;
+                }
+            }
+        });
+    }
+
+    #[test]
+    fn a_phone_sent_its_own_picture_still_hears_of_the_next_change_even_back_to_the_last_one() {
+        block_on(async {
+            let fake = Fake::new(zheus());
+            let link = AssistantLink::new(fake.clone());
+            let rig = Rig::start_links(None, Switches::new(true, false), Links { assistant: Some(link.clone()), home: None }).await;
+            let (mut c, _) = phone(&rig, Some(json!(["assistant"]))).await;
+            c.expect("assistant").await;
+            let picture = |name: &str| json!({ "type": "assistant", "name": name }).to_string();
+            assert_eq!(link.changed(&rig.hub, picture("A"), 10_000), None);
+            assert_eq!(c.expect("assistant").await["name"], "A");
+            // Its own picture (it asked, or it came back while nobody was told of a change): Zheus as it is now.
+            c.send(json!({ "type": "assistantGet" })).await;
+            assert_eq!(c.expect("assistant").await["name"], "Zheus");
+            // "A" again is news to it.
+            assert_eq!(link.changed(&rig.hub, picture("A"), 20_000), None);
+            assert_eq!(c.expect("assistant").await["name"], "A");
+        });
+    }
+}
+
+// ── Mochi's home from the phone (home.rs) ────────────────────────────────────
+
+mod home_link_tests {
+    use super::assistant_tests::{phone, zheus, Fake, Switches};
+    use super::*;
+    use crate::phone_link::assistant::AssistantLink;
+    use crate::phone_link::chat::BoxFuture;
+    use crate::phone_link::home::{self, tests::house, HomeBackend, HomeLink, HomePicture};
+    use crate::phone_link::server::Links;
+    use crate::smart_home::config::TvConf;
+    use crate::smart_home::journal::Entry;
+    use crate::smart_home::model::{Action, Channel};
+    use crate::smart_home::routines::Routine;
+    use crate::smart_home::Outcome;
+    use std::sync::atomic::Ordering;
+    use tokio::io::AsyncWriteExt;
+    use tokio::sync::Notify;
+
+    /// The house, what reached its devices, and how an action ends.
+    struct FakeHouse {
+        picture: Mutex<HomePicture>,
+        done: Mutex<Vec<String>>,
+        /// What a device answers: it worked, and its words.
+        answer: Mutex<(bool, String)>,
+        /// Set: an action waits for it before it ends.
+        gate: Mutex<Option<Arc<Notify>>>,
+    }
+
+    impl FakeHouse {
+        fn new(picture: HomePicture) -> Arc<FakeHouse> {
+            Arc::new(FakeHouse { picture: Mutex::new(picture), done: Mutex::new(Vec::new()), answer: Mutex::new((true, "On · 40%".into())), gate: Mutex::new(None) })
+        }
+        fn done(&self) -> Vec<String> {
+            self.done.lock().unwrap().clone()
+        }
+    }
+
+    impl HomeBackend for FakeHouse {
+        fn picture(&self) -> BoxFuture<HomePicture> {
+            let p = self.picture.lock().unwrap().clone();
+            Box::pin(async move { p })
+        }
+        fn control(&self, device: String, action: Action) -> BoxFuture<Outcome> {
+            self.done.lock().unwrap().push(format!("{device} {}", action.word().0));
+            let (gate, (ok, detail)) = (self.gate.lock().unwrap().clone(), self.answer.lock().unwrap().clone());
+            Box::pin(async move {
+                if let Some(gate) = gate {
+                    gate.notified().await;
+                }
+                Outcome { ok, text: "Done.".into(), detail }
+            })
+        }
+        fn run_routine(&self, routine: Routine) -> BoxFuture<Outcome> {
+            self.done.lock().unwrap().push(format!("routine {}", routine.id));
+            Box::pin(async { Outcome { ok: true, text: "Done.".into(), detail: "1 of 1 steps done".into() } })
+        }
+    }
+
+    fn links(house: &Arc<FakeHouse>) -> Links {
+        Links { assistant: None, home: Some(HomeLink::new(house.clone())) }
+    }
+
+    /// A phone that has `home`, past its first picture of the house.
+    async fn home_phone(rig: &Rig) -> Client {
+        let (mut c, welcome) = phone(rig, Some(json!(["home"]))).await;
+        assert_eq!(welcome["caps"], json!(["home"]));
+        c.expect("home").await;
+        c
+    }
+
+    fn control(id: &str, device: &str, action: &str, value: Value, confirmed: Value) -> Value {
+        json!({ "type": "homeControl", "id": id, "device": device, "action": action, "value": value, "confirmed": confirmed })
+    }
+
+    async fn result(c: &mut Client, id: &str) -> Value {
+        let m = c.expect("homeResult").await;
+        assert_eq!(m["id"], id, "{m}");
+        m
+    }
+
+    async fn refusal(c: &mut Client, id: &str) -> String {
+        let m = result(c, id).await;
+        assert_eq!(m["ok"], false, "{m}");
+        let code = m["reason"].as_str().unwrap().to_string();
+        if code != "failed" {
+            assert_eq!(m["message"], home::reason(&code), "a fixed message");
+        }
+        code
+    }
+
+    /// Reads up to the pong, saying what came before it.
+    async fn before_pong(c: &mut Client) -> Vec<String> {
+        c.send(json!({ "type": "ping" })).await;
+        let mut seen = Vec::new();
+        loop {
+            let m = c.recv().await.expect("closed");
+            if m["type"] == "pong" {
+                return seen;
+            }
+            seen.push(m["type"].as_str().unwrap_or("").to_string());
+        }
+    }
+
+    #[test]
+    fn home_is_offered_only_to_a_phone_that_asks_while_its_switches_are_on() {
+        block_on(async {
+            let house = FakeHouse::new(house());
+            let rig = Rig::start_links(None, Switches::new(true, true), links(&house)).await;
+            let (_c, welcome) = phone(&rig, Some(json!(["assistant", "home"]))).await;
+            assert_eq!(welcome["caps"], json!(["home"]), "the assistant is not wired in here");
+            let (_c, welcome) = phone(&rig, None).await;
+            assert!(welcome.get("caps").is_none(), "an older phone is never offered it");
+            let off = Rig::start_links(None, Switches::new(true, false), links(&house)).await;
+            let (_c, welcome) = phone(&off, Some(json!(["home"]))).await;
+            assert!(welcome.get("caps").is_none(), "{welcome}");
+            // Both, when both are wired in and on.
+            let both = Links { assistant: Some(AssistantLink::new(Fake::new(zheus()))), home: Some(HomeLink::new(house.clone())) };
+            let rig = Rig::start_links(None, Switches::new(true, true), both).await;
+            let (_c, welcome) = phone(&rig, Some(json!(["home", "assistant", "details"]))).await;
+            assert_eq!(welcome["caps"], json!(["assistant", "home"]));
+        });
+    }
+
+    #[test]
+    fn the_house_follows_the_sessions_with_only_the_ticked_devices_and_nothing_that_says_where_they_are() {
+        block_on(async {
+            let mut p = house();
+            p.devices[1].name = "TV 192.168.1.20".into();
+            p.devices[1].apps = vec!["http://192.168.1.20:8000/stream".into(), "YouTube".into()];
+            p.devices[1].channels.push(Channel { number: "9".into(), name: "A4:B1:C2:D3:E4:F5".into() });
+            p.devices[1].state.app = Some("http://homeassistant.local:8123/api/camera_proxy/camera.porta?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9abc123".into());
+            p.log.push(Entry {
+                at: "2026-10-13 21:06:00".into(),
+                origin: "phone".into(),
+                device: "TV da sala".into(),
+                action: "Turn on".into(),
+                ok: false,
+                detail: "Not a valid address: tv-sala.lan (MAC a4-b1-c2-d3-e4-f5), key sk-test-0123456789abcdefghijkl".into(),
+            });
+            let tv = TvConf { host: "tv-sala.lan".into(), mac: "A4:B1:C2:D3:E4:F5".into(), ..TvConf::default() };
+            p.hidden = home::hidden_of("http://homeassistant.local:8123", &[tv]);
+            let house = FakeHouse::new(p);
+            let rig = Rig::start_links(None, Switches::new(false, true), links(&house)).await;
+            let (mut c, _) = phone(&rig, Some(json!(["home"]))).await;
+            assert_eq!(c.recv().await.unwrap()["type"], "sessions", "the sessions come first");
+            let m = c.expect("home").await;
+            let text = m.to_string();
+            for secret in ["http", "192.168.", "homeassistant", "tv-sala", "A4:B1", "a4-b1", "eyJ0", "sk-test", "8123", "token="] {
+                assert!(!text.contains(secret), "{secret} in {text}");
+            }
+            let ids: Vec<&str> = m["devices"].as_array().unwrap().iter().map(|d| d["id"].as_str().unwrap()).collect();
+            assert_eq!(ids, ["ha:light.sala", "samsung:1a2b3c4d", "ha:switch.aquecedor"], "never a device the user did not tick for Mochi");
+            assert_eq!(m["devices"][1]["apps"][1], "YouTube");
+            assert_eq!(m["routines"].as_array().unwrap().len(), 2);
+            assert_eq!(m["log"].as_array().unwrap().len(), 2);
+            assert!(house.done().is_empty(), "showing the house acts on nothing");
+        });
+    }
+
+    #[test]
+    fn an_action_is_answered_by_its_id_then_every_phone_with_home_gets_the_house_again() {
+        block_on(async {
+            let house = FakeHouse::new(house());
+            let rig = Rig::start_links(None, Switches::new(false, true), links(&house)).await;
+            let mut c = home_phone(&rig).await;
+            let mut other = home_phone(&rig).await;
+            let (mut old, _) = phone(&rig, None).await;
+            c.send(control("h1", "ha:light.sala", "set_brightness", json!(40), json!(false))).await;
+            assert_eq!(result(&mut c, "h1").await, json!({ "type": "homeResult", "id": "h1", "ok": true, "detail": "On · 40%" }));
+            assert_eq!(c.expect("home").await["devices"][0]["id"], "ha:light.sala", "the house as it is afterwards");
+            assert_eq!(other.expect("home").await["type"], "home");
+            assert_eq!(house.done(), ["ha:light.sala set_brightness"]);
+            assert!(before_pong(&mut old).await.iter().all(|t| !t.starts_with("home")), "a phone that did not ask hears nothing of the house");
+            // A device that says why it did not go through: its words, cleaned.
+            *house.answer.lock().unwrap() = (false, "Not a valid address: 192.168.1.20".into());
+            c.send(control("h2", "ha:light.sala", "turn_off", Value::Null, json!(false))).await;
+            assert_eq!(result(&mut c, "h2").await, json!({ "type": "homeResult", "id": "h2", "ok": false, "reason": "failed", "message": "Not a valid address: •••" }));
+            // A routine.
+            c.send(json!({ "type": "homeRoutine", "id": "h3", "routine": "r-0a1b2c3d4e5f" })).await;
+            assert_eq!(result(&mut c, "h3").await["detail"], "1 of 1 steps done");
+            assert_eq!(house.done(), ["ha:light.sala set_brightness", "ha:light.sala turn_off", "routine r-0a1b2c3d4e5f"]);
+        });
+    }
+
+    #[test]
+    fn a_device_or_a_routine_that_asks_first_waits_for_the_phones_confirmation() {
+        block_on(async {
+            let house = FakeHouse::new(house());
+            let rig = Rig::start_links(None, Switches::new(false, true), links(&house)).await;
+            let mut c = home_phone(&rig).await;
+            c.send(control("p1", "ha:switch.aquecedor", "turn_on", Value::Null, json!(false))).await;
+            assert_eq!(refusal(&mut c, "p1").await, "confirm", "a plug asks first");
+            c.send(control("p2", "ha:switch.aquecedor", "turn_on", Value::Null, json!("yes"))).await;
+            assert_eq!(refusal(&mut c, "p2").await, "confirm", "only true confirms");
+            c.send(json!({ "type": "homeRoutine", "id": "p3", "routine": "r-aaaaaaaaaaaa" })).await;
+            assert_eq!(refusal(&mut c, "p3").await, "confirm", "its step is on the plug");
+            assert!(house.done().is_empty(), "nothing reached a device");
+            c.send(control("p4", "ha:switch.aquecedor", "turn_on", Value::Null, json!(true))).await;
+            assert_eq!(result(&mut c, "p4").await["ok"], true);
+            c.send(json!({ "type": "homeRoutine", "id": "p5", "routine": "r-aaaaaaaaaaaa", "confirmed": true })).await;
+            assert_eq!(result(&mut c, "p5").await["ok"], true);
+            // "Ask before every action" makes everything ask.
+            house.picture.lock().unwrap().ask_all = true;
+            c.send(control("p6", "ha:light.sala", "turn_on", Value::Null, json!(false))).await;
+            assert_eq!(refusal(&mut c, "p6").await, "confirm");
+            c.send(json!({ "type": "homeRoutine", "id": "p7", "routine": "r-0a1b2c3d4e5f" })).await;
+            assert_eq!(refusal(&mut c, "p7").await, "confirm");
+            assert_eq!(house.done(), ["ha:switch.aquecedor turn_on", "routine r-aaaaaaaaaaaa"]);
+        });
+    }
+
+    #[test]
+    fn a_wrong_action_or_a_device_the_phone_may_not_use_never_reaches_a_device() {
+        block_on(async {
+            let house = FakeHouse::new(house());
+            let rig = Rig::start_links(None, Switches::new(false, true), links(&house)).await;
+            let mut c = home_phone(&rig).await;
+            for (id, mut msg, code) in [
+                ("w1", json!({ "type": "homeControl", "device": "ha:light.sala", "action": "self_destruct" }), "invalid"),
+                ("w2", json!({ "type": "homeControl", "device": "ha:light.sala", "action": "set_brightness", "value": 140 }), "invalid"),
+                ("w3", json!({ "type": "homeControl", "device": "ha:light.sala", "action": "set_brightness", "value": [40] }), "invalid"),
+                ("w4", json!({ "type": "homeControl", "device": "", "action": "turn_on" }), "invalid"),
+                ("w5", json!({ "type": "homeRoutine", "routine": 7 }), "invalid"),
+                ("w6", json!({ "type": "homeControl", "device": "ha:light.gone", "action": "turn_on" }), "unknown"),
+                ("w7", json!({ "type": "homeControl", "device": "samsung:0badc0de", "action": "turn_on", "confirmed": true }), "unknown"),
+                ("w8", json!({ "type": "homeControl", "device": "ha:light.sala", "action": "open_app", "value": "YouTube" }), "invalid"),
+                ("w9", json!({ "type": "homeRoutine", "routine": "r-missing", "confirmed": true }), "unknown"),
+            ] {
+                msg["id"] = json!(id);
+                c.send(msg).await;
+                assert_eq!(refusal(&mut c, id).await, code, "{id}");
+            }
+            // Without a usable id, or of a type this computer does not know: ignored.
+            c.send(json!({ "type": "homeControl", "device": "ha:light.sala", "action": "turn_on" })).await;
+            c.send(control(&"x".repeat(65), "ha:light.sala", "turn_on", Value::Null, json!(true))).await;
+            c.send(json!({ "type": "homeUnlockTheDoor", "id": "x1" })).await;
+            c.send(json!({ "type": "homeResult", "id": "x2", "ok": true })).await;
+            assert!(before_pong(&mut c).await.iter().all(|t| t == "home"), "no answer to any of them");
+            assert!(house.done().is_empty());
+        });
+    }
+
+    #[test]
+    fn one_action_at_a_time_on_the_computer() {
+        block_on(async {
+            let house = FakeHouse::new(house());
+            let gate = Arc::new(Notify::new());
+            *house.gate.lock().unwrap() = Some(gate.clone());
+            let rig = Rig::start_links(None, Switches::new(false, true), links(&house)).await;
+            let mut a = home_phone(&rig).await;
+            let mut b = home_phone(&rig).await;
+            a.send(control("a1", "ha:light.sala", "turn_on", Value::Null, json!(false))).await;
+            // Its line is read before the ping's: once the pong is there, the action holds the computer's place.
+            a.send(json!({ "type": "ping" })).await;
+            a.expect("pong").await;
+            b.send(control("b1", "ha:light.sala", "turn_off", Value::Null, json!(false))).await;
+            assert_eq!(refusal(&mut b, "b1").await, "busy");
+            b.send(json!({ "type": "homeRoutine", "id": "b2", "routine": "r-0a1b2c3d4e5f" })).await;
+            assert_eq!(refusal(&mut b, "b2").await, "busy");
+            gate.notify_one();
+            assert_eq!(result(&mut a, "a1").await["ok"], true);
+            *house.gate.lock().unwrap() = None;
+            b.send(control("b3", "ha:light.sala", "turn_off", Value::Null, json!(false))).await;
+            assert_eq!(result(&mut b, "b3").await["ok"], true, "the place is free again");
+            assert_eq!(house.done(), ["ha:light.sala turn_on", "ha:light.sala turn_off"]);
+        });
+    }
+
+    #[test]
+    fn at_most_thirty_actions_in_ten_minutes_per_connection_and_what_sent_nothing_does_not_count() {
+        block_on(async {
+            let house = FakeHouse::new(house());
+            let rig = Rig::start_links(None, Switches::new(false, true), links(&house)).await;
+            let mut c = home_phone(&rig).await;
+            for n in 0..5 {
+                let id = format!("q{n}");
+                c.send(control(&id, "ha:switch.aquecedor", "turn_on", Value::Null, json!(false))).await;
+                assert_eq!(refusal(&mut c, &id).await, "confirm");
+            }
+            for n in 0..home::MAX_ACTIONS {
+                let id = format!("n{n}");
+                c.send(control(&id, "ha:light.sala", "turn_on", Value::Null, json!(false))).await;
+                assert_eq!(result(&mut c, &id).await["ok"], true, "{id}");
+            }
+            c.send(control("over", "ha:light.sala", "turn_on", Value::Null, json!(false))).await;
+            assert_eq!(refusal(&mut c, "over").await, "rate");
+            assert_eq!(house.done().len(), home::MAX_ACTIONS);
+            // Another connection has its own count.
+            let mut other = home_phone(&rig).await;
+            other.send(control("o1", "ha:light.sala", "turn_off", Value::Null, json!(false))).await;
+            assert_eq!(result(&mut other, "o1").await["ok"], true);
+        });
+    }
+
+    #[test]
+    fn the_switches_are_read_again_for_every_action() {
+        block_on(async {
+            let house = FakeHouse::new(house());
+            let switches = Switches::new(false, true);
+            let rig = Rig::start_links(None, switches.clone(), links(&house)).await;
+            let mut c = home_phone(&rig).await;
+            switches.home.store(false, Ordering::SeqCst);
+            c.send(json!({ "type": "homeGet" })).await;
+            c.send(control("f1", "ha:light.sala", "turn_on", Value::Null, json!(true))).await;
+            let m = c.recv().await.unwrap();
+            assert_eq!(m["type"], "homeResult", "no picture any more: {m}");
+            assert_eq!((m["ok"].as_bool(), m["reason"].as_str()), (Some(false), Some("off")));
+            // Mochi's home itself switched off between the phone's request and its turn.
+            switches.home.store(true, Ordering::SeqCst);
+            house.picture.lock().unwrap().enabled = false;
+            c.send(control("f2", "ha:light.sala", "turn_on", Value::Null, json!(true))).await;
+            assert_eq!(refusal(&mut c, "f2").await, "off");
+            assert!(house.done().is_empty());
+        });
+    }
+
+    #[test]
+    fn a_big_house_still_comes_in_one_line_under_60_kib() {
+        block_on(async {
+            let mut p = house();
+            let tv = p.devices[1].clone();
+            p.devices = (0..130)
+                .map(|i| crate::smart_home::model::Device {
+                    id: format!("samsung:{i:08x}"),
+                    apps: (0..80).map(|n| format!("App {n} {}", "x".repeat(40))).collect(),
+                    channels: (0..90).map(|n| Channel { number: n.to_string(), name: format!("Canal {n} {}", "y".repeat(40)) }).collect(),
+                    ..tv.clone()
+                })
+                .collect();
+            p.log = (0..45).map(|n| Entry { detail: "z".repeat(250), device: format!("TV {n}"), ..p.log[0].clone() }).collect();
+            let house = FakeHouse::new(p);
+            let rig = Rig::start_links(None, Switches::new(false, true), links(&house)).await;
+            let (mut c, _) = phone(&rig, Some(json!(["home"]))).await;
+            let mut line = String::new();
+            loop {
+                line.clear();
+                tokio::time::timeout(Duration::from_secs(3), c.r.read_line(&mut line)).await.unwrap().unwrap();
+                if line.contains("\"type\":\"home\"") {
+                    break;
+                }
+            }
+            assert!(line.len() < home::LINE_LIMIT, "{} bytes", line.len());
+            let m: Value = serde_json::from_str(&line).unwrap();
+            assert_eq!(m["devices"].as_array().unwrap().len(), home::MAX_DEVICES);
+        });
+    }
+
+    #[test]
+    fn turning_the_link_off_stops_the_phones_action_and_frees_the_place() {
+        block_on(async {
+            let house = FakeHouse::new(house());
+            *house.gate.lock().unwrap() = Some(Arc::new(Notify::new()));
+            let link = HomeLink::new(house.clone());
+            let mut rig = Rig::start_links(None, Switches::new(false, true), Links { assistant: None, home: Some(link.clone()) }).await;
+            let mut c = home_phone(&rig).await;
+            c.send(control("s1", "ha:light.sala", "turn_on", Value::Null, json!(false))).await;
+            c.send(json!({ "type": "ping" })).await;
+            c.expect("pong").await;
+            rig.handle.take().unwrap().stop();
+            // The link on again, with the same home: the place the stopped action held is free.
+            *house.gate.lock().unwrap() = None;
+            let again = Rig::start_links(None, Switches::new(false, true), Links { assistant: None, home: Some(link) }).await;
+            let mut c = home_phone(&again).await;
+            c.send(control("s2", "ha:light.sala", "turn_off", Value::Null, json!(false))).await;
+            assert_eq!(result(&mut c, "s2").await["ok"], true);
+        });
+    }
+
+    /// The relay (relay_client.rs) runs the very conversation of the local network over its own stream:
+    /// `server::run_with`. Over memory here, the capabilities ride along the same.
+    #[test]
+    fn the_relays_way_in_offers_and_carries_them_the_same() {
+        block_on(async {
+            let fake = Fake::new(zheus());
+            let house = FakeHouse::new(house());
+            let links = Links { assistant: Some(AssistantLink::new(fake.clone())), home: Some(HomeLink::new(house.clone())) };
+            let shared = server::Shared::with_links(Hub::new(Arc::new(Recorder::default())), TOKEN.into(), "PC".into(), None, Switches::new(true, true), links);
+            let (near, far) = tokio::io::duplex(256 * 1024);
+            tokio::spawn(async move { server::run_with(far, &shared, None).await });
+            let (r, mut w) = tokio::io::split(near);
+            let mut r = BufReader::new(r);
+            let line = |v: Value| format!("{v}\n");
+            let hello = line(json!({ "type": "hello", "v": 1, "token": TOKEN, "device": "Relay phone", "caps": ["assistant", "home"] }));
+            w.write_all(hello.as_bytes()).await.unwrap();
+            let mut types = Vec::new();
+            let mut welcome = Value::Null;
+            while types.len() < 4 {
+                let mut line = String::new();
+                tokio::time::timeout(Duration::from_secs(3), r.read_line(&mut line)).await.unwrap().unwrap();
+                let m: Value = serde_json::from_str(&line).unwrap();
+                if m["type"] == "welcome" {
+                    welcome = m.clone();
+                }
+                types.push(m["type"].as_str().unwrap().to_string());
+            }
+            assert_eq!(welcome["caps"], json!(["assistant", "home"]));
+            assert_eq!(types[..2], ["welcome", "sessions"]);
+            assert!(types.contains(&"assistant".to_string()) && types.contains(&"home".to_string()), "{types:?}");
+            w.write_all(line(json!({ "type": "assistantSet", "id": "r1", "name": "Athena" })).as_bytes()).await.unwrap();
+            let mut answer = String::new();
+            tokio::time::timeout(Duration::from_secs(3), r.read_line(&mut answer)).await.unwrap().unwrap();
+            assert_eq!(serde_json::from_str::<Value>(&answer).unwrap(), json!({ "type": "assistantResult", "id": "r1", "ok": true }));
         });
     }
 }

@@ -8052,6 +8052,72 @@
    "pt-BR": "O Hermes não saiu da conta ({error}).",
    "ru": "Hermes не вышел из аккаунта ({error}).",
    "id": "Hermes tidak keluar ({error})."
+  },
+  "Let the phone change the assistant (name, tone, brain, skills)": {
+   "zh-Hans": "让手机更改助手（名字、语气、大脑、技能）",
+   "hi": "फ़ोन को सहायक बदलने दें (नाम, लहजा, दिमाग, स्किल)",
+   "es": "Dejar que el teléfono cambie el asistente (nombre, tono, cerebro, habilidades)",
+   "ar": "السماح للهاتف بتغيير المساعد (الاسم، النبرة، العقل، المهارات)",
+   "fr": "Laisser le téléphone changer l'assistant (nom, ton, cerveau, compétences)",
+   "bn": "ফোনকে সহকারী বদলাতে দিন (নাম, সুর, মস্তিষ্ক, স্কিল)",
+   "pt-BR": "Deixar o celular mudar o assistente (nome, tom, cérebro, skills)",
+   "ru": "Разрешить телефону менять ассистента (имя, тон, мозг, навыки)",
+   "id": "Izinkan ponsel mengubah asisten (nama, nada, otak, skill)"
+  },
+  "From the phone you can rename the assistant, change its tone, its brain and its skill packs, sign in with ChatGPT and turn Hermes on or off, as in Settings → Hermes Agent. A new brain and the ChatGPT sign-in wait for the phone's Face ID. Hermes is never installed from the phone, and the keys stay on this computer.": {
+   "zh-Hans": "在手机上，你可以给助手改名，更换它的语气、大脑和技能包，用 ChatGPT 登录，以及打开或关闭 Hermes，就像在“设置 → Hermes Agent”中一样。更换大脑和 ChatGPT 登录都要先通过手机的 Face ID。Hermes 绝不会从手机上安装，密钥也始终留在这台电脑上。",
+   "hi": "फ़ोन से आप सहायक का नाम बदल सकते हैं, उसका लहजा, दिमाग और स्किल पैक बदल सकते हैं, ChatGPT से साइन इन कर सकते हैं और Hermes को चालू या बंद कर सकते हैं, जैसे सेटिंग्स → Hermes Agent में। नया दिमाग और ChatGPT साइन-इन फ़ोन के Face ID का इंतज़ार करते हैं। Hermes कभी फ़ोन से इंस्टॉल नहीं होता, और कुंजियाँ इसी कंप्यूटर पर रहती हैं।",
+   "es": "Desde el teléfono puedes cambiar el nombre del asistente, su tono, su cerebro y sus paquetes de habilidades, iniciar sesión con ChatGPT y encender o apagar Hermes, como en Configuración → Hermes Agent. Un cerebro nuevo y el inicio de sesión con ChatGPT esperan el Face ID del teléfono. Hermes nunca se instala desde el teléfono, y las claves se quedan en este equipo.",
+   "ar": "من الهاتف يمكنك إعادة تسمية المساعد وتغيير نبرته وعقله وحزم مهاراته، وتسجيل الدخول بـ ChatGPT، وتشغيل Hermes أو إيقافه، كما في الإعدادات ← Hermes Agent. ينتظر العقل الجديد وتسجيل الدخول بـ ChatGPT التحقق عبر Face ID على الهاتف. لا يُثبَّت Hermes من الهاتف أبدًا، وتبقى المفاتيح على هذا الحاسوب.",
+   "fr": "Depuis le téléphone, vous pouvez renommer l'assistant, changer son ton, son cerveau et ses packs de compétences, vous connecter avec ChatGPT et allumer ou éteindre Hermes, comme dans Réglages → Hermes Agent. Un nouveau cerveau et la connexion avec ChatGPT attendent le Face ID du téléphone. Hermes n'est jamais installé depuis le téléphone, et les clés restent sur cet ordinateur.",
+   "bn": "ফোন থেকে আপনি সহকারীর নাম বদলাতে, তার সুর, মস্তিষ্ক ও স্কিল প্যাক বদলাতে, ChatGPT দিয়ে সাইন ইন করতে এবং Hermes চালু বা বন্ধ করতে পারেন, ঠিক সেটিংস → Hermes Agent-এর মতো। নতুন মস্তিষ্ক আর ChatGPT সাইন-ইন ফোনের Face ID-র অপেক্ষা করে। Hermes কখনও ফোন থেকে ইনস্টল হয় না, আর কী-গুলো এই কম্পিউটারেই থাকে।",
+   "pt-BR": "Pelo celular você pode renomear o assistente, mudar o tom, o cérebro e os pacotes de skills dele, entrar com o ChatGPT e ligar ou desligar o Hermes, como em Configurações → Hermes Agent. Um cérebro novo e a entrada com o ChatGPT esperam o Face ID do celular. O Hermes nunca é instalado pelo celular, e as chaves ficam neste computador.",
+   "ru": "С телефона можно переименовать ассистента, сменить его тон, мозг и наборы навыков, войти через ChatGPT и включить или выключить Hermes — как в «Настройки → Hermes Agent». Новый мозг и вход через ChatGPT ждут Face ID на телефоне. Hermes никогда не устанавливается с телефона, а ключи остаются на этом компьютере.",
+   "id": "Dari ponsel Anda bisa mengganti nama asisten, mengubah nada, otak, dan paket skill-nya, masuk dengan ChatGPT, serta menyalakan atau mematikan Hermes, seperti di Pengaturan → Hermes Agent. Otak baru dan proses masuk ChatGPT menunggu Face ID ponsel. Hermes tidak pernah dipasang dari ponsel, dan kuncinya tetap di komputer ini."
+  },
+  "Let the phone use Mochi's home": {
+   "zh-Hans": "让手机使用 Mochi 的家",
+   "hi": "फ़ोन को Mochi का घर इस्तेमाल करने दें",
+   "es": "Dejar que el teléfono use la casa de Mochi",
+   "ar": "السماح للهاتف باستخدام منزل Mochi",
+   "fr": "Laisser le téléphone utiliser la maison de Mochi",
+   "bn": "ফোনকে Mochi-র বাড়ি ব্যবহার করতে দিন",
+   "pt-BR": "Deixar o celular usar a Casa do Mochi",
+   "ru": "Разрешить телефону пользоваться домом Mochi",
+   "id": "Izinkan ponsel memakai Rumah Mochi"
+  },
+  "The phone shows the devices you ticked for Mochi in Settings → Mochi's home, the routines and the latest of the record, and can use them. It needs Mochi's home on. Devices and routines that ask first wait for the phone's Face ID. Addresses and tokens never leave this computer.": {
+   "zh-Hans": "手机会显示你在“设置 → Mochi 的家”中为 Mochi 勾选的设备、例程和最近的记录，并可以使用它们。需要打开 Mochi 的家。需要先询问的设备和例程会等待手机的 Face ID。地址和令牌绝不会离开这台电脑。",
+   "hi": "फ़ोन वे डिवाइस दिखाता है जिन्हें आपने सेटिंग्स → Mochi का घर में Mochi के लिए चुना है, साथ ही रूटीन और रिकॉर्ड की ताज़ा पंक्तियाँ, और उन्हें इस्तेमाल कर सकता है। इसके लिए Mochi का घर चालू होना चाहिए। जो डिवाइस और रूटीन पहले पूछते हैं, वे फ़ोन के Face ID का इंतज़ार करते हैं। पते और टोकन कभी इस कंप्यूटर से बाहर नहीं जाते।",
+   "es": "El teléfono muestra los dispositivos que marcaste para Mochi en Configuración → La casa de Mochi, las rutinas y lo último del registro, y puede usarlos. Necesita la casa de Mochi activada. Los dispositivos y rutinas que preguntan antes esperan el Face ID del teléfono. Las direcciones y los tokens nunca salen de este equipo.",
+   "ar": "يعرض الهاتف الأجهزة التي حددتها لـ Mochi في الإعدادات ← منزل Mochi، والروتينات وأحدث ما في السجل، ويمكنه استخدامها. يتطلب ذلك تشغيل منزل Mochi. تنتظر الأجهزة والروتينات التي تسأل أولًا التحقق عبر Face ID على الهاتف. لا تغادر العناوين والرموز هذا الحاسوب أبدًا.",
+   "fr": "Le téléphone montre les appareils cochés pour Mochi dans Réglages → La maison de Mochi, les routines et les dernières lignes du journal, et peut s'en servir. Il faut que la maison de Mochi soit activée. Les appareils et les routines qui demandent d'abord attendent le Face ID du téléphone. Les adresses et les jetons ne quittent jamais cet ordinateur.",
+   "bn": "ফোন দেখায় সেটিংস → Mochi-র বাড়িতে Mochi-র জন্য আপনি যে ডিভাইসগুলো টিক দিয়েছেন, রুটিনগুলো আর রেকর্ডের সাম্প্রতিক অংশ, এবং সেগুলো ব্যবহার করতে পারে। এর জন্য Mochi-র বাড়ি চালু থাকতে হবে। যে ডিভাইস ও রুটিন আগে জিজ্ঞেস করে, সেগুলো ফোনের Face ID-র অপেক্ষা করে। ঠিকানা আর টোকেন কখনও এই কম্পিউটার ছেড়ে যায় না।",
+   "pt-BR": "O celular mostra os aparelhos que você marcou para o Mochi em Configurações → Casa do Mochi, as rotinas e o histórico mais recente, e pode usá-los. Precisa da Casa do Mochi ligada. Aparelhos e rotinas que pedem confirmação esperam o Face ID do celular. Endereços e tokens nunca saem deste computador.",
+   "ru": "Телефон показывает устройства, отмеченные для Mochi в «Настройки → Дом Mochi», сценарии и последние записи журнала, и может ими управлять. Нужен включённый Дом Mochi. Устройства и сценарии, которые сначала спрашивают, ждут Face ID на телефоне. Адреса и токены никогда не покидают этот компьютер.",
+   "id": "Ponsel menampilkan perangkat yang Anda centang untuk Mochi di Pengaturan → Rumah Mochi, rutinitas, dan catatan terbaru, lalu dapat memakainya. Rumah Mochi harus menyala. Perangkat dan rutinitas yang bertanya dulu menunggu Face ID ponsel. Alamat dan token tidak pernah meninggalkan komputer ini."
+  },
+  "Trying that step again…": {
+   "zh-Hans": "正在重试这一步…",
+   "hi": "यह चरण फिर से आज़माया जा रहा है…",
+   "es": "Reintentando este paso…",
+   "ar": "جارٍ إعادة محاولة هذه الخطوة…",
+   "fr": "Nouvel essai de cette étape…",
+   "bn": "এই ধাপটি আবার চেষ্টা করা হচ্ছে…",
+   "pt-BR": "Tentando esta etapa de novo…",
+   "ru": "Повторяем этот шаг…",
+   "id": "Mencoba langkah ini lagi…"
+  },
+  "Its full output is in {path}.": {
+   "zh-Hans": "完整输出保存在 {path}。",
+   "hi": "इसका पूरा आउटपुट {path} में है।",
+   "es": "Su salida completa está en {path}.",
+   "ar": "مخرجاته الكاملة موجودة في {path}.",
+   "fr": "Sa sortie complète se trouve dans {path}.",
+   "bn": "এর পুরো আউটপুট {path}-এ আছে।",
+   "pt-BR": "A saída completa está em {path}.",
+   "ru": "Полный вывод сохранён в {path}.",
+   "id": "Keluaran lengkapnya ada di {path}."
   }
  }
 }

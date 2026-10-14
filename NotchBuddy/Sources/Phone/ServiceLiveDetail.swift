@@ -22,10 +22,10 @@ struct ServiceLiveDetail: View {
             if let error = detail.error {
                 Label(error, systemImage: "exclamationmark.triangle.fill")
                     .font(.callout)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(CoucouPalette.warn)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(16)
-                    .glassCard()
+                    .glassCard(tint: CoucouPalette.warn)
             }
             if !detail.stats.isEmpty { stats }
             ForEach(Array(detail.sections.enumerated()), id: \.offset) { _, section in
@@ -86,7 +86,7 @@ struct ServiceLiveDetail: View {
             Text(section.title).font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
             ForEach(Array(section.items.enumerated()), id: \.offset) { index, item in
                 itemRow(item)
-                if index < section.items.count - 1 { Divider() }
+                if index < section.items.count - 1 { Divider().overlay(CoucouPalette.hairline) }
             }
             if let footer = section.footer {
                 Text(footer).font(.caption).foregroundStyle(.secondary)
@@ -147,7 +147,8 @@ struct ServiceLiveDetail: View {
                         }
                     }
                     .frame(width: 32, height: 32)
-                    .glassPill(Circle(), interactive: true)
+                    // A plain fill: the row already sits in a glass card (never glass on glass).
+                    .background(Color.white.opacity(0.1), in: Circle())
                 }
                 .disabled(running != nil)
             } else if item.url != nil {
@@ -190,7 +191,7 @@ struct ServiceLiveDetail: View {
             if result.ok {
                 DrawnCheckmark(size: 30)
             } else {
-                Image(systemName: "xmark.circle.fill").font(.title2).foregroundStyle(.red)
+                Image(systemName: "xmark.circle.fill").font(.title2).foregroundStyle(CoucouPalette.danger)
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text(result.title).font(.subheadline.weight(.semibold))
@@ -202,6 +203,6 @@ struct ServiceLiveDetail: View {
                 .foregroundStyle(.tertiary)
         }
         .padding(16)
-        .glassCard(tint: result.ok ? .green : .red)
+        .glassCard(tint: result.ok ? CoucouPalette.ok : CoucouPalette.danger)
     }
 }

@@ -74,6 +74,8 @@ export function phoneSection(on: boolean, makeToggle: Toggle, settings: Settings
       servicesBlock(),
       chatBlock(makeToggle, settings),
       agentBlock(makeToggle),
+      assistantBlock(makeToggle),
+      homeBlock(makeToggle),
       pushBlock(makeToggle),
     );
   };
@@ -500,6 +502,72 @@ function agentBlock(makeToggle: Toggle): HTMLElement {
     {},
     h("div", { class: "row" }, h("label", { text: t("Let the phone use Mochi's hands") }), switchEl),
     h("div", { class: "hint", text: t("From the phone's chat, Mochi can act on this computer as set in Settings → Mochi's hands. It needs the chat above. Every change still waits for Allow, behind the phone's Face ID or fingerprint.") }),
+    note,
+  );
+}
+
+/**
+ * The assistant from the phone: off until the user turns it on. The phone changes what Settings → Hermes Agent
+ * changes (src-tauri/src/phone_link/assistant.rs); Hermes is never installed from the phone, and keys never leave this
+ * computer. Rust re-reads this for every connection and every request.
+ */
+export function assistantBlock(makeToggle: Toggle): HTMLElement {
+  const note = h("div", { class: "hint" });
+  const switchEl = makeToggle(false, (next) => {
+    void (async () => {
+      note.textContent = "";
+      try {
+        await Bridge.phoneAssistantSetEnabled(next);
+      } catch (err) {
+        switchEl.classList.remove("on");
+        switchEl.setAttribute("aria-pressed", "false");
+        note.textContent = String(err);
+      }
+    })();
+  });
+  void Bridge.phoneAssistantStatus().then((status) => {
+    if (!status) return;
+    switchEl.classList.toggle("on", status.enabled);
+    switchEl.setAttribute("aria-pressed", String(status.enabled));
+  });
+  return h(
+    "div",
+    {},
+    h("div", { class: "row" }, h("label", { text: t("Let the phone change the assistant (name, tone, brain, skills)") }), switchEl),
+    h("div", { class: "hint", text: t("From the phone you can rename the assistant, change its tone, its brain and its skill packs, sign in with ChatGPT and turn Hermes on or off, as in Settings → Hermes Agent. A new brain and the ChatGPT sign-in wait for the phone's Face ID. Hermes is never installed from the phone, and the keys stay on this computer.") }),
+    note,
+  );
+}
+
+/**
+ * Mochi's home from the phone: off until the user turns it on, and offered only while Mochi's home is on too. Only the
+ * devices ticked for Mochi (src-tauri/src/phone_link/home.rs); what asks first waits for the phone's Face ID. Rust
+ * re-reads both switches for every connection and every action.
+ */
+export function homeBlock(makeToggle: Toggle): HTMLElement {
+  const note = h("div", { class: "hint" });
+  const switchEl = makeToggle(false, (next) => {
+    void (async () => {
+      note.textContent = "";
+      try {
+        await Bridge.phoneHomeSetEnabled(next);
+      } catch (err) {
+        switchEl.classList.remove("on");
+        switchEl.setAttribute("aria-pressed", "false");
+        note.textContent = String(err);
+      }
+    })();
+  });
+  void Bridge.phoneHomeStatus().then((status) => {
+    if (!status) return;
+    switchEl.classList.toggle("on", status.enabled);
+    switchEl.setAttribute("aria-pressed", String(status.enabled));
+  });
+  return h(
+    "div",
+    {},
+    h("div", { class: "row" }, h("label", { text: t("Let the phone use Mochi's home") }), switchEl),
+    h("div", { class: "hint", text: t("The phone shows the devices you ticked for Mochi in Settings → Mochi's home, the routines and the latest of the record, and can use them. It needs Mochi's home on. Devices and routines that ask first wait for the phone's Face ID. Addresses and tokens never leave this computer.") }),
     note,
   );
 }

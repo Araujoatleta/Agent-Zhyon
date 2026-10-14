@@ -131,7 +131,7 @@ pub fn installed_in(home: &Path, launcher: Option<&Path>, pending: bool) -> bool
     launcher.is_some() && !(pending && !completed_in(home))
 }
 
-fn installed() -> bool {
+pub(crate) fn installed() -> bool {
     installed_in(&hermes_home(), launcher().as_deref(), pending_mark().exists())
 }
 
@@ -713,6 +713,47 @@ pub fn parse_frame(lines: &[String], stage: &str) -> Option<Frame> {
     })
 }
 
+/// What a step that failed printed, whole, for the user (or whoever helps them) to read: the installer's own reason
+/// is often only "dependency install failed". In Coucou's folder; a new installation starts it afresh.
+pub fn install_log_path() -> PathBuf {
+    settings::local_dir().join("hermes-install.log")
+}
+
+/// The line of a failed step's output that says why, besides the installer's own `reason`: the last one that reads
+/// like an error (uv and pip print the cause last: "Caused by: …", "╰─▶ invalid peer certificate…"), else the last
+/// line that says anything. Never a frame, never the reason again.
+pub fn telling_line(lines: &[String], reason: &str) -> Option<String> {
+    const WORDS: &[&str] = &[
+        "error", "caused by", "failed", "denied", "cannot", "could not", "not found", "timed out", "refused", "certificate",
+        "exception", "too long", "no space", "permission",
+    ];
+    let said: Vec<&str> = lines
+        .iter()
+        .map(|l| l.trim().trim_start_matches(['×', '╰', '├', '─', '▶', '│', '|', ' ']).trim())
+        .filter(|l| !l.is_empty() && !l.starts_with('{') && (reason.is_empty() || !l.contains(reason)))
+        .collect();
+    let pick = said.iter().rev().find(|l| {
+        let lower = l.to_lowercase();
+        WORDS.iter().any(|w| lower.contains(w))
+    });
+    let pick = pick.or(said.last())?;
+    Some(redact(pick, &[]).chars().take(240).collect())
+}
+
+/// Adds a failed step's output to the installation's record (install_log_path).
+fn keep_output(stage: &str, attempt: usize, lines: &[String]) {
+    use std::io::Write;
+    let path = install_log_path();
+    if let Some(dir) = path.parent() {
+        let _ = std::fs::create_dir_all(dir);
+    }
+    let Ok(mut file) = std::fs::OpenOptions::new().create(true).append(true).open(&path) else { return };
+    let _ = writeln!(file, "==> {stage}, attempt {attempt} ({})", stamp_now());
+    for line in lines {
+        let _ = writeln!(file, "{}", redact(line.trim_end(), &[]));
+    }
+}
+
 /// The installer run for one stage (or its manifest, `stage` None), with nothing that asks.
 fn installer_command(script: &Path, stage: Option<&str>) -> Command {
     #[cfg(windows)]
@@ -745,6 +786,10 @@ fn installer_command(script: &Path, stage: Option<&str>) -> Command {
     };
     cmd.stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped());
     cmd.env("NO_COLOR", "1");
+    // uv (which downloads Hermes' Python packages) trusts the certificates the system trusts, like the rest of the
+    // computer: on a company network that inspects HTTPS, its own built-in list refuses every download. Hermes passes
+    // this setting through to every uv it runs (pm/index_config.py).
+    cmd.env("UV_NATIVE_TLS", "1");
     crate::platform::no_console(&mut cmd);
     #[cfg(unix)]
     {
@@ -981,9 +1026,11 @@ pub(crate) fn status_of(app: &AppHandle) -> SetupStatus {
     }
 }
 
-/// Tells every window (and, through it, the phone link) how Zheus is now.
+/// Tells every window, and the phones allowed to change the assistant (phone_link), how Zheus is now.
 fn changed(app: &AppHandle) {
-    let _ = app.emit("hermes-setup", status_of(app));
+    let status = status_of(app);
+    crate::phone_link::assistant_changed(app, &status);
+    let _ = app.emit("hermes-setup", status);
 }
 
 /// Keeps the settings changed by `change`, and tells both windows.
@@ -1068,6 +1115,7 @@ async fn setup(app: AppHandle, brain_id: String, house: bool, configure: bool, o
             let _ = std::fs::create_dir_all(dir);
         }
         let _ = std::fs::write(pending_mark(), COMMIT);
+        let _ = std::fs::remove_file(install_log_path());
         set_progress(&app, |p| p.step = t("Downloading Hermes' installer…"));
         let (dir, script) = fetch_installer().await?;
         log::line(format!("hermes setup: installer checked (commit {})", &COMMIT[..10]));
@@ -1085,22 +1133,38 @@ async fn setup(app: AppHandle, brain_id: String, house: bool, configure: bool, o
                     p.last.clear();
                 });
                 log::line(format!("hermes setup: step {}/{total} {}", index + 1, stage.name));
-                let app_line = progress_app.clone();
-                let (_, lines) = run_lines(installer_command(&script, Some(&stage.name)), STAGE_TIMEOUT, &cancel, move |l| {
-                    let shown = redact(l.trim(), &[]);
-                    if !shown.is_empty() && !shown.starts_with('{') {
-                        app_line.state::<Zheus>().progress.lock().unwrap().last = shown;
+                // A step that fails is tried once more: on Windows a download cut short or a file an antivirus held for a
+                // moment fails it once; the installer's steps can run again over what is there.
+                let mut attempt = 1;
+                loop {
+                    let app_line = progress_app.clone();
+                    let (_, lines) = run_lines(installer_command(&script, Some(&stage.name)), STAGE_TIMEOUT, &cancel, move |l| {
+                        let shown = redact(l.trim(), &[]);
+                        if !shown.is_empty() && !shown.starts_with('{') {
+                            app_line.state::<Zheus>().progress.lock().unwrap().last = shown;
+                        }
+                    })?;
+                    let reason = match parse_frame(&lines, &stage.name) {
+                        Some(Frame { ok: true, .. }) => break,
+                        Some(frame) => frame.reason,
+                        None => redact(lines.iter().rev().map(|l| l.trim()).find(|l| !l.is_empty()).unwrap_or(""), &[]),
+                    };
+                    keep_output(&stage.name, attempt, &lines);
+                    if attempt == 1 && !cancel.load(Ordering::SeqCst) {
+                        log::line(format!("hermes setup: step {} did not go through, trying it again", stage.name));
+                        set_progress(&progress_app, |p| p.last = t("Trying that step again…"));
+                        std::thread::sleep(Duration::from_secs(5));
+                        attempt += 1;
+                        continue;
                     }
-                })?;
-                match parse_frame(&lines, &stage.name) {
-                    Some(Frame { ok: true, .. }) => {}
-                    Some(frame) => {
-                        return Err(tf("Hermes' installer stopped at \"{step}\": {reason}", &[("step", &stage.title), ("reason", &frame.reason)]));
-                    }
-                    None => {
-                        let last = lines.iter().rev().map(|l| l.trim()).find(|l| !l.is_empty()).unwrap_or("").to_string();
-                        return Err(tf("Hermes' installer stopped at \"{step}\": {reason}", &[("step", &stage.title), ("reason", &redact(&last, &[]))]));
-                    }
+                    let reason = match telling_line(&lines, &reason) {
+                        Some(cause) if !reason.is_empty() => format!("{reason} — {cause}"),
+                        Some(cause) => cause,
+                        None => reason,
+                    };
+                    let stopped = tf("Hermes' installer stopped at \"{step}\": {reason}", &[("step", &stage.title), ("reason", &reason)]);
+                    let record = tf("Its full output is in {path}.", &[("path", &install_log_path().display().to_string())]);
+                    return Err(format!("{stopped} {record}"));
                 }
             }
             Ok(())
@@ -2062,6 +2126,27 @@ mod tests {
         assert_eq!(parse_frame(&lines, "repository"), None, "another stage's frame is not this one's");
         let skipped = vec![r#"{"ok":true,"stage":"setup","skipped":true,"reason":"needs user input"}"#.to_string()];
         assert!(parse_frame(&skipped, "setup").unwrap().skipped);
+    }
+
+    #[test]
+    fn a_failed_step_names_its_cause_from_what_it_printed() {
+        let lines: Vec<String> = [
+            "  Installing dependencies (hash-verified via uv.lock)",
+            "error: Failed to download `pydantic-core==2.33.2`",
+            "  Caused by: Request failed after 3 retries",
+            "  ╰─▶ invalid peer certificate: UnknownIssuer",
+            "dependency install failed",
+            r#"{"ok":false,"stage":"python-deps","skipped":false,"reason":"dependency install failed"}"#,
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect();
+        // The last line that reads like an error, without uv's tree, never the reason again nor the frame.
+        assert_eq!(telling_line(&lines, "dependency install failed").as_deref(), Some("invalid peer certificate: UnknownIssuer"));
+        // Nothing that reads like an error: the last line that says anything.
+        let quiet: Vec<String> = ["step one", "step two", "  "].iter().map(|s| s.to_string()).collect();
+        assert_eq!(telling_line(&quiet, "").as_deref(), Some("step two"));
+        assert_eq!(telling_line(&[], "dependency install failed"), None);
     }
 
     #[test]

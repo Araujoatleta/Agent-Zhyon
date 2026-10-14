@@ -57,7 +57,9 @@ Guia em português para duas novidades desta branch:
    - **Deixar o celular responder às perguntas do Claude Code**;
    - **Permitir que o celular converse com meus provedores de IA** → **Escolher modelos** e marque os que o celular
      pode usar (as chaves continuam só no PC);
-   - **Deixar o celular usar os braços do Mochi** (precisa do chat acima e dos Braços do Mochi ligados).
+   - **Deixar o celular usar os braços do Mochi** (precisa do chat acima e dos Braços do Mochi ligados);
+   - **Deixar o celular mudar o assistente (nome, tom, cérebro, skills)** e **Deixar o celular usar a Casa do Mochi**
+     (veja *O assistente e a Casa do Mochi pelo iPhone*, abaixo).
 3. **Mostrar código de pareamento**.
 
 ### Instalar o app no iPhone sem Mac
@@ -119,6 +121,27 @@ vozes do iPhone. No menu ⋯ do chat: **Read answers to spoken messages aloud** 
 **Dictation language** (o idioma do ditado, por exemplo Português (Brasil)). O reconhecimento de voz roda no próprio
 iPhone quando ele consegue. No PC, aperte **Windows + H** no chat da ilha para ditar (detalhes em
 [SMART_HOME.pt-BR.md](SMART_HOME.pt-BR.md#voz)).
+
+### O assistente e a Casa do Mochi pelo iPhone
+
+Quando o Coucou roda o Hermes Agent no PC ([HERMES.pt-BR.md](HERMES.pt-BR.md)), o iPhone pode mudar o assistente do
+mesmo jeito que **Configurações → Hermes Agent**, e usar os aparelhos da Casa do Mochi
+([SMART_HOME.pt-BR.md](SMART_HOME.pt-BR.md)). Cada um tem o seu interruptor em **Configurações → Celular (Android e
+iPhone)** no PC, desligado até você ligar:
+
+- **Deixar o celular mudar o assistente (nome, tom, cérebro, skills)**. No iPhone, a tela **Assistente** (nos ajustes
+  do app) mostra o nome do assistente, o tom (ou o seu próprio texto), o cérebro, os pacotes de skills e se o Hermes
+  está rodando. Trocar o cérebro pede o Face ID antes, e **Entrar com o ChatGPT** também: o código aparece no iPhone em
+  números grandes, e **abrir a página de entrada** abre a página da OpenAI no Safari (o navegador do PC fica fechado).
+  O Hermes nunca é instalado pelo iPhone: instale primeiro no PC. As chaves continuam só no PC.
+- **Deixar o celular usar a Casa do Mochi**, com **Configurações → Casa do Mochi** ligada também. A aba **Casa**
+  mostra os aparelhos que você marcou para o Mochi, cômodo por cômodo, com o que cada um disse que sabe fazer (ligar,
+  volume, brilho, mudo, apps, canais), as rotinas e as últimas ações. Aparelho ou rotina que pede confirmação pede o
+  Face ID. Os endereços das TVs e do Home Assistant, os endereços MAC e os tokens nunca chegam ao iPhone, e cada ação
+  fica registrada no histórico da casa no PC, como vinda do celular.
+
+Ligar ou desligar um desses interruptores reconecta o iPhone uma vez, para ele ficar sabendo; enquanto um deles
+estiver desligado, o iPhone diz qual ligar.
 
 ### Fora de casa, direto no PC (sem servidor de ninguém)
 

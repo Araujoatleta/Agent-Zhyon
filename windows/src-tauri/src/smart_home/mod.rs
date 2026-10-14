@@ -991,11 +991,16 @@ fn save(app: &AppHandle, change: impl FnOnce(&mut settings::Settings)) {
 #[tauri::command]
 pub fn home_set(app: AppHandle, window: WebviewWindow, shared: State<Shared>, enabled: bool, ask_all: bool) -> Result<HomeStatus, String> {
     only_settings(&window)?;
+    let was = shared.settings.lock().unwrap().home_enabled;
     save(&app, |s| {
         s.home_enabled = enabled;
         s.home_ask_all = ask_all;
     });
     log::line(format!("home: {}{}", if enabled { "on" } else { "off" }, if ask_all { ", asks before every action" } else { "" }));
+    // A paired phone is offered Mochi's home only while it is on: phones reconnect to be told.
+    if was != enabled {
+        crate::phone_link::agent_setting_changed(&app);
+    }
     Ok(home_status(shared))
 }
 

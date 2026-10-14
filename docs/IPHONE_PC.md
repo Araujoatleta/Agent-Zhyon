@@ -16,6 +16,8 @@ Linux computer**, directly over your local network, with the link Coucou for And
   ([SMART_HOME.md](SMART_HOME.md)).
 - A notification for a request that arrives in the half minute after you leave Coucou, and after that **through
   ntfy**, if you turn it on (see *Notifications with Coucou closed* below).
+- **The assistant and Mochi's home**: change the assistant's name, tone, brain and skills, sign in with ChatGPT, and
+  use the devices of Mochi's home, if you allow it on the computer (see below).
 
 ## On the computer
 
@@ -26,9 +28,10 @@ version, unreleased yet: download the installer from the **Windows installer** w
 1. **Settings → Phone (Android and iPhone)**: turn on **Phone link**. The iPhone must be on the same Wi-Fi. If Windows
    asks about the firewall, allow Coucou on private networks.
 2. Optional, each off until you turn it on: **Show session details on the phone**, **Let the phone answer Claude
-   Code's questions**, **Let the phone chat with my AI providers** (then tick the models the phone may use), and
+   Code's questions**, **Let the phone chat with my AI providers** (then tick the models the phone may use),
    **Let the phone use Mochi's hands** (it needs the chat, and **Settings → Mochi's hands** turned on with a working
-   folder).
+   folder), **Let the phone change the assistant (name, tone, brain, skills)** and **Let the phone use Mochi's home**
+   (see *The assistant and Mochi's home from the iPhone* below).
 3. **Show pairing code**.
 
 ## On the iPhone
@@ -68,6 +71,26 @@ TV and open YouTube". After a short pause the message is sent, and the answer is
 voices. The chat's ⋯ menu has **Read answers to spoken messages aloud** and **Dictation language**. Recognition runs
 on the iPhone when it can. On the computer, press **Windows + H** in the island's chat to dictate
 ([SMART_HOME.md](SMART_HOME.md#voice)).
+
+## The assistant and Mochi's home from the iPhone
+
+When Coucou runs Hermes Agent on the computer ([HERMES.md](HERMES.md)), the iPhone can change the assistant the way
+**Settings → Hermes Agent** does, and use the devices of Mochi's home ([SMART_HOME.md](SMART_HOME.md)). Each needs its
+own switch in **Settings → Phone (Android and iPhone)** on the computer, off until you turn it on:
+
+- **Let the phone change the assistant (name, tone, brain, skills)**. On the iPhone, **Settings → Assistant** shows the
+  assistant's name, its tone (or your own words for it), its brain, its skill packs and whether Hermes runs. A new
+  brain asks for Face ID first, and so does **Sign in with ChatGPT**: the code shows on the iPhone in large digits, and
+  **Open sign-in page** opens OpenAI's page in Safari (the computer's browser stays closed). Hermes is never installed
+  from the iPhone: set it up on the computer first. The keys stay on the computer.
+- **Let the phone use Mochi's home**, with **Settings → Mochi's home** turned on too. The **Home** tab shows the devices
+  you ticked for Mochi, room by room, with what each reported it can do (power, volume, brightness, mute, apps,
+  channels), the routines and the latest actions. A device or a routine that asks first asks for Face ID. The TVs' and
+  Home Assistant's addresses, MAC addresses and tokens never reach the iPhone, and each action is written in the
+  home's record on the computer, as coming from the phone.
+
+Turning one of these switches on or off reconnects the iPhone once, so it learns about it; while one is off, the
+iPhone says which switch to turn on.
 
 ## Installing the iPhone app without a Mac
 

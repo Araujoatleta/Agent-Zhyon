@@ -8,7 +8,8 @@ Status: the Android client, `android/tools/dev-desktop.mjs` (a stand-in desktop 
 real desktop server of the Windows/Linux app (`windows/src-tauri/src/phone_link/`) implement this.
 The iPhone app implements the client side too, for Windows and Linux computers
 (`NotchBuddy/Sources/Phone/PCLink*.swift`, [IPHONE_PC.md](IPHONE_PC.md)): capabilities `chat`, `agent`, `details`,
-`answers` and `remote`; no relay. The Mac app is left to its author.
+`answers`, `remote`, `prefs`, `usage`, `diffs`, `services`, `assistant` and `home`; no relay. The Mac app is left to its
+author.
 
 ## Transport
 
@@ -87,8 +88,9 @@ unknown value is shown as `idle`. `pillId` values come from the pill catalog
 `hello` may carry `caps`, a list of optional features the phone understands; `welcome` carries `caps` with the
 ones this computer offers **to this phone right now**. A side that sends no `caps` gets none of them, so older
 phones and older computers keep working unchanged (an unknown field is ignored, an unknown message type is ignored).
-The only capability defined so far is `chat`: the phone talks to the AI providers the computer is set up for.
-**The computer's API key never leaves the computer**; the phone sends text and receives text.
+The capabilities are `chat` (this section: the phone talks to the AI providers the computer is set up for), `agent`,
+`details`, `answers`, `diffs`, `services`, `usage`, `assistant`, `home`, `prefs`, `relay` and `remote`, each in a
+section of its own below. **The computer's API key never leaves the computer**; the phone sends text and receives text.
 
 The computer offers `chat` only if the user turned "Let the phone chat with my AI providers" on (off by default),
 and re-reads that switch for every message. The user also chooses which provider/model pairs the phone may use.
@@ -268,6 +270,141 @@ out. A bare `{"type":"usage"}` means the computer has nothing to say any more: t
 `resetsAt` has passed counts as 0 on the phone, as on the PC. Nothing else about the plans (no account, no token, no cost) is
 ever sent, and nothing goes back.
 
+## The assistant (optional capability `assistant`)
+
+On Windows and Linux, Coucou can install and run Hermes Agent as the user's assistant, Zheus by default (Settings →
+Hermes Agent, [HERMES.md](HERMES.md)). A phone that sends `caps: ["assistant"]` in its `hello`, while the user has turned
+on "Let the phone change the assistant (name, tone, brain, skills)" in Settings → Phone (off by default, a switch of its
+own; re-read for every connection and every request, and a change disconnects the phones once so they learn about it),
+is offered `assistant` in `welcome.caps`. It is then sent what Settings shows, right after the first `sessions` and
+again whenever that changes (at most twice a second, the latest picture always in the end):
+
+```json
+{"type":"assistant",
+ "name":"Zheus","persona":"friendly","personaText":"",
+ "personas":["friendly","direct","professional","playful","butler","custom"],
+ "brain":"chatgpt",
+ "brains":[{"id":"chatgpt","name":"ChatGPT","ready":true,"login":true},{"id":"openai","name":"OpenAI","ready":false,"login":false}],
+ "skills":["search"],"skillPacks":["home","search","news"],"house":true,
+ "hermes":{"installed":true,"managed":true,"gateway":"running","reason":"",
+           "setup":{"running":false,"step":"","done":0,"total":0,"error":""}},
+ "login":{"state":"waiting","code":"ABCD-1234","url":"https://auth.openai.com/codex/device","expiresAt":1900000000000}}
+```
+
+- `brain` is the brain Coucou gave Hermes (`""` for none yet). `brains` lists every one: `ready` when the computer has
+  its key or its server's address (ChatGPT is always ready: it is signed in to during the setup), `login` for a brain
+  the user signs in to instead of giving a key.
+- `personas`, `brains[].id` and `skillPacks` are the stable ids of [HERMES.md](HERMES.md). `skills` are the packs the
+  user wants, never `home`: `house` says whether Mochi's home is shared with Hermes, a switch of Settings that is
+  read-only on the phone.
+- `hermes.gateway` is `off` (Coucou does not run Hermes), `starting`, `running`, `elsewhere` (another Hermes answers on
+  the computer) or `stopped`, and only then `reason` says why (at most 200 characters). `setup` is the installation or
+  the new configuration under way, as Settings shows it: its step, `done` steps of `total`, and the error it ended with.
+- `login` is `{"state":"unknown"}`, `{"state":"signedOut"}`, `{"state":"waiting","code","url","expiresAt"}` (the code
+  to type before `expiresAt`, ms since 1970), `{"state":"signedIn"}` or `{"state":"failed","reason"}`. `url` is always
+  OpenAI's own page, on `https://auth.openai.com/`.
+- Never sent: a path, Hermes' address, a key, the installer's address, the account's e-mail, the installer's own output.
+  Hermes' and the setup's words (`reason`, `step`, `error`) are cut to 200 characters and cleaned first: an address, a
+  path, an e-mail or anything that looks like a key or a token becomes `•••` (`phone_link/guard.rs`).
+
+| Direction | `type` | fields |
+|---|---|---|
+| phone to computer | `assistantGet` | none: answered with an `assistant` line |
+| phone to computer | `assistantSet` | `id`, `name?`, `persona?`, `personaText?` |
+| phone to computer | `assistantBrain` | `id`, `brain` (**the phone asks Face ID first**) |
+| phone to computer | `assistantSkills` | `id`, `skills` (pack ids, never `home`) |
+| phone to computer | `assistantLogin` | `id` (**the phone asks Face ID first**) |
+| phone to computer | `assistantLoginCancel` | `id` |
+| phone to computer | `assistantGateway` | `id`, `on` (true or false) |
+| computer to phone | `assistantResult` | `id`, `ok`; when `ok` is false, `reason` and `message` |
+
+```json
+{"type":"assistantSet","id":"a1","name":"Athena","persona":"butler"}
+{"type":"assistantResult","id":"a1","ok":true}
+{"type":"assistantResult","id":"a2","ok":false,"reason":"not_ready","message":"The computer has no key or server address for that brain yet."}
+```
+
+- `id` is the phone's (1 to 64 characters, no control character) and comes back in the answer. A request without one is
+  ignored, and so is a type the computer does not know; every other request is answered exactly once.
+- `assistantSet`: what is absent (or `null`) stays as it is, and at least one of the three is there. `name` is one line
+  of at most 40 characters (`""` brings back the default, Zheus), `persona` one of `personas`, `personaText` the user's
+  own tone for `custom`, at most 1500 characters, kept as typed. Hermes' `SOUL.md` follows when Coucou runs Hermes.
+- `assistantBrain` sets Hermes up again with that brain, as Settings' Install button does for a Hermes already there:
+  only while Hermes is installed and run by Coucou (`not_installed`), only for a brain that is `ready` (`not_ready`), and
+  not while a setup runs (`busy`). **Hermes is never installed from the phone.** For ChatGPT, the sign-in's code then
+  shows in `login`.
+- `assistantSkills` installs and removes packs in the background, with the same rule (`not_installed`).
+- `assistantLogin` starts the ChatGPT sign-in without opening the computer's browser: the phone shows the code from
+  `login` and opens `url` in Safari. One sign-in at a time: one that already shows its code is answered `ok`.
+  `assistantLoginCancel` ends the sign-in under way; Hermes keeps nothing of it.
+- `assistantGateway`: Coucou runs Hermes (`on: true`), or stops its gateway (Hermes stays installed). Hermes must be
+  installed (`not_installed`), and no setup may be running (`busy`).
+- `reason` is one of `off` (the switch is off), `invalid`, `not_installed`, `not_ready`, `busy`, `rate` and `failed`;
+  `message` is a fixed English sentence written by the computer, never Hermes' or the setup's own words.
+- At most 20 requests per 10 minutes per connection (`rate`); `assistantGet` has a limit of its own (60), past which it
+  goes unanswered. Requests are carried out one after the other, apart from the reading of the connection, so pings and
+  decisions keep flowing; one still waiting when the switch goes off is answered `off`.
+
+## Mochi's home (optional capability `home`)
+
+Mochi's home ([SMART_HOME.md](SMART_HOME.md)) from the phone: the devices the user ticked for Mochi, the routines, the
+latest of the home's record, and actions on them. A phone that sends `caps: ["home"]` is offered `home` in
+`welcome.caps` only while both switches are on: Mochi's home itself (Settings → Mochi's home) and "Let the phone use
+Mochi's home" in Settings → Phone (off by default; both re-read for every connection and every action, and a change of
+the phone's switch disconnects the phones once so they learn about it). It is sent the house right after the first
+`sessions`, on `{"type":"homeGet"}`, and after every action a phone asked for (then to every phone that has `home`):
+
+```json
+{"type":"home","enabled":true,"askAll":false,
+ "devices":[{"id":"ha:light.sala","name":"Luz da sala","room":"Sala","kind":"light","source":"Home Assistant",
+   "caps":["turnOn","turnOff","brightness"],"apps":[],"channels":[{"number":"1","name":"Globo"}],
+   "state":{"online":true,"on":true,"volume":null,"muted":null,"brightness":80,"app":null,"channel":null},
+   "ask":false}],
+ "routines":[{"id":"r1","name":"Boa noite","steps":["Luz da sala · Turn off"],"ask":true,"problems":[]}],
+ "log":[{"at":"2026-10-13 21:05:12","origin":"phone","device":"TV da sala","action":"Turn on","ok":true,"detail":"On"}]}
+```
+
+- Only the devices ticked for Mochi. `kind` is `tv`, `speaker`, `light`, `plug` or `switch`; `caps` is what the device
+  reported it can do (`turnOn`, `turnOff`, `volumeSet`, `volumeStep`, `mute`, `apps`, `channels`, `channelStep`,
+  `brightness`), never guessed from its brand; `state` is what it reported last, `null` where it says nothing. `ask`
+  already includes "Ask before every action" and the plugs' and switches' own rule.
+- A routine comes with its steps in the user's words, `ask` (a step is on a device that asks first, or on one the phone
+  may not use) and `problems`: what would stop a step as things are now.
+- `log` is the newest first; `origin` says who asked (`island`, `phone`, `settings`, `routine`, `hermes`…).
+- Limits: 100 devices, 40 apps and 60 channels a device, 50 routines, 30 lines of the record, and the whole line under
+  60 KiB: the record's oldest lines go first, then channels, then apps, until it fits.
+- Never sent: the TVs' addresses, MAC addresses, Home Assistant's address, tokens. Every text a device or Home
+  Assistant gave (a name, an app, a channel, the record) is cleaned as in the assistant's section above.
+- While Mochi's home is off, nothing is read: the line says `"enabled":false`, with no devices.
+
+| Direction | `type` | fields |
+|---|---|---|
+| phone to computer | `homeGet` | none |
+| phone to computer | `homeControl` | `id`, `device`, `action`, `value?`, `confirmed` |
+| phone to computer | `homeRoutine` | `id`, `routine`, `confirmed` |
+| computer to phone | `homeResult` | `id`, `ok`; `detail` when it went through, else `reason` and `message` |
+
+```json
+{"type":"homeControl","id":"h1","device":"ha:light.sala","action":"set_brightness","value":40,"confirmed":false}
+{"type":"homeResult","id":"h1","ok":true,"detail":"On · 40%"}
+{"type":"homeRoutine","id":"h2","routine":"r1","confirmed":true}
+```
+
+- `action` is one of `turn_on`, `turn_off`, `set_volume`, `volume_up`, `volume_down`, `mute`, `unmute`, `open_app`,
+  `set_channel`, `channel_up`, `channel_down`, `set_brightness`; `value` is a number or a string (a percent, an app, a
+  channel) or absent. It must be an action the device reported, with a value that fits (`invalid`), on a device or a
+  routine the phone may use (`unknown`; the phone is then sent the house again).
+- **Confirm**: a device or a routine whose `ask` is true is acted on only with `confirmed: true`, which the phone sends
+  after its own Face ID. Anything else is answered `confirm`, and nothing reaches a device.
+- One action or routine at a time on the computer (`busy`); at most 30 per 10 minutes per connection (`rate`; a refusal
+  that sent nothing to a device does not count). `homeGet` has a limit of its own (60), past which it goes unanswered.
+- `reason` is one of `off`, `invalid`, `unknown`, `confirm`, `busy`, `rate` and `failed`. `message` is a fixed English
+  sentence, except for `failed`: then it is what the device or Home Assistant answered, cleaned.
+- An action takes the very way Mochi's hands take (`smart_home::control` and `run_routine`): checked against what the
+  device reported, sent, confirmed by asking the device again, and written in the home's record with the origin
+  `phone`. Turning the phone's switch or the link off stops a routine under way where it is (what a device was already
+  sent stays done).
+
 ## Admission (what a flood cannot do)
 
 The server answers the local network before it knows who is calling, so it bounds what a caller who has not yet sent
@@ -367,6 +504,11 @@ simply keeps using the saved address.**
   (`phoneAgent`); it needs the chat switch and Mochi's hands on (`agentEnabled`, `agentFolder`, `agentLevel`, which only
   Settings → Mochi's hands can change). The phone's turns run with the phone's conversation, through the same tools and
   rules as the island's (`agent::run_for_phone`).
+- The assistant and Mochi's home from the phone (Settings → Phone → "Let the phone change the assistant (name, tone,
+  brain, skills)" and "Let the phone use Mochi's home"): off by default, owned by Rust (`phoneAssistant`, `phoneHome`).
+  The phone's requests make the calls Settings → Hermes Agent and Mochi's hands make (`hermes_setup.rs`'s window-free
+  functions, `smart_home::control` and `run_routine`) and nothing else (`phone_link/assistant.rs`, `home.rs`); what they
+  send is cleaned by `phone_link/guard.rs`. The relay carries the same conversation, so the same rules hold there.
 - New crates: `mdns-sd` (+ `flume`, `if-addrs`, `socket-pktinfo`, `spin`; default features off, so no async runtime or logger) announces the computer on the local network while the link is on (`phone_link/discovery.rs`); `rcgen` (+ `yasna`) makes the certificate once, `qrcode` draws the pairing QR; `rustls`,
   `tokio-rustls` and `ring` were already in the dependency tree (through `reqwest`) and are now named
   directly. Hashing, randomness and the constant-time comparison use `ring`; no other crate.
@@ -384,7 +526,9 @@ simply keeps using the saved address.**
 - `DevDesktopInteropTest` runs the Android client against it.
 - `cargo test -p coucou phone_link` also tests the announcement (what is published and when, that no secret can be in it); the real multicast needs a real network and is not in the tests.
 - `cargo test -p coucou phone_link` tests the real server (wrong token, fingerprint mismatch, oversize
-  line, late decision, answered-at-the-desk, pairing again, local-network filter...).
+  line, late decision, answered-at-the-desk, pairing again, local-network filter...), and the assistant and Mochi's
+  home against fakes: what is offered to whom, each request's checks, the rate limits, the confirm rule, the size of
+  the `home` line, and that no address, path, e-mail or token is in what is sent.
 - `RustDesktopInteropTest` runs the Android client against the real Rust server
   (`COUCOU_RUST_INTEROP=1`, needs cargo; the `Phone link` workflow does it).
 

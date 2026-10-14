@@ -857,7 +857,7 @@ final class PCLink {
     /// An assistant change is on its way: its buttons wait.
     var assistantWorking: Bool { assistantPending > 0 }
 
-    /// Asks for the assistant's state (Settings → Assistant opening); at most every 2 seconds.
+    /// Asks for the assistant's state (Settings → Assistant opening); at most every 5 seconds.
     func refreshAssistant() { ask("assistant", .assistantGet) }
 
     private func assistantRequest(_ make: (String) -> PCOutgoing) async -> PCRequestResult {
@@ -921,7 +921,7 @@ final class PCLink {
 
     // MARK: Mochi's home
 
-    /// Asks for Mochi's home (the Home tab opening); at most every 2 seconds.
+    /// Asks for Mochi's home (the Home tab opening); at most every 5 seconds.
     func refreshHome() { ask("home", .homeGet) }
 
     /// An action on a device, if the device itself said it can do it. One that asks first asks Face ID here, and the
@@ -965,9 +965,11 @@ final class PCLink {
         return await request("home", timeout: 40, id: again, message: make(again, true))
     }
 
+    /// The computer answers 60 of these in 10 minutes and drops the rest; it also sends the assistant by itself when
+    /// it changes, and the home after every action.
     private func ask(_ cap: String, _ message: PCOutgoing) {
         guard welcomed, connection != nil, model.caps.contains(cap) else { return }
-        if let last = asked[cap], Date.now.timeIntervalSince(last) < 2 { return }
+        if let last = asked[cap], Date.now.timeIntervalSince(last) < 5 { return }
         asked[cap] = .now
         send(message)
     }

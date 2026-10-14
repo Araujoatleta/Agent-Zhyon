@@ -427,9 +427,10 @@ function zheusBlock(host: HermesHost): HTMLElement {
       rows.push(h("label", { class: "row" }, configureBox, h("span", { text: t("Also give it this brain (its model and provider change)") })));
     }
     rows.push(h("label", { class: "row" }, houseBox, h("span", { text: t("Let it use Mochi's home (the devices you ticked, with the same rules)") })));
-    rows.push(...skillsBlock(status));
-    // Nothing is changed in a Hermes that is already there unless asked: no plan then.
+    // Nothing is changed in a Hermes that is already there unless asked: no plan then, and no skill packs, which only a
+    // setup that changes Hermes installs (once Coucou runs it, a pack ticked is installed at once).
     const changes = !status.installed || configure;
+    if (changes) rows.push(...skillsBlock(status));
     const plan = h("ol", { class: "hint", style: PLAN_STYLE }, ...zheusPlan(status, brain, house, status.skills, status.assistant?.name).map((line) => h("li", { text: line })));
     state.append(
       ...rows,

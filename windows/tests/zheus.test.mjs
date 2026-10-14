@@ -141,6 +141,18 @@ test("a Hermes already on the computer is run as it is unless asked, and a runni
   assert.deepEqual(sent("hermes_gateway_set").at(-1), { on: false });
 });
 
+test("a Hermes already on the computer is offered skill packs only when Coucou sets it up too", async () => {
+  answers = { home_mcp_status: { on: false, command: "x", homeOn: true }, hermes_setup_status: status({ installed: true }) };
+  const section = hermesSection(host({ ...DEFAULT_SETTINGS }));
+  await flush();
+  const packs = () => all(section.el).filter((e) => e.tagName === "LABEL" && e.textContent === "Free web search (DuckDuckGo)");
+  assert.equal(packs().length, 0, "run as it is: the setup installs nothing in it, so nothing is offered to install");
+  const configure = all(section.el).find((e) => e.tagName === "LABEL" && e.textContent === "Also give it this brain (its model and provider change)").children[0];
+  configure.checked = true;
+  configure.fire("change");
+  assert.equal(packs().length, 1, "set up again: the packs ticked are installed, as the plan then says");
+});
+
 test("without any key or server Coucou says what Hermes needs first", async () => {
   answers = { home_mcp_status: { on: false, command: "x", homeOn: true }, hermes_setup_status: status({ brains: BRAINS.map((b) => ({ ...b, ready: false })) }) };
   const section = hermesSection(host({ ...DEFAULT_SETTINGS }));

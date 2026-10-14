@@ -27,6 +27,7 @@ use super::chat::BoxFuture;
 use super::guard::{clean_line, request_id, Rate};
 use super::hub::{Hub, Out};
 use super::server::Features;
+use crate::smart_home::config::TvConf;
 use crate::smart_home::journal::Entry;
 use crate::smart_home::model::{self, Action, Device, ACTION_WORDS};
 use crate::smart_home::routines::{self, Routine, RoutineStep};
@@ -72,6 +73,31 @@ pub struct HomePicture {
     /// What must never reach the phone wherever it turns up: the TVs' addresses, MAC addresses and renderers, Home
     /// Assistant's address.
     pub hidden: Vec<String>,
+}
+
+/// What must never reach the phone, wherever it turns up: Home Assistant's address and its host, and each TV's address,
+/// MAC address, UPnP renderer (and its host) and certificate pin.
+pub fn hidden_of(ha_url: &str, tvs: &[TvConf]) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut add = |text: &str| {
+        let text = text.trim();
+        if text.is_empty() {
+            return;
+        }
+        if let Some(host) = reqwest::Url::parse(text).ok().and_then(|u| u.host_str().map(|h| h.trim_matches(['[', ']']).to_string())) {
+            out.push(host);
+        }
+        out.push(text.trim_end_matches('/').to_string());
+    };
+    add(ha_url);
+    for tv in tvs {
+        for text in [&tv.host, &tv.mac, &tv.renderer, &tv.pin] {
+            add(text);
+        }
+    }
+    out.sort();
+    out.dedup();
+    out
 }
 
 /// What a phone asks of the house, checked for its form.
@@ -670,6 +696,23 @@ pub(crate) mod tests {
         let v: Value = serde_json::from_str(&text).unwrap();
         assert_eq!(v["devices"][0]["apps"][1], "YouTube", "the rest of the list stays");
         assert_eq!(v["devices"][0]["id"], "samsung:1a2b3c4d", "the id the phone sends back is kept exactly");
+    }
+
+    #[test]
+    fn what_is_hidden_is_every_address_of_the_house_and_its_hosts() {
+        let tv = TvConf {
+            host: "192.168.1.20".into(),
+            mac: "A4:B1:C2:D3:E4:F5".into(),
+            renderer: "http://192.168.1.20:9197/upnp/control/RenderingControl1".into(),
+            pin: "ab".repeat(32),
+            ..TvConf::default()
+        };
+        let hidden = hidden_of("http://homeassistant.local:8123/", &[tv, TvConf { host: "[fe80::1]".into(), ..TvConf::default() }]);
+        for wanted in ["homeassistant.local", "http://homeassistant.local:8123", "192.168.1.20", "A4:B1:C2:D3:E4:F5", "[fe80::1]"] {
+            assert!(hidden.iter().any(|h| h == wanted), "{wanted} not in {hidden:?}");
+        }
+        assert!(hidden.iter().all(|h| !h.is_empty()));
+        assert!(hidden_of("", &[]).is_empty());
     }
 
     #[test]
