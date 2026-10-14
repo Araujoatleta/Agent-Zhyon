@@ -24,7 +24,7 @@ struct SessionDetailView: View {
                             .transition(.phaseCard)
                     } else if !session.question.isEmpty {
                         waiting(title: "Question", text: session.question, monospaced: false, color: .cyan,
-                                footnote: "Answer on your Mac: this question can't be answered from the iPhone.")
+                                footnote: "Answer on \(session.hostName): this question can't be answered from the iPhone.")
                     }
                     if let turn {
                         LastTurnView(turn: turn, working: session.isWorking)
@@ -37,6 +37,10 @@ struct SessionDetailView: View {
                                 .font(.callout)
                                 .textSelection(.enabled)
                         }
+                    }
+                    // The files a session on the computer changed, each with its diff.
+                    if session.fromComputer {
+                        PCSessionFilesSection(pillID: session.id)
                     }
                     if !pastTurns.isEmpty { earlierTurns }
                 }
@@ -54,8 +58,9 @@ struct SessionDetailView: View {
                 }
                 .padding(16)
             } else {
-                Text("This session ended on your Mac.")
+                Text("This session has ended.")
                     .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity)
                     .padding(40)
             }
         }
@@ -63,10 +68,10 @@ struct SessionDetailView: View {
         .simultaneousGesture(TapGesture().onEnded {
             UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
         })
-        // The agent's color, moving softly behind the top of the screen.
+        // The agent's color, moving softly behind the top of the screen, over the deep backdrop.
         .background(alignment: .top) {
             ZStack {
-                Color.black
+                DeepBackdrop()
                 if let session {
                     // The Mac sends the colour it paints with: the user's own, if they picked one.
                     AgentBackdrop(hex: session.color.isEmpty
@@ -92,7 +97,7 @@ struct SessionDetailView: View {
         // A conversation takes the whole screen, like Messages: no tabs below,
         // and the field stays put at the bottom.
         .toolbarVisibility(.hidden, for: .tabBar)
-        .navigationTitle(session?.title ?? "Session")
+        .navigationTitle(session?.title ?? String(localized: "Session"))
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await link.refresh() }
         .toolbar {
@@ -121,7 +126,7 @@ struct SessionDetailView: View {
                         ScrollView {
                             LastTurnView(turn: past, working: false).padding(16)
                         }
-                        .background(Color.black)
+                        .deepBackdrop()
                         .navigationTitle(past.startedAt.formatted(date: .abbreviated, time: .shortened))
                         .navigationBarTitleDisplayMode(.inline)
                     } label: {
@@ -137,7 +142,7 @@ struct SessionDetailView: View {
                             }
                             Spacer(minLength: 6)
                             if !past.files.isEmpty {
-                                Text("\(past.files.count) file\(past.files.count == 1 ? "" : "s")")
+                                Text(past.files.count == 1 ? "1 file" : "\(past.files.count) files")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
@@ -147,7 +152,7 @@ struct SessionDetailView: View {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-                    if index < pastTurns.count - 1 { Divider() }
+                    if index < pastTurns.count - 1 { Divider().overlay(CoucouPalette.hairline) }
                 }
             }
         }
@@ -198,20 +203,21 @@ struct SessionDetailView: View {
         return path
     }
 
-    private func waiting(title: String, text: String, monospaced: Bool, color: Color, footnote: String) -> some View {
+    private func waiting(title: LocalizedStringKey, text: String, monospaced: Bool, color: Color,
+                         footnote: LocalizedStringKey) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(color)
             Text(text)
                 .font(monospaced ? .callout.monospaced() : .callout)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(12)
-                .background(Color(white: 0.16), in: RoundedRectangle(cornerRadius: 12))
+                .background(Color.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                 .textSelection(.enabled)
             Text(footnote).font(.caption).foregroundStyle(.secondary)
         }
         .padding(16)
-        .background(Color(white: 0.11), in: RoundedRectangle(cornerRadius: 22))
-        .overlay(RoundedRectangle(cornerRadius: 22).strokeBorder(color.opacity(0.7), lineWidth: 1.5))
+        .glassCard(tint: color)
+        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).strokeBorder(color.opacity(0.6), lineWidth: 1.2))
     }
 
     private func plan(_ session: SessionItem) -> some View {
@@ -220,7 +226,7 @@ struct SessionDetailView: View {
                 ForEach(Array(session.steps.enumerated()), id: \.offset) { index, step in
                     HStack(alignment: .firstTextBaseline, spacing: 10) {
                         Image(systemName: icon(index, session))
-                            .foregroundStyle(index == session.stepIndex && session.isWorking ? Color.accentColor : Color.secondary)
+                            .foregroundStyle(index == session.stepIndex && session.isWorking ? CoucouPalette.accent : Color.secondary)
                             .font(.footnote)
                         Text(step)
                             .font(.callout)
@@ -237,7 +243,7 @@ struct SessionDetailView: View {
         return "circle"
     }
 
-    private func card<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
+    private func card<Content: View>(title: LocalizedStringKey, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
             content()

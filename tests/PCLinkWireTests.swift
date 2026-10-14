@@ -80,7 +80,8 @@ enum PCLinkWireTests {
             checkEqual("hello type", h["type"] as? String, "hello")
             checkEqual("hello v", h["v"] as? Int, 1)
             checkEqual("hello token", h["token"] as? String, "abcdefghijklmnop")
-            checkEqual("hello caps", h["caps"] as? [String], ["chat", "agent", "details", "answers", "remote"])
+            checkEqual("hello caps", h["caps"] as? [String],
+                       ["chat", "agent", "details", "answers", "remote", "prefs", "usage", "diffs", "services", "assistant", "home"])
             let allow = object(PCOutgoing.decision(fingerprint: "f1", allow: true).line)
             checkEqual("allow", allow["decision"] as? String, "allow")
             checkEqual("deny", object(PCOutgoing.decision(fingerprint: "f1", allow: false).line)["decision"] as? String, "deny")
@@ -148,7 +149,7 @@ enum PCLinkWireTests {
             checkEqual("done", line(#"{"type":"chatDone","id":"c1"}"#), .chatDone(id: "c1", text: nil))
             checkEqual("chat error", line(#"{"type":"chatError","id":"c1","reason":"busy","message":"Busy."}"#), .chatError(id: "c1", reason: "busy", message: "Busy."))
             checkEqual("pong", line(#"{"type":"pong"}"#), .pong)
-            checkEqual("unknown type", line(#"{"type":"usage","claude":{}}"#), .other)
+            checkEqual("unknown type", line(#"{"type":"weather","claude":{}}"#), .other)
             check("not JSON", line("hello") == nil)
             check("not an object", line("[1,2]") == nil)
         }
@@ -287,6 +288,377 @@ enum PCLinkWireTests {
             checkEqual("kept across launches", again, computer)
             let tampered = Data(#"{"host":"h","port":1,"fingerprint":"\#(fp)","name":"","remote":["x.example:1","198.51.100.7:1"]}"#.utf8)
             checkEqual("what was saved is checked again", (try? JSONDecoder().decode(PCComputer.self, from: tampered))?.remote, ["198.51.100.7:1"])
+        }
+
+        print("\nThe assistant: name, tone, brain, skills, ChatGPT sign-in (capability assistant)")
+        do {
+            let get = object(PCOutgoing.assistantGet.line)
+            checkEqual("assistantGet", get["type"] as? String, "assistantGet")
+            checkEqual("assistantGet says nothing else", get.count, 1)
+            let set = object(PCOutgoing.assistantSet(id: "a1", name: "Zheus", persona: "custom", personaText: "Fala como um pirata.").line)
+            checkEqual("assistantSet", [set["type"] as? String, set["id"] as? String, set["name"] as? String, set["persona"] as? String],
+                       ["assistantSet", "a1", "Zheus", "custom"])
+            checkEqual("assistantSet persona text", set["personaText"] as? String, "Fala como um pirata.")
+            let onlyName = object(PCOutgoing.assistantSet(id: "a2", name: "Ana", persona: nil, personaText: nil).line)
+            check("a field left as it is is not sent", onlyName["persona"] == nil && onlyName["personaText"] == nil && onlyName["name"] as? String == "Ana")
+            let brain = object(PCOutgoing.assistantBrain(id: "a3", brain: "chatgpt").line)
+            checkEqual("assistantBrain", [brain["type"] as? String, brain["id"] as? String, brain["brain"] as? String], ["assistantBrain", "a3", "chatgpt"])
+            checkEqual("assistantSkills", object(PCOutgoing.assistantSkills(id: "a4", skills: ["search", "news"]).line)["skills"] as? [String], ["search", "news"])
+            checkEqual("assistantSkills: none wanted", object(PCOutgoing.assistantSkills(id: "a5", skills: []).line)["skills"] as? [String], [])
+            let login = object(PCOutgoing.assistantLogin(id: "a6").line)
+            checkEqual("assistantLogin", [login["type"] as? String, login["id"] as? String], ["assistantLogin", "a6"])
+            checkEqual("assistantLoginCancel", object(PCOutgoing.assistantLoginCancel(id: "a7").line)["type"] as? String, "assistantLoginCancel")
+            let gateway = object(PCOutgoing.assistantGateway(id: "a8", on: false).line)
+            checkEqual("assistantGateway", gateway["type"] as? String, "assistantGateway")
+            checkEqual("assistantGateway off", gateway["on"] as? Bool, false)
+            checkEqual("assistantGateway on", object(PCOutgoing.assistantGateway(id: "a9", on: true).line)["on"] as? Bool, true)
+
+            // As docs/ANDROID_LINK.md shows it (capability `assistant`).
+            let full = line(#"{"type":"assistant","name":"Zheus","persona":"friendly","personaText":"","personas":["friendly","direct","professional","playful","butler","custom"],"brain":"chatgpt","brains":[{"id":"chatgpt","name":"ChatGPT","ready":true,"login":true},{"id":"openai","name":"OpenAI","ready":false,"login":false}],"skills":["search"],"skillPacks":["home","search","news"],"house":true,"hermes":{"installed":true,"managed":true,"gateway":"running","reason":"","setup":{"running":false,"step":"","done":0,"total":0,"error":""}},"login":{"state":"waiting","code":"ABCD-1234","url":"https://auth.openai.com/codex/device","expiresAt":1900000000000}}"#)
+            if case .assistant(let a)? = full {
+                checkEqual("name", a.name, "Zheus")
+                checkEqual("persona", a.persona, "friendly")
+                checkEqual("personas in the computer's order", a.personas, PCAssistant.knownPersonas)
+                checkEqual("brain", a.brain, "chatgpt")
+                checkEqual("brains", a.brains, [PCAssistant.Brain(id: "chatgpt", name: "ChatGPT", ready: true, login: true),
+                                                PCAssistant.Brain(id: "openai", name: "OpenAI", ready: false, login: false)])
+                checkEqual("the brain in use", a.current?.id, "chatgpt")
+                checkEqual("skills wanted", a.skills, ["search"])
+                checkEqual("packs", a.skillPacks, ["home", "search", "news"])
+                checkEqual("the packs the phone may tick", a.optionalSkills, ["search", "news"])
+                check("Mochi's home for Hermes, read only", a.house)
+                check("installed and managed by Coucou: the brain can change", a.changeable)
+                checkEqual("gateway", a.hermes.gateway, .running)
+                checkEqual("sign-in waiting for its code", a.login,
+                           .waiting(code: "ABCD-1234", url: "https://auth.openai.com/codex/device", expiresAt: Date(timeIntervalSince1970: 1_900_000_000)))
+            } else {
+                check("assistant decoded", false)
+            }
+            checkEqual("nothing said: the defaults", line(#"{"type":"assistant"}"#), .assistant(PCAssistant()))
+            let messy = line(#"{"type":"assistant","name":"  Zheus the Great, assistant of the whole house\nand more  ","persona":"pirate mode!","personaText":"\#(String(repeating: "x", count: 1600))","personas":["friendly","friendly","bad id!",3],"brains":[{"id":"chatgpt","name":"ChatGPT"},{"name":"no id"},{"id":"chatgpt","name":"again"},{"id":"ollama","name":"","ready":true}],"skills":["home","search","search"],"hermes":{"installed":true,"managed":false,"gateway":"exploded","reason":"why","setup":{"running":true,"step":"Installing Hermes","done":9,"total":5}}}"#)
+            if case .assistant(let a)? = messy {
+                check("a name is one line of at most 40 characters", a.name.count <= 40 && !a.name.contains("\n") && a.name.hasPrefix("Zheus the Great"))
+                checkEqual("a tone this iPhone cannot name: the default", a.persona, "friendly")
+                checkEqual("a custom text of at most 1500 characters", a.personaText.count, 1500)
+                checkEqual("ids only, each once", a.personas, ["friendly"])
+                checkEqual("brains without an id, or twice, are dropped", a.brains.map(\.id), ["chatgpt", "ollama"])
+                check("not said ready: not ready", a.brains.first?.ready == false && a.brains.first?.login == false)
+                checkEqual("no name: its id", a.brains.last?.name, "ollama")
+                checkEqual("Mochi's home is not a skill the phone ticks", a.skills, ["search"])
+                check("installed but not by Coucou: nothing changes from here", !a.changeable)
+                checkEqual("an unknown gateway state reads as off", a.hermes.gateway, .off)
+                checkEqual("a reason only when it stopped", a.hermes.reason, "")
+                checkEqual("setup progress kept in its bounds", [a.hermes.setup.done, a.hermes.setup.total], [5, 5])
+                check("setup running", a.hermes.setup.running && a.hermes.setup.step == "Installing Hermes")
+            } else {
+                check("messy assistant decoded", false)
+            }
+            func signIn(_ json: String) -> PCAssistant.Login? {
+                if case .assistant(let a)? = line(#"{"type":"assistant","login":"# + json + "}") { return a.login }
+                return nil
+            }
+            checkEqual("signed in", signIn(#"{"state":"signedIn"}"#), .signedIn)
+            checkEqual("signed out", signIn(#"{"state":"signedOut"}"#), .signedOut)
+            checkEqual("failed, with why", signIn(#"{"state":"failed","reason":"Login failed: the code expired"}"#), .failed(reason: "Login failed: the code expired"))
+            checkEqual("a page that is not OpenAI's is never kept", signIn(#"{"state":"waiting","code":"ABCD-1234","url":"https://evil.example/codex/device","expiresAt":1900000000000}"#),
+                       .waiting(code: "ABCD-1234", url: PCAssistant.defaultSignInPage, expiresAt: Date(timeIntervalSince1970: 1_900_000_000)))
+            checkEqual("nor one that only starts like it", signIn(#"{"state":"waiting","code":"WXYZ-0000","url":"https://auth.openai.com.evil.example/x"}"#),
+                       .waiting(code: "WXYZ-0000", url: PCAssistant.defaultSignInPage, expiresAt: nil))
+            checkEqual("waiting without a usable code says nothing", signIn(#"{"state":"waiting","code":"<b>hi</b>"}"#), .unknown)
+            checkEqual("waiting without a code", signIn(#"{"state":"waiting"}"#), .unknown)
+            checkEqual("an unknown state", signIn(#"{"state":"dancing"}"#), .unknown)
+            check("OpenAI's sign-in page", PCAssistant.isSignInPage("https://auth.openai.com/codex/device") && PCAssistant.isSignInPage("https://auth.openai.com"))
+            let notThePage = ["http://auth.openai.com/codex/device", "https://auth.openai.com.evil.example/", "https://auth.openai.com@evil.example/",
+                              "https://evil.example/https://auth.openai.com/", "https://auth.openai.com/codex device", "javascript:alert(1)",
+                              "https://auth.openai.com:8443/codex", "", "https://auth.openai.com\\@evil.example/"]
+            for (i, page) in notThePage.enumerated() { check("never opened #\(i)", !PCAssistant.isSignInPage(page)) }
+            checkEqual("a device code", PCAssistant.deviceCode(" ABCD-1234 "), "ABCD-1234")
+            check("not a device code", PCAssistant.deviceCode("ABCD\n1234") == nil && PCAssistant.deviceCode("") == nil && PCAssistant.deviceCode(String(repeating: "A", count: 33)) == nil)
+            checkEqual("time left", PCAssistant.secondsLeft(until: t0.addingTimeInterval(90), now: t0), 90)
+            checkEqual("time left, rounded up", PCAssistant.secondsLeft(until: t0.addingTimeInterval(0.2), now: t0), 1)
+            checkEqual("expired", PCAssistant.secondsLeft(until: t0, now: t0.addingTimeInterval(5)), 0)
+
+            checkEqual("assistantResult ok", line(#"{"type":"assistantResult","id":"a1","ok":true}"#), .assistantResult(PCRequestResult(id: "a1", ok: true)))
+            checkEqual("assistantResult refused",
+                       line(#"{"type":"assistantResult","id":"a2","ok":false,"reason":"not_ready","message":"Coucou has no key or address for this AI: add it in Settings first."}"#),
+                       .assistantResult(PCRequestResult(id: "a2", ok: false, reason: "not_ready", message: "Coucou has no key or address for this AI: add it in Settings first.")))
+            checkEqual("an answer without its id answers nothing", line(#"{"type":"assistantResult","ok":true}"#), .other)
+            checkEqual("nor with an id longer than 64", line(#"{"type":"assistantResult","id":"\#(String(repeating: "i", count: 65))","ok":true}"#), .other)
+            if case .assistantResult(let r)? = line(#"{"type":"assistantResult","id":"a3","ok":false,"reason":"rm -rf /"}"#) {
+                checkEqual("a reason that is no code is dropped", r.reason, "")
+            } else {
+                check("odd result decoded", false)
+            }
+            checkEqual("what this iPhone found itself", PCRequestResult.local("offline"), PCRequestResult(id: "", ok: false, reason: "offline"))
+
+            var model = PCLinkModel()
+            model.apply(.welcome(desktop: "PC", os: "windows", caps: ["assistant"]), now: t0)
+            if case .assistant(let a)? = full { model.apply(.assistant(a), now: t0) }
+            checkEqual("kept as said last", model.assistant?.name, "Zheus")
+            model.apply(.assistantResult(PCRequestResult(id: "a1", ok: true)), now: t0)
+            checkEqual("the last answer kept", model.lastAssistantResult?.id, "a1")
+            model.connectionLost()
+            check("the link closed: still shown", model.assistant != nil)
+            model.apply(.welcome(desktop: "PC", os: "windows", caps: ["chat"]), now: t0)
+            check("its switch turned off on the computer: it goes", model.assistant == nil)
+        }
+
+        print("\nMochi's home (capability home)")
+        do {
+            checkEqual("homeGet", object(PCOutgoing.homeGet.line)["type"] as? String, "homeGet")
+            let control = object(PCOutgoing.homeControl(id: "h1", device: "ha:light.sala", action: "set_brightness", value: .number(40), confirmed: false).line)
+            checkEqual("homeControl", [control["type"] as? String, control["id"] as? String, control["device"] as? String, control["action"] as? String],
+                       ["homeControl", "h1", "ha:light.sala", "set_brightness"])
+            checkEqual("a number", control["value"] as? Int, 40)
+            checkEqual("confirmed is always said", control["confirmed"] as? Bool, false)
+            let app = object(PCOutgoing.homeControl(id: "h2", device: "samsung:1", action: "open_app", value: .text("YouTube"), confirmed: true).line)
+            checkEqual("a name", app["value"] as? String, "YouTube")
+            checkEqual("confirmed after Face ID", app["confirmed"] as? Bool, true)
+            check("no value, no field", object(PCOutgoing.homeControl(id: "h3", device: "d", action: "turn_on", value: nil, confirmed: false).line)["value"] == nil)
+            let routine = object(PCOutgoing.homeRoutine(id: "h4", routine: "r1", confirmed: true).line)
+            checkEqual("homeRoutine", [routine["type"] as? String, routine["id"] as? String, routine["routine"] as? String], ["homeRoutine", "h4", "r1"])
+            checkEqual("homeRoutine confirmed", routine["confirmed"] as? Bool, true)
+
+            // As docs/ANDROID_LINK.md shows it (capability `home`).
+            let example = line(#"{"type":"home","enabled":true,"askAll":false,"devices":[{"id":"ha:light.sala","name":"Luz da sala","room":"Sala","kind":"light","source":"Home Assistant","caps":["turnOn","turnOff","brightness"],"apps":[],"channels":[{"number":"1","name":"Globo"}],"state":{"online":true,"on":true,"volume":null,"muted":null,"brightness":80,"app":null,"channel":null},"ask":false}],"routines":[{"id":"r1","name":"Boa noite","steps":["Luz da sala · Turn off"],"ask":true,"problems":[]}],"log":[{"at":"2026-10-13 21:05:12","origin":"phone","device":"TV da sala","action":"Turn on","ok":true,"detail":"On"}]}"#)
+            if case .home(let home)? = example {
+                check("on, without ask-all", home.enabled && !home.askAll)
+                checkEqual("device", home.devices.first,
+                           PCHome.Device(id: "ha:light.sala", name: "Luz da sala", room: "Sala", kind: "light", source: "Home Assistant",
+                                         caps: ["turnOn", "turnOff", "brightness"], apps: [], channels: [PCHome.Channel(number: "1", name: "Globo")],
+                                         state: PCHome.State(online: true, on: true, volume: nil, muted: nil, brightness: 80, app: nil, channel: nil),
+                                         ask: false))
+                checkEqual("routine", home.routines.first,
+                           PCHome.Routine(id: "r1", name: "Boa noite", steps: ["Luz da sala · Turn off"], ask: true, problems: []))
+                checkEqual("record", home.log.first,
+                           PCHome.Entry(at: "2026-10-13 21:05:12", origin: "phone", device: "TV da sala", action: "Turn on", ok: true, detail: "On"))
+            } else {
+                check("home decoded", false)
+            }
+            let devices = (0..<130).map { #"{"id":"ha:light.\#($0)","name":"L\#($0)","kind":"light","caps":["turnOn"],"state":{"online":true}}"# }.joined(separator: ",")
+            let apps = (0..<50).map { "\"App \($0)\"" }.joined(separator: ",")
+            let channels = (0..<70).map { #"{"number":"\#($0)","name":"C\#($0)"}"# }.joined(separator: ",")
+            let routines = (0..<60).map { #"{"id":"r\#($0)","name":"R\#($0)","steps":[],"ask":false,"problems":[]}"# }.joined(separator: ",")
+            let log = (0..<40).map { #"{"at":"t","origin":"phone","device":"D","action":"A\#($0)","ok":true,"detail":""}"# }.joined(separator: ",")
+            let big = line(#"{"type":"home","enabled":true,"devices":[{"id":"samsung:tv","name":"TV","kind":"tv","caps":["turnOn","apps","channels","teleport"],"apps":[\#(apps)],"channels":[\#(channels)],"state":{"online":true,"volume":150,"brightness":-3}},\#(devices)],"routines":[\#(routines)],"log":[\#(log)]}"#)
+            if case .home(let home)? = big {
+                checkEqual("at most 100 devices", home.devices.count, 100)
+                checkEqual("at most 40 apps", home.devices.first?.apps.count, 40)
+                checkEqual("at most 60 channels", home.devices.first?.channels.count, 60)
+                checkEqual("a capability this iPhone does not know is not offered", home.devices.first?.caps, ["turnOn", "apps", "channels"])
+                check("a percent out of range says nothing", home.devices.first?.state.volume == nil && home.devices.first?.state.brightness == nil)
+                checkEqual("at most 50 routines", home.routines.count, 50)
+                checkEqual("at most 30 lines of record", home.log.count, 30)
+            } else {
+                check("a big home decoded", false)
+            }
+            let odd = line(#"{"type":"home","enabled":true,"devices":[{"name":"no id"},{"id":"ha:a","name":"A","kind":"toaster","caps":["turnOn"],"state":{"online":true,"on":"yes"}},{"id":"ha:a","name":"twice"},{"id":" ha:b ","name":"spaces around"},{"id":"ha:c"}],"routines":[{"name":"no id"},{"id":"r1"}],"log":[{"at":"t"},{"device":"TV","action":"Turn on"}]}"#)
+            if case .home(let home)? = odd {
+                checkEqual("devices without an id, twice or not exactly as sent are dropped", home.devices.map(\.id), ["ha:a", "ha:c"])
+                checkEqual("a kind this iPhone does not know", home.devices.first?.kind, "")
+                check("a state that is no bool says nothing", home.devices.first?.state.on == nil)
+                checkEqual("no name: its id", home.devices.last?.name, "ha:c")
+                check("not said whether it asks first: it asks", home.devices.last?.ask == true)
+                checkEqual("routines without an id are dropped", home.routines.map(\.id), ["r1"])
+                check("a routine not saying whether it asks: it asks", home.routines.first?.ask == true)
+                checkEqual("an empty line of record is dropped", home.log.map(\.device), ["TV"])
+            } else {
+                check("an odd home decoded", false)
+            }
+
+            func device(_ id: String, room: String = "", caps: [String] = [], apps: [String] = []) -> PCHome.Device {
+                PCHome.Device(id: id, name: id, room: room, kind: "tv", source: "", caps: caps, apps: apps, channels: [], state: PCHome.State(), ask: false)
+            }
+            let rooms = PCHome(devices: [device("a", room: "Sala"), device("b"), device("c", room: "Quarto"), device("d", room: "Sala")]).rooms
+            checkEqual("rooms in the computer's order, no room last", rooms.map(\.name), ["Sala", "Quarto", ""])
+            checkEqual("devices by room", rooms.first?.devices.map(\.id), ["a", "d"])
+            let tv = device("samsung:tv", caps: ["turnOn", "turnOff", "volumeSet", "volumeStep", "mute", "apps", "channels"], apps: ["YouTube"])
+            check("what the device said it can do", PCHome.accepts(tv, action: "turn_on", value: nil) && PCHome.accepts(tv, action: "mute", value: nil))
+            check("never what it did not say", !PCHome.accepts(tv, action: "set_brightness", value: .number(50)) && !PCHome.accepts(tv, action: "channel_up", value: nil))
+            check("volume from 0 to 100", PCHome.accepts(tv, action: "set_volume", value: .number(0)) && PCHome.accepts(tv, action: "set_volume", value: .number(100))
+                  && !PCHome.accepts(tv, action: "set_volume", value: .number(101)) && !PCHome.accepts(tv, action: "set_volume", value: .number(-1)))
+            check("volume needs its number", !PCHome.accepts(tv, action: "set_volume", value: nil) && !PCHome.accepts(tv, action: "set_volume", value: .text("50")))
+            check("an app from its own list only", PCHome.accepts(tv, action: "open_app", value: .text("YouTube")) && !PCHome.accepts(tv, action: "open_app", value: .text("Netflix")))
+            check("a channel", PCHome.accepts(tv, action: "set_channel", value: .text("12")) && !PCHome.accepts(tv, action: "set_channel", value: .text("")))
+            check("a step takes no value", PCHome.accepts(tv, action: "volume_up", value: nil) && !PCHome.accepts(tv, action: "volume_up", value: .number(3)))
+            check("an unknown action is never sent", !PCHome.accepts(tv, action: "self_destruct", value: nil))
+            let lamp = device("ha:light", caps: ["brightness"])
+            check("brightness from 1 to 100", PCHome.accepts(lamp, action: "set_brightness", value: .number(1)) && !PCHome.accepts(lamp, action: "set_brightness", value: .number(0)))
+            check("each action needs a capability the computer names", PCHome.actions.allSatisfy { action in
+                PCHome.capability(for: action).map { PCHome.capabilities.contains($0) } == true
+            })
+
+            checkEqual("homeResult ok", line(#"{"type":"homeResult","id":"h1","ok":true,"detail":"On · 40%"}"#), .homeResult(PCRequestResult(id: "h1", ok: true, detail: "On · 40%")))
+            checkEqual("homeResult: it asks first", line(#"{"type":"homeResult","id":"h1","ok":false,"reason":"confirm","message":"This device asks first."}"#),
+                       .homeResult(PCRequestResult(id: "h1", ok: false, reason: "confirm", message: "This device asks first.")))
+            var model = PCLinkModel()
+            model.apply(.welcome(desktop: "PC", os: "windows", caps: ["home"]), now: t0)
+            if case .home(let home)? = example { model.apply(.home(home), now: t0) }
+            checkEqual("the home as said last", model.home?.devices.count, 1)
+            model.apply(.homeResult(PCRequestResult(id: "h9", ok: true)), now: t0)
+            checkEqual("the last answer kept", model.lastHomeResult?.id, "h9")
+            model.connectionLost()
+            check("the link closed: still shown", model.home != nil)
+            model.apply(.welcome(desktop: "PC", os: "windows", caps: []), now: t0)
+            check("not offered any more: it goes", model.home == nil)
+        }
+
+        print("\nMochi's outfit, plan usage and service cards (capabilities prefs, usage, services)")
+        do {
+            checkEqual("outfit", line(#"{"type":"prefs","outfit":"beanie"}"#), .prefs(outfit: "beanie"))
+            checkEqual("an outfit this iPhone does not know is ignored", line(#"{"type":"prefs","outfit":"tuxedo"}"#), .other)
+            check("every outfit of the computer", PCWire.outfits.allSatisfy { line(#"{"type":"prefs","outfit":"\#($0)"}"#) == .prefs(outfit: $0) })
+            var model = PCLinkModel()
+            model.apply(.prefs(outfit: "crown"), now: t0)
+            checkEqual("kept", model.outfit, "crown")
+
+            let usage = line(#"{"type":"usage","claude":{"fiveHour":{"pct":42,"resetsAt":1900000000000},"sevenDay":{"pct":7,"resetsAt":1900500000000},"plan":"max","updatedAt":1899999990000},"codex":{"sevenDay":{"pct":100,"resetsAt":1900500000000},"resetCredits":2,"plan":"plus"}}"#)
+            let week = Date(timeIntervalSince1970: 1_900_500_000)
+            checkEqual("usage", usage, .usage(PCUsage(
+                claude: PCUsage.Plan(fiveHour: PCUsage.Window(pct: 42, resetsAt: Date(timeIntervalSince1970: 1_900_000_000)),
+                                     sevenDay: PCUsage.Window(pct: 7, resetsAt: week), resetCredits: nil, plan: "max",
+                                     updatedAt: Date(timeIntervalSince1970: 1_899_999_990)),
+                codex: PCUsage.Plan(fiveHour: nil, sevenDay: PCUsage.Window(pct: 100, resetsAt: week), resetCredits: 2, plan: "plus", updatedAt: nil))))
+            checkEqual("nothing to say any more", line(#"{"type":"usage"}"#), .usage(PCUsage()))
+            let oddUsage = line(#"{"type":"usage","claude":{"fiveHour":{"pct":142,"resetsAt":1900000000000},"sevenDay":{"pct":7}},"codex":{"sevenDay":{"pct":50,"resetsAt":1900500000000},"resetCredits":300,"plan":"pro <script> \u0007 max-5x and a very long name"}}"#)
+            if case .usage(let u)? = oddUsage {
+                check("a plan with no usable window is left out", u.claude == nil)
+                check("free resets out of range say nothing", u.codex?.resetCredits == nil)
+                checkEqual("a plan's name: letters, digits, spaces and dashes, 20 at most", u.codex?.plan, "pro script  max-5x a")
+            } else {
+                check("odd usage decoded", false)
+            }
+            checkEqual("a window whose reset passed counts as 0", PCUsage.Window(pct: 80, resetsAt: t0).percent(at: t0), 0)
+            checkEqual("before it, its number", PCUsage.Window(pct: 80, resetsAt: t0).percent(at: t0.addingTimeInterval(-1)), 80)
+            model.apply(.welcome(desktop: "PC", os: "windows", caps: ["usage", "services"]), now: t0)
+            if case .usage(let u)? = usage { model.apply(.usage(u), now: t0) }
+            check("the usage kept", model.usage?.claude?.fiveHour?.pct == 42)
+            model.apply(.usage(PCUsage()), now: t0)
+            check("a bare usage takes the panel away", model.usage == nil)
+
+            let cards = line(#"{"type":"services","services":[{"id":"integration_stripe","title":"Stripe","headline":"12.50 EUR","reason":"Payments","items":[{"label":"Payment","detail":"+9.00 · 2m"}]}]}"#)
+            checkEqual("service cards", cards, .services([PCServiceCard(id: "integration_stripe", title: "Stripe", headline: "12.50 EUR", reason: "Payments",
+                                                                        items: [PCServiceCard.Item(label: "Payment", detail: "+9.00 · 2m")])]))
+            let noisy = line(#"{"type":"services","services":[{"id":"integration_bank","title":"Bank"},{"id":"integration_github","title":"GitHub","headline":"\#(String(repeating: "★", count: 100))","items":[{"label":"a","detail":"1"},{"label":"","detail":"no label"},{"label":"b","detail":"2"},{"label":"c","detail":"3"},{"label":"d","detail":"4"}]},{"id":"integration_github","title":"again"},"x"]}"#)
+            if case .services(let list)? = noisy {
+                checkEqual("only the seven services, once each", list.map(\.id), ["integration_github"])
+                checkEqual("a text is one line of at most 80 characters", list.first?.headline.count, 80)
+                checkEqual("three lines at most, each with a label", list.first?.items.map(\.label), ["a", "b", "c"])
+            } else {
+                check("noisy services decoded", false)
+            }
+            checkEqual("an empty list takes the cards away", line(#"{"type":"services","services":[]}"#), .services([]))
+            checkEqual("no list at all: ignored", line(#"{"type":"services"}"#), .other)
+            if case .services(let list)? = cards { model.apply(.services(list), now: t0) }
+            checkEqual("the cards kept", model.services.map(\.id), ["integration_stripe"])
+            model.apply(.welcome(desktop: "PC", os: "windows", caps: ["usage"]), now: t0)
+            check("services not offered any more: they go", model.services.isEmpty)
+        }
+
+        print("\nThe files an agent changed, and their lines (capability diffs)")
+        do {
+            let get = object(PCOutgoing.getDiff(pillId: "integration_claude", fileId: 7).line)
+            checkEqual("getDiff", [get["type"] as? String, get["pillId"] as? String], ["getDiff", "integration_claude"])
+            checkEqual("the file's id, a number", get["fileId"] as? Int, 7)
+
+            let sessions = line(#"{"type":"sessions","sessions":[{"pillId":"integration_claude","agent":"Claude Code","state":"working","statusText":"","stepCount":0,"stepIndex":0,"updatedAt":1800000000000,"files":[{"id":7,"name":"app.ts","added":3,"removed":1},{"id":8,"name":"C:\\Users\\lea\\secret\\notes.md","added":10,"removed":0,"isNew":true},{"id":9,"name":"huge.lock","added":5000,"removed":4000,"tooLarge":true},{"name":"no id"},{"id":-1,"name":"negative"},{"id":10,"name":"/"}]}]}"#)
+            if case .sessions(let list)? = sessions, let files = list.first?.files {
+                checkEqual("files with an id and a name", files.map(\.id), [7, 8, 9])
+                checkEqual("a name, never a path", files.map(\.name), ["app.ts", "notes.md", "huge.lock"])
+                checkEqual("counts", files.first.map { [$0.added, $0.removed] }, [3, 1])
+                check("written whole", files.dropFirst().first?.isNew == true)
+                check("too large to show", files.last?.tooLarge == true)
+            } else {
+                check("sessions with files decoded", false)
+            }
+            let many = (0..<25).map { #"{"id":\#($0),"name":"f\#($0).swift","added":1,"removed":0}"# }.joined(separator: ",")
+            if case .sessions(let list)? = line(#"{"type":"sessions","sessions":[{"pillId":"p","files":[\#(many)]}]}"#) {
+                checkEqual("the newest 20", list.first?.files.map(\.id), Array(5..<25))
+            } else {
+                check("many files decoded", false)
+            }
+
+            let part0 = line(#"{"type":"diff","pillId":"integration_claude","fileId":7,"name":"src/app.ts","added":3,"removed":1,"tooLarge":false,"gone":false,"truncated":false,"part":0,"parts":2,"lines":[["@","@@ -1,3 +1,4 @@"],["+","let x = 1;"],["-","let y = 2;"],[" ","same"],["?","odd kind"],["+"],"broken"]}"#)
+            if case .diff(let p)? = part0 {
+                checkEqual("the file's name only", p.name, "app.ts")
+                checkEqual("kinds, an unknown one as context", p.lines.map(\.kind), [.hunk, .added, .removed, .context, .context])
+                checkEqual("texts, a broken line dropped", p.lines.map(\.text), ["@@ -1,3 +1,4 @@", "let x = 1;", "let y = 2;", "same", "odd kind"])
+                checkEqual("part of", [p.part, p.parts, p.fileId], [0, 2, 7])
+            } else {
+                check("a diff part decoded", false)
+            }
+            checkEqual("three parts is not the computer", line(#"{"type":"diff","pillId":"p","fileId":1,"part":0,"parts":3,"lines":[]}"#), .other)
+            checkEqual("a part out of range", line(#"{"type":"diff","pillId":"p","fileId":1,"part":2,"parts":2,"lines":[]}"#), .other)
+            checkEqual("no file id", line(#"{"type":"diff","pillId":"p","part":0,"parts":1,"lines":[]}"#), .other)
+            let tooMany = (0..<101).map { _ in #"["+","x"]"# }.joined(separator: ",")
+            checkEqual("more than 100 lines in a part", line(#"{"type":"diff","pillId":"p","fileId":1,"part":0,"parts":1,"lines":[\#(tooMany)]}"#), .other)
+            if case .diff(let p)? = line(#"{"type":"diff","pillId":"p","fileId":1,"part":0,"parts":1,"lines":[["+","\#(String(repeating: "y", count: 500))"]]}"#) {
+                checkEqual("a line cut at 400 characters", p.lines.first?.text.count, 400)
+            } else {
+                check("a long line decoded", false)
+            }
+
+            var model = PCLinkModel()
+            model.apply(.welcome(desktop: "PC", os: "windows", caps: ["diffs"]), now: t0)
+            func part(_ n: Int, of parts: Int, file: Int = 7, _ texts: [String]) -> PCDiffPart {
+                PCDiffPart(pillId: "integration_claude", fileId: file, name: "app.ts", added: 3, removed: 1, tooLarge: false, gone: false,
+                           truncated: false, part: n, parts: parts, lines: texts.map { PCDiffLine(kind: .added, text: $0) })
+            }
+            model.apply(.diff(part(0, of: 1, ["x"])), now: t0)
+            check("a diff nobody asked for is not kept", model.diff == nil)
+            model.wantDiff(pillId: "integration_claude", fileId: 7)
+            model.apply(.diff(part(1, of: 2, ["c", "d"])), now: t0)
+            check("one part of two: not yet", model.diff?.complete == false)
+            model.apply(.diff(part(0, of: 2, file: 8, ["other"])), now: t0)
+            model.apply(.diff(part(0, of: 2, ["a", "b"])), now: t0)
+            check("both parts: complete", model.diff?.complete == true)
+            checkEqual("in order whatever came first, another file's left out", model.diff?.lines.map(\.text), ["a", "b", "c", "d"])
+            model.closeDiff(pillId: "integration_claude", fileId: 8)
+            check("closing another file's sheet changes nothing", model.diff != nil)
+            model.closeDiff(pillId: "integration_claude", fileId: 7)
+            check("its sheet closed: forgotten", model.diff == nil)
+            model.wantDiff(pillId: "integration_claude", fileId: 9)
+            model.apply(.diff(PCDiffPart(pillId: "integration_claude", fileId: 9, name: "x", added: 0, removed: 0, tooLarge: false, gone: true,
+                                         truncated: false, part: 0, parts: 1, lines: [])), now: t0)
+            check("gone: complete, with no line", model.diff?.complete == true && model.diff?.gone == true && model.diff?.lines.isEmpty == true)
+            model.apply(.welcome(desktop: "PC", os: "windows", caps: []), now: t0)
+            check("diffs not offered any more: forgotten", model.diff == nil)
+        }
+
+        print("\nThe chat kept between launches")
+        do {
+            var model = PCLinkModel()
+            model.startChat(id: "c1", text: "liga a TV", hands: true)
+            model.apply(.chatStep(id: "c1", step: PCChatStep(index: 0, status: "ok", text: "Home · TV da sala")), now: t0)
+            model.apply(.chatDone(id: "c1", text: "Pronto!"), now: t0)
+            model.startChat(id: "c2", text: "e o som?", hands: false)
+            model.apply(.chatDelta(id: "c2", text: "Ligan"), now: t0)
+            let data = PCChatArchive(entries: model.chat).data
+            let back = data.map(PCChatArchive.entries(from:)) ?? []
+            checkEqual("read back as it was", back, model.chat)
+            if let data, let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
+               let entries = json["entries"] as? [[String: Any]] {
+                checkEqual("the archive's fields", Set(json.keys), ["version", "entries"])
+                let allowed: Set<String> = ["id", "role", "text", "steps", "failed", "finished", "hands"]
+                check("each message: its own fields only (no key, token or address)", entries.allSatisfy { Set($0.keys).isSubset(of: allowed) })
+            } else {
+                check("the archive is JSON", false)
+            }
+            var later = PCLinkModel()
+            later.restoreChat(back)
+            checkEqual("the messages", later.chat.map(\.text).dropLast(), ["liga a TV", "Pronto!", "e o som?"])
+            checkEqual("his steps", later.chat.dropFirst().first?.steps.map(\.text), ["Home · TV da sala"])
+            check("an answer being written when Coucou closed ends there, text kept",
+                  later.chat.last?.finished == true && later.chat.last?.failed == true && later.chat.last?.text == "Ligan" && later.running == nil)
+            var silent = PCLinkModel()
+            silent.restoreChat([PCChatEntry(id: "c3", role: .mochi, text: "")])
+            checkEqual("nothing written yet: says why", silent.chat.last?.text, PCLinkModel.lostText)
+            check("damaged: nothing", PCChatArchive.entries(from: Data("{".utf8)).isEmpty)
+            check("another version: nothing", PCChatArchive.entries(from: Data(#"{"version":2,"entries":[{"id":"c9","role":"you","text":"x"}]}"#.utf8)).isEmpty)
+            checkEqual("a field missing takes its default", PCChatArchive.entries(from: Data(#"{"version":1,"entries":[{"id":"c9","role":"mochi","text":"Oi","finished":true}]}"#.utf8)),
+                       [PCChatEntry(id: "c9", role: .mochi, text: "Oi", finished: true)])
+            later.restoreChat((0..<120).map { PCChatEntry(id: "e\($0)", role: .you, text: "\($0)") })
+            check("at most 100 messages, the newest", later.chat.count == 100 && later.chat.first?.id == "e20")
         }
 
         print(failures == 0 ? "\nAll PC link wire tests passed." : "\n\(failures) failure(s).")

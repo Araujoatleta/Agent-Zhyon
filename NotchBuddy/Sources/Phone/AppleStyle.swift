@@ -1,37 +1,19 @@
 import SwiftUI
 
 // The pieces that make Coucou feel like an Apple app: Liquid Glass on iOS 26
-// (a frosted material before), the agent's color moving softly behind a
-// session, Apple Pay's drawn checkmark, and symbols that move with the state.
+// (a frosted material before, CoucouGlass.swift), the agent's color moving
+// softly behind a session, Apple Pay's drawn checkmark, and symbols that move
+// with the state.
 
 extension View {
-    /// A card in glass (iOS 26) or the dark material Coucou used before.
-    @ViewBuilder
+    /// A card in glass, tinted for what waits on you (an OK, a question).
     func glassCard(cornerRadius: CGFloat = 22, tint: Color? = nil) -> some View {
-        if #available(iOS 26.0, *) {
-            if let tint {
-                glassEffect(.regular.tint(tint.opacity(0.25)), in: RoundedRectangle(cornerRadius: cornerRadius))
-            } else {
-                glassEffect(.regular, in: RoundedRectangle(cornerRadius: cornerRadius))
-            }
-        } else {
-            background(Color(white: 0.11), in: RoundedRectangle(cornerRadius: cornerRadius))
-        }
+        coucouGlass(.regular, cornerRadius: cornerRadius, tint: tint)
     }
 
-    /// A small glass shape for pills and fields (iOS 26), a dark fill before.
-    @ViewBuilder
-    func glassPill<S: Shape>(_ shape: S, interactive: Bool = false, tint: Color? = nil) -> some View {
-        if #available(iOS 26.0, *) {
-            let base: Glass = interactive ? .regular.interactive() : .regular
-            if let tint {
-                glassEffect(base.tint(tint.opacity(0.35)), in: shape)
-            } else {
-                glassEffect(base, in: shape)
-            }
-        } else {
-            background(tint?.opacity(0.25) ?? Color(white: 0.16), in: shape)
-        }
+    /// A small glass shape for pills and fields.
+    func glassPill<S: InsettableShape>(_ shape: S, interactive: Bool = false, tint: Color? = nil) -> some View {
+        coucouGlass(.regular, in: shape, tint: tint, interactive: interactive)
     }
 }
 
@@ -162,7 +144,8 @@ struct ApprovalChoiceButtons: View {
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 13)
-                    .background(Color.white.opacity(0.14), in: Capsule())
+                    .background(Color.white.opacity(0.12), in: Capsule())
+                    .overlay(Capsule().strokeBorder(CoucouPalette.hairline, lineWidth: 0.75))
             }
             Button(action: allow) {
                 Label("Allow", systemImage: "faceid")
@@ -210,7 +193,7 @@ struct ApprovalPanel: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
-            Text(session.approvalCommand.isEmpty ? "A permission" : session.approvalCommand)
+            Text(session.approvalCommand.isEmpty ? String(localized: "A permission") : session.approvalCommand)
                 .font(.callout.monospaced())
                 .foregroundStyle(.white.opacity(0.92))
                 .lineLimit(4)

@@ -29,7 +29,7 @@ struct LastTurnView: View {
            start.upperBound <= end.lowerBound {
             return String(turn.prompt[start.upperBound..<end.lowerBound])
         }
-        return "A background task finished"
+        return String(localized: "A background task finished")
     }
 
     private var promptCard: some View {
@@ -37,13 +37,15 @@ struct LastTurnView: View {
             if let summary = taskSummary {
                 ExpandableText(text: turn.prompt, collapsedLines: 0, title: summary, monospaced: true)
                     .padding(12)
-                    .background(Color(white: 0.16), in: RoundedRectangle(cornerRadius: 16))
+                    .coucouGlass(.regular, cornerRadius: 16)
             } else {
+                // Your words, as in the chat: tinted glass on the right.
                 ExpandableText(text: turn.prompt, collapsedLines: 6)
                     .padding(12)
-                    .background(Color.accentColor.opacity(0.25), in: RoundedRectangle(cornerRadius: 16))
+                    .coucouGlass(.prominent, cornerRadius: 16, tint: CoucouPalette.accent)
             }
-            Text("\(taskSummary == nil ? "You" : "Background task") · \(turn.startedAt.formatted(date: .omitted, time: .shortened))")
+            Text(taskSummary == nil ? "You · \(turn.startedAt.formatted(date: .omitted, time: .shortened))"
+                                    : "Background task · \(turn.startedAt.formatted(date: .omitted, time: .shortened))")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
         }

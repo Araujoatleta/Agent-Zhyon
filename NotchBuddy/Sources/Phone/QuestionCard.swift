@@ -38,7 +38,7 @@ struct QuestionCard: View {
             if sent {
                 Label("Answer sent to \(session.hostName)", systemImage: "checkmark.circle.fill")
                     .font(.callout.weight(.semibold))
-                    .foregroundStyle(.green)
+                    .foregroundStyle(CoucouPalette.ok)
             } else {
                 Button {
                     Task { await send() }
@@ -53,12 +53,12 @@ struct QuestionCard: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
             if let error {
-                Text(error).font(.caption).foregroundStyle(.red)
+                Text(error).font(.caption).foregroundStyle(CoucouPalette.danger)
             }
         }
         .padding(16)
         .glassCard(tint: .cyan)
-        .overlay(RoundedRectangle(cornerRadius: 22).strokeBorder(Color.cyan.opacity(0.7), lineWidth: 1.5))
+        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).strokeBorder(Color.cyan.opacity(0.6), lineWidth: 1.2))
         .onAppear { reset() }
         .onChange(of: payload) { reset() }
     }
@@ -88,7 +88,13 @@ struct QuestionCard: View {
                 Spacer(minLength: 0)
             }
             .padding(12)
-            .background(selected ? Color.cyan.opacity(0.16) : Color(white: 0.16), in: RoundedRectangle(cornerRadius: 12))
+            .background(selected ? Color.cyan.opacity(0.18) : Color.white.opacity(0.07),
+                        in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay {
+                if selected {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Color.cyan.opacity(0.5), lineWidth: 1)
+                }
+            }
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -112,7 +118,8 @@ struct QuestionCard: View {
             sent = true
             Haptics.success()
         } else {
-            error = link.lastPong ?? "Couldn't reach iCloud."
+            error = link.lastPong ?? (session.fromComputer ? String(localized: "Can't reach \(session.hostName).")
+                                                           : String(localized: "Couldn't reach iCloud."))
             Haptics.error()
         }
     }
