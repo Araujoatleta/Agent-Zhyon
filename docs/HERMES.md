@@ -88,6 +88,21 @@ default for the API server Coucou talks to) and starts Hermes again; off turns t
 installed. What Hermes does on the screen waits for your OK, as its other actions do: Allow on the island or on the
 phone. Off by default.
 
+With it on, Hermes' own browser (its `browser_*` tools, which run hidden from you) is off for the API server too
+(`hermes tools disable browser --platform api_server`; turning the switch off gives it back), and Coucou tells Hermes the
+short way with each message: find the exact link (one web search), open it in your own browser with one terminal
+command (`cmd.exe /c start "" "<link>"` on Windows, `xdg-open` on Linux; a YouTube video link starts playing on its
+own), and use the mouse and keyboard only for what a link cannot do. Each step is a round trip to its model, so fewer
+steps is what makes it quick. A Coucou updated with the switch already on turns the hidden browser off once, at its next
+start.
+
+### Its speed
+
+**Its speed** says how long Hermes thinks before each step: **Fast** (less: it answers and acts on the screen sooner,
+best for opening sites, playing videos and clicking), **Usual** (Hermes' own) or **Thorough** (longer). Coucou gives it
+with each message (Hermes' `model_options.reasoning_effort`: `low`, nothing, `high`), so it applies from your next
+message, without starting Hermes again, and Hermes' own settings stay as they are.
+
 ### Its name and tone (SOUL.md)
 
 Under **Its tone**, pick **Friendly**, **Direct**, **Professional**, **Playful**, **Butler (formal, witty)**, or

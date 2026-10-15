@@ -44,6 +44,12 @@ const PACKS = labels({
 const OWN_TONE = "custom";
 /** The model picker's last choice: a name typed in. */
 const OTHER_MODEL = "__other";
+/** How quick Hermes is (src-tauri/src/hermes_setup.rs SPEEDS): "" is Hermes' own. */
+const SPEEDS = labels({
+  fast: N_("Fast"),
+  "": N_("Usual"),
+  deep: N_("Thorough"),
+});
 const MAX_TONE = 1500;
 /** Looks like the settings window's text fields, for the tone of the user's own. */
 const AREA_STYLE =
@@ -375,6 +381,24 @@ function zheusBlock(host: HermesHost): HTMLElement {
     ];
   };
 
+  /** How long Hermes thinks before each step: given with each message, no restart. */
+  const speedBlock = (status: HermesSetupStatus): HTMLElement[] => {
+    const select = h("select", {}) as HTMLSelectElement;
+    for (const [id, name] of Object.entries(SPEEDS)) select.append(h("option", { value: id, text: name }));
+    select.value = status.speed in SPEEDS ? status.speed : "";
+    select.addEventListener("change", () => {
+      select.disabled = true;
+      Bridge.hermesSpeedSet(select.value).then(show, (err) => {
+        select.disabled = false;
+        fail(err);
+      });
+    });
+    return [
+      h("div", { class: "row" }, h("label", { text: t("Its speed") }), select),
+      h("div", { class: "hint", text: t("Fast: Hermes thinks less before each step, so it answers and acts on the screen sooner (opening a site, playing a video, clicking). Thorough: it thinks longer before each one. From the next message on.") }),
+    ];
+  };
+
   /** Hermes may use this computer: its computer_use tool, through cua-driver (installed by Hermes' own command). */
   const computerBlock = (status: HermesSetupStatus): HTMLElement[] => [
     h("div", { class: "row" }, h("label", { text: t("Let it use this computer (screen, mouse, keyboard)") }), host.toggle(status.computerUse, (next) => void Bridge.hermesComputerUseSet(next).then(show, fail))),
@@ -429,6 +453,7 @@ function zheusBlock(host: HermesHost): HTMLElement {
         ...(brain ? [h("div", { class: "hint", text: brain.login ? t("Its brain: ChatGPT, with your subscription.") : t("Its brain: {brain}, with the key Coucou keeps.", { brain: brain.name }) })] : []),
         ...(brain?.login ? chatgptLine(status) : []),
         ...modelBlock(status),
+        ...speedBlock(status),
         ...changeBrain(status),
         ...computerBlock(status),
         ...skillsBlock(status),

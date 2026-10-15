@@ -60,6 +60,7 @@ const status = (over = {}) => ({
   model: "",
   models: [],
   computerUse: false,
+  speed: "",
   ...over,
 });
 const host = (settings) => ({ settings: () => settings, useInChat: async () => {}, toggle });
@@ -305,6 +306,7 @@ test("on ChatGPT the model is picked from the subscription's list or typed, and 
     hermes_setup_status: running(),
     hermes_model_set: (args) => running({ model: args.model }),
     hermes_computer_use_set: (args) => running({ computerUse: args.on }),
+    hermes_speed_set: (args) => running({ speed: args.speed }),
   };
   const section = hermesSection(host({ ...DEFAULT_SETTINGS }));
   await flush();
@@ -332,6 +334,15 @@ test("on ChatGPT the model is picked from the subscription's list or typed, and 
   sw.fire("click");
   await flush();
   assert.deepEqual(sent("hermes_computer_use_set").at(-1), { on: true });
+  // How quick it is: Hermes' own until another is picked, then given with each message.
+  const speedSelect = () => all(section.el).find((e) => e.tagName === "SELECT" && e.children.some((o) => o.getAttribute("value") === "fast"));
+  assert.equal(speedSelect().value, "", "Hermes' own");
+  assert.deepEqual(speedSelect().children.map((o) => o.getAttribute("value")), ["fast", "", "deep"]);
+  speedSelect().value = "fast";
+  speedSelect().fire("change");
+  await flush();
+  assert.deepEqual(sent("hermes_speed_set").at(-1), { speed: "fast" });
+  assert.equal(speedSelect().value, "fast", "redrawn from Rust's answer");
   // Another brain offers no list: its model is the one of its provider.
   answers.hermes_setup_status = running({ brain: "anthropic", models: [] });
   const other = hermesSection(host({ ...DEFAULT_SETTINGS }));
@@ -389,10 +400,10 @@ test("Settings comes to Hermes Agent after the installer's page, and Rust keeps 
   assert.match(main, /getElementById\("hermes"\)\?\.scrollIntoView/);
   assert.ok(!/assistantName = /.test(main), "the name is saved by hermes_assistant_set only");
   const lib = readFileSync(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
-  for (const field of ["assistant_name", "assistant_persona", "assistant_persona_text", "hermes_skills", "hermes_skills_installed", "hermes_computer_use", "phone_assistant", "phone_home"]) {
+  for (const field of ["assistant_name", "assistant_persona", "assistant_persona_text", "hermes_skills", "hermes_skills_installed", "hermes_computer_use", "hermes_browser_off", "hermes_speed", "phone_assistant", "phone_home"]) {
     assert.match(lib, new RegExp(`settings\\.${field} = current\\.${field}`), `${field} is Rust's`);
   }
-  for (const command of ["hermes_assistant_set", "hermes_skills_set", "hermes_login_start", "hermes_login_cancel", "hermes_logout", "hermes_model_set", "hermes_computer_use_set"]) {
+  for (const command of ["hermes_assistant_set", "hermes_skills_set", "hermes_login_start", "hermes_login_cancel", "hermes_logout", "hermes_model_set", "hermes_computer_use_set", "hermes_speed_set"]) {
     assert.ok(lib.includes(`hermes_setup::${command},`), `${command} is registered`);
   }
 });

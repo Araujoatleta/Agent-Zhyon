@@ -970,6 +970,8 @@ pub struct SetupStatus {
     pub models: Vec<String>,
     /// Hermes may use this computer's screen, mouse and keyboard.
     pub computer_use: bool,
+    /// How quick it is (one of SPEEDS).
+    pub speed: String,
 }
 
 /// The assistant as Settings and the phone show it.
@@ -1064,6 +1066,7 @@ pub(crate) fn status_of(app: &AppHandle) -> SetupStatus {
             .map(|_| CHATGPT_MODELS.iter().map(|m| m.to_string()).collect())
             .unwrap_or_default(),
         computer_use: settings.hermes_computer_use,
+        speed: settings.hermes_speed.clone(),
     }
 }
 
@@ -1267,7 +1270,12 @@ async fn setup(app: AppHandle, brain_id: String, house: bool, configure: bool, o
             // The computer use the user turned on stays on through a new setup (it is off in a fresh Hermes).
             if settings.hermes_computer_use {
                 set_progress(&skills_app, |p| p.step = t("Installing Hermes' computer use (cua-driver)…"));
-                problems.extend(run_computer_use(&skills_app, &skills_launcher, true, &cancel).err());
+                match run_computer_use(&skills_app, &skills_launcher, true, &cancel) {
+                    Ok(()) => {
+                        save_settings_with(&skills_app, |current| current.hermes_browser_off = true);
+                    }
+                    Err(e) => problems.push(e),
+                }
             }
             (!problems.is_empty()).then(|| problems.join(" · "))
         })
@@ -1833,6 +1841,8 @@ pub fn start_if_managed(app: &AppHandle) {
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
         RESTARTS.clear();
+        let catching = app.clone();
+        let _ = tauri::async_runtime::spawn_blocking(move || browser_catch_up(&catching)).await;
         if let Err(e) = bring_up(&app).await {
             log::line("hermes: gateway not up at start");
             let elsewhere = *app.state::<Zheus>().state.lock().unwrap() == GatewayState::Elsewhere;
@@ -2005,15 +2015,24 @@ async fn restart_gateway(app: &AppHandle) {
 /// What `hermes` is run with to let Hermes use this computer (`on`), or to stop it: Hermes' own installer of
 /// cua-driver, the background desktop driver of its computer_use tool (hermes_cli/tools_config_post_setup.py, the
 /// command its dashboard runs; macOS, Windows and Linux), then the tool on for the API server Coucou talks to, where
-/// it is off by default (toolsets.py, hermes-api-server). Off leaves cua-driver installed.
+/// it is off by default (toolsets.py, hermes-api-server), and its own browser off there: browser_* drive a browser
+/// hidden from the user, which Hermes otherwise reaches for first ("play the trailer on YouTube"), so the page never
+/// shows and the turn is slow. Off gives the browser back and leaves cua-driver installed.
 pub fn computer_use_commands(on: bool) -> Vec<Vec<String>> {
     let commands: &[&[&str]] = if on {
-        &[&["tools", "post-setup", "cua_driver"], &["tools", "enable", "computer_use", "--platform", "api_server"]]
+        &[
+            &["tools", "post-setup", "cua_driver"],
+            &["tools", "enable", "computer_use", "--platform", "api_server"],
+            HIDDEN_BROWSER_OFF,
+        ]
     } else {
-        &[&["tools", "disable", "computer_use", "--platform", "api_server"]]
+        &[&["tools", "disable", "computer_use", "--platform", "api_server"], &["tools", "enable", "browser", "--platform", "api_server"]]
     };
     commands.iter().map(|args| args.iter().map(|a| a.to_string()).collect()).collect()
 }
+
+/// Hermes' own browser off for the API server (computer_use_commands).
+const HIDDEN_BROWSER_OFF: &[&str] = &["tools", "disable", "browser", "--platform", "api_server"];
 
 /// Runs computer_use_commands, each to its end: the cause of the first one that fails (its output kept in the
 /// installation's record).
@@ -2063,7 +2082,10 @@ pub(crate) fn set_computer_use(app: &AppHandle, on: bool) -> Result<(), String> 
             .map_err(|e| e.to_string())
             .and_then(|r| r);
         if result.is_ok() {
-            save_settings_with(&app, |current| current.hermes_computer_use = on);
+            save_settings_with(&app, |current| {
+                current.hermes_computer_use = on;
+                current.hermes_browser_off = on;
+            });
             set_progress(&app, |p| p.step = t("Starting Hermes…"));
             restart_gateway(&app).await;
         }
@@ -2072,6 +2094,47 @@ pub(crate) fn set_computer_use(app: &AppHandle, on: bool) -> Result<(), String> 
             p.error = result.err();
         });
     });
+    Ok(())
+}
+
+/// A computer use turned on with a Coucou that left Hermes' own browser on (computer_use_commands): the browser off,
+/// once, before the gateway starts, so it starts without it. A failure is only logged; Hermes then keeps both.
+fn browser_catch_up(app: &AppHandle) {
+    let wanted = {
+        let shared = app.state::<Shared>();
+        let settings = shared.settings.lock().unwrap();
+        settings.hermes_computer_use && !settings.hermes_browser_off
+    };
+    let Some(launcher) = launcher_now().filter(|_| wanted) else { return };
+    let args: Vec<String> = HIDDEN_BROWSER_OFF.iter().map(|a| a.to_string()).collect();
+    match run_hermes(&launcher, &args, &AtomicBool::new(false)) {
+        Ok(()) => {
+            save_settings_with(app, |current| current.hermes_browser_off = true);
+            log::line("hermes: its own browser off, for the computer use");
+        }
+        Err(_) => log::line("hermes: its own browser could not be turned off"),
+    }
+}
+
+/// How quick Hermes is, as Settings offers it: "fast" thinks less before each step (a step of the computer use is
+/// a round trip to its model), "deep" more; "" is Hermes' own (medium on ChatGPT).
+pub const SPEEDS: &[&str] = &["fast", "", "deep"];
+
+/// The reasoning effort a run of Hermes is started with for `speed` (Hermes' model_options; None: its own).
+pub fn reasoning_effort(speed: &str) -> Option<&'static str> {
+    match speed {
+        "fast" => Some("low"),
+        "deep" => Some("high"),
+        _ => None,
+    }
+}
+
+/// Settings' speed for Hermes: kept, and given with each message from the next one on (no restart: hermes::Client::start).
+pub(crate) fn set_speed(app: &AppHandle, speed: &str) -> Result<(), String> {
+    let speed = SPEEDS.iter().find(|s| **s == speed).ok_or_else(|| t("Pick how quick Hermes should be."))?;
+    save_settings_with(app, |current| current.hermes_speed = speed.to_string());
+    log::line(format!("hermes: speed {}", if speed.is_empty() { "usual" } else { speed }));
+    changed(app);
     Ok(())
 }
 
@@ -2212,6 +2275,14 @@ pub fn hermes_login_cancel(app: AppHandle, window: WebviewWindow) -> Result<Setu
 pub fn hermes_model_set(app: AppHandle, window: WebviewWindow, model: String) -> Result<SetupStatus, String> {
     crate::phone_link::only_settings(&window)?;
     set_model(&app, &model)?;
+    Ok(status_of(&app))
+}
+
+/// How quick Hermes is: one of SPEEDS.
+#[tauri::command]
+pub fn hermes_speed_set(app: AppHandle, window: WebviewWindow, speed: String) -> Result<SetupStatus, String> {
+    crate::phone_link::only_settings(&window)?;
+    set_speed(&app, &speed)?;
     Ok(status_of(&app))
 }
 
@@ -2409,9 +2480,23 @@ mod tests {
     fn computer_use_is_hermes_own_driver_and_tool_for_the_api_server_only() {
         assert_eq!(
             computer_use_commands(true),
-            vec![vec!["tools", "post-setup", "cua_driver"], vec!["tools", "enable", "computer_use", "--platform", "api_server"]]
+            vec![
+                vec!["tools", "post-setup", "cua_driver"],
+                vec!["tools", "enable", "computer_use", "--platform", "api_server"],
+                vec!["tools", "disable", "browser", "--platform", "api_server"],
+            ],
+            "its hidden browser off: the pages open on the user's screen"
         );
-        assert_eq!(computer_use_commands(false), vec![vec!["tools", "disable", "computer_use", "--platform", "api_server"]]);
+        assert_eq!(
+            computer_use_commands(false),
+            vec![vec!["tools", "disable", "computer_use", "--platform", "api_server"], vec!["tools", "enable", "browser", "--platform", "api_server"]]
+        );
+    }
+
+    #[test]
+    fn fast_thinks_less_before_each_step_and_the_usual_is_hermes_own() {
+        assert_eq!(SPEEDS.iter().map(|s| reasoning_effort(s)).collect::<Vec<_>>(), [Some("low"), None, Some("high")]);
+        assert_eq!(reasoning_effort("max"), None, "only what Settings offers");
     }
 
     #[test]

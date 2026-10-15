@@ -2226,6 +2226,7 @@ mod assistant_tests {
             model: "gpt-5.6-sol".into(),
             models: hermes_setup::CHATGPT_MODELS.iter().map(|m| m.to_string()).collect(),
             computer_use: false,
+            speed: String::new(),
         }
     }
 

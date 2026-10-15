@@ -8228,6 +8228,72 @@
    "pt-BR": "Não deu para mudar o uso do computador do Hermes ({error}).",
    "ru": "Не удалось изменить работу Hermes с компьютером ({error}).",
    "id": "Penggunaan komputer Hermes tidak dapat diubah ({error})."
+  },
+  "Its speed": {
+   "zh-Hans": "速度",
+   "hi": "इसकी गति",
+   "es": "Su velocidad",
+   "ar": "سرعته",
+   "fr": "Sa vitesse",
+   "bn": "এর গতি",
+   "pt-BR": "Velocidade",
+   "ru": "Скорость",
+   "id": "Kecepatannya"
+  },
+  "Fast": {
+   "zh-Hans": "快速",
+   "hi": "तेज़",
+   "es": "Rápido",
+   "ar": "سريع",
+   "fr": "Rapide",
+   "bn": "দ্রুত",
+   "pt-BR": "Rápido",
+   "ru": "Быстро",
+   "id": "Cepat"
+  },
+  "Usual": {
+   "zh-Hans": "默认",
+   "hi": "सामान्य",
+   "es": "Normal",
+   "ar": "عادي",
+   "fr": "Habituel",
+   "bn": "স্বাভাবিক",
+   "pt-BR": "Normal",
+   "ru": "Обычно",
+   "id": "Biasa"
+  },
+  "Thorough": {
+   "zh-Hans": "细致",
+   "hi": "गहन",
+   "es": "Minucioso",
+   "ar": "متأنٍّ",
+   "fr": "Approfondi",
+   "bn": "পুঙ্খানুপুঙ্খ",
+   "pt-BR": "Caprichado",
+   "ru": "Тщательно",
+   "id": "Teliti"
+  },
+  "Fast: Hermes thinks less before each step, so it answers and acts on the screen sooner (opening a site, playing a video, clicking). Thorough: it thinks longer before each one. From the next message on.": {
+   "zh-Hans": "快速：Hermes 每一步前思考得更少，因此回答和在屏幕上操作更快（打开网站、播放视频、点击）。细致：每一步前思考得更久。从下一条消息开始生效。",
+   "hi": "तेज़: Hermes हर कदम से पहले कम सोचता है, इसलिए जल्दी जवाब देता है और स्क्रीन पर जल्दी काम करता है (साइट खोलना, वीडियो चलाना, क्लिक करना)। गहन: हर कदम से पहले ज़्यादा सोचता है। अगले संदेश से लागू।",
+   "es": "Rápido: Hermes piensa menos antes de cada paso, así responde y actúa en la pantalla antes (abrir un sitio, reproducir un vídeo, hacer clic). Minucioso: piensa más antes de cada uno. A partir del próximo mensaje.",
+   "ar": "سريع: يفكر Hermes أقل قبل كل خطوة، فيجيب ويتصرف على الشاشة أسرع (فتح موقع، تشغيل فيديو، النقر). متأنٍّ: يفكر أطول قبل كل خطوة. ابتداءً من الرسالة التالية.",
+   "fr": "Rapide : Hermes réfléchit moins avant chaque étape, il répond et agit à l'écran plus tôt (ouvrir un site, lancer une vidéo, cliquer). Approfondi : il réfléchit plus longtemps avant chacune. À partir du prochain message.",
+   "bn": "দ্রুত: Hermes প্রতিটি ধাপের আগে কম ভাবে, তাই দ্রুত উত্তর দেয় ও স্ক্রিনে কাজ করে (সাইট খোলা, ভিডিও চালানো, ক্লিক করা)। পুঙ্খানুপুঙ্খ: প্রতিটি ধাপের আগে বেশি সময় ভাবে। পরের বার্তা থেকে।",
+   "pt-BR": "Rápido: o Hermes pensa menos antes de cada passo, então responde e age na tela mais cedo (abrir um site, tocar um vídeo, clicar). Caprichado: pensa mais antes de cada um. Vale a partir da próxima mensagem.",
+   "ru": "Быстро: Hermes меньше думает перед каждым шагом, поэтому быстрее отвечает и действует на экране (открыть сайт, включить видео, нажать). Тщательно: дольше думает перед каждым шагом. Со следующего сообщения.",
+   "id": "Cepat: Hermes berpikir lebih sedikit sebelum setiap langkah, jadi menjawab dan bertindak di layar lebih cepat (membuka situs, memutar video, mengeklik). Teliti: berpikir lebih lama sebelum setiap langkah. Mulai pesan berikutnya."
+  },
+  "Pick how quick Hermes should be.": {
+   "zh-Hans": "请选择 Hermes 的速度。",
+   "hi": "चुनें कि Hermes कितना तेज़ हो।",
+   "es": "Elige qué tan rápido debe ser Hermes.",
+   "ar": "اختر مدى سرعة Hermes.",
+   "fr": "Choisissez la vitesse de Hermes.",
+   "bn": "Hermes কতটা দ্রুত হবে তা বেছে নিন।",
+   "pt-BR": "Escolha a velocidade do Hermes.",
+   "ru": "Выберите скорость Hermes.",
+   "id": "Pilih seberapa cepat Hermes."
   }
  }
 }

@@ -226,8 +226,13 @@ impl Client {
     }
 
     /// Starts a run with the user's message, in `session` (Hermes keeps its history there). Returns the run's id.
-    pub async fn start(&self, input: &str, session: &str, instructions: &str) -> Result<String, String> {
-        let body = json!({ "input": input, "session_id": session, "instructions": instructions });
+    /// `effort`: how long Hermes thinks before each step, for this run only (its `model_options`; Hermes' own
+    /// setting is left as it is); None leaves Hermes' own.
+    pub async fn start(&self, input: &str, session: &str, instructions: &str, effort: Option<&str>) -> Result<String, String> {
+        let mut body = json!({ "input": input, "session_id": session, "instructions": instructions });
+        if let Some(effort) = effort {
+            body["model_options"] = json!({ "reasoning_effort": effort });
+        }
         let answer = self.post("v1/runs", &body).await.map_err(|e| e.message)?;
         answer["run_id"].as_str().filter(|id| valid_run_id(id)).map(str::to_string).ok_or_else(not_hermes)
     }
@@ -595,7 +600,7 @@ pub mod tests {
 
     #[test]
     fn a_run_is_started_followed_answered_and_stopped_with_the_key() {
-        let (base, seen) = fake_hermes(|r| match (r.method.as_str(), r.path.as_str()) {
+        let (base, seen_runs) = fake_hermes(|r| match (r.method.as_str(), r.path.as_str()) {
             ("GET", "/v1/capabilities") => Reply::Json(200, capabilities_json()),
             ("POST", "/v1/runs") => Reply::Json(202, json!({"run_id": "run_abc", "status": "started"})),
             ("GET", "/v1/runs/run_abc/events") => Reply::Events(vec![
@@ -609,7 +614,7 @@ pub mod tests {
         });
         let client = Client::new(base, "secret-key".into());
         assert_eq!(block_on(client.capabilities()).unwrap().model, "zheus");
-        let run = block_on(client.start("Como está minha agenda hoje?", "coucou-1", "be brief")).unwrap();
+        let run = block_on(client.start("Como está minha agenda hoje?", "coucou-1", "be brief", None)).unwrap();
         assert_eq!(run, "run_abc");
         let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
         block_on(follow(client.clone(), run.clone(), tx));
@@ -621,12 +626,17 @@ pub mod tests {
         assert_eq!(events.len(), 3);
         assert_eq!(block_on(client.answer(&run, Some("r1"), true)), Ok(false), "nothing waits any more");
         assert_eq!(block_on(client.stop(&run)), Ok(()));
-        let seen = seen.lock().unwrap();
+        let seen = seen_runs.lock().unwrap();
         assert!(seen.iter().all(|r| r.authorization.as_deref() == Some("Bearer secret-key")));
         let start: Value = serde_json::from_str(&seen[1].body).unwrap();
         assert_eq!(start, json!({"input": "Como está minha agenda hoje?", "session_id": "coucou-1", "instructions": "be brief"}));
         let answer: Value = serde_json::from_str(&seen[3].body).unwrap();
         assert_eq!(answer, json!({"choice": "once", "request_id": "r1"}));
+        drop(seen);
+        // Fast, in Settings: this run thinks less before each step.
+        block_on(client.start("Abre o YouTube", "coucou-1", "be brief", Some("low"))).unwrap();
+        let fast: Value = serde_json::from_str(&seen_runs.lock().unwrap().last().unwrap().body).unwrap();
+        assert_eq!(fast["model_options"], json!({"reasoning_effort": "low"}));
     }
 
     #[test]

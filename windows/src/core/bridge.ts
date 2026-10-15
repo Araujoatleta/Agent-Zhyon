@@ -469,6 +469,7 @@ export const Bridge = {
   hermesModelSet: (model: string) => callOrThrow<HermesSetupStatus>("hermes_model_set", { model }),
   /** Hermes may use this computer (cua-driver installed, its computer_use tool on), or not. */
   hermesComputerUseSet: (on: boolean) => callOrThrow<HermesSetupStatus>("hermes_computer_use_set", { on }),
+  hermesSpeedSet: (speed: string) => callOrThrow<HermesSetupStatus>("hermes_speed_set", { speed }),
   /** Settings → Hermes Agent → Mochi's home for Hermes (agent/mcp.rs). */
   homeMcpStatus: () => call<HomeMcpStatus>("home_mcp_status"),
   homeMcpSet: (on: boolean) => callOrThrow<HomeMcpStatus>("home_mcp_set", { on }),
@@ -680,6 +681,8 @@ export interface HermesSetupStatus {
   models: string[];
   /** Hermes may use this computer's screen, mouse and keyboard (its computer_use tool). */
   computerUse: boolean;
+  /** How quick Hermes is: "fast", "" (Hermes' own) or "deep". */
+  speed: string;
 }
 
 export interface HermesConnected {

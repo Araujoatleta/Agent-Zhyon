@@ -91,6 +91,21 @@ desligada no servidor de API que o Coucou usa) e reinicia o Hermes; desligar tir
 instalado. O que o Hermes faz na tela espera o seu OK, como as outras ações dele: Permitir na ilha ou no celular. Vem
 desligado.
 
+Com ele ligado, o navegador próprio do Hermes (as ferramentas `browser_*`, que rodam escondidas de você) também é
+desligado no servidor de API (`hermes tools disable browser --platform api_server`; desligar a chave devolve ele), e o
+Coucou ensina ao Hermes o caminho curto a cada mensagem: achar o link exato (uma busca na web), abrir no seu próprio
+navegador com um comando do terminal (`cmd.exe /c start "" "<link>"` no Windows, `xdg-open` no Linux; um link de vídeo
+do YouTube já começa a tocar sozinho) e usar o mouse e o teclado só para o que um link não resolve. Cada passo é uma ida
+e volta ao modelo dele: menos passos é o que deixa ele rápido. Um Coucou atualizado com a chave já ligada desliga o
+navegador escondido uma vez, ao abrir.
+
+### A velocidade dele
+
+**Velocidade** diz quanto o Hermes pensa antes de cada passo: **Rápido** (menos: responde e age na tela mais cedo, o
+melhor para abrir sites, tocar vídeos e clicar), **Normal** (o padrão do Hermes) ou **Caprichado** (mais). O Coucou
+manda isso com cada mensagem (`model_options.reasoning_effort` do Hermes: `low`, nada, `high`), então vale a partir da
+próxima mensagem, sem reiniciar o Hermes, e as configurações do próprio Hermes ficam como estão.
+
 ### O nome e o tom dele (SOUL.md)
 
 Em **O tom dele**, escolha **Amigável**, **Direto**, **Profissional**, **Divertido**, **Mordomo (formal e
