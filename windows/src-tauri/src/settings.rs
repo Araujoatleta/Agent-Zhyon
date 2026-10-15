@@ -163,6 +163,9 @@ pub struct Settings {
     /// The packs Coucou itself installed in Hermes: only these are ever removed, never a skill the user installed.
     /// Owned by Rust.
     pub hermes_skills_installed: Vec<String>,
+    /// Hermes may see and use this computer (screen, mouse, keyboard) with its computer_use tool, on the API server
+    /// Coucou talks to. Off by default; owned by Rust (hermes_setup::set_computer_use).
+    pub hermes_computer_use: bool,
     /// The paired phone may change the assistant (name, tone, brain, skills; cap `assistant`). Off by default; owned
     /// by Rust like the other phone switches.
     pub phone_assistant: bool,
@@ -257,6 +260,7 @@ impl Default for Settings {
             assistant_persona_text: String::new(),
             hermes_skills: Vec::new(),
             hermes_skills_installed: Vec::new(),
+            hermes_computer_use: false,
             phone_assistant: false,
             phone_home: false,
         }
@@ -573,6 +577,7 @@ mod tests {
   "assistantPersonaText": "Fale como um capitão de navio.\nSempre breve.",
   "hermesSkills": ["search", "news"],
   "hermesSkillsInstalled": ["search"],
+  "hermesComputerUse": true,
   "phoneAssistant": true,
   "phoneHome": true
 }"##;
@@ -846,6 +851,8 @@ mod tests {
         assert_eq!(loaded.assistant_persona_text, "Fale como um capitão de navio.\nSempre breve.", "kept as typed");
         assert_eq!(loaded.hermes_skills, ["search", "news"]);
         assert_eq!(loaded.hermes_skills_installed, ["search"]);
+        assert!(loaded.hermes_computer_use);
+        assert!(!parse(&custom_with("hermesComputerUse", None)).unwrap().hermes_computer_use, "off by default");
         let bad = parse(&custom_with("hermesSkills", Some(json!("search")))).unwrap();
         assert!(bad.hermes_skills.is_empty() && bad.hermes_skills_installed == ["search"], "a wrong type costs only itself");
     }
@@ -1193,6 +1200,7 @@ mod tests {
                 "assistantPersonaText",
                 "hermesSkills",
                 "hermesSkillsInstalled",
+                "hermesComputerUse",
                 "phoneAssistant",
                 "phoneHome",
             ]

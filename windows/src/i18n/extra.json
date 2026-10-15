@@ -8118,6 +8118,116 @@
    "pt-BR": "A saída completa está em {path}.",
    "ru": "Полный вывод сохранён в {path}.",
    "id": "Keluaran lengkapnya ada di {path}."
+  },
+  "Another model…": {
+   "zh-Hans": "其他模型…",
+   "hi": "दूसरा मॉडल…",
+   "es": "Otro modelo…",
+   "ar": "نموذج آخر…",
+   "fr": "Autre modèle…",
+   "bn": "অন্য মডেল…",
+   "pt-BR": "Outro modelo…",
+   "ru": "Другая модель…",
+   "id": "Model lain…"
+  },
+  "Use this model": {
+   "zh-Hans": "使用此模型",
+   "hi": "यह मॉडल इस्तेमाल करें",
+   "es": "Usar este modelo",
+   "ar": "استخدام هذا النموذج",
+   "fr": "Utiliser ce modèle",
+   "bn": "এই মডেল ব্যবহার করুন",
+   "pt-BR": "Usar este modelo",
+   "ru": "Использовать эту модель",
+   "id": "Pakai model ini"
+  },
+  "Its model": {
+   "zh-Hans": "它的模型",
+   "hi": "इसका मॉडल",
+   "es": "Su modelo",
+   "ar": "نموذجه",
+   "fr": "Son modèle",
+   "bn": "এর মডেল",
+   "pt-BR": "O modelo dele",
+   "ru": "Его модель",
+   "id": "Modelnya"
+  },
+  "The models of your ChatGPT subscription, best first: which ones your plan reaches is OpenAI's call. Hermes starts again with the one you pick.": {
+   "zh-Hans": "你的 ChatGPT 订阅提供的模型，最好的排在前面：你的套餐能用哪些由 OpenAI 决定。Hermes 会用你选的模型重新启动。",
+   "hi": "आपकी ChatGPT सदस्यता के मॉडल, सबसे अच्छे पहले: आपका प्लान कौन-से इस्तेमाल कर सकता है, यह OpenAI तय करता है। Hermes आपके चुने मॉडल के साथ फिर से शुरू होता है।",
+   "es": "Los modelos de tu suscripción de ChatGPT, el mejor primero: cuáles alcanza tu plan lo decide OpenAI. Hermes se reinicia con el que elijas.",
+   "ar": "نماذج اشتراكك في ChatGPT، الأفضل أولًا: تحدد OpenAI أيها يتاح لخطتك. يُعاد تشغيل Hermes بالنموذج الذي تختاره.",
+   "fr": "Les modèles de ton abonnement ChatGPT, le meilleur d'abord : ceux auxquels ton forfait donne accès, c'est OpenAI qui le décide. Hermes redémarre avec celui que tu choisis.",
+   "bn": "আপনার ChatGPT সাবস্ক্রিপশনের মডেল, সেরাটি আগে: আপনার প্ল্যানে কোনগুলো চলে তা OpenAI ঠিক করে। আপনি যেটি বাছবেন, Hermes সেটি নিয়ে আবার চালু হয়।",
+   "pt-BR": "Os modelos da sua assinatura do ChatGPT, do melhor para o mais simples: quais o seu plano alcança é a OpenAI quem decide. O Hermes reinicia com o que você escolher.",
+   "ru": "Модели вашей подписки ChatGPT, лучшие первыми: какие доступны вашему тарифу, решает OpenAI. Hermes перезапустится с выбранной моделью.",
+   "id": "Model langganan ChatGPT Anda, yang terbaik lebih dulu: model mana yang terjangkau paket Anda ditentukan OpenAI. Hermes dimulai ulang dengan model yang Anda pilih."
+  },
+  "Let it use this computer (screen, mouse, keyboard)": {
+   "zh-Hans": "让它使用这台电脑（屏幕、鼠标、键盘）",
+   "hi": "इसे यह कंप्यूटर इस्तेमाल करने दें (स्क्रीन, माउस, कीबोर्ड)",
+   "es": "Dejar que use este equipo (pantalla, ratón, teclado)",
+   "ar": "السماح له باستخدام هذا الحاسوب (الشاشة والفأرة ولوحة المفاتيح)",
+   "fr": "Le laisser utiliser cet ordinateur (écran, souris, clavier)",
+   "bn": "একে এই কম্পিউটার ব্যবহার করতে দিন (স্ক্রিন, মাউস, কিবোর্ড)",
+   "pt-BR": "Deixar ele usar este computador (tela, mouse, teclado)",
+   "ru": "Разрешить ему пользоваться этим компьютером (экран, мышь, клавиатура)",
+   "id": "Izinkan memakai komputer ini (layar, mouse, keyboard)"
+  },
+  "Hermes then sees the screen and clicks, scrolls and types in your apps and websites, in the background, without taking your mouse: \"open YouTube and play the trailer\". Turning it on installs cua-driver, Hermes' own computer-use driver, and Hermes starts again. What it does on the screen waits for your OK (Allow, here or on your phone).": {
+   "zh-Hans": "这样 Hermes 就能看到屏幕，并在你的应用和网站里点击、滚动和输入，全部在后台进行，不会抢走你的鼠标：“打开 YouTube 播放预告片”。开启时会安装 Hermes 自带的电脑操作驱动 cua-driver，并重新启动 Hermes。它在屏幕上的操作都会等你确认（在这里或手机上点“允许”）。",
+   "hi": "तब Hermes स्क्रीन देखता है और आपके ऐप्स और वेबसाइटों में क्लिक, स्क्रॉल और टाइप करता है, बैकग्राउंड में, आपका माउस लिए बिना: \"YouTube खोलो और ट्रेलर चलाओ\"। चालू करने पर cua-driver, Hermes का अपना कंप्यूटर-उपयोग ड्राइवर, इंस्टॉल होता है और Hermes फिर से शुरू होता है। स्क्रीन पर वह जो करता है, वह आपकी मंज़ूरी का इंतज़ार करता है (अनुमति दें, यहाँ या आपके फ़ोन पर)।",
+   "es": "Hermes ve entonces la pantalla y hace clic, desplaza y escribe en tus apps y sitios web, en segundo plano, sin quitarte el ratón: «abre YouTube y pon el tráiler». Al activarlo se instala cua-driver, el controlador de uso del equipo del propio Hermes, y Hermes se reinicia. Lo que hace en la pantalla espera tu OK (Permitir, aquí o en tu teléfono).",
+   "ar": "يرى Hermes عندها الشاشة وينقر ويمرر ويكتب في تطبيقاتك ومواقعك، في الخلفية، دون أن يأخذ منك الفأرة: «افتح YouTube وشغّل الإعلان». تشغيله يثبّت cua-driver، أداة Hermes الخاصة لاستخدام الحاسوب، ثم يُعاد تشغيل Hermes. ما يفعله على الشاشة ينتظر موافقتك (السماح، هنا أو على هاتفك).",
+   "fr": "Hermes voit alors l'écran et clique, fait défiler et tape dans tes apps et sites web, en arrière-plan, sans te prendre la souris : « ouvre YouTube et lance la bande-annonce ». L'activer installe cua-driver, le pilote d'utilisation de l'ordinateur de Hermes lui-même, et Hermes redémarre. Ce qu'il fait à l'écran attend ton accord (Autoriser, ici ou sur ton téléphone).",
+   "bn": "তখন Hermes স্ক্রিন দেখে এবং আপনার অ্যাপ ও ওয়েবসাইটে ক্লিক, স্ক্রল আর টাইপ করে, ব্যাকগ্রাউন্ডে, আপনার মাউস না নিয়ে: \"YouTube খুলে ট্রেলারটা চালাও\"। চালু করলে cua-driver, Hermes-এর নিজের কম্পিউটার-ব্যবহারের ড্রাইভার, ইনস্টল হয় এবং Hermes আবার চালু হয়। স্ক্রিনে সে যা করে, তা আপনার সম্মতির অপেক্ষা করে (অনুমতি দিন, এখানে বা আপনার ফোনে)।",
+   "pt-BR": "Aí o Hermes vê a tela e clica, rola e digita nos seus apps e sites, em segundo plano, sem tirar o seu mouse: \"abre o YouTube e coloca o trailer\". Ligar instala o cua-driver, o driver de uso do computador do próprio Hermes, e o Hermes reinicia. O que ele faz na tela espera o seu OK (Permitir, aqui ou no celular).",
+   "ru": "Тогда Hermes видит экран и нажимает, прокручивает и печатает в ваших приложениях и на сайтах, в фоне, не забирая мышь: «открой YouTube и включи трейлер». При включении устанавливается cua-driver — собственный драйвер Hermes для работы с компьютером, и Hermes перезапускается. То, что он делает на экране, ждёт вашего согласия («Разрешить» здесь или на телефоне).",
+   "id": "Hermes lalu melihat layar dan mengklik, menggulir, serta mengetik di aplikasi dan situs Anda, di latar belakang, tanpa mengambil mouse Anda: \"buka YouTube dan putar trailernya\". Menyalakannya memasang cua-driver, driver penggunaan komputer milik Hermes sendiri, lalu Hermes dimulai ulang. Apa yang dilakukannya di layar menunggu persetujuan Anda (Izinkan, di sini atau di ponsel)."
+  },
+  "Installing Hermes' computer use (cua-driver)…": {
+   "zh-Hans": "正在安装 Hermes 的电脑操作功能（cua-driver）…",
+   "hi": "Hermes का कंप्यूटर उपयोग (cua-driver) इंस्टॉल हो रहा है…",
+   "es": "Instalando el uso del equipo de Hermes (cua-driver)…",
+   "ar": "جارٍ تثبيت استخدام Hermes للحاسوب (cua-driver)…",
+   "fr": "Installation de l'utilisation de l'ordinateur par Hermes (cua-driver)…",
+   "bn": "Hermes-এর কম্পিউটার ব্যবহার (cua-driver) ইনস্টল হচ্ছে…",
+   "pt-BR": "Instalando o uso do computador do Hermes (cua-driver)…",
+   "ru": "Устанавливается работа Hermes с компьютером (cua-driver)…",
+   "id": "Memasang penggunaan komputer Hermes (cua-driver)…"
+  },
+  "Turning Hermes' computer use off…": {
+   "zh-Hans": "正在关闭 Hermes 的电脑操作功能…",
+   "hi": "Hermes का कंप्यूटर उपयोग बंद हो रहा है…",
+   "es": "Desactivando el uso del equipo de Hermes…",
+   "ar": "جارٍ إيقاف استخدام Hermes للحاسوب…",
+   "fr": "Désactivation de l'utilisation de l'ordinateur par Hermes…",
+   "bn": "Hermes-এর কম্পিউটার ব্যবহার বন্ধ হচ্ছে…",
+   "pt-BR": "Desligando o uso do computador do Hermes…",
+   "ru": "Отключается работа Hermes с компьютером…",
+   "id": "Mematikan penggunaan komputer Hermes…"
+  },
+  "That is not a model name.": {
+   "zh-Hans": "这不是有效的模型名称。",
+   "hi": "यह मॉडल का नाम नहीं है।",
+   "es": "Eso no es un nombre de modelo.",
+   "ar": "هذا ليس اسم نموذج.",
+   "fr": "Ce n'est pas un nom de modèle.",
+   "bn": "এটি কোনো মডেলের নাম নয়।",
+   "pt-BR": "Isso não é um nome de modelo.",
+   "ru": "Это не название модели.",
+   "id": "Itu bukan nama model."
+  },
+  "Hermes' computer use could not be changed ({error}).": {
+   "zh-Hans": "无法更改 Hermes 的电脑操作功能（{error}）。",
+   "hi": "Hermes का कंप्यूटर उपयोग बदला नहीं जा सका ({error})।",
+   "es": "No se pudo cambiar el uso del equipo de Hermes ({error}).",
+   "ar": "تعذّر تغيير استخدام Hermes للحاسوب ({error}).",
+   "fr": "Impossible de changer l'utilisation de l'ordinateur par Hermes ({error}).",
+   "bn": "Hermes-এর কম্পিউটার ব্যবহার বদলানো গেল না ({error})।",
+   "pt-BR": "Não deu para mudar o uso do computador do Hermes ({error}).",
+   "ru": "Не удалось изменить работу Hermes с компьютером ({error}).",
+   "id": "Penggunaan komputer Hermes tidak dapat diubah ({error})."
   }
  }
 }

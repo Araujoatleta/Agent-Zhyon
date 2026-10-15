@@ -465,6 +465,10 @@ export const Bridge = {
   hermesLoginStart: () => callOrThrow<HermesSetupStatus>("hermes_login_start"),
   hermesLoginCancel: () => callOrThrow<HermesSetupStatus>("hermes_login_cancel"),
   hermesLogout: () => callOrThrow<HermesSetupStatus>("hermes_logout"),
+  /** The model of Hermes' brain ("" for the usual one): Hermes gets it and starts again. Throws for a bad name. */
+  hermesModelSet: (model: string) => callOrThrow<HermesSetupStatus>("hermes_model_set", { model }),
+  /** Hermes may use this computer (cua-driver installed, its computer_use tool on), or not. */
+  hermesComputerUseSet: (on: boolean) => callOrThrow<HermesSetupStatus>("hermes_computer_use_set", { on }),
   /** Settings → Hermes Agent → Mochi's home for Hermes (agent/mcp.rs). */
   homeMcpStatus: () => call<HomeMcpStatus>("home_mcp_status"),
   homeMcpSet: (on: boolean) => callOrThrow<HomeMcpStatus>("home_mcp_set", { on }),
@@ -670,6 +674,12 @@ export interface HermesSetupStatus {
   skills: string[];
   house: boolean;
   login: HermesLogin;
+  /** The model Hermes' brain uses: the one picked, else the one Hermes answered with ("" when unknown). */
+  model: string;
+  /** The models offered for its brain (ChatGPT's, best first; none for the others). */
+  models: string[];
+  /** Hermes may use this computer's screen, mouse and keyboard (its computer_use tool). */
+  computerUse: boolean;
 }
 
 export interface HermesConnected {

@@ -39,7 +39,7 @@ const BRAINS = [
   { id: "google", name: "Google Gemini", ready: true, model: "", login: false },
   { id: "ollama", name: "Ollama", ready: false, model: "", login: false },
 ];
-const CHATGPT = { id: "chatgpt", name: "ChatGPT", ready: true, model: "gpt-5.5", login: true };
+const CHATGPT = { id: "chatgpt", name: "ChatGPT", ready: true, model: "gpt-5.6-sol", login: true };
 const status = (over = {}) => ({
   installed: false,
   managed: false,
@@ -57,6 +57,9 @@ const status = (over = {}) => ({
   skills: [],
   house: false,
   login: { state: "unknown" },
+  model: "",
+  models: [],
+  computerUse: false,
   ...over,
 });
 const host = (settings) => ({ settings: () => settings, useInChat: async () => {}, toggle });
@@ -294,6 +297,48 @@ test("a brain can be changed on a Hermes Coucou runs, after the plan of what cha
   assert.deepEqual(sent("hermes_setup_start").at(-1), { brain: "chatgpt", house: true, configure: true });
 });
 
+test("on ChatGPT the model is picked from the subscription's list or typed, and the computer is one switch", async () => {
+  const MODELS = ["gpt-6-sol", "gpt-5.6-sol", "gpt-5.5"];
+  const running = (over) => status({ installed: true, managed: true, brain: "chatgpt", brains: [CHATGPT, ...BRAINS], house: true, gateway: { state: "running" }, login: { state: "signedIn" }, model: "gpt-5.6-sol", models: MODELS, ...over });
+  answers = {
+    home_mcp_status: { on: false, command: "x", homeOn: true },
+    hermes_setup_status: running(),
+    hermes_model_set: (args) => running({ model: args.model }),
+    hermes_computer_use_set: (args) => running({ computerUse: args.on }),
+  };
+  const section = hermesSection(host({ ...DEFAULT_SETTINGS }));
+  await flush();
+  const modelSelect = () => all(section.el).find((e) => e.tagName === "SELECT" && e.children.some((o) => o.getAttribute("value") === "gpt-6-sol"));
+  assert.equal(modelSelect().value, "gpt-5.6-sol", "the model it runs on");
+  assert.ok(byText(section.el, "BUTTON", "Use this model").disabled, "nothing to change yet");
+  modelSelect().value = "gpt-6-sol";
+  modelSelect().fire("change");
+  byText(section.el, "BUTTON", "Use this model").fire("click");
+  await flush();
+  assert.deepEqual(sent("hermes_model_set").at(-1), { model: "gpt-6-sol" });
+  // A model of one's own, typed.
+  modelSelect().value = "__other";
+  modelSelect().fire("change");
+  const typed = all(section.el).find((e) => e.tagName === "INPUT" && e.getAttribute("placeholder") === "gpt-…");
+  typed.value = "gpt-7-preview";
+  typed.fire("input");
+  byText(section.el, "BUTTON", "Use this model").fire("click");
+  await flush();
+  assert.deepEqual(sent("hermes_model_set").at(-1), { model: "gpt-7-preview" });
+  // Hermes may use the computer: one switch, off until it is turned on.
+  const row = all(section.el).find((e) => e.className === "row" && e.children.some((c) => c.textContent === "Let it use this computer (screen, mouse, keyboard)"));
+  const sw = row.children.find((c) => c.classList.contains("switch"));
+  assert.ok(!sw.classList.contains("on"));
+  sw.fire("click");
+  await flush();
+  assert.deepEqual(sent("hermes_computer_use_set").at(-1), { on: true });
+  // Another brain offers no list: its model is the one of its provider.
+  answers.hermes_setup_status = running({ brain: "anthropic", models: [] });
+  const other = hermesSection(host({ ...DEFAULT_SETTINGS }));
+  await flush();
+  assert.ok(!byText(other.el, "BUTTON", "Use this model"));
+});
+
 test("skill packs are ticked before the setup, or installed at once in a Hermes Coucou runs", async () => {
   answers = {
     home_mcp_status: { on: false, command: "x", homeOn: true },
@@ -344,10 +389,10 @@ test("Settings comes to Hermes Agent after the installer's page, and Rust keeps 
   assert.match(main, /getElementById\("hermes"\)\?\.scrollIntoView/);
   assert.ok(!/assistantName = /.test(main), "the name is saved by hermes_assistant_set only");
   const lib = readFileSync(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
-  for (const field of ["assistant_name", "assistant_persona", "assistant_persona_text", "hermes_skills", "hermes_skills_installed", "phone_assistant", "phone_home"]) {
+  for (const field of ["assistant_name", "assistant_persona", "assistant_persona_text", "hermes_skills", "hermes_skills_installed", "hermes_computer_use", "phone_assistant", "phone_home"]) {
     assert.match(lib, new RegExp(`settings\\.${field} = current\\.${field}`), `${field} is Rust's`);
   }
-  for (const command of ["hermes_assistant_set", "hermes_skills_set", "hermes_login_start", "hermes_login_cancel", "hermes_logout"]) {
+  for (const command of ["hermes_assistant_set", "hermes_skills_set", "hermes_login_start", "hermes_login_cancel", "hermes_logout", "hermes_model_set", "hermes_computer_use_set"]) {
     assert.ok(lib.includes(`hermes_setup::${command},`), `${command} is registered`);
   }
 });

@@ -192,6 +192,8 @@ export interface Settings {
   assistantPersonaText?: string;
   hermesSkills?: string[];
   hermesSkillsInstalled?: string[];
+  /** Hermes may use this computer's screen, mouse and keyboard (its computer_use tool). Rust owns it. */
+  hermesComputerUse?: boolean;
   /** The phone may change the assistant, and use Mochi's home. Rust owns them, like the other phone switches. */
   phoneAssistant?: boolean;
   phoneHome?: boolean;
