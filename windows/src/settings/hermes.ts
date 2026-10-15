@@ -42,6 +42,8 @@ const PACKS = labels({
   news: N_("News and feeds (RSS)"),
 });
 const OWN_TONE = "custom";
+/** The model picker's last choice: a name typed in. */
+const OTHER_MODEL = "__other";
 const MAX_TONE = 1500;
 /** Looks like the settings window's text fields, for the tone of the user's own. */
 const AREA_STYLE =
@@ -339,6 +341,46 @@ function zheusBlock(host: HermesHost): HTMLElement {
     ];
   };
 
+  /** The subscription's models (ChatGPT's, best first), or one typed: Hermes is given it and starts again. */
+  const modelBlock = (status: HermesSetupStatus): HTMLElement[] => {
+    if (status.models.length === 0) return [];
+    const select = h("select", {}) as HTMLSelectElement;
+    for (const model of status.models) select.append(h("option", { value: model, text: model }));
+    select.append(h("option", { value: OTHER_MODEL, text: t("Another model…") }));
+    const typed = h("input", { type: "text", placeholder: "gpt-…", maxlength: "100", spellcheck: "false", autocomplete: "off", style: "flex:1 1 auto;min-width:0" }) as HTMLInputElement;
+    const known = status.models.includes(status.model);
+    select.value = known ? status.model : OTHER_MODEL;
+    typed.value = known ? "" : status.model;
+    const typedRow = h("div", { class: "row" }, typed);
+    const apply = h("button", { text: t("Use this model") }) as HTMLButtonElement;
+    const picked = () => (select.value === OTHER_MODEL ? typed.value.trim() : select.value);
+    const refresh = () => {
+      typedRow.style.display = select.value === OTHER_MODEL ? "" : "none";
+      apply.disabled = !picked() || picked() === status.model;
+    };
+    select.addEventListener("change", refresh);
+    typed.addEventListener("input", refresh);
+    apply.addEventListener("click", () => {
+      apply.disabled = true;
+      Bridge.hermesModelSet(picked()).then(show, (err) => {
+        apply.disabled = false;
+        fail(err);
+      });
+    });
+    refresh();
+    return [
+      h("div", { class: "row" }, h("label", { text: t("Its model") }), select, apply),
+      typedRow,
+      h("div", { class: "hint", text: t("The models of your ChatGPT subscription, best first: which ones your plan reaches is OpenAI's call. Hermes starts again with the one you pick.") }),
+    ];
+  };
+
+  /** Hermes may use this computer: its computer_use tool, through cua-driver (installed by Hermes' own command). */
+  const computerBlock = (status: HermesSetupStatus): HTMLElement[] => [
+    h("div", { class: "row" }, h("label", { text: t("Let it use this computer (screen, mouse, keyboard)") }), host.toggle(status.computerUse, (next) => void Bridge.hermesComputerUseSet(next).then(show, fail))),
+    h("div", { class: "hint", text: t("Hermes then sees the screen and clicks, scrolls and types in your apps and websites, in the background, without taking your mouse: \"open YouTube and play the trailer\". Turning it on installs cua-driver, Hermes' own computer-use driver, and Hermes starts again. What it does on the screen waits for your OK (Allow, here or on your phone).") }),
+  ];
+
   /** Another brain for the Hermes Coucou runs: its settings change and it starts again. */
   const changeBrain = (status: HermesSetupStatus): HTMLElement[] => {
     const picker = brainPicker(status);
@@ -386,7 +428,9 @@ function zheusBlock(host: HermesHost): HTMLElement {
         h("div", { class: "row" }, statusDot(status.gateway.state === "running"), h("span", { class: "hint", text: gatewayText(status.gateway) })),
         ...(brain ? [h("div", { class: "hint", text: brain.login ? t("Its brain: ChatGPT, with your subscription.") : t("Its brain: {brain}, with the key Coucou keeps.", { brain: brain.name }) })] : []),
         ...(brain?.login ? chatgptLine(status) : []),
+        ...modelBlock(status),
         ...changeBrain(status),
+        ...computerBlock(status),
         ...skillsBlock(status),
       );
       return;

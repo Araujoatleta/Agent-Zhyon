@@ -51,6 +51,8 @@ const READY_TIMEOUT: Duration = Duration::from_secs(150);
 const TAIL: usize = 30;
 /// One skill installed or removed (an official one comes from Hermes' own checkout, else from GitHub).
 const SKILL_TIMEOUT: Duration = Duration::from_secs(5 * 60);
+/// cua-driver's installation (a download, and its start with Windows).
+const COMPUTER_USE_TIMEOUT: Duration = Duration::from_secs(20 * 60);
 
 pub fn installer_url() -> String {
     let file = if cfg!(windows) { "install.ps1" } else { "install.sh" };
@@ -196,7 +198,30 @@ pub fn brain(id: &str) -> Option<&'static Brain> {
 
 /// The model ChatGPT runs Hermes with when Coucou has none for it (one of Hermes' Codex models a ChatGPT Plus or Pro
 /// account may use: hermes_cli/codex_models.py).
-pub const CHATGPT_MODEL: &str = "gpt-5.5";
+pub const CHATGPT_MODEL: &str = "gpt-5.6-sol";
+
+/// The models a ChatGPT subscription reaches through Hermes, best first, at the pinned commit
+/// (hermes_cli/codex_models.py DEFAULT_CODEX_MODELS): Settings offers them, and any other name the user types.
+/// Which ones an account may use is OpenAI's call (gpt-5.3-codex-spark: Pro only).
+pub const CHATGPT_MODELS: &[&str] = &[
+    "gpt-6-sol",
+    "gpt-6-luna",
+    "gpt-5.6-sol",
+    "gpt-5.6-terra",
+    "gpt-5.6-luna",
+    "gpt-5.5",
+    "gpt-5.4-mini",
+    "gpt-5.4",
+    "gpt-5.3-codex-spark",
+];
+
+/// A model name as the user may give it: letters, digits and `-._:/@`, at most 100 characters, not starting with a
+/// dash; "" is the usual one. Anything else is refused, since it becomes an argument of `hermes config set`.
+pub fn valid_model(model: &str) -> Option<String> {
+    let model = model.trim();
+    let fits = model.len() <= 100 && !model.starts_with('-') && model.chars().all(|c| c.is_ascii_alphanumeric() || "-._:/@".contains(c));
+    fits.then(|| model.to_string())
+}
 
 /// The model Hermes is given with `brain`: the one Coucou's chat uses with it, else ChatGPT's usual one, else none
 /// (Hermes' own default for that provider).
@@ -939,6 +964,12 @@ pub struct SetupStatus {
     pub house: bool,
     /// The ChatGPT sign-in.
     pub login: LoginState,
+    /// The model Hermes' brain uses: the one picked in Settings, else the one Hermes answered with ("" when unknown).
+    pub model: String,
+    /// The models offered for its brain (ChatGPT's; none for the others, whose model is typed).
+    pub models: Vec<String>,
+    /// Hermes may use this computer's screen, mouse and keyboard.
+    pub computer_use: bool,
 }
 
 /// The assistant as Settings and the phone show it.
@@ -1023,6 +1054,16 @@ pub(crate) fn status_of(app: &AppHandle) -> SetupStatus {
         skills: hub_packs(&settings.hermes_skills),
         house: settings.home_mcp,
         login,
+        model: brain(&settings.hermes_brain)
+            .map(|b| model_for(&settings, b))
+            .filter(|m| !m.is_empty())
+            .or_else(|| settings.chat_models.get(hermes::PROVIDER).cloned())
+            .unwrap_or_default(),
+        models: brain(&settings.hermes_brain)
+            .filter(|b| b.login.is_some())
+            .map(|_| CHATGPT_MODELS.iter().map(|m| m.to_string()).collect())
+            .unwrap_or_default(),
+        computer_use: settings.hermes_computer_use,
     }
 }
 
@@ -1218,11 +1259,17 @@ async fn setup(app: AppHandle, brain_id: String, house: bool, configure: bool, o
         let cancel = zheus_cancel.clone();
         warning = tauri::async_runtime::spawn_blocking(move || {
             write_soul_from(&settings);
-            if skill_commands(&hub_packs(&settings.hermes_skills), &settings.hermes_skills_installed).is_empty() {
-                return None;
+            let mut problems = Vec::new();
+            if !skill_commands(&hub_packs(&settings.hermes_skills), &settings.hermes_skills_installed).is_empty() {
+                set_progress(&skills_app, |p| p.step = t("Installing the skill packs…"));
+                problems.extend(apply_skills(&skills_app, &skills_launcher, &cancel).err());
             }
-            set_progress(&skills_app, |p| p.step = t("Installing the skill packs…"));
-            apply_skills(&skills_app, &skills_launcher, &cancel).err()
+            // The computer use the user turned on stays on through a new setup (it is off in a fresh Hermes).
+            if settings.hermes_computer_use {
+                set_progress(&skills_app, |p| p.step = t("Installing Hermes' computer use (cua-driver)…"));
+                problems.extend(run_computer_use(&skills_app, &skills_launcher, true, &cancel).err());
+            }
+            (!problems.is_empty()).then(|| problems.join(" · "))
         })
         .await
         .map_err(|e| e.to_string())?;
@@ -1905,6 +1952,129 @@ pub(crate) fn set_assistant(app: &AppHandle, name: Option<String>, persona: Opti
 
 /// The skill packs the user wants Hermes to have (not "home": that one is Mochi's home for Hermes); unknown ones are
 /// left out. When Coucou runs Hermes they are installed or removed in the background; otherwise the next setup does it.
+/// The model of Hermes' brain, picked in Settings: kept for that brain, given to Hermes (`model.default`), and
+/// Coucou's gateway starts again with it (Hermes keeps an agent per provider, not per model). "" is the brain's usual
+/// one (ChatGPT's), or Hermes' own pick for the others.
+pub(crate) fn set_model(app: &AppHandle, model: &str) -> Result<(), String> {
+    let model = valid_model(model).ok_or_else(|| t("That is not a model name."))?;
+    let current = app.state::<Shared>().settings.lock().unwrap().hermes_brain.clone();
+    let brain = brain(&current).ok_or_else(|| t("Pick the AI Hermes should use."))?;
+    let updated = save_settings_with(app, |s| {
+        if model.is_empty() {
+            s.chat_models.remove(brain.id);
+        } else {
+            s.chat_models.insert(brain.id.to_string(), model.clone());
+        }
+    });
+    log::line(format!("hermes: the model of {} is {}", brain.id, if model.is_empty() { "the usual one" } else { model.as_str() }));
+    changed(app);
+    let Some(launcher) = launcher_now().filter(|_| updated.hermes_managed) else { return Ok(()) };
+    let given = model_for(&updated, brain);
+    let args: Vec<String> = if given.is_empty() {
+        ["config", "unset", "model.default"].iter().map(|a| a.to_string()).collect()
+    } else {
+        ["config", "set", "model.default", given.as_str()].iter().map(|a| a.to_string()).collect()
+    };
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        // An unset of a key that is not there is no failure.
+        let optional = given.is_empty();
+        let result = tauri::async_runtime::spawn_blocking(move || run_hermes(&launcher, &args, &AtomicBool::new(false)))
+            .await
+            .map_err(|e| e.to_string())
+            .and_then(|r| r);
+        match result {
+            Err(e) if !optional => set_setup_error(&app, tf("Hermes refused its settings ({error}).", &[("error", &e)])),
+            _ => restart_gateway(&app).await,
+        }
+        changed(&app);
+    });
+    Ok(())
+}
+
+/// Coucou's gateway, when it runs, starts again: Hermes reads its tools and its model when its server starts.
+async fn restart_gateway(app: &AppHandle) {
+    if app.state::<Zheus>().gateway.lock().unwrap().is_none() {
+        return;
+    }
+    let stopping = app.clone();
+    let _ = tauri::async_runtime::spawn_blocking(move || stop_gateway(&stopping)).await;
+    start_if_managed(app);
+}
+
+/// What `hermes` is run with to let Hermes use this computer (`on`), or to stop it: Hermes' own installer of
+/// cua-driver, the background desktop driver of its computer_use tool (hermes_cli/tools_config_post_setup.py, the
+/// command its dashboard runs; macOS, Windows and Linux), then the tool on for the API server Coucou talks to, where
+/// it is off by default (toolsets.py, hermes-api-server). Off leaves cua-driver installed.
+pub fn computer_use_commands(on: bool) -> Vec<Vec<String>> {
+    let commands: &[&[&str]] = if on {
+        &[&["tools", "post-setup", "cua_driver"], &["tools", "enable", "computer_use", "--platform", "api_server"]]
+    } else {
+        &[&["tools", "disable", "computer_use", "--platform", "api_server"]]
+    };
+    commands.iter().map(|args| args.iter().map(|a| a.to_string()).collect()).collect()
+}
+
+/// Runs computer_use_commands, each to its end: the cause of the first one that fails (its output kept in the
+/// installation's record).
+fn run_computer_use(app: &AppHandle, launcher: &Path, on: bool, cancel: &AtomicBool) -> Result<(), String> {
+    for args in computer_use_commands(on) {
+        log::line(format!("hermes: {}", args.join(" ")));
+        let shown = app.clone();
+        let (ok, lines) = run_lines(hermes_command(launcher, &args), COMPUTER_USE_TIMEOUT, cancel, move |l| {
+            let line = redact(l.trim(), &[]);
+            if !line.is_empty() {
+                shown.state::<Zheus>().progress.lock().unwrap().last = line;
+            }
+        })?;
+        if !ok {
+            keep_output(&args.join(" "), 1, &lines);
+            let cause = telling_line(&lines, "").unwrap_or_default();
+            return Err(tf("Hermes' computer use could not be changed ({error}).", &[("error", &cause)]));
+        }
+    }
+    Ok(())
+}
+
+/// "Let it use this computer": Hermes' computer use installed and on for its API server (or off), then Coucou's
+/// gateway starts again, so Hermes has the tool from the next message. In the background, as the setup's progress
+/// (Stop cancels it). Each action Hermes takes with it still goes through Hermes' approvals: here, or on the phone.
+pub(crate) fn set_computer_use(app: &AppHandle, on: bool) -> Result<(), String> {
+    let managed = app.state::<Shared>().settings.lock().unwrap().hermes_managed;
+    let launcher = launcher_now().filter(|_| managed).ok_or_else(|| t("Hermes is not installed on this computer."))?;
+    {
+        let zheus = app.state::<Zheus>();
+        let mut progress = zheus.progress.lock().unwrap();
+        if progress.running {
+            return Err(t("Hermes is already being set up."));
+        }
+        let step = if on { t("Installing Hermes' computer use (cua-driver)…") } else { t("Turning Hermes' computer use off…") };
+        *progress = Progress { running: true, step, ..Progress::default() };
+        zheus.cancel.store(false, Ordering::SeqCst);
+    }
+    log::line(format!("hermes: computer use {}", if on { "on" } else { "off" }));
+    changed(app);
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        let cancel = app.state::<Zheus>().cancel.clone();
+        let run_app = app.clone();
+        let result = tauri::async_runtime::spawn_blocking(move || run_computer_use(&run_app, &launcher, on, &cancel))
+            .await
+            .map_err(|e| e.to_string())
+            .and_then(|r| r);
+        if result.is_ok() {
+            save_settings_with(&app, |current| current.hermes_computer_use = on);
+            set_progress(&app, |p| p.step = t("Starting Hermes…"));
+            restart_gateway(&app).await;
+        }
+        set_progress(&app, |p| {
+            p.running = false;
+            p.error = result.err();
+        });
+    });
+    Ok(())
+}
+
 pub(crate) fn set_skills(app: &AppHandle, skills: Vec<String>) -> Result<(), String> {
     let wanted = hub_packs(&skills);
     let updated = save_settings_with(app, |current| current.hermes_skills = wanted.clone());
@@ -2033,6 +2203,23 @@ pub fn hermes_login_start(app: AppHandle, window: WebviewWindow) -> Result<Setup
 pub fn hermes_login_cancel(app: AppHandle, window: WebviewWindow) -> Result<SetupStatus, String> {
     crate::phone_link::only_settings(&window)?;
     login_cancel(&app);
+    Ok(status_of(&app))
+}
+
+/// The model of Hermes' brain (one of ChatGPT's, or a name typed; "" for the usual one): Hermes gets it and starts
+/// again.
+#[tauri::command]
+pub fn hermes_model_set(app: AppHandle, window: WebviewWindow, model: String) -> Result<SetupStatus, String> {
+    crate::phone_link::only_settings(&window)?;
+    set_model(&app, &model)?;
+    Ok(status_of(&app))
+}
+
+/// "Let it use this computer" on (cua-driver installed, the tool on for its API server) or off.
+#[tauri::command]
+pub fn hermes_computer_use_set(app: AppHandle, window: WebviewWindow, on: bool) -> Result<SetupStatus, String> {
+    crate::phone_link::only_settings(&window)?;
+    set_computer_use(&app, on)?;
     Ok(status_of(&app))
 }
 
@@ -2202,7 +2389,29 @@ mod tests {
         assert_eq!(options.len(), BRAINS.len());
         assert_eq!(options.iter().filter(|b| b.login).map(|b| b.id.as_str()).collect::<Vec<_>>(), ["chatgpt"]);
         let json = serde_json::to_value(&options[0]).unwrap();
-        assert_eq!(json, serde_json::json!({"id": "chatgpt", "name": "ChatGPT", "ready": true, "model": "gpt-5.5", "login": true}));
+        assert_eq!(json, serde_json::json!({"id": "chatgpt", "name": "ChatGPT", "ready": true, "model": "gpt-5.6-sol", "login": true}));
+    }
+
+    #[test]
+    fn the_subscriptions_models_are_offered_and_a_typed_one_must_be_a_name() {
+        // The usual one is one ChatGPT accounts reach (a user's account refused gpt-5.5), offered in the list.
+        assert!(CHATGPT_MODELS.contains(&CHATGPT_MODEL));
+        assert_eq!(CHATGPT_MODELS.len(), 9);
+        assert_eq!(valid_model(" gpt-5.6-sol "), Some("gpt-5.6-sol".to_string()));
+        assert_eq!(valid_model(""), Some(String::new()), "\"\": the usual one");
+        assert_eq!(valid_model("openai/gpt-4.1@beta:1"), Some("openai/gpt-4.1@beta:1".to_string()));
+        for bad in ["gpt 5", "gpt-5;rm", "--yes", "x\ny", &"a".repeat(101)] {
+            assert_eq!(valid_model(bad), None, "{bad:?} is refused");
+        }
+    }
+
+    #[test]
+    fn computer_use_is_hermes_own_driver_and_tool_for_the_api_server_only() {
+        assert_eq!(
+            computer_use_commands(true),
+            vec![vec!["tools", "post-setup", "cua_driver"], vec!["tools", "enable", "computer_use", "--platform", "api_server"]]
+        );
+        assert_eq!(computer_use_commands(false), vec![vec!["tools", "disable", "computer_use", "--platform", "api_server"]]);
     }
 
     #[test]
@@ -2216,7 +2425,7 @@ mod tests {
         picked.chat_models.insert("chatgpt".into(), "gpt-5.4".into());
         assert_eq!(model_for(&picked, chatgpt), "gpt-5.4");
         let commands = config_commands(chatgpt, &model_for(&settings, chatgpt), base_url(&settings, chatgpt).as_deref(), None);
-        assert_eq!(commands, vec![vec!["config", "set", "model.provider", "openai-codex"], vec!["config", "set", "model.default", "gpt-5.5"]]);
+        assert_eq!(commands, vec![vec!["config", "set", "model.provider", "openai-codex"], vec!["config", "set", "model.default", "gpt-5.6-sol"]]);
         let env = gateway_env(&"k".repeat(64), PORT, None);
         assert!(!env.iter().any(|(n, _)| n.ends_with("_API_KEY") || n.contains("OPENAI")), "its sign-in stays in Hermes' auth.json");
         assert_eq!(login_args("add"), ["auth", "add", "openai-codex"]);

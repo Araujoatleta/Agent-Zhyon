@@ -136,6 +136,7 @@ fn save_settings(app: AppHandle, shared: State<Shared>, settings: Settings) {
         settings.assistant_persona_text = current.assistant_persona_text.clone();
         settings.hermes_skills = current.hermes_skills.clone();
         settings.hermes_skills_installed = current.hermes_skills_installed.clone();
+        settings.hermes_computer_use = current.hermes_computer_use;
         settings.phone_assistant = current.phone_assistant;
         settings.phone_home = current.phone_home;
         // Mochi's hands too: only Settings → Mochi's hands changes them (agent::agent_settings_set).
@@ -867,6 +868,8 @@ pub fn run() {
             hermes_setup::hermes_login_start,
             hermes_setup::hermes_login_cancel,
             hermes_setup::hermes_logout,
+            hermes_setup::hermes_model_set,
+            hermes_setup::hermes_computer_use_set,
             phone_link::phone_remote_set,
             phone_link::phone_remote_check,
             phone_link::push::phone_push_test,

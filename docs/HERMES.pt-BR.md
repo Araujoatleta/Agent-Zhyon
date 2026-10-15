@@ -74,9 +74,22 @@ API. É o próprio login do Hermes na OpenAI (`hermes auth add openai-codex`):
   Só a página da própria OpenAI é aberta;
 - o Hermes guarda o login no `auth.json` dele, na pasta do Hermes. **O Coucou nunca lê esse arquivo** e nunca vê a sua
   senha: nada dele vai para as configurações do Coucou, para o log ou para a ligação com o celular;
-- o Hermes usa o modelo `gpt-5.5`, um dos que a OpenAI oferece às contas do ChatGPT;
+- **O modelo dele**: os modelos da assinatura, do melhor para o mais simples (`gpt-6-sol`, `gpt-6-luna`, `gpt-5.6-sol`,
+  `gpt-5.6-terra`, `gpt-5.6-luna`, `gpt-5.5`, `gpt-5.4-mini`, `gpt-5.4`, `gpt-5.3-codex-spark`, a lista do próprio Hermes),
+  ou **Outro modelo…** para digitar um. O Hermes reinicia com ele. Quais o seu plano alcança é a OpenAI quem decide; o
+  `gpt-5.6-sol` é o padrão;
 - depois, **Entrar com o ChatGPT** e **Sair** ficam embaixo do cérebro dele. Cancelar encerra um login, e o Hermes não
   guarda nada dele. Os limites são os do seu plano (uma janela de 5 horas e outra semanal): `hermes usage` mostra.
+
+### Usar o computador (tela, mouse, teclado)
+
+**Deixar ele usar este computador** faz o Hermes ver a tela e clicar, rolar e digitar nos seus apps e sites, em segundo
+plano, sem tirar o seu mouse ("abre o YouTube e coloca o trailer"): é a ferramenta `computer_use` do próprio Hermes, pelo
+[cua-driver](https://github.com/trycua/cua) (Windows, macOS e Linux). Ligar roda os comandos do próprio Hermes
+(`hermes tools post-setup cua_driver` e `hermes tools enable computer_use --platform api_server`: a ferramenta vem
+desligada no servidor de API que o Coucou usa) e reinicia o Hermes; desligar tira a ferramenta e deixa o cua-driver
+instalado. O que o Hermes faz na tela espera o seu OK, como as outras ações dele: Permitir na ilha ou no celular. Vem
+desligado.
 
 ### O nome e o tom dele (SOUL.md)
 

@@ -72,9 +72,21 @@ Hermes' own sign-in to OpenAI (`hermes auth add openai-codex`):
   ChatGPT account and type the code: it works for 15 minutes. Only OpenAI's own page is ever opened;
 - Hermes keeps the sign-in in its own `auth.json`, in Hermes' folder. **Coucou never reads it** and never sees your
   password: nothing of it goes into Coucou's settings, its logs or the phone link;
-- Hermes uses the model `gpt-5.5`, one of those OpenAI offers to ChatGPT accounts;
+- **Its model**: the models of the subscription, best first (`gpt-6-sol`, `gpt-6-luna`, `gpt-5.6-sol`, `gpt-5.6-terra`,
+  `gpt-5.6-luna`, `gpt-5.5`, `gpt-5.4-mini`, `gpt-5.4`, `gpt-5.3-codex-spark`, Hermes' own list), or **Another model…** to
+  type one. Hermes starts again with it. Which ones your plan reaches is OpenAI's call; `gpt-5.6-sol` is the usual one;
 - afterwards, **Sign in with ChatGPT** and **Sign out** stay under its brain. Cancel ends a sign-in, and Hermes keeps
   nothing of it. The limits are your plan's (a 5-hour and a weekly window): `hermes usage` shows them.
+
+### Using the computer (screen, mouse, keyboard)
+
+**Let it use this computer** lets Hermes see the screen and click, scroll and type in your apps and websites, in the
+background, without taking your mouse ("open YouTube and play the trailer"): Hermes' own `computer_use` tool, through
+[cua-driver](https://github.com/trycua/cua) (Windows, macOS and Linux). Turning it on runs Hermes' own commands
+(`hermes tools post-setup cua_driver`, then `hermes tools enable computer_use --platform api_server`: the tool is off by
+default for the API server Coucou talks to) and starts Hermes again; off turns the tool off and leaves cua-driver
+installed. What Hermes does on the screen waits for your OK, as its other actions do: Allow on the island or on the
+phone. Off by default.
 
 ### Its name and tone (SOUL.md)
 

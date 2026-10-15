@@ -2223,6 +2223,9 @@ mod assistant_tests {
             skills: vec!["search".into()],
             house: true,
             login: LoginState::SignedIn,
+            model: "gpt-5.6-sol".into(),
+            models: hermes_setup::CHATGPT_MODELS.iter().map(|m| m.to_string()).collect(),
+            computer_use: false,
         }
     }
 
