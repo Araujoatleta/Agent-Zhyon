@@ -49,19 +49,20 @@ export interface DevicePrefs {
 
 export interface TvSummary {
   id: string;
-  brand: "philips" | "samsung";
+  brand: "philips" | "samsung" | "android";
   name: string;
   host: string;
   model: string;
   version: string;
-  /** "Tizen", or a Philips TV's OS. */
+  /** "Tizen", a Philips TV's OS, or "Android 13". */
   os: string;
   android: boolean;
   https: boolean;
   needsPairing: boolean;
   paired: boolean;
   mac: string;
-  /** What its features say: "keys", "apps" (Philips); "volume" when a Samsung TV has a UPnP renderer. */
+  /** What its features say: "keys", "apps" (Philips); "volume" when a Samsung TV has a UPnP renderer; what an Android
+   * device reported when it was paired ("volume", "mute"). */
   features: string[];
 }
 
@@ -204,6 +205,9 @@ export function foundLine(f: Found): string {
 
 /** A TV in words: "JointSpace 6.4.0 · Android TV · encrypted", "UN43AU7700GXZD · Tizen · API 2.0.25 · volume by UPnP". */
 export function tvLine(tv: TvSummary): string {
+  if (tv.brand === "android") {
+    return [tv.model, tv.os || "Android", t("network debugging (ADB, port 5555)")].filter(Boolean).join(" · ");
+  }
   if (tv.brand === "samsung") {
     const parts = [tv.model, tv.os || "Tizen", tv.version ? `API ${tv.version}` : ""].filter(Boolean);
     parts.push(tv.https ? t("encrypted (port 8002)") : t("unencrypted (port 8001)"));
