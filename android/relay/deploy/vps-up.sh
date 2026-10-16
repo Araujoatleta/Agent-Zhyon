@@ -17,6 +17,12 @@ fi
 KEY_LENGTH=$(wc -c < secrets/access-key | tr -d ' ')
 [ "$KEY_LENGTH" = "43" ] || { echo "secrets/access-key must contain one 43-character base64url key" >&2; exit 1; }
 
+# Docker Compose implements file-backed secrets as bind mounts, preserving the
+# host file owner and mode. The official Node image runs as uid/gid 1000.
+chmod 0700 secrets
+chown 1000:1000 secrets/access-key
+chmod 0400 secrets/access-key
+
 docker compose -f compose.vps.yml up -d --build
 
 i=0
