@@ -11,7 +11,7 @@ COPY tools/dev-relay.ts tools/vps-relay.ts ./tools/
 ENV HOST=0.0.0.0 \
     PORT=8787 \
     CONNECTS_PER_MINUTE=30 \
-    ACCESS_KEY_FILE=/run/secrets/coucou_relay_access
+    ACCESS_KEYS_DIR=/run/coucou/clients
 
 USER node
 EXPOSE 8787

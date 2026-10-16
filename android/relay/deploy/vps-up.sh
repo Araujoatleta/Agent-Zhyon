@@ -9,19 +9,25 @@ command -v openssl >/dev/null 2>&1 || { echo "OpenSSL is required" >&2; exit 1; 
 docker compose version >/dev/null 2>&1 || { echo "Docker Compose v2 is required" >&2; exit 1; }
 
 umask 077
-mkdir -p secrets
-if [ ! -s secrets/access-key ]; then
-  openssl rand -base64 32 | tr '+/' '-_' | tr -d '=\n' > secrets/access-key
+mkdir -p state/clients
+if [ -s secrets/access-key ] && [ ! -s state/clients/default.key ]; then
+  mv secrets/access-key state/clients/default.key
+fi
+if [ ! -s state/clients/default.key ] && ! find state/clients -type f -name '*.key' -print -quit | grep -q .; then
+  openssl rand -base64 32 | tr '+/' '-_' | tr -d '=\n' > state/clients/default.key
 fi
 
-KEY_LENGTH=$(wc -c < secrets/access-key | tr -d ' ')
-[ "$KEY_LENGTH" = "43" ] || { echo "secrets/access-key must contain one 43-character base64url key" >&2; exit 1; }
+for key in state/clients/*.key; do
+  [ -f "$key" ] || continue
+  KEY_LENGTH=$(wc -c < "$key" | tr -d ' ')
+  [ "$KEY_LENGTH" = "43" ] || { echo "$key must contain one 43-character base64url key" >&2; exit 1; }
+done
 
 # Docker Compose implements file-backed secrets as bind mounts, preserving the
 # host file owner and mode. The official Node image runs as uid/gid 1000.
-chmod 0700 secrets
-chown 1000:1000 secrets/access-key
-chmod 0400 secrets/access-key
+chmod 0700 state state/clients
+chown 1000:1000 state/clients state/clients/*.key
+chmod 0400 state/clients/*.key
 
 docker compose -f compose.vps.yml up -d --build
 
@@ -33,4 +39,4 @@ until curl -fsS http://127.0.0.1:${COUCO_RELAY_PORT:-8787}/ >/dev/null; do
 done
 
 echo "Coucou relay is healthy on 127.0.0.1:${COUCO_RELAY_PORT:-8787}."
-echo "Keep secrets/access-key private; configure TLS before using it from the internet."
+echo "Keep state/clients private; configure TLS before using it from the internet."

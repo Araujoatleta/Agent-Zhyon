@@ -1,0 +1,26 @@
+{
+    admin off
+}
+
+{$COUCO_DOMAIN} {
+    log {
+        output discard
+    }
+
+    @root path /
+    handle @root {
+        reverse_proxy coucou-relay:8787
+    }
+
+    # The relay performs the exact room-id, role, access-key and join-proof
+    # validation. Caddy only keeps unrelated public paths away from it.
+    @room path_regexp room ^/v1/room/[A-Za-z0-9_-]+$
+    handle @room {
+        reverse_proxy coucou-relay:8787
+    }
+
+    handle {
+        respond "Not found" 404
+    }
+}
+

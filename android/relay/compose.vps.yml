@@ -14,16 +14,12 @@ services:
     cap_drop:
       - ALL
     environment:
-      ACCESS_KEY_FILE: /run/secrets/coucou_relay_access
+      ACCESS_KEYS_DIR: /run/coucou/clients
       HOST: 0.0.0.0
       PORT: 8787
       CONNECTS_PER_MINUTE: 30
-    secrets:
-      - coucou_relay_access
+    volumes:
+      - ./state/clients:/run/coucou/clients:ro
     ports:
       - "127.0.0.1:${COUCO_RELAY_PORT:-8787}:8787"
     stop_grace_period: 10s
-
-secrets:
-  coucou_relay_access:
-    file: ./secrets/access-key

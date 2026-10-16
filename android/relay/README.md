@@ -69,20 +69,19 @@ ACCESS_KEY=<your key> PORT=8787 node tools/dev-relay.ts
 
 Without `ACCESS_KEY` it refuses every room request.
 
-For a production VPS, use `compose.vps.yml`: the relay runs as an unprivileged, read-only container, binds only to
-`127.0.0.1`, reads its key from a Docker secret and restarts automatically. `deploy/nginx-coucou-relay.conf` is the TLS
-reverse-proxy template.
+For a dedicated production VPS, use the portable stack: the relay runs as an unprivileged, read-only container and Caddy
+owns TLS, including automatic certificate renewal. All mutable state stays below this directory, so copying one folder is
+enough to move the fleet to another VPS. Each desktop has a separate revocable access key.
 
 ```sh
-cd android/relay
-sh ./deploy/vps-up.sh
-# Configure relay.example.com and its certificate in deploy/nginx-coucou-relay.conf,
-# then enable that server block in Nginx.
+sudo sh deploy/install-vps.sh relay.example.com
+./vpsctl issue office-pc
+./vpsctl client-package office-pc
 ```
 
-The script generates `secrets/access-key` with mode 0600 and never prints it. That directory is git-ignored. Copy the
-same value into Coucou's **Relay access key** field through a trusted terminal/session; never commit it or put it in the
-Nginx configuration. Full architecture and rollout order: `docs/VPS_ARCHITECTURE.pt-BR.md`.
+The generated `dist/Coucou-office-pc.zip` is a one-click Windows installer/configurator. Treat it like a password and delete
+it after use. For a shared VPS that already has Nginx, set `COUCO_MODE=existing-proxy` and use `compose.vps.yml` plus
+`deploy/nginx-coucou-relay.conf`. Full setup, migration and backup guide: `docs/VPS_ARCHITECTURE.pt-BR.md`.
 
 ## Develop and test
 
