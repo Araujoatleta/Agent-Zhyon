@@ -57,7 +57,7 @@ nothing because it hibernates. A setup of one computer and one phone uses a few 
 exhausted, Cloudflare refuses requests until the daily reset: the app says "Relay unavailable" and keeps working over the home
 network; nothing is lost because nothing is stored. The paid Workers plan (about $5 a month) removes the cap.
 
-## Self-hosting
+## Self-hosting on a VPS
 
 `tools/dev-relay.ts` is the same relay in plain Node (it shares `src/protocol.ts` with the Worker and is checked by the same
 behaviour tests). It speaks `ws://`, so put a TLS terminator in front of it on the internet.
@@ -68,6 +68,21 @@ ACCESS_KEY=<your key> PORT=8787 node tools/dev-relay.ts
 ```
 
 Without `ACCESS_KEY` it refuses every room request.
+
+For a production VPS, use `compose.vps.yml`: the relay runs as an unprivileged, read-only container, binds only to
+`127.0.0.1`, reads its key from a Docker secret and restarts automatically. `deploy/nginx-coucou-relay.conf` is the TLS
+reverse-proxy template.
+
+```sh
+cd android/relay
+sh ./deploy/vps-up.sh
+# Configure relay.example.com and its certificate in deploy/nginx-coucou-relay.conf,
+# then enable that server block in Nginx.
+```
+
+The script generates `secrets/access-key` with mode 0600 and never prints it. That directory is git-ignored. Copy the
+same value into Coucou's **Relay access key** field through a trusted terminal/session; never commit it or put it in the
+Nginx configuration. Full architecture and rollout order: `docs/VPS_ARCHITECTURE.pt-BR.md`.
 
 ## Develop and test
 
