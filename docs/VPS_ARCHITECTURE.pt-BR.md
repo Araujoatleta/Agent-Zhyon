@@ -76,6 +76,7 @@ O ato de escanear continua intencionalmente manual: é ele que entrega a chave p
 ./vpsctl list                    # nomes cadastrados; nunca mostra chaves
 ./vpsctl status                  # containers e saúde
 ./vpsctl doctor                  # DNS + TLS + proxy + relay
+./vpsctl smoke escritorio        # autenticação WSS e encaminhamento binário reais
 ./vpsctl logs                    # últimos logs operacionais, sem conteúdo de sessões
 ./vpsctl revoke escritorio       # corta somente esse computador
 ./vpsctl issue escritorio-novo   # cria uma identidade nova

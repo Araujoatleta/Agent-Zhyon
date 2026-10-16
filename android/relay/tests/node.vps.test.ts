@@ -87,5 +87,6 @@ describe("VPS configuration", () => {
     expect(control).toContain("client-package");
     expect(control).toContain("revoke)");
     expect(control).toContain("backup)");
+    expect(control).toContain("smoke)");
   });
 });

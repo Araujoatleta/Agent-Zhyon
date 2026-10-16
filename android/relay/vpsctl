@@ -111,6 +111,12 @@ EOF
     curl -fsS "https://$DOMAIN/" | grep -q 'Coucou link relay' || die "public healthcheck failed"
     echo "DNS, TLS, proxy and relay healthcheck are OK."
     ;;
+  smoke)
+    name=${2:-}; [ -n "$name" ] || die "usage: ./vpsctl smoke NAME"; slug "$name"
+    [ -f "state/clients/$name.key" ] || die "unknown device: $name"
+    [ -n "$DOMAIN" ] || die "set COUCO_DOMAIN in .env"
+    docker exec -e "RELAY_URL=wss://$DOMAIN" coucou-relay node tools/smoke-relay.ts "/run/coucou/clients/$name.key"
+    ;;
   help|*)
     cat <<'EOF'
 Usage: ./vpsctl COMMAND
@@ -121,6 +127,7 @@ Usage: ./vpsctl COMMAND
   client-package NAME        make dist/Coucou-NAME.zip for one-click Windows setup
   backup [FILE.tar.gz]       archive this whole portable VPS folder, including state
   status | logs | doctor     operate and validate the stack
+  smoke NAME                 test public WSS auth and binary forwarding
 EOF
     ;;
 esac

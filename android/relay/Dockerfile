@@ -6,7 +6,7 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 
 COPY src ./src
-COPY tools/dev-relay.ts tools/vps-relay.ts ./tools/
+COPY tools/dev-relay.ts tools/vps-relay.ts tools/smoke-relay.ts ./tools/
 
 ENV HOST=0.0.0.0 \
     PORT=8787 \
