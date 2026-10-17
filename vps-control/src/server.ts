@@ -120,6 +120,12 @@ export function createControlPlane(options: Options): ControlPlane {
       }
 
       requireAdmin(request);
+      if (path === '/v1/admin/pairings/approve' && request.method === 'POST') {
+        const input = await readBody(request);
+        if (!isObject(input)) throw new HttpError(422, 'VALIDATION_ERROR', 'invalid pairing approval');
+        const pin = stringField(input, 'pin', 6, 6);
+        return sendJson(response, 200, await store.approvePairingByPin(pin));
+      }
       const approve = path.match(/^\/v1\/admin\/pairings\/([^/]+)\/approve$/);
       if (approve && request.method === 'POST') return sendJson(response, 200, await store.approvePairing(approve[1]));
       if (path === '/v1/admin/devices' && request.method === 'GET') return sendJson(response, 200, await store.listDevices());

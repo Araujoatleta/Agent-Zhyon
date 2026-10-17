@@ -70,6 +70,28 @@ const message = (socket: WebSocket) => new Promise<any>((resolve, reject) => {
 const closed = (socket: WebSocket) => new Promise<{ code: number; reason: string }>(resolve =>
   socket.once('close', (code, reason) => resolve({ code, reason: String(reason) })));
 
+test('admin can approve a pending pairing by the PIN shown on the worker', async () => {
+  const { base } = await start();
+  const keys = generateKeyPairSync('ed25519');
+  const started = await request(base, '/v1/pair/start', {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ name: 'Worker PC', publicKey: rawKey(keys.publicKey), capabilities: ['health'] })
+  });
+  assert.equal(started.response.status, 201);
+
+  const approved = await request(base, '/v1/admin/pairings/approve', {
+    method: 'POST', headers: adminHeaders, body: JSON.stringify({ pin: started.json.pin })
+  });
+  assert.equal(approved.response.status, 200);
+  assert.equal(approved.json.pairingId, started.json.pairingId);
+
+  const status = await request(base, `/v1/pair/status/${started.json.pairingId}`, {
+    headers: { authorization: `Bearer ${started.json.claimToken}` }
+  });
+  assert.equal(status.json.status, 'approved');
+  assert.ok(status.json.identity.deviceId);
+});
+
 test('REST pairing flow validates schemas and uses correct HTTP status classes', async () => {
   const { base } = await start();
   assert.equal((await request(base, '/healthz')).response.status, 200);

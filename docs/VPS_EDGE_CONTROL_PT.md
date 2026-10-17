@@ -46,7 +46,7 @@ A segunda chamada deve continuar respondendo pelo relay antigo. O unit systemd f
    ```
 
 2. Execute `coucou-edge-worker.exe` manualmente nessa sessão. Sem identidade armazenada, ele chama `POST /v1/pair/start` com nome, chave pública Ed25519 e capabilities. O servidor devolve `pairingId`, PIN de seis dígitos, `claimToken` e expiração de cinco minutos. O worker mostra o PIN e consulta `GET /v1/pair/status/PAIRING_ID` a cada dois segundos por até dez minutos.
-3. A aprovação implementada é `POST /v1/admin/pairings/PAIRING_ID/approve` com `Authorization: Bearer <ADMIN_TOKEN>`.
+3. Aprove o PIN mostrado pelo worker usando `POST /v1/admin/pairings/approve`, com `Authorization: Bearer ***` e corpo JSON `{ "pin": "123456" }`. A rota resolve o pareamento ativo pelo hash do PIN, rejeita PIN expirado, ausente ou ambíguo e retorna o `pairingId`. A rota por ID (`POST /v1/admin/pairings/PAIRING_ID/approve`) continua disponível para integrações administrativas.
 4. Após a aprovação, o worker recebe `deviceId` e credential uma única vez e guarda identidade, credential e chave privada pelo `keyring` no Windows Credential Manager, em namespace derivado da origem do servidor.
 5. Só depois de confirmar o dispositivo em `GET /v1/admin/devices`, habilite e inicie a tarefa:
 
@@ -84,7 +84,7 @@ A revogação fecha sockets ativos e impede nova autenticação. Para parear nov
 
 1. Faça backup do volume, suba o control plane e valide health, TLS e o relay antigo.
 2. Teste um único dispositivo, manualmente e com a tarefa ainda desabilitada.
-3. Resolva a lacuna PIN → `pairingId`; aprove, confirme o dispositivo e execute apenas `health`/`system_info`.
+3. Aprove o PIN pela rota administrativa autenticada; confirme o dispositivo e execute apenas `health`/`system_info`.
 4. Habilite ONLOGON nesse canário, reinicie a sessão e confirme reconexão, idempotência, cancelamento e revogação.
 5. Só então amplie gradualmente. Guarde `SHA256SUMS.txt`, revisão implantada e resultado dos checks do CI como evidência.
 6. Para rollback, desabilite/remova a tarefa, revogue o dispositivo e restaure o container/volume anterior; o relay existente permanece separado.
@@ -93,4 +93,4 @@ A revogação fecha sockets ativos e impede nova autenticação. Para parear nov
 
 Use `docker compose logs --tail=100 coucou-control`, `curl http://127.0.0.1:8790/healthz`, `nginx -t`, o Agendador de Tarefas e o relógio do host. HTTP/WSS 401 costuma indicar credential, prova, nonce, horário ou revogação inválidos. O reconnect usa backoff limitado a 60 segundos.
 
-Limitações do MVP: lacuna de aprovação por PIN descrita acima; sem dashboard; sem HA/locking compartilhado; store JSON não é adequado a cluster; sem rotação automática de credential/chave; sem atualização automática; builds Windows não assinados quando secrets não estão disponíveis; MSI não gerencia a tarefa; portable não gerencia autostart; automação GUI depende de CUA local e não foi validada por esta integração de empacotamento.
+Limitações do MVP: sem dashboard; sem HA/locking compartilhado; store JSON não é adequado a cluster; sem rotação automática de credential/chave; sem atualização automática; builds Windows não assinados quando secrets não estão disponíveis; MSI não gerencia a tarefa; portable não gerencia autostart; automação GUI depende de CUA local e exige validação em uma sessão interativa real.

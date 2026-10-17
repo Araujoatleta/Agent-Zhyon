@@ -221,6 +221,22 @@ export class ControlStore {
     });
   }
 
+  async approvePairingByPin(pin: string) {
+    if (!/^\d{6}$/.test(pin)) throw new StoreError('VALIDATION_ERROR', 'PIN must contain six digits', 422);
+    return this.mutate(db => {
+      const now = this.options.clock();
+      const candidates = db.pairings.filter(item => !item.claimedAt && item.expiresAt > now && equalHash(item.pinHash, pin));
+      if (candidates.length === 0) throw new StoreError('NOT_FOUND', 'active pairing not found', 404);
+      if (candidates.length > 1) throw new StoreError('PIN_AMBIGUOUS', 'multiple active pairings use this PIN', 409);
+      const pairing = candidates[0];
+      if (!pairing.approvedAt) {
+        pairing.approvedAt = new Date(now).toISOString();
+        this.audit(db, 'pairing.approved', undefined, { pairingId: pairing.id });
+      }
+      return { status: 'approved' as const, pairingId: pairing.id };
+    });
+  }
+
   async getPairingStatus(pairingId: string, claimToken: string): Promise<{ status: 'pending' | 'approved'; identity?: { deviceId: string; credential: string } }> {
     await this.ready;
     const pairing = this.db.pairings.find(item => item.id === pairingId);
