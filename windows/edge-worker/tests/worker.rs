@@ -27,6 +27,16 @@ fn url_security_rejects_plaintext_and_non_web_schemes() {
 }
 
 #[test]
+fn windows_build_uses_the_native_credential_manager_backend() {
+    let manifest = include_str!("../Cargo.toml");
+    assert!(
+        manifest.contains("[target.'cfg(windows)'.dependencies]")
+            && manifest.contains("features = [\"windows-native\"]"),
+        "the worker must persist identities in Windows Credential Manager"
+    );
+}
+
+#[test]
 fn endpoint_urls_preserve_the_configured_reverse_proxy_base_path() {
     let server = validate_server_url("https://control.example.com/control", false).unwrap();
     assert_eq!(
