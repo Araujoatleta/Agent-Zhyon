@@ -3,51 +3,63 @@ name: Build and Test
 on:
   workflow_dispatch:
   push:
-    branches: [ main, feat/* ]
+    branches: [main, "feat/**"]
   pull_request:
-    branches: [ main ]
+    branches: [main]
+
+permissions:
+  contents: read
 
 jobs:
   build:
     runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '22'
-        cache: 'npm'
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: vps-control/package-lock.json
 
-    - name: Setup Rust
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
-        override: true
-        components: rustfmt, clippy
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
 
-    - name: Build Control Plane
-      working-directory: vps-control
-      run: |
-        npm ci
-        npm run test
-        npm run check
+      - name: Test and type-check control plane
+        working-directory: vps-control
+        run: |
+          npm ci
+          npm test
+          npm run check
 
-    - name: Build Edge Worker
-      working-directory: windows/edge-worker
-      run: |
-        cargo test --verbose
-        cargo build --release
+      - name: Test edge worker
+        working-directory: windows
+        run: cargo test -p coucou-edge-worker --locked --verbose
 
-    - name: Upload Control Plane Artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: control-plane
-        path: vps-control/
+      - name: Build edge worker
+        working-directory: windows
+        run: cargo build -p coucou-edge-worker --release --locked
 
-    - name: Upload Edge Worker Artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: edge-worker
-        path: windows/edge-worker/target/release/
+      - name: Upload edge worker executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: coucou-edge-worker-windows-x64
+          path: windows/target/release/coucou-edge-worker.exe
+          if-no-files-found: error
+
+      - name: Upload VPS deployment bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: coucou-vps-control
+          path: |
+            vps-control/src
+            vps-control/deploy
+            vps-control/Dockerfile
+            vps-control/compose.yml
+            vps-control/package.json
+            vps-control/package-lock.json
+          if-no-files-found: error
