@@ -57,7 +57,7 @@ nothing because it hibernates. A setup of one computer and one phone uses a few 
 exhausted, Cloudflare refuses requests until the daily reset: the app says "Relay unavailable" and keeps working over the home
 network; nothing is lost because nothing is stored. The paid Workers plan (about $5 a month) removes the cap.
 
-## Self-hosting
+## Self-hosting on a VPS
 
 `tools/dev-relay.ts` is the same relay in plain Node (it shares `src/protocol.ts` with the Worker and is checked by the same
 behaviour tests). It speaks `ws://`, so put a TLS terminator in front of it on the internet.
@@ -68,6 +68,20 @@ ACCESS_KEY=<your key> PORT=8787 node tools/dev-relay.ts
 ```
 
 Without `ACCESS_KEY` it refuses every room request.
+
+For a dedicated production VPS, use the portable stack: the relay runs as an unprivileged, read-only container and Caddy
+owns TLS, including automatic certificate renewal. All mutable state stays below this directory, so copying one folder is
+enough to move the fleet to another VPS. Each desktop has a separate revocable access key.
+
+```sh
+sudo sh deploy/install-vps.sh relay.example.com
+./vpsctl issue office-pc
+./vpsctl client-package office-pc
+```
+
+The generated `dist/Coucou-office-pc.zip` is a one-click Windows installer/configurator. Treat it like a password and delete
+it after use. For a shared VPS that already has Nginx, set `COUCO_MODE=existing-proxy` and use `compose.vps.yml` plus
+`deploy/nginx-coucou-relay.conf`. Full setup, migration and backup guide: `docs/VPS_ARCHITECTURE.pt-BR.md`.
 
 ## Develop and test
 

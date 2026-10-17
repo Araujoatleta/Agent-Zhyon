@@ -13,7 +13,7 @@ import type { Duplex } from "node:stream";
 import { WebSocketServer, type WebSocket } from "ws";
 import {
   Bucket, MAX_FRAME, PEER_OFFLINE, PEER_ONLINE, RATE_BURST, RATE_PER_SECOND, SUBPROTOCOL,
-  accessGeneration, accessKeyOk, joinVerifier, otherRole, parseJoinProof, parseRoomRequest,
+  accessGeneration, joinVerifier, matchingAccessKey, otherRole, parseJoinProof, parseRoomRequest,
   type Role,
 } from "../src/protocol.ts";
 
@@ -29,14 +29,17 @@ interface Peer {
 export interface Relay {
   port: number;
   /** Change (or remove) the access key while running, as `wrangler secret put` does. */
-  setAccessKey(key: string | undefined): void;
+  setAccessKey(key: string | undefined): Promise<void>;
+  /** Replace all admitted desktop keys. Existing sockets are closed on their next frame. */
+  setAccessKeys(keys: readonly string[]): Promise<void>;
   /** How many rooms have a live socket. A room with none leaves nothing behind. */
   rooms(): number;
   close(): Promise<void>;
 }
 
-export async function startRelay(options: { port?: number; host?: string; accessKey?: string; connectsPerMinute?: number } = {}): Promise<Relay> {
-  let accessKey = options.accessKey;
+export async function startRelay(options: { port?: number; host?: string; accessKey?: string | readonly string[]; connectsPerMinute?: number } = {}): Promise<Relay> {
+  let accessKeys = typeof options.accessKey === "string" ? [options.accessKey] : [...(options.accessKey ?? [])];
+  let accessGenerations = new Set(await Promise.all(accessKeys.map(accessGeneration)));
   const rooms = new Map<string, Partial<Record<Role, Peer>> & { verifier?: string }>();
   const connects = new Map<string, number[]>();
   const wss = new WebSocketServer({
@@ -69,11 +72,12 @@ export async function startRelay(options: { port?: number; host?: string; access
       if (recent.length >= options.connectsPerMinute) return refuse(socket, 429, "Too Many Requests");
       connects.set(ip, [...recent, now]);
     }
-    if (!(await accessKeyOk(accessKey, req.headers.authorization ?? null))) return refuse(socket, 401, "Unauthorized");
+    const admittedKey = await matchingAccessKey(accessKeys, req.headers.authorization ?? null);
+    if (!admittedKey) return refuse(socket, 401, "Unauthorized");
     const proof = parseJoinProof((req.headers["sec-websocket-protocol"] as string | undefined) ?? null);
     if (!proof) return refuse(socket, 400, "Bad Request");
     const verifier = await joinVerifier(proof);
-    const gen = await accessGeneration(accessKey);
+    const gen = await accessGeneration(admittedKey);
 
     wss.handleUpgrade(req, socket, head, (ws) => {
       const room = rooms.get(target.room) ?? {};
@@ -97,7 +101,7 @@ export async function startRelay(options: { port?: number; host?: string; access
       }
 
       ws.on("message", async (data, isBinary) => {
-        if ((await accessGeneration(accessKey)) !== me.gen || !me.gen) return ws.close(1008, "access key changed");
+        if (!accessGenerations.has(me.gen) || !me.gen) return ws.close(1008, "access key changed");
         if (!isBinary) {
           if (data.toString() === "ping") return ws.send("pong"); // the platform's auto-response in the Worker
           return ws.close(1003, "binary only");
@@ -127,7 +131,18 @@ export async function startRelay(options: { port?: number; host?: string; access
   const port = typeof address === "object" && address ? address.port : 0;
   return {
     port,
-    setAccessKey: (key) => void (accessKey = key),
+    setAccessKey: async (key) => {
+      const next = key ? [key] : [];
+      const generations = new Set(await Promise.all(next.map(accessGeneration)));
+      accessKeys = next;
+      accessGenerations = generations;
+    },
+    setAccessKeys: async (keys) => {
+      const next = [...keys];
+      const generations = new Set(await Promise.all(next.map(accessGeneration)));
+      accessKeys = next;
+      accessGenerations = generations;
+    },
     rooms: () => rooms.size,
     close: () =>
       new Promise<void>((resolve) => {

@@ -52,28 +52,35 @@ jobs:
         shell: pwsh
         run: |
           npm run pack
+          npm run verify:artifacts
           $version = (Get-Content src-tauri/tauri.conf.json | ConvertFrom-Json).version
           "version=$version" >> $env:GITHUB_OUTPUT
           Get-ChildItem release | Format-Table Name, Length
 
       - uses: actions/upload-artifact@v7
         with:
-          name: Coucou-Windows-msi
-          path: windows/release/Coucou-Windows-${{ steps.pack.outputs.version }}.msi
-          retention-days: 14
-
-      - uses: actions/upload-artifact@v7
-        with:
-          name: Coucou-Windows-setup
-          path: windows/release/Coucou-Windows-${{ steps.pack.outputs.version }}-setup.exe
-          retention-days: 14
-
-      # The bare binaries too: coucou.exe finds coucou-hook.exe next to it, so the pair runs with working Claude
-      # Code hooks and no installer.
-      - uses: actions/upload-artifact@v7
-        with:
-          name: Coucou-Windows-portable
+          name: Coucou-Windows-msi-unsigned
           path: |
-            windows/target/release/coucou.exe
-            windows/target/release/coucou-hook.exe
+            windows/release/Coucou-Windows-${{ steps.pack.outputs.version }}.msi
+            windows/release/SHA256SUMS.txt
+          retention-days: 14
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: Coucou-Windows-setup-unsigned
+          path: |
+            windows/release/Coucou-Windows-${{ steps.pack.outputs.version }}-setup.exe
+            windows/release/SHA256SUMS.txt
+          retention-days: 14
+
+      # Portable app, relay and edge worker. The edge worker is not auto-started
+      # in portable mode; pair/configure it before enabling logon startup.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: Coucou-Windows-portable-unsigned
+          path: |
+            windows/release/Coucou-Windows-${{ steps.pack.outputs.version }}-portable/Coucou.exe
+            windows/release/Coucou-Windows-${{ steps.pack.outputs.version }}-portable/coucou-hook.exe
+            windows/release/Coucou-Windows-${{ steps.pack.outputs.version }}-portable/coucou-edge-worker.exe
+            windows/release/SHA256SUMS.txt
           retention-days: 14

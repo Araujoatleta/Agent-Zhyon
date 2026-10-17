@@ -1,0 +1,42 @@
+name: VPS control CI
+
+on:
+  pull_request:
+    paths:
+      - 'vps-control/**'
+      - '.github/workflows/vps-control.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'vps-control/**'
+      - '.github/workflows/vps-control.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  control:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: vps-control
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: vps-control/package-lock.json
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Type check
+        run: npm run check
+      - name: Test
+        run: npm test
+      - name: Audit production dependencies
+        run: npm audit --audit-level=high --omit=dev
+      - name: Build container
+        run: docker build --pull --tag coucou-vps-control:ci .

@@ -1,0 +1,25 @@
+services:
+  coucou-relay:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: coucou-relay
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    environment:
+      ACCESS_KEYS_DIR: /run/coucou/clients
+      HOST: 0.0.0.0
+      PORT: 8787
+      CONNECTS_PER_MINUTE: 30
+    volumes:
+      - ./state/clients:/run/coucou/clients:ro
+    ports:
+      - "127.0.0.1:${COUCO_RELAY_PORT:-8787}:8787"
+    stop_grace_period: 10s

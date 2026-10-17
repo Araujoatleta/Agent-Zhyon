@@ -1,0 +1,51 @@
+services:
+  coucou-relay:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: coucou-relay
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    environment:
+      ACCESS_KEYS_DIR: /run/coucou/clients
+      HOST: 0.0.0.0
+      PORT: 8787
+      CONNECTS_PER_MINUTE: ${COUCO_CONNECTS_PER_MINUTE:-60}
+    volumes:
+      - ./state/clients:/run/coucou/clients:ro
+    expose:
+      - "8787"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8787/').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 3s
+      start_period: 5s
+      retries: 3
+
+  caddy:
+    image: caddy:2.10-alpine
+    container_name: coucou-caddy
+    restart: unless-stopped
+    depends_on:
+      coucou-relay:
+        condition: service_healthy
+    environment:
+      COUCO_DOMAIN: ${COUCO_DOMAIN:?set COUCO_DOMAIN in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./state/caddy/data:/data
+      - ./state/caddy/config:/config
+    security_opt:
+      - no-new-privileges:true
+

@@ -11,11 +11,8 @@ import { language, t } from "../i18n/i18n";
 
 type Toggle = (on: boolean, onChange: (v: boolean) => void) => HTMLElement;
 
-/**
- * The relay block ("Away from home Wi-Fi") is hidden until a relay is ready to use: the code and its tests stay, and
- * turning this on shows it again. Nothing else changes.
- */
-const SHOW_RELAY_SETTINGS = false;
+/** The self-hosted relay is available in Settings once the deployment is ready. */
+const SHOW_RELAY_SETTINGS = true;
 
 export function phoneSection(on: boolean, makeToggle: Toggle, settings: Settings): HTMLElement {
   const detail = h("div", {});

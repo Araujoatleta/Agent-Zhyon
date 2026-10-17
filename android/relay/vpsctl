@@ -1,0 +1,134 @@
+#!/usr/bin/env sh
+set -eu
+
+ROOT=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+cd "$ROOT"
+[ -f .env ] && . ./.env
+MODE=${COUCO_MODE:-portable}
+DOMAIN=${COUCO_DOMAIN:-}
+INSTALLER_URL=${COUCO_WINDOWS_INSTALLER_URL:-https://github.com/Araujoatleta/Agent-Zhyon/releases/download/windows-latest/Coucou-Windows-setup.exe}
+
+die() { echo "vpsctl: $*" >&2; exit 1; }
+need() { command -v "$1" >/dev/null 2>&1 || die "$1 is required"; }
+slug() { printf '%s' "$1" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$' || die "device name must use letters, digits, dot, dash or underscore"; }
+compose_file() { [ "$MODE" = portable ] && printf '%s' compose.portable.yml || printf '%s' compose.vps.yml; }
+compose() { docker compose -f "$(compose_file)" "$@"; }
+prepare_state() {
+  umask 077
+  mkdir -p state/clients state/caddy/data state/caddy/config dist
+  chmod 0700 state state/clients state/caddy state/caddy/data state/caddy/config dist
+}
+fix_keys() {
+  prepare_state
+  found=0
+  for key in state/clients/*.key; do
+    [ -f "$key" ] || continue
+    found=1
+    [ "$(wc -c < "$key" | tr -d ' ')" = 43 ] || die "$key is not a 43-character key"
+  done
+  [ "$found" = 1 ] || die "no device key; run ./vpsctl issue NAME first"
+  chown 1000:1000 state/clients state/clients/*.key
+  chmod 0400 state/clients/*.key
+}
+reload() {
+  fix_keys
+  compose up -d --build --force-recreate coucou-relay
+  [ "$MODE" != portable ] || compose up -d caddy
+}
+
+case "${1:-help}" in
+  up)
+    need docker; need openssl; [ -n "$DOMAIN" ] || die "set COUCO_DOMAIN in .env"
+    if ! find state/clients -type f -name '*.key' -print -quit 2>/dev/null | grep -q .; then
+      prepare_state
+      openssl rand -base64 32 | tr '+/' '-_' | tr -d '=\n' > state/clients/first-computer.key
+    fi
+    reload
+    i=0
+    if [ "$MODE" = portable ]; then URL="https://$DOMAIN/"; else URL="http://127.0.0.1:${COUCO_RELAY_PORT:-8787}/"; fi
+    until curl -fsS "$URL" >/dev/null; do i=$((i+1)); [ "$i" -lt 40 ] || die "relay did not become healthy at $URL"; sleep 2; done
+    echo "Coucou relay is healthy at $URL"
+    ;;
+  issue)
+    need openssl; name=${2:-}; [ -n "$name" ] || die "usage: ./vpsctl issue NAME"; slug "$name"; prepare_state
+    [ ! -e "state/clients/$name.key" ] || die "device already exists: $name"
+    openssl rand -base64 32 | tr '+/' '-_' | tr -d '=\n' > "state/clients/$name.key"
+    chmod 0400 "state/clients/$name.key"; chown 1000:1000 "state/clients/$name.key"
+    command -v docker >/dev/null 2>&1 && reload || true
+    echo "Issued revocable key for $name (the secret was not printed)."
+    ;;
+  revoke)
+    name=${2:-}; [ -n "$name" ] || die "usage: ./vpsctl revoke NAME"; slug "$name"
+    [ -f "state/clients/$name.key" ] || die "unknown device: $name"
+    rm -f -- "state/clients/$name.key"
+    reload
+    echo "Revoked $name. Its relay sockets can no longer reconnect."
+    ;;
+  list)
+    prepare_state
+    for key in state/clients/*.key; do [ -f "$key" ] && basename "$key" .key; done
+    ;;
+  client-package)
+    need zip; name=${2:-}; [ -n "$name" ] || die "usage: ./vpsctl client-package NAME"; slug "$name"
+    [ -n "$DOMAIN" ] || die "set COUCO_DOMAIN in .env"
+    [ -f "state/clients/$name.key" ] || "$0" issue "$name"
+    tmp=$(mktemp -d); trap 'rm -rf -- "$tmp"' EXIT HUP INT TERM
+    cp deploy/windows/install.cmd deploy/windows/Install-CoucouManaged.ps1 "$tmp/"
+    key=$(cat "state/clients/$name.key")
+    cat > "$tmp/profile.json" <<EOF
+{
+  "deviceName": "$name",
+  "relayUrl": "wss://$DOMAIN",
+  "accessKey": "$key",
+  "installerUrl": "$INSTALLER_URL",
+  "installerSha256": ""
+}
+EOF
+    rm -f -- "dist/Coucou-$name.zip"
+    (cd "$tmp" && zip -q "$ROOT/dist/Coucou-$name.zip" install.cmd Install-CoucouManaged.ps1 profile.json)
+    chmod 0600 "dist/Coucou-$name.zip"
+    echo "Created $ROOT/dist/Coucou-$name.zip"
+    echo "Treat it like a password and delete it after installing that computer."
+    ;;
+  backup)
+    need tar; prepare_state; output=${2:-"$ROOT/dist/coucou-vps-backup-$(date -u +%Y%m%dT%H%M%SZ).tar.gz"}
+    case "$output" in /*) ;; *) output="$PWD/$output" ;; esac
+    tar --exclude='./node_modules' --exclude='./dist' -czf "$output" -C "$ROOT" .
+    chmod 0600 "$output"
+    echo "Created portable backup $output"
+    echo "It contains client keys. Store it encrypted and privately."
+    ;;
+  status)
+    compose ps
+    ;;
+  logs)
+    compose logs --tail=100
+    ;;
+  doctor)
+    need docker; need curl; [ -n "$DOMAIN" ] || die "set COUCO_DOMAIN in .env"
+    compose config -q
+    compose ps
+    curl -fsS "https://$DOMAIN/" | grep -q 'Coucou link relay' || die "public healthcheck failed"
+    echo "DNS, TLS, proxy and relay healthcheck are OK."
+    ;;
+  smoke)
+    name=${2:-}; [ -n "$name" ] || die "usage: ./vpsctl smoke NAME"; slug "$name"
+    [ -f "state/clients/$name.key" ] || die "unknown device: $name"
+    [ -n "$DOMAIN" ] || die "set COUCO_DOMAIN in .env"
+    docker exec -e "RELAY_URL=wss://$DOMAIN" coucou-relay node tools/smoke-relay.ts "/run/coucou/clients/$name.key"
+    ;;
+  help|*)
+    cat <<'EOF'
+Usage: ./vpsctl COMMAND
+  up                         start or update the portable stack
+  issue NAME                 create one revocable desktop key
+  revoke NAME                revoke one desktop and reconnect the relay
+  list                       list enrolled desktop names (never keys)
+  client-package NAME        make dist/Coucou-NAME.zip for one-click Windows setup
+  backup [FILE.tar.gz]       archive this whole portable VPS folder, including state
+  status | logs | doctor     operate and validate the stack
+  smoke NAME                 test public WSS auth and binary forwarding
+EOF
+    ;;
+esac
+

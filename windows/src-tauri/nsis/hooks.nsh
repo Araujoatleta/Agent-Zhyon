@@ -560,6 +560,12 @@ FunctionEnd
 
 !macro NSIS_HOOK_POSTINSTALL
   Call CoucouSaveChoices
+  ; Run in the interactive user's session at logon, never as a service/SYSTEM.
+  ; It stays disabled until the operator has paired and configured this device.
+  ExecWait '"$SYSDIR\schtasks.exe" /Create /TN "Coucou Edge Worker" /SC ONLOGON /TR "$\"$INSTDIR\coucou-edge-worker.exe$\"" /RL LIMITED /F' $0
+  ${If} $0 = 0
+    ExecWait '"$SYSDIR\schtasks.exe" /Change /TN "Coucou Edge Worker" /DISABLE' $0
+  ${EndIf}
 !macroend
 
 ; The app stages coucou-hook.exe into %LOCALAPPDATA%\Coucou\bin at launch, so the
@@ -573,6 +579,7 @@ FunctionEnd
 ; printing anything, so a leftover entry costs nothing beyond a dead path.
 
 !macro NSIS_HOOK_PREUNINSTALL
+  ExecWait '"$SYSDIR\schtasks.exe" /Delete /TN "Coucou Edge Worker" /F' $0
   RMDir /r "$LOCALAPPDATA\Coucou\bin"
   RMDir /r "$LOCALAPPDATA\Coucou\inbox"
   Delete "$LOCALAPPDATA\Coucou\coucou.log"
