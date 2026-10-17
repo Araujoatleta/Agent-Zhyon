@@ -272,10 +272,10 @@ test("the key is written the way keyring 3.6.3 reads it, and the JSON escape loo
   assert.match(json, /\$\{ElseIf\} \$5 >= 0xDC00\n\s*\$\{AndIf\} \$5 <= 0xDFFF\n\s*; the second half of a pair, alone: dropped/);
 });
 
-test("the uninstaller still removes what the app staged, and nothing else", () => {
+test("the uninstaller removes the logon task and what the app staged, and nothing else", () => {
   assert.match(
     HOOKS,
-    /!macro NSIS_HOOK_PREUNINSTALL\n {2}RMDir \/r "\$LOCALAPPDATA\\Coucou\\bin"\n {2}RMDir \/r "\$LOCALAPPDATA\\Coucou\\inbox"\n {2}Delete "\$LOCALAPPDATA\\Coucou\\coucou\.log"\n!macroend/,
+    /!macro NSIS_HOOK_PREUNINSTALL\n {2}ExecWait '[^']*schtasks\.exe[^']*\/Delete \/TN "Coucou Edge Worker" \/F' \$0\n {2}RMDir \/r "\$LOCALAPPDATA\\Coucou\\bin"\n {2}RMDir \/r "\$LOCALAPPDATA\\Coucou\\inbox"\n {2}Delete "\$LOCALAPPDATA\\Coucou\\coucou\.log"\n!macroend/,
   );
-  assert.match(HOOKS, /!macro NSIS_HOOK_POSTINSTALL\n {2}Call CoucouSaveChoices\n!macroend/);
+  assert.match(HOOKS, /!macro NSIS_HOOK_POSTINSTALL\n {2}Call CoucouSaveChoices[\s\S]*\/Create \/TN "Coucou Edge Worker" \/SC ONLOGON[\s\S]*\/DISABLE[\s\S]*!macroend/);
 });

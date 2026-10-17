@@ -75,6 +75,7 @@ jobs:
         shell: pwsh
         run: |
           npm run pack
+          npm run verify:artifacts
           $version = (Get-Content src-tauri/tauri.conf.json | ConvertFrom-Json).version
           "version=$version" >> $env:GITHUB_OUTPUT
           Get-ChildItem release | Format-Table Name, Length
@@ -86,8 +87,10 @@ jobs:
       - uses: actions/upload-artifact@v7
         if: github.event_name == 'workflow_dispatch' || env.PUBLISH == 'true'
         with:
-          name: Coucou-Windows-setup
-          path: windows/release/Coucou-Windows-${{ steps.pack.outputs.version }}-setup.exe
+          name: Coucou-Windows-setup-unsigned
+          path: |
+            windows/release/Coucou-Windows-${{ steps.pack.outputs.version }}-setup.exe
+            windows/release/SHA256SUMS.txt
           retention-days: 3
 
       # MSI installer generated via WiX toolset. Bypasses NSIS extractor false-positives
@@ -95,21 +98,23 @@ jobs:
       - uses: actions/upload-artifact@v7
         if: github.event_name == 'workflow_dispatch' || env.PUBLISH == 'true'
         with:
-          name: Coucou-Windows-msi
-          path: windows/release/Coucou-Windows-${{ steps.pack.outputs.version }}.msi
+          name: Coucou-Windows-msi-unsigned
+          path: |
+            windows/release/Coucou-Windows-${{ steps.pack.outputs.version }}.msi
+            windows/release/SHA256SUMS.txt
           retention-days: 3
 
       # The unsigned NSIS installer is what Defender false-positives on, so the
-      # bare binaries go up as well. hooks.rs already falls back to looking for
-      # coucou-hook.exe next to coucou.exe, which is exactly this layout, so the
-      # portable pair runs with working Claude Code hooks and no installer.
+      # portable app, hook relay and edge worker go up as one artifact.
       - uses: actions/upload-artifact@v7
         if: github.event_name == 'workflow_dispatch' || env.PUBLISH == 'true'
         with:
-          name: Coucou-Windows-portable
+          name: Coucou-Windows-portable-unsigned
           path: |
-            windows/target/release/coucou.exe
-            windows/target/release/coucou-hook.exe
+            windows/release/Coucou-Windows-${{ steps.pack.outputs.version }}-portable/Coucou.exe
+            windows/release/Coucou-Windows-${{ steps.pack.outputs.version }}-portable/coucou-hook.exe
+            windows/release/Coucou-Windows-${{ steps.pack.outputs.version }}-portable/coucou-edge-worker.exe
+            windows/release/SHA256SUMS.txt
           retention-days: 3
 
       - name: Publish the release
@@ -133,6 +138,7 @@ jobs:
           gh release create "${{ github.ref_name }}" `
             "release/Coucou-Windows-$v-setup.exe" `
             "release/Coucou-Windows-$v.msi" `
+            "release/SHA256SUMS.txt" `
             --title "Coucou for Windows $v" `
             --notes $notes `
             --latest=false
@@ -152,11 +158,12 @@ jobs:
             git tag -f windows-latest "${{ github.sha }}"
             git push -f origin windows-latest
             gh release edit windows-latest --title "Coucou for Windows (latest)" --notes "Always the newest Windows build — currently $v."
-            gh release upload windows-latest "release/Coucou-Windows-setup.exe" "release/Coucou-Windows.msi" --clobber
+            gh release upload windows-latest "release/Coucou-Windows-setup.exe" "release/Coucou-Windows.msi" "release/SHA256SUMS.txt" --clobber
           } else {
             gh release create windows-latest `
               "release/Coucou-Windows-setup.exe" `
               "release/Coucou-Windows.msi" `
+              "release/SHA256SUMS.txt" `
               --title "Coucou for Windows (latest)" `
               --notes "Always the newest Windows build — currently $v." `
               --latest=false
