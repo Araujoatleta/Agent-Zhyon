@@ -1,8 +1,8 @@
 use base64::{engine::general_purpose, Engine as _};
 use coucou_edge_worker::{
     advertised_capabilities, backoff_delay, bound_evidence, build_ws_request, credential_service,
-    execute, server_origin, validate_server_url, CuaBridge, Evidence, IdempotencyLedger,
-    StoredIdentity, TaskLifecycle,
+    endpoint_url, execute, server_origin, validate_server_url, CuaBridge, Evidence,
+    IdempotencyLedger, StoredIdentity, TaskLifecycle,
 };
 use ed25519_dalek::SigningKey;
 use futures_util::{SinkExt, StreamExt};
@@ -88,7 +88,11 @@ async fn main() -> Result<(), String> {
 
     let mut failed_attempts = 0_u32;
     loop {
-        let websocket_url = websocket_url(&server, &identity.device_id)?;
+        let websocket_url = endpoint_url(&server, "/v1/worker/ws", true)?;
+        let mut websocket_url = websocket_url;
+        websocket_url
+            .query_pairs_mut()
+            .append_pair("device_id", &identity.device_id);
         let timestamp = unix_timestamp()?;
         let mut nonce = [0_u8; 16];
         rand::thread_rng().fill_bytes(&mut nonce);
@@ -158,7 +162,7 @@ async fn pair(server: &Url, origin: &str, capabilities: &[&str]) -> Result<Store
     let public_key = general_purpose::STANDARD.encode(signing_key.verifying_key().as_bytes());
     let device_name = std::env::var("COUCOU_DEVICE_NAME").unwrap_or_else(|_| "Windows PC".into());
     let client = reqwest::Client::new();
-    let start_url = http_url(server, "/v1/pair/start")?;
+    let start_url = endpoint_url(server, "/v1/pair/start", false)?;
     let start: PairStart = client
         .post(start_url)
         .json(&json!({
@@ -177,7 +181,11 @@ async fn pair(server: &Url, origin: &str, capabilities: &[&str]) -> Result<Store
 
     println!("Coucou pairing PIN: {}", start.pin);
     println!("Approve this device in Coucou before {}.", start.expires_at);
-    let status_url = http_url(server, &format!("/v1/pair/status/{}", start.pairing_id))?;
+    let status_url = endpoint_url(
+        server,
+        &format!("/v1/pair/status/{}", start.pairing_id),
+        false,
+    )?;
     let deadline = tokio::time::Instant::now() + PAIR_TIMEOUT;
     loop {
         if tokio::time::Instant::now() >= deadline {
@@ -357,36 +365,6 @@ async fn send_json(
         .send(Message::Text(value.to_string().into()))
         .await
         .map_err(|error| format!("websocket send failed: {error}"))
-}
-
-fn http_url(server: &Url, path: &str) -> Result<Url, String> {
-    let mut url = server.clone();
-    let scheme = match server.scheme() {
-        "https" | "wss" => "https",
-        "http" | "ws" => "http",
-        _ => return Err("unsupported server URL scheme".into()),
-    };
-    url.set_scheme(scheme)
-        .map_err(|_| "cannot set HTTP URL scheme")?;
-    url.set_path(path);
-    url.set_query(None);
-    url.set_fragment(None);
-    Ok(url)
-}
-
-fn websocket_url(server: &Url, device_id: &str) -> Result<Url, String> {
-    let mut url = server.clone();
-    let scheme = match server.scheme() {
-        "https" | "wss" => "wss",
-        "http" | "ws" => "ws",
-        _ => return Err("unsupported server URL scheme".into()),
-    };
-    url.set_scheme(scheme)
-        .map_err(|_| "cannot set websocket URL scheme")?;
-    url.set_path("/v1/worker/ws");
-    url.set_query(None);
-    url.query_pairs_mut().append_pair("device_id", device_id);
-    Ok(url)
 }
 
 fn storage_root(origin: &str) -> Result<PathBuf, String> {

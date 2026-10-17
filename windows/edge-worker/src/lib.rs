@@ -35,6 +35,27 @@ pub fn validate_server_url(input: &str, allow_insecure_localhost: bool) -> Resul
     Ok(url)
 }
 
+pub fn endpoint_url(server: &Url, endpoint: &str, websocket: bool) -> Result<Url, String> {
+    if !endpoint.starts_with('/') {
+        return Err("endpoint path must start with /".into());
+    }
+    let mut url = server.clone();
+    let scheme = match (server.scheme(), websocket) {
+        ("https" | "wss", false) => "https",
+        ("https" | "wss", true) => "wss",
+        ("http" | "ws", false) => "http",
+        ("http" | "ws", true) => "ws",
+        _ => return Err("unsupported server URL scheme".into()),
+    };
+    url.set_scheme(scheme)
+        .map_err(|_| "cannot set endpoint URL scheme")?;
+    let base = server.path().trim_end_matches('/');
+    url.set_path(&format!("{base}{endpoint}"));
+    url.set_query(None);
+    url.set_fragment(None);
+    Ok(url)
+}
+
 pub fn server_origin(input: &str) -> Result<String, String> {
     let url = Url::parse(input).map_err(|error| format!("invalid server URL: {error}"))?;
     Ok(url.origin().ascii_serialization())

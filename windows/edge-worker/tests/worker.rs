@@ -1,6 +1,7 @@
 use coucou_edge_worker::{
     advertised_capabilities, backoff_delay, bound_evidence, build_ws_request, credential_service,
-    validate_server_url, CuaAction, CuaBridge, IdempotencyLedger, StoredIdentity, TaskLifecycle,
+    endpoint_url, validate_server_url, CuaAction, CuaBridge, IdempotencyLedger, StoredIdentity,
+    TaskLifecycle,
 };
 use serde_json::json;
 use std::fs;
@@ -23,6 +24,23 @@ fn url_security_rejects_plaintext_and_non_web_schemes() {
     assert!(validate_server_url("http://localhost:8787", true).is_ok());
     assert!(validate_server_url("ws://[::1]:8787", true).is_ok());
     assert!(validate_server_url("file:///tmp/socket", true).is_err());
+}
+
+#[test]
+fn endpoint_urls_preserve_the_configured_reverse_proxy_base_path() {
+    let server = validate_server_url("https://control.example.com/control", false).unwrap();
+    assert_eq!(
+        endpoint_url(&server, "/v1/pair/start", false)
+            .unwrap()
+            .as_str(),
+        "https://control.example.com/control/v1/pair/start"
+    );
+    assert_eq!(
+        endpoint_url(&server, "/v1/worker/ws", true)
+            .unwrap()
+            .as_str(),
+        "wss://control.example.com/control/v1/worker/ws"
+    );
 }
 
 #[test]
