@@ -1,0 +1,53 @@
+name: Build and Test
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, feat/* ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        cache: 'npm'
+
+    - name: Setup Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+        components: rustfmt, clippy
+
+    - name: Build Control Plane
+      working-directory: vps-control
+      run: |
+        npm ci
+        npm run test
+        npm run check
+
+    - name: Build Edge Worker
+      working-directory: windows/edge-worker
+      run: |
+        cargo test --verbose
+        cargo build --release
+
+    - name: Upload Control Plane Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: control-plane
+        path: vps-control/
+
+    - name: Upload Edge Worker Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: edge-worker
+        path: windows/edge-worker/target/release/
