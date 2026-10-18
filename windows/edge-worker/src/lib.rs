@@ -15,6 +15,97 @@ use url::Url;
 
 pub const MAX_EVIDENCE_BYTES: usize = 64 * 1024;
 
+#[cfg(windows)]
+pub struct SingleInstanceGuard(*mut core::ffi::c_void);
+
+#[cfg(windows)]
+impl SingleInstanceGuard {
+    pub fn acquire(name: &str) -> Result<Self, String> {
+        use std::os::windows::ffi::OsStrExt;
+        const ERROR_ALREADY_EXISTS: u32 = 183;
+        #[link(name = "kernel32")]
+        extern "system" {
+            fn CreateMutexW(
+                attributes: *mut core::ffi::c_void,
+                initial_owner: i32,
+                name: *const u16,
+            ) -> *mut core::ffi::c_void;
+            fn GetLastError() -> u32;
+            fn CloseHandle(handle: *mut core::ffi::c_void) -> i32;
+        }
+        let wide: Vec<u16> = std::ffi::OsStr::new(name)
+            .encode_wide()
+            .chain(std::iter::once(0))
+            .collect();
+        let handle = unsafe { CreateMutexW(std::ptr::null_mut(), 0, wide.as_ptr()) };
+        if handle.is_null() {
+            return Err("failed to create worker instance mutex".into());
+        }
+        if unsafe { GetLastError() } == ERROR_ALREADY_EXISTS {
+            unsafe { CloseHandle(handle) };
+            return Err("another Coucou Edge Worker instance is already running".into());
+        }
+        Ok(Self(handle))
+    }
+}
+
+#[cfg(windows)]
+impl Drop for SingleInstanceGuard {
+    fn drop(&mut self) {
+        #[link(name = "kernel32")]
+        extern "system" {
+            fn CloseHandle(handle: *mut core::ffi::c_void) -> i32;
+        }
+        unsafe { CloseHandle(self.0) };
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct WorkerConfig {
+    pub server: Url,
+    pub device_name: String,
+}
+
+impl WorkerConfig {
+    pub fn server_from_values(
+        server: Option<&str>,
+        allow_insecure_localhost: bool,
+    ) -> Result<Url, String> {
+        let server = server.ok_or_else(|| "COUCOU_VPS_URL is required".to_string())?;
+        validate_server_url(server.trim(), allow_insecure_localhost)
+    }
+
+    pub fn from_values(
+        server: Option<&str>,
+        device_name: Option<&str>,
+        allow_insecure_localhost: bool,
+    ) -> Result<Self, String> {
+        let device_name = device_name
+            .map(str::trim)
+            .filter(|name| !name.is_empty())
+            .ok_or_else(|| "COUCOU_DEVICE_NAME is required".to_string())?;
+        if device_name.chars().count() > 80 {
+            return Err("COUCOU_DEVICE_NAME must be at most 80 characters".into());
+        }
+        if device_name.chars().any(char::is_control) {
+            return Err("COUCOU_DEVICE_NAME must not contain control characters".into());
+        }
+        Ok(Self {
+            server: Self::server_from_values(server, allow_insecure_localhost)?,
+            device_name: device_name.into(),
+        })
+    }
+
+    pub fn from_environment() -> Result<Self, String> {
+        let server = std::env::var("COUCOU_VPS_URL").ok();
+        let device_name = std::env::var("COUCOU_DEVICE_NAME").ok();
+        let allow_insecure = std::env::var("COUCOU_ALLOW_INSECURE_LOCALHOST")
+            .map(|value| value == "1")
+            .unwrap_or(false);
+        Self::from_values(server.as_deref(), device_name.as_deref(), allow_insecure)
+    }
+}
+
 pub fn validate_server_url(input: &str, allow_insecure_localhost: bool) -> Result<Url, String> {
     let url = Url::parse(input).map_err(|error| format!("invalid server URL: {error}"))?;
     if !url.username().is_empty() || url.password().is_some() {

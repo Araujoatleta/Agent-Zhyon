@@ -1,8 +1,8 @@
 use base64::{engine::general_purpose, Engine as _};
 use coucou_edge_worker::{
     advertised_capabilities, backoff_delay, bound_evidence, build_ws_request, credential_service,
-    endpoint_url, execute, server_origin, validate_server_url, CuaBridge, Evidence,
-    IdempotencyLedger, StoredIdentity, TaskLifecycle,
+    endpoint_url, execute, server_origin, CuaBridge, Evidence, IdempotencyLedger, StoredIdentity,
+    TaskLifecycle, WorkerConfig,
 };
 use ed25519_dalek::SigningKey;
 use futures_util::{SinkExt, StreamExt};
@@ -17,6 +17,9 @@ use tokio::sync::mpsc;
 use tokio::task::JoinHandle;
 use tokio_tungstenite::tungstenite::Message;
 use url::Url;
+
+#[cfg(windows)]
+use coucou_edge_worker::SingleInstanceGuard;
 
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(20);
 const PAIR_POLL_INTERVAL: Duration = Duration::from_secs(2);
@@ -72,17 +75,31 @@ fn default_max_output_bytes() -> usize {
 
 #[tokio::main]
 async fn main() -> Result<(), String> {
-    let configured =
-        std::env::var("COUCOU_VPS_URL").map_err(|_| "COUCOU_VPS_URL is required".to_string())?;
-    let allow_insecure = std::env::var("COUCOU_ALLOW_INSECURE_LOCALHOST")
-        .map(|value| value == "1")
-        .unwrap_or(false);
-    let server = validate_server_url(&configured, allow_insecure)?;
+    let args: Vec<String> = std::env::args().collect();
+    if args.iter().any(|arg| arg == "--remove-identity") {
+        let explicit_server = args
+            .windows(2)
+            .find(|pair| pair[0] == "--identity-server")
+            .map(|pair| pair[1].clone());
+        let server = explicit_server
+            .or_else(|| std::env::var("COUCOU_VPS_URL").ok())
+            .ok_or_else(|| "an identity server URL is required to remove identity".to_string())?;
+        let origin = server_origin(&server)?;
+        remove_identity(&origin)?;
+        return Ok(());
+    }
+    let config = WorkerConfig::from_environment()?;
+    if args.iter().any(|arg| arg == "--validate-config") {
+        return Ok(());
+    }
+    #[cfg(windows)]
+    let _single_instance = SingleInstanceGuard::acquire("Local\\CoucouEdgeWorker")?;
+    let server = config.server;
     let origin = server_origin(server.as_str())?;
     let storage_root = storage_root(&origin)?;
     let bridge = CuaBridge::discover(storage_root.join("artifacts"));
     let capabilities = advertised_capabilities(bridge.available());
-    let identity = load_or_pair(&server, &origin, &capabilities).await?;
+    let identity = load_or_pair(&server, &origin, &config.device_name, &capabilities).await?;
     let signing_key = identity.validate(&origin)?;
     let ledger_path = storage_root.join("task-ledger.jsonl");
 
@@ -130,6 +147,7 @@ async fn main() -> Result<(), String> {
 async fn load_or_pair(
     server: &Url,
     origin: &str,
+    device_name: &str,
     capabilities: &[&str],
 ) -> Result<StoredIdentity, String> {
     let service = credential_service(origin)?;
@@ -143,7 +161,7 @@ async fn load_or_pair(
             Ok(identity)
         }
         Err(keyring::Error::NoEntry) => {
-            let identity = pair(server, origin, capabilities).await?;
+            let identity = pair(server, origin, device_name, capabilities).await?;
             let serialized = serde_json::to_string(&identity)
                 .map_err(|error| format!("serialize identity: {error}"))?;
             entry.set_password(&serialized).map_err(|error| {
@@ -155,12 +173,17 @@ async fn load_or_pair(
     }
 }
 
-async fn pair(server: &Url, origin: &str, capabilities: &[&str]) -> Result<StoredIdentity, String> {
+async fn pair(
+    server: &Url,
+    origin: &str,
+    device_name: &str,
+    capabilities: &[&str],
+) -> Result<StoredIdentity, String> {
     let mut secret = [0_u8; 32];
     rand::thread_rng().fill_bytes(&mut secret);
     let signing_key = SigningKey::from_bytes(&secret);
     let public_key = general_purpose::STANDARD.encode(signing_key.verifying_key().as_bytes());
-    let device_name = std::env::var("COUCOU_DEVICE_NAME").unwrap_or_else(|_| "Windows PC".into());
+
     let client = reqwest::Client::new();
     let start_url = endpoint_url(server, "/v1/pair/start", false)?;
     let start: PairStart = client
@@ -230,6 +253,18 @@ async fn pair(server: &Url, origin: &str, capabilities: &[&str]) -> Result<Store
             ));
         }
         tokio::time::sleep(PAIR_POLL_INTERVAL).await;
+    }
+}
+
+fn remove_identity(origin: &str) -> Result<(), String> {
+    let service = credential_service(origin)?;
+    let entry = Entry::new(&service, "identity")
+        .map_err(|error| format!("open Windows Credential Manager entry: {error}"))?;
+    match entry.delete_credential() {
+        Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
+        Err(error) => Err(format!(
+            "remove identity from Windows Credential Manager: {error}"
+        )),
     }
 }
 

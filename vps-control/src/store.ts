@@ -307,6 +307,17 @@ export class ControlStore {
     });
   }
 
+  async renameDevice(deviceId: string, name: string) {
+    return this.mutate(db => {
+      const device = db.devices.find(item => item.id === deviceId);
+      if (!device) throw new StoreError('NOT_FOUND', 'device not found', 404);
+      device.name = name;
+      this.audit(db, 'device.renamed', deviceId, { name });
+      const { credentialHash: _, ...safeDevice } = device;
+      return structuredClone(safeDevice);
+    });
+  }
+
   async heartbeat(deviceId: string) {
     return this.mutate(db => {
       const device = db.devices.find(item => item.id === deviceId && !item.revokedAt);

@@ -1,11 +1,57 @@
 use coucou_edge_worker::{
     advertised_capabilities, backoff_delay, bound_evidence, build_ws_request, credential_service,
-    endpoint_url, validate_server_url, CuaAction, CuaBridge, IdempotencyLedger, StoredIdentity,
-    TaskLifecycle,
+    endpoint_url, validate_server_url, CuaAction, CuaBridge, IdempotencyLedger,
+    SingleInstanceGuard, StoredIdentity, TaskLifecycle, WorkerConfig,
 };
 use serde_json::json;
 use std::fs;
 use std::time::{SystemTime, UNIX_EPOCH};
+
+#[test]
+fn worker_config_requires_secure_persistent_environment_values() {
+    let config = WorkerConfig::from_values(
+        Some("https://control.example.com/control"),
+        Some("  Notebook casa  "),
+        false,
+    )
+    .unwrap();
+    assert_eq!(
+        config.server.as_str(),
+        "https://control.example.com/control"
+    );
+    assert_eq!(config.device_name, "Notebook casa");
+    assert!(
+        WorkerConfig::from_values(Some("http://remote.example.com"), Some("PC"), false).is_err()
+    );
+    assert!(WorkerConfig::from_values(None, Some("PC"), false).is_err());
+    assert!(
+        WorkerConfig::from_values(Some("https://control.example.com"), Some("  "), false).is_err()
+    );
+    assert!(WorkerConfig::from_values(
+        Some("https://control.example.com"),
+        Some("bad\nname"),
+        false
+    )
+    .is_err());
+}
+
+#[test]
+fn identity_removal_configuration_needs_only_the_server_url() {
+    let server =
+        WorkerConfig::server_from_values(Some("https://control.example.com"), false).unwrap();
+    assert_eq!(server.as_str(), "https://control.example.com/");
+    assert!(WorkerConfig::server_from_values(None, false).is_err());
+}
+
+#[cfg(windows)]
+#[test]
+fn worker_single_instance_guard_rejects_a_concurrent_instance() {
+    let name = format!("Local\\CoucouEdgeWorkerTest-{}", std::process::id());
+    let first = SingleInstanceGuard::acquire(&name).unwrap();
+    assert!(SingleInstanceGuard::acquire(&name).is_err());
+    drop(first);
+    assert!(SingleInstanceGuard::acquire(&name).is_ok());
+}
 
 fn temp_path(name: &str) -> std::path::PathBuf {
     let nonce = SystemTime::now()

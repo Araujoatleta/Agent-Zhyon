@@ -4,11 +4,19 @@ on:
   pull_request:
     paths:
       - 'vps-control/**'
+      - 'scripts/vps_ops.py'
+      - 'scripts/test_vps_*.py'
+      - 'docs/VPS_MIGRATION_DEPLOY.pt-BR.md'
+      - 'docs/VPS_EDGE_CONTROL_PT.md'
       - '.github/workflows/vps-control.yml'
   push:
     branches: [main]
     paths:
       - 'vps-control/**'
+      - 'scripts/vps_ops.py'
+      - 'scripts/test_vps_*.py'
+      - 'docs/VPS_MIGRATION_DEPLOY.pt-BR.md'
+      - 'docs/VPS_EDGE_CONTROL_PT.md'
       - '.github/workflows/vps-control.yml'
   workflow_dispatch:
 
@@ -36,6 +44,11 @@ jobs:
         run: npm run check
       - name: Test
         run: npm test
+      - name: Test VPS operations and deploy automation
+        working-directory: .
+        run: |
+          bash -n vps-control/deploy/deploy.sh
+          python -m unittest scripts/test_vps_ops.py scripts/test_vps_deploy.py -v
       - name: Audit production dependencies
         run: npm audit --audit-level=high --omit=dev
       - name: Build container

@@ -1,7 +1,9 @@
 import * as http from 'node:http';
+import { createHash, timingSafeEqual } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import { WebSocketServer, WebSocket } from 'ws';
 import { ControlStore, StoreError, type TaskEnvelope, type TaskStatus } from './store.ts';
+import { adminHtml, adminJs } from './admin.ts';
 
 export type ControlPlane = {
   store: ControlStore;
@@ -28,6 +30,17 @@ const sendJson = (response: http.ServerResponse, status: number, body: unknown) 
   response.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
   response.end(JSON.stringify(body));
 };
+const sendAdminAsset = (response: http.ServerResponse, contentType: string, body: string) => {
+  response.writeHead(200, {
+    'content-type': contentType,
+    'cache-control': 'no-store',
+    'content-security-policy': "default-src 'self'; script-src 'self'; style-src 'unsafe-inline'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'",
+    'referrer-policy': 'no-referrer',
+    'x-content-type-options': 'nosniff',
+    'x-frame-options': 'DENY'
+  });
+  response.end(body);
+};
 const isObject = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value);
 const stringField = (body: Record<string, unknown>, key: string, min: number, max: number, pattern?: RegExp) => {
   const value = body[key];
@@ -42,6 +55,12 @@ const exactBase64 = (value: string, bytes: number) => {
     return decoded.length === bytes && decoded.toString('base64') === value;
   } catch { return false; }
 };
+const safeTokenEqual = (expected: string, supplied: string | undefined) => {
+  const expectedHash = createHash('sha256').update(expected).digest();
+  const suppliedHash = createHash('sha256').update(supplied ?? '').digest();
+  return timingSafeEqual(expectedHash, suppliedHash);
+};
+const invalidDeviceName = /[\u0000-\u001f\u007f-\u009f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/u;
 
 export function createControlPlane(options: Options): ControlPlane {
   if (typeof options.adminToken !== 'string' || options.adminToken.length < 24) throw new Error('adminToken must contain at least 24 characters');
@@ -49,6 +68,7 @@ export function createControlPlane(options: Options): ControlPlane {
   if (!Number.isSafeInteger(maxPayload) || maxPayload < 128 || maxPayload > 1_048_576) throw new Error('maxPayload must be between 128 and 1048576');
   const store = options.store ?? new ControlStore(options.dataFile);
   const sockets = new Map<string, Set<WebSocket>>();
+  const adminFailures = new Map<string, number[]>();
 
   const readBody = async (request: http.IncomingMessage) => {
     const declared = Number(request.headers['content-length'] ?? 0);
@@ -71,10 +91,18 @@ export function createControlPlane(options: Options): ControlPlane {
     }
   };
   const requireAdmin = (request: http.IncomingMessage) => {
-    if (bearer(request) !== options.adminToken) throw new HttpError(401, 'UNAUTHORIZED', 'admin authentication required');
+    if (safeTokenEqual(options.adminToken, bearer(request))) return;
+    const source = request.socket.remoteAddress ?? 'unknown';
+    const now = Date.now();
+    const failures = (adminFailures.get(source) ?? []).filter(at => now - at < 60_000);
+    if (failures.length >= 10) throw new HttpError(429, 'RATE_LIMITED', 'too many admin authentication failures');
+    failures.push(now);
+    adminFailures.set(source, failures);
+    throw new HttpError(401, 'UNAUTHORIZED', 'admin authentication required');
   };
   const pairingInput = (body: Record<string, unknown>) => {
-    const name = stringField(body, 'name', 1, 100);
+    const name = stringField(body, 'name', 1, 100).trim();
+    if (!name || invalidDeviceName.test(name)) throw new HttpError(422, 'VALIDATION_ERROR', 'invalid name');
     const publicKey = stringField(body, 'publicKey', 40, 48);
     if (!exactBase64(publicKey, 32)) throw new HttpError(422, 'VALIDATION_ERROR', 'publicKey must be a base64 raw Ed25519 key');
     if (!Array.isArray(body.capabilities) || body.capabilities.length > 32 || !body.capabilities.every(value => typeof value === 'string' && /^[a-zA-Z0-9._:-]{1,64}$/.test(value))) {
@@ -106,6 +134,8 @@ export function createControlPlane(options: Options): ControlPlane {
       const url = new URL(request.url ?? '/', `http://${request.headers.host ?? 'localhost'}`);
       const path = normalizePath(url.pathname);
       if (path === '/healthz' && request.method === 'GET') return sendJson(response, 200, { ok: true });
+      if (path === '/' && request.method === 'GET') return sendAdminAsset(response, 'text/html; charset=utf-8', adminHtml);
+      if (path === '/admin.js' && request.method === 'GET') return sendAdminAsset(response, 'text/javascript; charset=utf-8', adminJs);
 
       if (path === '/v1/pair/start' && request.method === 'POST') {
         const input = pairingInput(await readBody(request));
@@ -128,7 +158,17 @@ export function createControlPlane(options: Options): ControlPlane {
       }
       const approve = path.match(/^\/v1\/admin\/pairings\/([^/]+)\/approve$/);
       if (approve && request.method === 'POST') return sendJson(response, 200, await store.approvePairing(approve[1]));
-      if (path === '/v1/admin/devices' && request.method === 'GET') return sendJson(response, 200, await store.listDevices());
+      if (path === '/v1/admin/devices' && request.method === 'GET') {
+        const devices = await store.listDevices();
+        return sendJson(response, 200, devices.map(device => ({ ...device, online: (sockets.get(device.id)?.size ?? 0) > 0 })));
+      }
+      const renameDevice = path.match(/^\/v1\/admin\/devices\/([^/]+)\/rename$/);
+      if (renameDevice && request.method === 'POST') {
+        const input = await readBody(request);
+        const name = stringField(input, 'name', 1, 100).trim();
+        if (!name || invalidDeviceName.test(name)) throw new HttpError(422, 'VALIDATION_ERROR', 'invalid name');
+        return sendJson(response, 200, await store.renameDevice(renameDevice[1], name));
+      }
       const revoke = path.match(/^\/v1\/admin\/devices\/([^/]+)\/revoke$/);
       if (revoke && request.method === 'POST') {
         await store.revoke(revoke[1]);

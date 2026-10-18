@@ -21,6 +21,8 @@ Select-String .\SHA256SUMS.txt -Pattern 'Coucou-Windows-0.4.0-setup.exe'
 
 ## Deploy do VPS
 
+O procedimento automatizado, incluindo dry-run, backup/restauração seletivos, migração, health checks e rollback, está em [`VPS_MIGRATION_DEPLOY.pt-BR.md`](VPS_MIGRATION_DEPLOY.pt-BR.md). O resumo manual abaixo continua útil para diagnóstico.
+
 No checkout `/opt/agent-zhyon-relay`, integre a revisão sem substituir a configuração do relay. Crie `vps-control/.env` com modo `0600` e um `ADMIN_TOKEN` aleatório de pelo menos 24 caracteres, por exemplo `openssl rand -hex 32`. Então:
 
 ```sh
