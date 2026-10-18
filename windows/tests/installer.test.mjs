@@ -275,7 +275,11 @@ test("the key is written the way keyring 3.6.3 reads it, and the JSON escape loo
 test("the uninstaller removes edge identity, configuration, task, and staged app files", () => {
   const uninstall = HOOKS.split("!macro NSIS_HOOK_PREUNINSTALL\n")[1].split("!macroend")[0];
   assert.match(uninstall, /schtasks\.exe[^']*\/End \/TN "Coucou Edge Worker"/);
-  assert.doesNotMatch(uninstall, /taskkill\.exe[^']*\/IM/);
+  assert.match(uninstall, /taskkill\.exe[^']*\/IM "coucou-edge-worker\.exe" \/F/);
+  assert.ok(
+    uninstall.indexOf("taskkill.exe") < uninstall.indexOf("--remove-identity"),
+    "the running worker is stopped before its identity is removed",
+  );
   assert.match(uninstall, /schtasks\.exe[^']*\/Delete \/TN "Coucou Edge Worker" \/F/);
   assert.match(uninstall, /coucou-edge-worker\.exe" --remove-identity/);
   assert.match(uninstall, /DeleteRegValue HKCU "Environment" "COUCOU_VPS_URL"/);

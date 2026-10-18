@@ -562,14 +562,27 @@ FunctionEnd
 
 !macro NSIS_HOOK_PREINSTALL
   ; Release the executable before an update attempts to replace it.
+  DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "Coucou Edge Worker"
   ExecWait '"$SYSDIR\schtasks.exe" /End /TN "Coucou Edge Worker"' $0
+  ExecWait '"$SYSDIR\taskkill.exe" /IM "coucou-edge-worker.exe" /F' $0
 !macroend
 
 !macro NSIS_HOOK_POSTINSTALL
   Call CoucouSaveChoices
   ; These are non-secret settings. The durable identity stays in Credential Manager.
-  StrCpy $CoucouVpsUrl "https://coucou-relay.navellux.com.br/control"
-  StrCpy $CoucouDeviceName "$COMPUTERNAME"
+  ; Preserve an existing per-user configuration during upgrades. Fresh installs
+  ; fall back to the managed VPS and the real Windows computer name.
+  ReadRegStr $CoucouVpsUrl HKCU "Environment" "COUCOU_VPS_URL"
+  ${If} $CoucouVpsUrl == ""
+    StrCpy $CoucouVpsUrl "https://coucou-relay.navellux.com.br/control"
+  ${EndIf}
+  ReadRegStr $CoucouDeviceName HKCU "Environment" "COUCOU_DEVICE_NAME"
+  ${If} $CoucouDeviceName == ""
+    ReadEnvStr $CoucouDeviceName "COMPUTERNAME"
+    ${If} $CoucouDeviceName == ""
+      StrCpy $CoucouDeviceName "Windows-PC"
+    ${EndIf}
+  ${EndIf}
   ${GetOptions} $CMDLINE "/VPSURL=" $0
   ${IfNot} ${Errors}
     StrCpy $CoucouVpsUrl $0
@@ -590,13 +603,13 @@ FunctionEnd
     ExecWait '"$INSTDIR\coucou-edge-worker.exe" --validate-config' $0
     ${If} $0 = 0
       WriteRegStr HKCU "Software\Coucou\EdgeWorker" "IdentityServer" "$CoucouVpsUrl"
-      ; Stop only the instance owned by our task, then replace and run it in
-      ; the interactive user's session (never as a service/SYSTEM).
+      ; Run in the interactive user's session now and at every future logon.
+      ; HKCU Run needs no elevation and the direct launch inherits the fresh
+      ; environment written above, so a first install always shows its PIN.
       ExecWait '"$SYSDIR\schtasks.exe" /End /TN "Coucou Edge Worker"' $1
-      ExecWait '"$SYSDIR\schtasks.exe" /Create /TN "Coucou Edge Worker" /SC ONLOGON /TR "$\"$INSTDIR\coucou-edge-worker.exe$\"" /RL LIMITED /F' $0
-      ${If} $0 = 0
-        ExecWait '"$SYSDIR\schtasks.exe" /Run /TN "Coucou Edge Worker"' $1
-      ${EndIf}
+      ExecWait '"$SYSDIR\schtasks.exe" /Delete /TN "Coucou Edge Worker" /F' $1
+      WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "Coucou Edge Worker" '"$INSTDIR\coucou-edge-worker.exe"'
+      Exec '"$INSTDIR\coucou-edge-worker.exe"'
     ${Else}
       MessageBox MB_ICONSTOP|MB_OK "Invalid edge worker configuration."
     ${EndIf}
@@ -614,8 +627,10 @@ FunctionEnd
 ; printing anything, so a leftover entry costs nothing beyond a dead path.
 
 !macro NSIS_HOOK_PREUNINSTALL
+  DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "Coucou Edge Worker"
   ExecWait '"$SYSDIR\schtasks.exe" /End /TN "Coucou Edge Worker"' $0
   ExecWait '"$SYSDIR\schtasks.exe" /Delete /TN "Coucou Edge Worker" /F' $0
+  ExecWait '"$SYSDIR\taskkill.exe" /IM "coucou-edge-worker.exe" /F' $0
   ReadRegStr $1 HKCU "Software\Coucou\EdgeWorker" "IdentityServer"
   ${If} $1 == ""
     StrCpy $1 "$CoucouVpsUrl"

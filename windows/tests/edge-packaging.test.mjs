@@ -21,15 +21,20 @@ test("Tauri bundles both native executables as installer resources", () => {
   assert.equal(resources["../target/release/coucou-edge-worker.exe"], "coucou-edge-worker.exe");
 });
 
-test("NSIS persists edge configuration and starts an enabled interactive-logon task", () => {
+test("NSIS derives a real device name and starts the worker without manual PowerShell", () => {
   const hooks = read("src-tauri/nsis/hooks.nsh");
+  assert.match(hooks, /ReadRegStr \$CoucouVpsUrl HKCU "Environment" "COUCOU_VPS_URL"/);
+  assert.match(hooks, /ReadRegStr \$CoucouDeviceName HKCU "Environment" "COUCOU_DEVICE_NAME"/);
+  assert.match(hooks, /ReadEnvStr \$CoucouDeviceName "COMPUTERNAME"/);
+  assert.doesNotMatch(hooks, /StrCpy \$CoucouDeviceName "\$COMPUTERNAME"/);
   assert.match(hooks, /WriteRegExpandStr HKCU "Environment" "COUCOU_VPS_URL"/);
   assert.match(hooks, /WriteRegExpandStr HKCU "Environment" "COUCOU_DEVICE_NAME"/);
-  assert.match(hooks, /schtasks\.exe.*\/Create.*\/SC ONLOGON.*\/RL LIMITED.*Coucou Edge Worker/s);
-  assert.doesNotMatch(hooks, /schtasks\.exe.*\/Change.*\/DISABLE/s);
-  assert.match(hooks, /schtasks\.exe.*\/Run.*\/TN.*Coucou Edge Worker/s);
-  assert.doesNotMatch(hooks, /Exec '"\$INSTDIR\\coucou-edge-worker\.exe"'/);
+  assert.doesNotMatch(hooks, /schtasks\.exe.*\/Create/s);
+  assert.doesNotMatch(hooks, /schtasks\.exe.*\/Run/s);
+  assert.match(hooks, /WriteRegStr HKCU "Software\\Microsoft\\Windows\\CurrentVersion\\Run" "Coucou Edge Worker"/);
+  assert.match(hooks, /Exec '\"\$INSTDIR\\coucou-edge-worker\.exe\"'/);
   assert.match(hooks, /NSIS_HOOK_PREUNINSTALL[\s\S]*schtasks\.exe.*\/Delete.*\/TN.*Coucou Edge Worker/s);
+  assert.match(hooks, /NSIS_HOOK_PREUNINSTALL[\s\S]*DeleteRegValue HKCU "Software\\Microsoft\\Windows\\CurrentVersion\\Run" "Coucou Edge Worker"/s);
   assert.doesNotMatch(hooks, /\/RU SYSTEM|Session 0|New-Service|sc\.exe create/i);
 });
 
@@ -39,7 +44,8 @@ test("installer validates edge URL, keeps secrets out of files, and uninstall re
   assert.match(hooks, /coucou-edge-worker\.exe" --validate-config/);
   assert.match(hooks, /ExecWait '\"\$INSTDIR\\coucou-edge-worker\.exe\" --remove-identity(?:[^']*)'/);
   assert.match(hooks, /schtasks\.exe.*\/End.*\/TN.*Coucou Edge Worker/s);
-  assert.doesNotMatch(hooks, /taskkill\.exe.*\/IM/i);
+  assert.match(hooks, /NSIS_HOOK_PREINSTALL[\s\S]*DeleteRegValue HKCU .*CurrentVersion\\Run[\s\S]*taskkill\.exe.*\/IM "coucou-edge-worker\.exe".*\/F[\s\S]*!macroend/is);
+  assert.match(hooks, /NSIS_HOOK_PREUNINSTALL[\s\S]*DeleteRegValue HKCU .*CurrentVersion\\Run[\s\S]*taskkill\.exe.*\/IM "coucou-edge-worker\.exe".*\/F[\s\S]*--remove-identity/is);
   assert.match(hooks, /DeleteRegValue HKCU "Environment" "COUCOU_VPS_URL"/);
   assert.match(hooks, /DeleteRegValue HKCU "Environment" "COUCOU_DEVICE_NAME"/);
   assert.match(hooks, /RMDir \/r "\$LOCALAPPDATA\\Coucou\\edge-worker"/);
@@ -97,11 +103,12 @@ test("Windows artifacts upload the worker and generated checksums", () => {
   }
 });
 
-test("Portuguese operations guide matches the safe installed startup and pairing gap", () => {
+test("Portuguese operations guide matches automatic installed startup and PIN approval", () => {
   const guide = read("../docs/VPS_EDGE_CONTROL_PT.md");
-  assert.match(guide, /tarefa.*Coucou Edge Worker.*desabilitada/is);
+  assert.match(guide, /HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run/);
+  assert.match(guide, /inicia.*automaticamente.*PIN/is);
   assert.match(guide, /\/v1\/pair\/start/);
-  assert.match(guide, /\/v1\/admin\/pairings\/PAIRING_ID\/approve/);
-  assert.match(guide, /não.*(?:lista|converte).*PIN.*pairingId/is);
+  assert.match(guide, /\/v1\/admin\/pairings\/approve/);
+  assert.doesNotMatch(guide, /Lacuna operacional atual/);
   assert.match(guide, /SHA256SUMS\.txt/);
 });

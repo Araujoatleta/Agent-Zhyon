@@ -10,7 +10,7 @@ O worker Windows faz apenas conexões HTTPS/WSS de saída. Ele sempre anuncia `h
 
 `npm run pack` compila `coucou-hook` e `coucou-edge-worker` com `Cargo.lock`, gera NSIS e MSI, cria o diretório portátil com `Coucou.exe`, `coucou-hook.exe` e `coucou-edge-worker.exe`, grava `release/SHA256SUMS.txt` e verifica cada SHA-256 imediatamente. O CI executa novamente `npm run verify:artifacts`. Os artifacts do Actions são identificados como `unsigned`; assinatura não é simulada quando os secrets de assinatura não existem.
 
-NSIS instala `coucou-edge-worker.exe` como recurso do aplicativo e cria a tarefa **Coucou Edge Worker** com gatilho **ONLOGON**, privilégio `LIMITED` e execução na sessão do usuário. A tarefa fica **desabilitada** por padrão: instalação não equivale a consentimento nem a pareamento. O uninstall do NSIS remove a tarefa antes de apagar os arquivos. MSI e pacote portátil contêm o worker, mas não criam autostart. Não use serviço, `SYSTEM` ou Session 0.
+NSIS instala `coucou-edge-worker.exe`, grava `COUCOU_VPS_URL` e o nome real do computador no ambiente do usuário, registra o worker em `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` e o inicia imediatamente na sessão interativa. Assim, uma instalação nova inicia automaticamente o worker e mostra o PIN sem comandos no PowerShell. O uninstall remove esse autostart e também limpa tarefas antigas de versões anteriores. MSI e pacote portátil contêm o worker, mas não criam autostart. Não use serviço, `SYSTEM` ou Session 0.
 
 Para conferir um download no PowerShell, no diretório que contém o arquivo e o manifesto:
 
@@ -40,24 +40,11 @@ A segunda chamada deve continuar respondendo pelo relay antigo. O unit systemd f
 
 ## Pareamento implementado
 
-1. Defina variáveis no usuário que executará o worker:
-
-   ```powershell
-   [Environment]::SetEnvironmentVariable('COUCOU_VPS_URL', 'https://coucou-relay.navellux.com.br/control', 'User')
-   [Environment]::SetEnvironmentVariable('COUCOU_DEVICE_NAME', 'Notebook casa', 'User')
-   ```
-
-2. Execute `coucou-edge-worker.exe` manualmente nessa sessão. Sem identidade armazenada, ele chama `POST /v1/pair/start` com nome, chave pública Ed25519 e capabilities. O servidor devolve `pairingId`, PIN de seis dígitos, `claimToken` e expiração de cinco minutos. O worker mostra o PIN e consulta `GET /v1/pair/status/PAIRING_ID` a cada dois segundos por até dez minutos.
+1. Execute o instalador NSIS. Ele configura a URL da VPS, usa o nome do Windows como nome inicial do dispositivo, registra o autostart por usuário e abre o worker sem exigir comandos manuais.
+2. Sem identidade armazenada, o worker chama `POST /v1/pair/start` com nome, chave pública Ed25519 e capabilities. O servidor devolve `pairingId`, PIN de seis dígitos, `claimToken` e expiração de cinco minutos. O worker mostra o PIN e consulta `GET /v1/pair/status/PAIRING_ID` a cada dois segundos por até dez minutos.
 3. Aprove o PIN mostrado pelo worker usando `POST /v1/admin/pairings/approve`, com `Authorization: Bearer ***` e corpo JSON `{ "pin": "123456" }`. A rota resolve o pareamento ativo pelo hash do PIN, rejeita PIN expirado, ausente ou ambíguo e retorna o `pairingId`. A rota por ID (`POST /v1/admin/pairings/PAIRING_ID/approve`) continua disponível para integrações administrativas.
 4. Após a aprovação, o worker recebe `deviceId` e credential uma única vez e guarda identidade, credential e chave privada pelo `keyring` no Windows Credential Manager, em namespace derivado da origem do servidor.
-5. Só depois de confirmar o dispositivo em `GET /v1/admin/devices`, habilite e inicie a tarefa:
-
-   ```powershell
-   schtasks.exe /Change /TN "Coucou Edge Worker" /ENABLE
-   schtasks.exe /Run /TN "Coucou Edge Worker"
-   ```
-
-**Lacuna operacional atual:** o worker imprime o PIN, mas não imprime o `pairingId`; a API admin não lista pareamentos pendentes e não converte PIN em `pairingId`. Portanto, o fluxo sem acesso ao estado interno ainda não é operável de ponta a ponta. Não habilite a tarefa em rollout geral até existir UI/endpoint autenticado para resolver o PIN, ou até o worker expor com segurança o `pairingId`. `COUCOU_PAIR_PIN` não é lido pela implementação atual.
+5. Confirme o dispositivo em `GET /v1/admin/devices`. Em reinícios futuros, o worker volta pela chave `Run` do usuário e reutiliza a identidade do Credential Manager, sem mostrar outro PIN.
 
 ## Tarefas e revogação
 
@@ -85,14 +72,14 @@ A revogação fecha sockets ativos e impede nova autenticação. Para parear nov
 ## Rollout seguro
 
 1. Faça backup do volume, suba o control plane e valide health, TLS e o relay antigo.
-2. Teste um único dispositivo, manualmente e com a tarefa ainda desabilitada.
+2. Teste um único dispositivo instalado pelo NSIS e confirme que o PIN aparece sem configuração manual.
 3. Aprove o PIN pela rota administrativa autenticada; confirme o dispositivo e execute apenas `health`/`system_info`.
-4. Habilite ONLOGON nesse canário, reinicie a sessão e confirme reconexão, idempotência, cancelamento e revogação.
+4. Saia e entre novamente no Windows nesse canário e confirme reconexão, idempotência, cancelamento e revogação.
 5. Só então amplie gradualmente. Guarde `SHA256SUMS.txt`, revisão implantada e resultado dos checks do CI como evidência.
-6. Para rollback, desabilite/remova a tarefa, revogue o dispositivo e restaure o container/volume anterior; o relay existente permanece separado.
+6. Para rollback, remova a entrada `Coucou Edge Worker` de `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, revogue o dispositivo e restaure o container/volume anterior; o relay existente permanece separado.
 
 ## Diagnóstico e limitações
 
-Use `docker compose logs --tail=100 coucou-control`, `curl http://127.0.0.1:8790/healthz`, `nginx -t`, o Agendador de Tarefas e o relógio do host. HTTP/WSS 401 costuma indicar credential, prova, nonce, horário ou revogação inválidos. O reconnect usa backoff limitado a 60 segundos.
+Use `docker compose logs --tail=100 coucou-control`, `curl http://127.0.0.1:8790/healthz`, a chave `Run` do usuário, `nginx -t` e o relógio do host. HTTP/WSS 401 costuma indicar credential, prova, nonce, horário ou revogação inválidos. O reconnect usa backoff limitado a 60 segundos.
 
-Limitações do MVP: sem dashboard; sem HA/locking compartilhado; store JSON não é adequado a cluster; sem rotação automática de credential/chave; sem atualização automática; builds Windows não assinados quando secrets não estão disponíveis; MSI não gerencia a tarefa; portable não gerencia autostart; automação GUI depende de CUA local e exige validação em uma sessão interativa real.
+Limitações do MVP: sem HA/locking compartilhado; store JSON não é adequado a cluster; sem rotação automática de credential/chave; sem atualização automática; builds Windows não assinados quando secrets não estão disponíveis; MSI e portable não gerenciam autostart; automação GUI depende de CUA local e exige validação em uma sessão interativa real.
