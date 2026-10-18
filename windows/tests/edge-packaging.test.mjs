@@ -21,12 +21,31 @@ test("Tauri bundles both native executables as installer resources", () => {
   assert.equal(resources["../target/release/coucou-edge-worker.exe"], "coucou-edge-worker.exe");
 });
 
-test("NSIS creates a disabled interactive-logon task and removes it before uninstall", () => {
+test("NSIS persists edge configuration and starts an enabled interactive-logon task", () => {
   const hooks = read("src-tauri/nsis/hooks.nsh");
+  assert.match(hooks, /WriteRegExpandStr HKCU "Environment" "COUCOU_VPS_URL"/);
+  assert.match(hooks, /WriteRegExpandStr HKCU "Environment" "COUCOU_DEVICE_NAME"/);
   assert.match(hooks, /schtasks\.exe.*\/Create.*\/SC ONLOGON.*\/RL LIMITED.*Coucou Edge Worker/s);
-  assert.match(hooks, /schtasks\.exe.*\/Change.*\/DISABLE/s);
+  assert.doesNotMatch(hooks, /schtasks\.exe.*\/Change.*\/DISABLE/s);
+  assert.match(hooks, /schtasks\.exe.*\/Run.*\/TN.*Coucou Edge Worker/s);
+  assert.doesNotMatch(hooks, /Exec '"\$INSTDIR\\coucou-edge-worker\.exe"'/);
   assert.match(hooks, /NSIS_HOOK_PREUNINSTALL[\s\S]*schtasks\.exe.*\/Delete.*\/TN.*Coucou Edge Worker/s);
   assert.doesNotMatch(hooks, /\/RU SYSTEM|Session 0|New-Service|sc\.exe create/i);
+});
+
+test("installer validates edge URL, keeps secrets out of files, and uninstall removes edge state", () => {
+  const hooks = read("src-tauri/nsis/hooks.nsh");
+  assert.match(hooks, /StrCpy \$CoucouVpsUrl "https:\/\/coucou-relay\.navellux\.com\.br\/control"/);
+  assert.match(hooks, /coucou-edge-worker\.exe" --validate-config/);
+  assert.match(hooks, /ExecWait '\"\$INSTDIR\\coucou-edge-worker\.exe\" --remove-identity(?:[^']*)'/);
+  assert.match(hooks, /schtasks\.exe.*\/End.*\/TN.*Coucou Edge Worker/s);
+  assert.doesNotMatch(hooks, /taskkill\.exe.*\/IM/i);
+  assert.match(hooks, /DeleteRegValue HKCU "Environment" "COUCOU_VPS_URL"/);
+  assert.match(hooks, /DeleteRegValue HKCU "Environment" "COUCOU_DEVICE_NAME"/);
+  assert.match(hooks, /RMDir \/r "\$LOCALAPPDATA\\Coucou\\edge-worker"/);
+  for (const line of hooks.split("\n").filter((line) => /FileWrite/i.test(line))) {
+    assert.doesNotMatch(line, /VPS|DEVICE|credential|identity/i);
+  }
 });
 
 test("checksum manifest generation and verification detect tampering", async () => {

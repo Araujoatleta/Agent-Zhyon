@@ -92,6 +92,109 @@ test('admin can approve a pending pairing by the PIN shown on the worker', async
   assert.ok(status.json.identity.deviceId);
 });
 
+test('serves a secure admin panel at the reverse-proxy base path without persisting the token', async () => {
+  const { base } = await start();
+  const response = await fetch(`${base}/control/`);
+  const html = await response.text();
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get('content-type') ?? '', /^text\/html/);
+  assert.match(response.headers.get('content-security-policy') ?? '', /default-src 'self'/);
+  assert.match(response.headers.get('content-security-policy') ?? '', /frame-ancestors 'none'/);
+  assert.equal(response.headers.get('x-frame-options'), 'DENY');
+  assert.equal(response.headers.get('cache-control'), 'no-store');
+  assert.match(html, /Coucou Control/);
+  assert.match(html, /health/);
+  assert.match(html, /system_info/);
+  assert.doesNotMatch(html, /localStorage|sessionStorage|document\.cookie/);
+  const script = await (await fetch(`${base}/control/admin.js`)).text();
+  assert.doesNotMatch(script, /localStorage|sessionStorage|document\.cookie/);
+  assert.match(script, /authorization.*Bearer/s);
+});
+
+test('admin panel derives capabilities from the selected device and ignores cancelled actions', async () => {
+  const { base } = await start();
+  const script = await (await fetch(`${base}/control/admin.js`)).text();
+  assert.match(script, /task-device.*addEventListener\(['"]change['"]/s);
+  assert.match(script, /device\?\.capabilities/);
+  assert.match(script, /if\s*\(!action\)\s*return/);
+  assert.match(script, /notice\(action === ['"]rename['"] \? ['"]Device renamed\.['"] : ['"]Device revoked\.['"]\)/);
+});
+
+test('device list reports live connection status', async () => {
+  const { base, ws } = await start();
+  const identity = await pair(base);
+  let devices = await request(base, '/v1/admin/devices', { headers: adminHeaders });
+  assert.equal(devices.json[0].online, false);
+  const socket = connect(ws, identity);
+  await opened(socket);
+  devices = await request(base, '/control/v1/admin/devices', { headers: adminHeaders });
+  assert.equal(devices.json[0].online, true);
+  socket.close();
+});
+
+test('admin can rename a device with validated input and an audit trail', async () => {
+  const { base, plane } = await start();
+  const identity = await pair(base);
+  const renamed = await request(base, `/control/v1/admin/devices/${identity.deviceId}/rename`, {
+    method: 'POST', headers: adminHeaders, body: JSON.stringify({ name: 'Office workstation' })
+  });
+  assert.equal(renamed.response.status, 200);
+  assert.equal(renamed.json.name, 'Office workstation');
+  assert.equal((await plane.store.listDevices())[0].name, 'Office workstation');
+  assert.ok((await plane.store.snapshot()).audit.some(event => event.action === 'device.renamed'));
+
+  const invalid = await request(base, `/v1/admin/devices/${identity.deviceId}/rename`, {
+    method: 'POST', headers: adminHeaders, body: JSON.stringify({ name: '   ' })
+  });
+  assert.equal(invalid.response.status, 422);
+
+  for (const name of ['host\u0000name', 'host\nname', 'safe\u202Etxt']) {
+    const hostile = await request(base, `/v1/admin/devices/${identity.deviceId}/rename`, {
+      method: 'POST', headers: adminHeaders, body: JSON.stringify({ name })
+    });
+    assert.equal(hostile.response.status, 422);
+  }
+  assert.equal((await plane.store.listDevices())[0].name, 'Office workstation');
+});
+
+test('pairing rejects control and bidi characters in device names', async () => {
+  const { base } = await start();
+  const key = rawKey(generateKeyPairSync('ed25519').publicKey);
+  for (const name of ['worker\u0007', 'worker\r\nforged', 'worker\u2066spoof']) {
+    const result = await request(base, '/v1/pair/start', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name, publicKey: key, capabilities: ['health'] })
+    });
+    assert.equal(result.response.status, 422);
+  }
+});
+
+test('unauthorized mutations do not change state and repeated failures are throttled', async () => {
+  const { base, plane } = await start();
+  const identity = await pair(base);
+  const before = await plane.store.snapshot();
+  const paths = [
+    `/v1/admin/devices/${identity.deviceId}/rename`,
+    `/v1/admin/devices/${identity.deviceId}/revoke`,
+    '/v1/admin/pairings/approve',
+    '/v1/admin/tasks'
+  ];
+  for (const path of paths) {
+    const result = await request(base, path, {
+      method: 'POST', headers: { authorization: 'Bearer definitely-wrong', 'content-type': 'application/json' }, body: '{}'
+    });
+    assert.equal(result.response.status, 401);
+  }
+  assert.deepEqual(await plane.store.snapshot(), before);
+  let throttled = false;
+  for (let i = 0; i < 20; i++) {
+    const result = await request(base, '/v1/admin/devices', { headers: { authorization: `Bearer wrong-${i}` } });
+    if (result.response.status === 429) { throttled = true; break; }
+  }
+  assert.equal(throttled, true);
+  assert.equal((await request(base, '/v1/admin/devices', { headers: adminHeaders })).response.status, 200);
+});
+
 test('REST pairing flow validates schemas and uses correct HTTP status classes', async () => {
   const { base } = await start();
   assert.equal((await request(base, '/healthz')).response.status, 200);

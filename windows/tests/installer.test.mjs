@@ -272,10 +272,16 @@ test("the key is written the way keyring 3.6.3 reads it, and the JSON escape loo
   assert.match(json, /\$\{ElseIf\} \$5 >= 0xDC00\n\s*\$\{AndIf\} \$5 <= 0xDFFF\n\s*; the second half of a pair, alone: dropped/);
 });
 
-test("the uninstaller removes the logon task and what the app staged, and nothing else", () => {
-  assert.match(
-    HOOKS,
-    /!macro NSIS_HOOK_PREUNINSTALL\n {2}ExecWait '[^']*schtasks\.exe[^']*\/Delete \/TN "Coucou Edge Worker" \/F' \$0\n {2}RMDir \/r "\$LOCALAPPDATA\\Coucou\\bin"\n {2}RMDir \/r "\$LOCALAPPDATA\\Coucou\\inbox"\n {2}Delete "\$LOCALAPPDATA\\Coucou\\coucou\.log"\n!macroend/,
-  );
-  assert.match(HOOKS, /!macro NSIS_HOOK_POSTINSTALL\n {2}Call CoucouSaveChoices[\s\S]*\/Create \/TN "Coucou Edge Worker" \/SC ONLOGON[\s\S]*\/DISABLE[\s\S]*!macroend/);
+test("the uninstaller removes edge identity, configuration, task, and staged app files", () => {
+  const uninstall = HOOKS.split("!macro NSIS_HOOK_PREUNINSTALL\n")[1].split("!macroend")[0];
+  assert.match(uninstall, /schtasks\.exe[^']*\/End \/TN "Coucou Edge Worker"/);
+  assert.doesNotMatch(uninstall, /taskkill\.exe[^']*\/IM/);
+  assert.match(uninstall, /schtasks\.exe[^']*\/Delete \/TN "Coucou Edge Worker" \/F/);
+  assert.match(uninstall, /coucou-edge-worker\.exe" --remove-identity/);
+  assert.match(uninstall, /DeleteRegValue HKCU "Environment" "COUCOU_VPS_URL"/);
+  assert.match(uninstall, /DeleteRegValue HKCU "Environment" "COUCOU_DEVICE_NAME"/);
+  for (const path of ["edge-worker", "bin", "inbox"]) {
+    assert.ok(uninstall.includes(`RMDir /r "$LOCALAPPDATA\\Coucou\\${path}"`));
+  }
+  assert.match(uninstall, /Delete "\$LOCALAPPDATA\\Coucou\\coucou\.log"/);
 });
