@@ -815,6 +815,14 @@ fn installer_command(script: &Path, stage: Option<&str>) -> Command {
     // computer: on a company network that inspects HTTPS, its own built-in list refuses every download. Hermes passes
     // this setting through to every uv it runs (pm/index_config.py).
     cmd.env("UV_NATIVE_TLS", "1");
+    // Node/npm may use their own CA bundle instead of the Windows trust store. In managed
+    // networks with HTTPS inspection, use the trusted system certificates rather than
+    // disabling TLS verification. This is inherited by Hermes installer subprocesses.
+    #[cfg(windows)]
+    cmd.env("NODE_USE_SYSTEM_CA", "1");
+    // Prefer verified packages already in npm cache, including packages imported
+    // for an offline installation. A cache miss still falls back to the registry.
+    cmd.env("npm_config_prefer_offline", "true");
     crate::platform::no_console(&mut cmd);
     #[cfg(unix)]
     {
