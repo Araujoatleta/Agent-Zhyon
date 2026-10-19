@@ -765,6 +765,25 @@ pub fn telling_line(lines: &[String], reason: &str) -> Option<String> {
     Some(redact(pick, &[]).chars().take(240).collect())
 }
 
+/// Explain persistent package download failures without weakening TLS or hiding a
+/// network policy block. The npm cache can be populated from a trusted source,
+/// but Coucou must never silently disable certificate verification.
+fn dependency_download_hint(lines: &[String]) -> Option<&'static str> {
+    let output = lines.join("\n").to_ascii_lowercase();
+    if output.contains("enotcached") {
+        return Some("A dependency is missing from the local npm cache. Connect to an approved package source or import verified packages into npm's cache, then retry.");
+    }
+    if (output.contains("403") || output.contains("forbidden"))
+        && (output.contains("npm") || output.contains("registry.npmjs.org") || output.contains(".tgz"))
+    {
+        return Some("The package server returned HTTP 403. Your network may block npm package downloads. Use an approved network or an authorized offline package cache; retrying alone will not remove a persistent block.");
+    }
+    if output.contains("unable to get local issuer certificate") || output.contains("self-signed certificate in certificate chain") {
+        return Some("TLS certificate verification failed. Check that your organization's trusted CA is installed in Windows; do not disable TLS verification.");
+    }
+    None
+}
+
 /// Adds a failed step's output to the installation's record (install_log_path).
 fn keep_output(stage: &str, attempt: usize, lines: &[String]) {
     use std::io::Write;
@@ -1213,7 +1232,12 @@ async fn setup(app: AppHandle, brain_id: String, house: bool, configure: bool, o
                     };
                     let stopped = tf("Hermes' installer stopped at \"{step}\": {reason}", &[("step", &stage.title), ("reason", &reason)]);
                     let record = tf("Its full output is in {path}.", &[("path", &install_log_path().display().to_string())]);
-                    return Err(format!("{stopped} {record}"));
+                    let hint = dependency_download_hint(&lines).unwrap_or("");
+                    return Err(if hint.is_empty() {
+                        format!("{stopped} {record}")
+                    } else {
+                        format!("{stopped} {hint} {record}")
+                    });
                 }
             }
             Ok(())
@@ -2756,6 +2780,17 @@ mod tests {
         assert_eq!(lines.len(), 3);
         assert_eq!(lines[1], "plain");
         assert!(parse_frame(&lines, "venv").unwrap().ok, "the result is still read");
+    }
+
+    #[test]
+    fn package_download_errors_have_actionable_safe_hints() {
+        let blocked = vec!["npm ERR! 403 Forbidden GET https://registry.npmjs.org/a/-/a-1.tgz".to_string()];
+        assert!(dependency_download_hint(&blocked).unwrap().contains("HTTP 403"));
+        let offline = vec!["npm error code ENOTCACHED".to_string()];
+        assert!(dependency_download_hint(&offline).unwrap().contains("local npm cache"));
+        let tls = vec!["npm ERR! unable to get local issuer certificate".to_string()];
+        assert!(dependency_download_hint(&tls).unwrap().contains("do not disable TLS"));
+        assert!(dependency_download_hint(&["installed 500 packages".to_string()]).is_none());
     }
 
     #[test]
