@@ -526,6 +526,8 @@ async fn chat_send(
 /// the address (the only way it changes) and offers Hermes in the chat.
 #[tauri::command]
 async fn hermes_connect(app: AppHandle, shared: State<'_, Shared>, url: String, key: String) -> Result<hermes::Connected, String> {
+    // Blank key and the Hermes on this computer: read its .env, so the user need not copy the key by hand.
+    let key = if key.trim().is_empty() { hermes_setup::env_key_for(&url).unwrap_or(key) } else { key };
     let connected = hermes::connect(&url, &key).await?;
     let settings = {
         let mut current = shared.settings.lock().unwrap();
@@ -872,6 +874,9 @@ pub fn run() {
             hermes_setup::hermes_logout,
             hermes_setup::hermes_model_set,
             hermes_setup::hermes_computer_use_set,
+            hermes_setup::hermes_diagnose,
+            hermes_setup::hermes_repair_key,
+            hermes_setup::hermes_detach_service,
             hermes_setup::hermes_speed_set,
             phone_link::phone_remote_set,
             phone_link::phone_remote_check,

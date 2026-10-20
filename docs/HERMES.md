@@ -103,6 +103,32 @@ best for opening sites, playing videos and clicking), **Usual** (Hermes' own) or
 with each message (Hermes' `model_options.reasoning_effort`: `low`, nothing, `high`), so it applies from your next
 message, without starting Hermes again, and Hermes' own settings stay as they are.
 
+### Keeping it running, and the diagnosis
+
+When Coucou runs Hermes, it keeps the gateway up by itself, on `127.0.0.1` only, with no terminal window to leave open:
+
+- It tells a **closed port** from **another program** on the port, from Hermes **refusing the key**, from Hermes
+  **ready** — a real health check, not just "something answers".
+- A gateway **already on the port** (one Coucou or Hermes left running) is **adopted**, so Coucou never starts a second
+  one beside it and the two never fight for the port.
+- A gateway that **falls** is brought back after a growing wait (2, 4, 8, 16, 32 s); after five quick stops in ten
+  minutes it is left **Stopped** with the reason, never restarted in a tight loop. An adopted gateway is checked every
+  minute and before each message.
+- When Coucou runs Hermes it turns **Launch at startup** on, so the gateway comes back after a reboot without you
+  opening Coucou.
+
+**Settings → Hermes Agent → Diagnosis** → **Check the integration** shows, in your language: whether Hermes is
+installed, whether the API answers, and whether the key is valid. From there:
+
+- **Repair the key** makes a new key, writes it to Hermes' `.env` (your old file kept as `.env.backup-…`) and to
+  Coucou's keystore for this address, and restarts the gateway. The authentication is never turned off.
+- **Let only Coucou run Hermes** (Windows) removes a gateway service of Hermes' own — a scheduled task or a Startup
+  entry — when it runs the gateway beside Coucou's. It removes only that service, never Hermes itself.
+- **Copy the report** copies the lines above as text (no key or secret in it), to send to whoever helps you.
+
+**Connect** (for a Hermes you run yourself) now fills the key in by itself from Hermes' `.env` when you leave it blank
+and the address is on this computer.
+
 ### Its name and tone (SOUL.md)
 
 Under **Its tone**, pick **Friendly**, **Direct**, **Professional**, **Playful**, **Butler (formal, witty)**, or

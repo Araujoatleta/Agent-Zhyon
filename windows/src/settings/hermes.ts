@@ -4,7 +4,7 @@
 // installed and run by Coucou, with its brain (a key, a local server or the user's ChatGPT subscription), the
 // assistant's name and tone, and skill packs (src-tauri/src/hermes_setup.rs). See docs/HERMES.md.
 
-import { Bridge, type HermesBrain, type HermesGateway, type HermesLogin, type HermesProgress, type HermesSetupStatus, type HomeMcpStatus } from "../core/bridge";
+import { Bridge, type HermesBrain, type HermesDiagnosis, type HermesGateway, type HermesHealth, type HermesLogin, type HermesProgress, type HermesSetupStatus, type HomeMcpStatus } from "../core/bridge";
 import type { Settings } from "../core/state";
 import { h } from "../views/dom";
 import { N_, labels, t } from "../i18n/i18n";
@@ -114,6 +114,44 @@ export function loginText(login: HermesLogin): string {
     default:
       return t("Hermes uses your ChatGPT subscription (Plus or Pro): sign in with your account.");
   }
+}
+
+/** The API line of the diagnosis: is the gateway answering, and as Hermes. */
+export function healthApiText(health: HermesHealth): string {
+  switch (health.state) {
+    case "down":
+      return t("The API does not answer: the gateway is off, or nothing listens on the port yet.");
+    case "foreign":
+      return t("Another program answers on this port — it is not Hermes. Close it, or give Hermes another port.");
+    default:
+      return t("The API answers on this computer.");
+  }
+}
+
+/** The authentication line of the diagnosis. */
+export function healthAuthText(health: HermesHealth): string {
+  switch (health.state) {
+    case "ready":
+      return t("The key is valid: Hermes answers as {model}.", { model: health.model });
+    case "unauthorized":
+      return t("The key is wrong or missing. Repair it below, or paste the API_SERVER_KEY of Hermes' .env.");
+    default:
+      return t("The key cannot be checked while the API does not answer.");
+  }
+}
+
+/** The copyable report: plain lines, in the app's language, with no secret in them. */
+export function diagnosisReport(d: HermesDiagnosis): string {
+  const yes = t("yes");
+  const no = t("no");
+  return [
+    `Coucou · Hermes — ${d.address}`,
+    `${t("Installed")}: ${d.installed ? yes : no}`,
+    `${t("Run by Coucou")}: ${d.managed ? yes : no}`,
+    `${t("API")}: ${healthApiText(d.health)}`,
+    `${t("Authentication")}: ${healthAuthText(d.health)}`,
+    `${t("A Hermes service of its own")}: ${d.ownService ? yes : no}`,
+  ].join("\n");
 }
 
 /** The gateway's state in words. */
@@ -425,6 +463,63 @@ function zheusBlock(host: HermesHost): HTMLElement {
     return rows;
   };
 
+  /** The diagnosis panel: one button checks the integration live and shows each part, with Repair and Copy. */
+  const diagnoseBlock = (): HTMLElement => {
+    const panel = h("div", { style: "display:flex;flex-direction:column;gap:6px;margin-top:6px" });
+    const result = h("div", { style: "display:flex;flex-direction:column;gap:6px" });
+    const check = h("button", { text: t("Check the integration") }) as HTMLButtonElement;
+    const line = (ok: boolean, label: string) => h("div", { class: "row" }, statusDot(ok), h("span", { class: "hint", text: label }));
+    const draw = (d: HermesDiagnosis) => {
+      check.disabled = false;
+      const ready = d.health.state === "ready";
+      const rows: HTMLElement[] = [
+        line(d.installed, d.installed ? t("Hermes is installed on this computer.") : t("Hermes is not installed on this computer.")),
+        line(d.health.state !== "down", healthApiText(d.health)),
+        line(ready, healthAuthText(d.health)),
+      ];
+      if (d.ownService) {
+        rows.push(h("div", { class: "notice warn", text: t("A start-up entry of Hermes' own was found: it may run the gateway beside Coucou's and fight for the port. Let only Coucou run it below.") }));
+      }
+      const actions: HTMLElement[] = [];
+      if (d.managed && d.installed) {
+        const repair = h("button", { text: t("Repair the key") }) as HTMLButtonElement;
+        repair.addEventListener("click", () => {
+          repair.disabled = true;
+          Bridge.hermesRepairKey().then(draw, (err) => {
+            repair.disabled = false;
+            result.append(h("div", { class: "notice err", text: errorText(err) }));
+          });
+        });
+        actions.push(repair);
+      }
+      if (d.ownService) {
+        const detach = h("button", { text: t("Let only Coucou run Hermes") }) as HTMLButtonElement;
+        detach.addEventListener("click", () => {
+          detach.disabled = true;
+          Bridge.hermesDetachService().then(draw, (err) => {
+            detach.disabled = false;
+            result.append(h("div", { class: "notice err", text: errorText(err) }));
+          });
+        });
+        actions.push(detach);
+      }
+      const copy = h("button", { text: t("Copy the report") }) as HTMLButtonElement;
+      copy.addEventListener("click", () => void navigator.clipboard?.writeText(diagnosisReport(d)));
+      actions.push(copy);
+      result.replaceChildren(...rows, h("div", { class: "row" }, ...actions));
+    };
+    check.addEventListener("click", () => {
+      check.disabled = true;
+      result.replaceChildren(h("div", { class: "hint", text: t("Checking…") }));
+      Bridge.hermesDiagnose().then(draw, (err) => {
+        check.disabled = false;
+        result.replaceChildren(h("div", { class: "notice err", text: errorText(err) }));
+      });
+    });
+    panel.append(h("div", { class: "row" }, h("label", { text: t("Diagnosis") }), check), result);
+    return panel;
+  };
+
   const show = (status: HermesSetupStatus | null) => {
     if (!status) return;
     last = status;
@@ -457,6 +552,7 @@ function zheusBlock(host: HermesHost): HTMLElement {
         ...changeBrain(status),
         ...computerBlock(status),
         ...skillsBlock(status),
+        diagnoseBlock(),
       );
       return;
     }

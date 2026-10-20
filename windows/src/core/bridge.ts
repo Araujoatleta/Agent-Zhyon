@@ -470,6 +470,12 @@ export const Bridge = {
   /** Hermes may use this computer (cua-driver installed, its computer_use tool on), or not. */
   hermesComputerUseSet: (on: boolean) => callOrThrow<HermesSetupStatus>("hermes_computer_use_set", { on }),
   hermesSpeedSet: (speed: string) => callOrThrow<HermesSetupStatus>("hermes_speed_set", { speed }),
+  /** A live check of the integration for the diagnosis panel (probes the address; changes nothing). */
+  hermesDiagnose: () => callOrThrow<HermesDiagnosis>("hermes_diagnose"),
+  /** Makes a new key, writes it to Hermes' .env (old file kept) and the keystore, and restarts the gateway. */
+  hermesRepairKey: () => callOrThrow<HermesDiagnosis>("hermes_repair_key"),
+  /** Stops and removes Hermes' own gateway service and turns Coucou's Launch at startup on, so only Coucou runs it. */
+  hermesDetachService: () => callOrThrow<HermesDiagnosis>("hermes_detach_service"),
   /** Settings → Hermes Agent → Mochi's home for Hermes (agent/mcp.rs). */
   homeMcpStatus: () => call<HomeMcpStatus>("home_mcp_status"),
   homeMcpSet: (on: boolean) => callOrThrow<HomeMcpStatus>("home_mcp_set", { on }),
@@ -683,6 +689,23 @@ export interface HermesSetupStatus {
   computerUse: boolean;
   /** How quick Hermes is: "fast", "" (Hermes' own) or "deep". */
   speed: string;
+}
+
+/** The live state of the integration, for the diagnosis panel (Settings → Hermes Agent). */
+export type HermesHealth =
+  | { state: "down" }
+  | { state: "foreign" }
+  | { state: "unauthorized" }
+  | { state: "ready"; model: string };
+
+export interface HermesDiagnosis {
+  installed: boolean;
+  managed: boolean;
+  health: HermesHealth;
+  hasKey: boolean;
+  /** A gateway service of Hermes' own was found beside Coucou's (Windows). */
+  ownService: boolean;
+  address: string;
 }
 
 export interface HermesConnected {

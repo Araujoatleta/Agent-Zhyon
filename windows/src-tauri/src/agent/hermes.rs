@@ -262,6 +262,8 @@ async fn turn(
     phone_steps: Option<UnboundedSender<StepLine>>,
     on_text: impl FnMut(&str) + Send,
 ) -> Result<String, TurnError> {
+    // A gateway Coucou runs may have fallen between turns: bring it back before this one, rather than failing it.
+    crate::hermes_setup::ensure_up_for_turn(app).await;
     let client = Client::from_settings(settings).map_err(TurnError::Off)?;
     let agent = app.state::<Agent>();
     let (run_id, cancel) = agent.begin(origin).ok_or(TurnError::Busy)?;
