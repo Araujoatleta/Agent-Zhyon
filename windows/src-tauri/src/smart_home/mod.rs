@@ -4,7 +4,8 @@
 //
 // Off by default (Settings → Mochi's home). While it is off, nothing is read and nothing runs. When it is on:
 //
-//   * The devices come from Home Assistant (media players, lights, switches) and from the Philips TVs the user added.
+//   * The devices come from Home Assistant (media players, lights, switches) and from the TVs the user added: Philips,
+//     Samsung, and Android TVs, projectors and boxes over ADB (android.rs).
 //     What each can do is what it reported (model.rs), never assumed from its brand.
 //   * Mochi only sees the devices the user ticked, and acts through three tools of his hands (agent/tools.rs):
 //     home_devices, home_control, home_routine. Each action is checked against the device before anything is sent,
@@ -19,6 +20,7 @@
 // (the TVs' authentication), discovery.rs (mDNS and SSDP), routines.rs, journal.rs, config.rs. This file holds the
 // state, the reading of the house, the carrying out of an action, Mochi's way in, and Settings' commands.
 
+pub mod android;
 pub mod config;
 pub mod digest;
 pub mod discovery;
@@ -44,7 +46,7 @@ use crate::agent::{BoxFuture, HomeEnv, HomeRunner, HomeResult, RoutineInfo};
 use crate::i18n::{t, tf};
 use crate::phone_link::only_settings;
 use crate::{log, net, settings, Shared};
-use config::{DevicePrefs, TvConf, SAMSUNG};
+use config::{DevicePrefs, TvConf, ANDROID, SAMSUNG};
 use home_assistant::HomeAssistant;
 use model::{Action, Capability, Device, DeviceState, Kind};
 use philips::{Tv, TvError};
@@ -146,6 +148,8 @@ pub async fn read(app: &AppHandle, fresh: bool) -> Vec<Device> {
         let prefs = s.prefs.get(&conf.id).cloned().unwrap_or_default();
         if conf.samsung() {
             reads.spawn(samsung_device(app.clone(), conf, prefs, s.ask_all));
+        } else if conf.android() {
+            reads.spawn(android_device(app.clone(), conf, prefs, s.ask_all));
         } else {
             reads.spawn(tv_device(app.clone(), conf, prefs, s.ask_all));
         }
@@ -686,6 +690,211 @@ async fn samsung_act(app: &AppHandle, conf: &TvConf, device: &Device, action: &A
     }
 }
 
+// ── Android devices over ADB (android.rs) ─────────────────────────────────────
+
+/// What an Android device reports, as the house says it: awake or not, its media volume, and the app on screen by its
+/// name in the device's list.
+fn android_state_of(reading: &android::Reading, apps: &[samsung::App]) -> DeviceState {
+    DeviceState {
+        online: true,
+        on: reading.awake,
+        volume: reading.percent(),
+        muted: reading.muted,
+        app: reading.package.as_deref().filter(|_| reading.awake == Some(true)).and_then(|p| android::app_on_screen(apps, p)),
+        ..DeviceState::default()
+    }
+}
+
+/// The device's reading, through one connection.
+async fn android_reading(conf: &TvConf) -> Result<android::Reading, TvError> {
+    let mut adb = android::open(&conf.host, false).await?;
+    let out = adb.shell(android::state_command(conf.api)).await;
+    adb.close().await;
+    Ok(android::parse_state(&out?))
+}
+
+/// Its state now; a device that does not let Coucou in still answers (online, nothing more).
+async fn android_state(conf: TvConf) -> DeviceState {
+    match android_reading(&conf).await {
+        Ok(reading) => android_state_of(&reading, &conf.apps),
+        Err(TvError::Unreachable(_)) => DeviceState::default(),
+        Err(_) => DeviceState { online: true, ..DeviceState::default() },
+    }
+}
+
+/// Runs one of android.rs's fixed commands on the device.
+async fn android_run(conf: &TvConf, command: &str) -> Result<String, String> {
+    let mut adb = android::open(&conf.host, false).await.map_err(|e| android_error(e, conf))?;
+    let out = adb.shell(command).await.map_err(|e| android_error(e, conf));
+    adb.close().await;
+    out
+}
+
+fn android_error(e: TvError, conf: &TvConf) -> String {
+    match e {
+        TvError::Auth => t("The device does not let Coucou in: press Pair in Settings → Mochi's home, then choose Allow on its screen."),
+        TvError::Unreachable(_) if conf.mac().is_none() => t("The device does not answer. A projector or a TV box usually turns its network off when it is switched off: turn it on with its remote. If it is on, check that its network debugging is still on."),
+        e => e.message(),
+    }
+}
+
+/// What an Android device can do from here: its keys once it let Coucou in (`paired`): waking it while its network
+/// is on, sleep, the volume; the volume as a number and mute when it reports them (now, or when it was paired); apps
+/// from its own list; turning it on from off only through Wake-on-LAN (`mac`).
+fn android_caps(paired: bool, online: bool, mac: bool, volume: bool, mute: bool, apps: bool) -> Vec<Capability> {
+    let mut caps = Vec::new();
+    if mac || (paired && online) {
+        caps.push(Capability::TurnOn);
+    }
+    if paired {
+        caps.extend([Capability::TurnOff, Capability::VolumeStep]);
+        if volume {
+            caps.push(Capability::VolumeSet);
+        }
+        if mute {
+            caps.push(Capability::Mute);
+        }
+        if apps {
+            caps.push(Capability::Apps);
+        }
+    }
+    caps.sort();
+    caps.dedup();
+    caps
+}
+
+/// An Android device as Mochi sees it: what it reports over ADB, its apps from its own list (asked again now and
+/// then while it is awake), and only what that allows.
+async fn android_device(app: AppHandle, conf: TvConf, prefs: DevicePrefs, ask_all: bool) -> Device {
+    let mut apps = conf.apps.clone();
+    let mut paired = conf.allowed || !conf.needs_pairing;
+    let mut state = DeviceState::default();
+    match android::open(&conf.host, false).await {
+        Ok(mut adb) => {
+            paired = true;
+            state = match adb.shell(android::state_command(conf.api)).await {
+                Ok(out) => android_state_of(&android::parse_state(&out), &apps),
+                Err(_) => DeviceState { online: true, ..DeviceState::default() },
+            };
+            let home = app.state::<Home>();
+            let recent = home.samsung_asked.lock().unwrap().get(&conf.id).is_some_and(|at| at.elapsed() < LISTS);
+            if state.on == Some(true) && !recent {
+                home.samsung_asked.lock().unwrap().insert(conf.id.clone(), Instant::now());
+                if let Ok(out) = adb.shell(android::apps_command(conf.api)).await {
+                    let fresh = android::parse_apps(&out);
+                    if !fresh.is_empty() && fresh != apps {
+                        keep_samsung_apps(&app, &conf.id, &fresh);
+                        apps = fresh;
+                    }
+                }
+            }
+            adb.close().await;
+        }
+        Err(TvError::Unreachable(_)) => {}
+        Err(e) => {
+            state.online = true;
+            paired &= !matches!(e, TvError::Auth);
+        }
+    }
+    let reports = |what: &str| conf.features.get("reports").is_some_and(|r| r.iter().any(|x| x == what));
+    let caps = android_caps(paired, state.online, conf.mac().is_some(), state.volume.is_some() || reports("volume"), state.muted.is_some() || reports("mute"), !apps.is_empty());
+    Device {
+        id: conf.id.clone(),
+        name: if prefs.name.trim().is_empty() { conf.name.clone() } else { prefs.name.trim().to_string() },
+        room: prefs.room.trim().to_string(),
+        kind: Kind::Tv,
+        source: "Android (ADB)".into(),
+        model: (!conf.model.is_empty()).then(|| conf.model.clone()),
+        caps,
+        apps: apps.into_iter().map(|a| a.name).collect(),
+        channels: Vec::new(),
+        state,
+        exposed: prefs.exposed.unwrap_or(true),
+        ask: ask_all || prefs.ask.unwrap_or(false),
+    }
+}
+
+async fn android_act(conf: &TvConf, device: &Device, action: &Action) -> Result<Done, String> {
+    let reader = {
+        let conf = conf.clone();
+        move || -> BoxFuture<'static, DeviceState> { Box::pin(android_state(conf.clone())) }
+    };
+    let keys = |keys: &[u16]| android::keys_command(keys);
+    let unknown = || tf("{device} does not say its volume.", &[("device", &device.name)]);
+    match action {
+        Action::TurnOn => {
+            match android_reading(conf).await {
+                Ok(r) if r.awake == Some(true) => return Ok(Done { confirmed: true, state: android_state_of(&r, &conf.apps), already: true }),
+                Ok(_) => {
+                    android_run(conf, &keys(&[android::wake_key(conf.api)])).await?;
+                }
+                Err(TvError::Unreachable(_)) => match conf.mac() {
+                    Some(mac) => philips::wake(&mac).await?,
+                    None => return Err(android_error(TvError::Unreachable(String::new()), conf)),
+                },
+                Err(e) => return Err(android_error(e, conf)),
+            }
+            let (confirmed, state) = until(TURN_ON_WAIT, reader, |s| s.on == Some(true)).await;
+            Ok(Done { confirmed, state, already: false })
+        }
+        Action::TurnOff => {
+            match android_reading(conf).await {
+                Err(TvError::Unreachable(_)) => return Ok(Done { confirmed: true, state: DeviceState::default(), already: true }),
+                Ok(r) if r.awake == Some(false) => return Ok(Done { confirmed: true, state: android_state_of(&r, &conf.apps), already: true }),
+                Ok(_) => {
+                    android_run(conf, &keys(&[android::sleep_key(conf.api)])).await?;
+                }
+                Err(e) => return Err(android_error(e, conf)),
+            }
+            let (confirmed, state) = until(CONFIRM_WAIT, reader, |s| s.on != Some(true)).await;
+            Ok(Done { confirmed, state, already: false })
+        }
+        Action::VolumeUp | Action::VolumeDown => {
+            let key = if *action == Action::VolumeUp { android::KEY_VOLUME_UP } else { android::KEY_VOLUME_DOWN };
+            android_run(conf, &keys(&[key])).await?;
+            Ok(Done { confirmed: true, state: android_state(conf.clone()).await, already: false })
+        }
+        Action::SetVolume(p) => {
+            // Its volume has steps (15 on most): the keys are pressed as many times as the step asked is away.
+            let reading = android_reading(conf).await.map_err(|e| android_error(e, conf))?;
+            let (current, max) = reading.volume.filter(|(_, max)| *max > 0).ok_or_else(unknown)?;
+            let target = (u32::from(*p) * max + 50) / 100;
+            if target == current.min(max) {
+                return Ok(Done { confirmed: true, state: android_state_of(&reading, &conf.apps), already: true });
+            }
+            let key = if target > current { android::KEY_VOLUME_UP } else { android::KEY_VOLUME_DOWN };
+            android_run(conf, &keys(&vec![key; target.abs_diff(current).min(100) as usize])).await?;
+            let (want, step) = (*p, (100 / max).max(2) as u8);
+            let (confirmed, state) = until(Duration::from_secs(4), reader, move |s| s.volume.is_some_and(|v| v.abs_diff(want) <= step)).await;
+            Ok(Done { confirmed, state, already: false })
+        }
+        Action::Mute(m) => {
+            let reading = android_reading(conf).await.map_err(|e| android_error(e, conf))?;
+            if reading.muted == Some(*m) {
+                return Ok(Done { confirmed: true, state: android_state_of(&reading, &conf.apps), already: true });
+            }
+            android_run(conf, &keys(&[android::KEY_MUTE])).await?;
+            let want = *m;
+            let (confirmed, state) = until(Duration::from_secs(3), reader, move |s| s.muted == Some(want)).await;
+            Ok(Done { confirmed, state, already: false })
+        }
+        Action::OpenApp(name) => {
+            let label = model::resolve_app(device, name)?;
+            let entry = conf.apps.iter().find(|a| a.name == label).ok_or_else(|| format!("{label} is not in the device's list any more."))?;
+            let command = android::launch_command(&entry.id).ok_or_else(|| format!("{label} cannot be opened."))?;
+            let out = android_run(conf, &command).await?;
+            if android::launch_failed(&out) {
+                return Err(tf("{device} could not open {app}.", &[("device", &device.name), ("app", &label)]));
+            }
+            let (confirmed, state) = until(CONFIRM_WAIT, reader, move |s| s.app.as_deref() == Some(label.as_str())).await;
+            Ok(Done { confirmed, state, already: false })
+        }
+        Action::SetChannel(_) | Action::ChannelUp | Action::ChannelDown | Action::SetBrightness(_) => {
+            Err(tf("{device} does not offer that.", &[("device", &device.name)]))
+        }
+    }
+}
+
 async fn ha_state(url: String, token: String, entity: String, prefs: home_assistant::Prefs) -> DeviceState {
     let Ok(ha) = HomeAssistant::new(&url, &token) else { return DeviceState::default() };
     match ha.state(&entity).await {
@@ -747,7 +956,13 @@ pub async fn control(app: &AppHandle, id: &str, action: &Action, origin: &str, u
         return Outcome { ok: false, detail: e.clone(), text: e };
     }
     let result = if let Some(conf) = s.tvs.iter().find(|c| c.id == device.id) {
-        if conf.samsung() { samsung_act(app, conf, &device, action).await } else { tv_act(app, conf, &device, action).await }
+        if conf.samsung() {
+            samsung_act(app, conf, &device, action).await
+        } else if conf.android() {
+            android_act(conf, &device, action).await
+        } else {
+            tv_act(app, conf, &device, action).await
+        }
     } else if device.id.starts_with("ha:") {
         ha_act(&s, &device, action).await
     } else {
@@ -897,6 +1112,23 @@ pub struct TvSummary {
 }
 
 fn summary(c: &TvConf) -> TvSummary {
+    if c.android() {
+        return TvSummary {
+            id: c.id.clone(),
+            brand: ANDROID.into(),
+            name: c.name.clone(),
+            host: c.host.clone(),
+            model: c.model.clone(),
+            version: c.version.clone(),
+            os: c.os.clone(),
+            android: true,
+            https: false,
+            needs_pairing: c.needs_pairing,
+            paired: c.allowed,
+            mac: c.mac.clone(),
+            features: c.features.get("reports").cloned().unwrap_or_default(),
+        };
+    }
     if c.samsung() {
         return TvSummary {
             id: c.id.clone(),
@@ -1055,7 +1287,76 @@ pub async fn home_tv_add(app: AppHandle, window: WebviewWindow, host: String) ->
     }
     match philips::probe(&host).await {
         Ok(probe) => Ok(add_philips(&app, probe).await),
-        Err(_) => Err(unknown_tv(&host).await),
+        Err(_) => match android::knock(&host).await {
+            Some(android::Knock::Refused(why)) => Err(why),
+            Some(knock) => Ok(add_android(&app, &host, knock).await),
+            None => Err(unknown_tv(&host).await),
+        },
+    }
+}
+
+/// An Android device answering ADB: kept, and described by itself when it already lets Coucou in (it needs no key, or
+/// it allowed this computer's before); else it is to be paired (its user allows this computer on its screen).
+async fn add_android(app: &AppHandle, host: &str, knock: android::Knock) -> TvSummary {
+    let existing = setup(app).tvs.into_iter().find(|tv| tv.host == host && tv.android());
+    let mut conf = existing.unwrap_or_else(|| TvConf {
+        id: new_tv_id(ANDROID),
+        brand: ANDROID.into(),
+        host: host.to_string(),
+        name: t("Android device"),
+        ..TvConf::default()
+    });
+    // No MAC address is learned: these devices mostly turn their Wi-Fi off with them, so Wake-on-LAN would be offered
+    // only to fail. One typed in Settings is used.
+    match knock {
+        android::Knock::Open(mut adb) => {
+            conf.needs_pairing = adb.signed_in;
+            conf.allowed = adb.signed_in;
+            describe_android(&mut conf, &mut adb).await;
+            adb.close().await;
+        }
+        _ => {
+            conf.needs_pairing = true;
+            conf.allowed = false;
+        }
+    }
+    let out = keep_tv(app, &conf);
+    log::line(format!("home: Android device added (Android {}, {})", if conf.version.is_empty() { "?" } else { &conf.version }, if conf.needs_pairing && !conf.allowed { "to be allowed" } else { "allowed" }));
+    out
+}
+
+/// What a device that let Coucou in says it is, what it reports and its apps: kept in its settings.
+async fn describe_android(conf: &mut TvConf, adb: &mut android::Adb) {
+    if let Some(model) = android::banner_value(&adb.banner, "ro.product.model") {
+        conf.model = model;
+    }
+    if let Ok(out) = adb.shell(android::ABOUT_COMMAND).await {
+        let about = android::parse_about(&out);
+        if !about.release.is_empty() {
+            conf.os = format!("Android {}", about.release);
+            conf.version = about.release.clone();
+        }
+        if about.sdk > 0 {
+            conf.api = about.sdk;
+        }
+        let name = if about.name.is_empty() { about.model.clone() } else { about.name };
+        if !name.is_empty() {
+            conf.name = name;
+        }
+        if !about.model.is_empty() {
+            conf.model = about.model;
+        }
+    }
+    if let Ok(out) = adb.shell(android::state_command(conf.api)).await {
+        let reading = android::parse_state(&out);
+        let reports: Vec<String> = [("volume", reading.volume.is_some()), ("mute", reading.muted.is_some())].into_iter().filter(|(_, yes)| *yes).map(|(w, _)| w.to_string()).collect();
+        conf.features.insert("reports".into(), reports);
+    }
+    if let Ok(out) = adb.shell(android::apps_command(conf.api)).await {
+        let apps = android::parse_apps(&out);
+        if !apps.is_empty() {
+            conf.apps = apps;
+        }
     }
 }
 
@@ -1102,6 +1403,7 @@ async fn add_philips(app: &AppHandle, probe: philips::Probe) -> TvSummary {
         version: format!("{}.{}.{}", s.version.0, s.version.1, s.version.2),
         features: s.features.iter().cloned().collect(),
         needs_pairing: s.needs_pairing,
+        allowed: false,
         frame: false,
         renderer: String::new(),
         apps: Vec::new(),
@@ -1136,6 +1438,7 @@ async fn add_samsung(app: &AppHandle, host: &str, info: samsung::Info) -> Result
         version: info.version.clone(),
         features: BTreeMap::new(),
         needs_pairing: true,
+        allowed: false,
         frame: info.frame,
         renderer: renderer.or_else(|| existing.as_ref().map(|e| e.renderer.clone())).unwrap_or_default(),
         apps: existing.as_ref().map(|e| e.apps.clone()).unwrap_or_default(),
@@ -1212,14 +1515,16 @@ async fn unknown_tv(host: &str) -> String {
     open.sort();
     let found = ways_in(&open, &services);
     log::line(format!("home: {} is neither Samsung nor Philips; it answers on: {}", host, if found.is_empty() { "nothing known".into() } else { found.join(", ") }));
-    if found.is_empty() {
+    let said = if found.is_empty() {
         t("This TV answers neither as a Samsung nor as a Philips TV, and on none of the other known ways in. Check that it is on and that the address is right; it may not be controllable over the network.")
     } else {
         tf(
             "This TV answers neither as a Samsung nor as a Philips TV. It does answer on: {found}. Send this line to whoever helps you with Coucou: it tells how this TV could be controlled.",
             &[("found", &found.join(", "))],
         )
-    }
+    };
+    // Port 5555 is closed: an Android device answers there once its network debugging is on.
+    format!("{said} {}", t("If it is an Android device (a projector, a TV box), turn on its network debugging (ADB) in its Developer options, then add it again."))
 }
 
 fn tv_conf(app: &AppHandle, id: &str) -> Result<TvConf, String> {
@@ -1233,6 +1538,9 @@ pub async fn home_tv_pair(app: AppHandle, window: WebviewWindow, id: String) -> 
     let conf = tv_conf(&app, &id)?;
     if conf.samsung() {
         return pair_samsung(&app, conf).await.map(Some);
+    }
+    if conf.android() {
+        return pair_android(&app, conf).await.map(Some);
     }
     let state = philips::pair_request(&conf.endpoint(), &conf.system()).await?;
     app.state::<Home>().pairings.lock().unwrap().insert(id, state);
@@ -1268,12 +1576,31 @@ async fn pair_samsung(app: &AppHandle, mut conf: TvConf) -> Result<TvSummary, St
     Ok(out)
 }
 
+/// An Android device asks on its screen whether to allow this computer's key (for up to a minute; this computer's key
+/// is made first if there is none). Allowed, the device is described again and kept as paired.
+async fn pair_android(app: &AppHandle, mut conf: TvConf) -> Result<TvSummary, String> {
+    log::line("home: pairing an Android device, it asks on its screen");
+    let mut adb = android::open(&conf.host, true).await.map_err(|e| match e {
+        TvError::Auth => t("The device did not allow Coucou, or its question went unanswered. Press Pair again and choose Allow on its screen, with \"Always allow from this computer\" ticked."),
+        e => android_error(e, &conf),
+    })?;
+    conf.needs_pairing = adb.signed_in;
+    conf.allowed = true;
+    describe_android(&mut conf, &mut adb).await;
+    adb.close().await;
+    let out = keep_tv(app, &conf);
+    app.state::<Home>().samsung_asked.lock().unwrap().insert(conf.id.clone(), Instant::now());
+    forget_cache(app);
+    log::line("home: Android device allowed Coucou");
+    Ok(out)
+}
+
 /// Finishes pairing with the PIN the TV shows. The pairing is kept in the OS keystore.
 #[tauri::command]
 pub async fn home_tv_pin(app: AppHandle, window: WebviewWindow, id: String, pin: String) -> Result<TvSummary, String> {
     only_settings(&window)?;
     let conf = tv_conf(&app, &id)?;
-    if conf.samsung() {
+    if conf.samsung() || conf.android() {
         return Err(t("This TV has no PIN: press Pair, then choose Allow on the TV."));
     }
     let state = app.state::<Home>().pairings.lock().unwrap().get(&id).cloned().ok_or_else(|| t("Press Pair first: the TV shows a PIN."))?;
@@ -1408,6 +1735,24 @@ pub async fn home_templates(app: AppHandle, window: WebviewWindow) -> Result<Vec
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn an_android_device_offers_what_it_reports_once_it_let_coucou_in() {
+        use Capability::*;
+        assert_eq!(android_caps(false, true, false, true, true, true), Vec::<Capability>::new(), "not allowed yet: nothing");
+        assert_eq!(android_caps(false, false, true, false, false, false), [TurnOn], "Wake-on-LAN alone");
+        assert_eq!(android_caps(true, true, false, false, false, false), [TurnOn, TurnOff, VolumeStep]);
+        assert_eq!(android_caps(true, false, false, true, true, true), [TurnOff, VolumeSet, VolumeStep, Mute, Apps], "off: no waking it without its network");
+        let apps = android::parse_apps("com.netflix.ninja/.MainActivity\n");
+        let awake = android::Reading { awake: Some(true), volume: Some((8, 15)), muted: Some(false), package: Some("com.netflix.ninja".into()) };
+        let s = android_state_of(&awake, &apps);
+        assert_eq!((s.online, s.on, s.volume, s.muted, s.app.as_deref()), (true, Some(true), Some(53), Some(false), Some("Netflix")));
+        let asleep = android::Reading { awake: Some(false), ..awake };
+        assert_eq!(android_state_of(&asleep, &apps).app, None, "nothing on screen while it sleeps");
+        let conf = TvConf { brand: ANDROID.into(), name: "HY300-T".into(), needs_pairing: true, allowed: true, ..TvConf::default() };
+        let line = summary(&conf);
+        assert_eq!((line.brand.as_str(), line.android, line.needs_pairing, line.paired), ("android", true, true, true));
+    }
 
     #[test]
     fn the_state_is_said_in_words_for_the_model() {

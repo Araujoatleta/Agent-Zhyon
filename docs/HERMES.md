@@ -88,6 +88,47 @@ default for the API server Coucou talks to) and starts Hermes again; off turns t
 installed. What Hermes does on the screen waits for your OK, as its other actions do: Allow on the island or on the
 phone. Off by default.
 
+With it on, Hermes' own browser (its `browser_*` tools, which run hidden from you) is off for the API server too
+(`hermes tools disable browser --platform api_server`; turning the switch off gives it back), and Coucou tells Hermes the
+short way with each message: find the exact link (one web search), open it in your own browser with one terminal
+command (`cmd.exe /c start "" "<link>"` on Windows, `xdg-open` on Linux; a YouTube video link starts playing on its
+own), and use the mouse and keyboard only for what a link cannot do. Each step is a round trip to its model, so fewer
+steps is what makes it quick. A Coucou updated with the switch already on turns the hidden browser off once, at its next
+start.
+
+### Its speed
+
+**Its speed** says how long Hermes thinks before each step: **Fast** (less: it answers and acts on the screen sooner,
+best for opening sites, playing videos and clicking), **Usual** (Hermes' own) or **Thorough** (longer). Coucou gives it
+with each message (Hermes' `model_options.reasoning_effort`: `low`, nothing, `high`), so it applies from your next
+message, without starting Hermes again, and Hermes' own settings stay as they are.
+
+### Keeping it running, and the diagnosis
+
+When Coucou runs Hermes, it keeps the gateway up by itself, on `127.0.0.1` only, with no terminal window to leave open:
+
+- It tells a **closed port** from **another program** on the port, from Hermes **refusing the key**, from Hermes
+  **ready** — a real health check, not just "something answers".
+- A gateway **already on the port** (one Coucou or Hermes left running) is **adopted**, so Coucou never starts a second
+  one beside it and the two never fight for the port.
+- A gateway that **falls** is brought back after a growing wait (2, 4, 8, 16, 32 s); after five quick stops in ten
+  minutes it is left **Stopped** with the reason, never restarted in a tight loop. An adopted gateway is checked every
+  minute and before each message.
+- When Coucou runs Hermes it turns **Launch at startup** on, so the gateway comes back after a reboot without you
+  opening Coucou.
+
+**Settings → Hermes Agent → Diagnosis** → **Check the integration** shows, in your language: whether Hermes is
+installed, whether the API answers, and whether the key is valid. From there:
+
+- **Repair the key** makes a new key, writes it to Hermes' `.env` (your old file kept as `.env.backup-…`) and to
+  Coucou's keystore for this address, and restarts the gateway. The authentication is never turned off.
+- **Let only Coucou run Hermes** (Windows) removes a gateway service of Hermes' own — a scheduled task or a Startup
+  entry — when it runs the gateway beside Coucou's. It removes only that service, never Hermes itself.
+- **Copy the report** copies the lines above as text (no key or secret in it), to send to whoever helps you.
+
+**Connect** (for a Hermes you run yourself) now fills the key in by itself from Hermes' `.env` when you leave it blank
+and the address is on this computer.
+
 ### Its name and tone (SOUL.md)
 
 Under **Its tone**, pick **Friendly**, **Direct**, **Professional**, **Playful**, **Butler (formal, witty)**, or

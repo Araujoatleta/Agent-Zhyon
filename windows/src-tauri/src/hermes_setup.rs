@@ -53,6 +53,10 @@ const TAIL: usize = 30;
 const SKILL_TIMEOUT: Duration = Duration::from_secs(5 * 60);
 /// cua-driver's installation (a download, and its start with Windows).
 const COMPUTER_USE_TIMEOUT: Duration = Duration::from_secs(20 * 60);
+/// How often the watchdog checks a gateway Coucou adopted (one it did not start, so no child to watch) still answers.
+const WATCHDOG: Duration = Duration::from_secs(60);
+/// After this many quick stops in ten minutes, Coucou stops starting the gateway again and shows why.
+const MAX_QUICK_STOPS: usize = 5;
 
 pub fn installer_url() -> String {
     let file = if cfg!(windows) { "install.ps1" } else { "install.sh" };
@@ -472,6 +476,94 @@ pub fn write_soul(home: &Path, text: &str, stamp: &str) -> std::io::Result<Optio
         let _ = std::fs::remove_file(&temp);
     }
     written.map(|()| backup)
+}
+
+/// Replaces (or adds) `name=value` in a .env file's text, keeping every other line and the file's final newline.
+/// EVERY uncommented assignment of `name` is set to the new value, so whichever one python-dotenv would read last
+/// (its rule: the last assignment wins) carries the new value.
+pub fn replace_env_line(text: &str, name: &str, value: &str) -> String {
+    let want = format!("{name}={value}");
+    let mut done = false;
+    let mut out: Vec<String> = text
+        .lines()
+        .map(|line| {
+            let bare = line.trim_start().trim_start_matches('\u{feff}');
+            let key = bare.strip_prefix("export ").unwrap_or(bare).split('=').next().unwrap_or("").trim();
+            if key == name && !bare.starts_with('#') {
+                done = true;
+                want.clone()
+            } else {
+                line.to_string()
+            }
+        })
+        .collect();
+    if !done {
+        out.push(want.clone());
+    }
+    // A key written on several lines becomes several identical new lines: keep one, drop the rest.
+    let mut seen = false;
+    out.retain(|line| {
+        if *line == want {
+            let keep = !seen;
+            seen = true;
+            keep
+        } else {
+            true
+        }
+    });
+    let mut joined = out.join("\n");
+    if text.is_empty() || text.ends_with('\n') {
+        joined.push('\n');
+    }
+    joined
+}
+
+/// `.env.backup-YYYYMMDD-HHMMSS` beside Hermes' .env: the file as it was before Coucou wrote a new key.
+fn backup_env(home: &Path, bytes: &[u8], stamp: &str) -> std::io::Result<PathBuf> {
+    use std::io::Write;
+    for attempt in 0..100 {
+        let copy = match attempt {
+            0 => home.join(format!(".env.backup-{stamp}")),
+            n => home.join(format!(".env.backup-{stamp}-{n}")),
+        };
+        match std::fs::OpenOptions::new().write(true).create_new(true).open(&copy) {
+            Ok(mut file) => {
+                let written = file.write_all(bytes).and_then(|()| file.sync_all());
+                drop(file);
+                if let Err(err) = written {
+                    let _ = std::fs::remove_file(&copy);
+                    return Err(err);
+                }
+                return Ok(copy);
+            }
+            Err(err) if err.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(err) => return Err(err),
+        }
+    }
+    Err(std::io::Error::new(std::io::ErrorKind::AlreadyExists, "too many .env backups"))
+}
+
+/// Writes `key` as API_SERVER_KEY in Hermes' .env, the old file copied aside first (`backup_env`). Returns the backup
+/// path when there was a file to keep. Only the one line changes; the rest of the .env is left as the user had it.
+pub fn write_env_key(home: &Path, key: &str) -> std::io::Result<Option<PathBuf>> {
+    let path = home.join(".env");
+    let old = std::fs::read(&path).ok();
+    let backup = match old.as_deref() {
+        Some(bytes) if !bytes.is_empty() => Some(backup_env(home, bytes, &stamp_now())?),
+        _ => None,
+    };
+    let text = String::from_utf8_lossy(old.as_deref().unwrap_or_default()).into_owned();
+    std::fs::create_dir_all(home)?;
+    std::fs::write(&path, replace_env_line(&text, "API_SERVER_KEY", key))?;
+    Ok(backup)
+}
+
+/// The API_SERVER_KEY in the local Hermes' .env, so Connect can fill the key in by itself. None for any address that
+/// is not a server on this computer: a key is never read from a file for a server elsewhere.
+pub fn env_key_for(typed_url: &str) -> Option<String> {
+    let raw = if typed_url.trim().is_empty() { hermes::USUAL_ADDRESS } else { typed_url };
+    let url = crate::net::normalise_server_url(raw).ok()?;
+    crate::net::is_loopback_url(&url).then(|| env_key_of(&hermes_home())).flatten()
 }
 
 fn stamp_now() -> String {
@@ -978,6 +1070,8 @@ pub struct SetupStatus {
     pub models: Vec<String>,
     /// Hermes may use this computer's screen, mouse and keyboard.
     pub computer_use: bool,
+    /// How quick it is (one of SPEEDS).
+    pub speed: String,
 }
 
 /// The assistant as Settings and the phone show it.
@@ -990,6 +1084,25 @@ pub struct Assistant {
     pub persona: String,
     /// The user's own tone, for "custom".
     pub persona_text: String,
+}
+
+/// A live check of the integration, for the diagnosis panel (Settings → Hermes Agent). All in one struct so the panel
+/// shows one clear picture: installed, who runs it, is the API up, is the key right, what to do.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Diagnosis {
+    /// The `hermes` command is on this computer.
+    pub installed: bool,
+    /// Coucou runs Hermes (not a server the user connected by hand).
+    pub managed: bool,
+    /// What the gateway's address answered just now.
+    pub health: hermes::Health,
+    /// Coucou keeps a key for this address.
+    pub has_key: bool,
+    /// A gateway service of Hermes' own was found (a scheduled task or a Startup-folder entry): it may run the gateway
+    /// beside Coucou's. Windows only.
+    pub own_service: bool,
+    pub address: String,
 }
 
 // ── The setup and the gateway, while Coucou runs ──────────────────────────────
@@ -1011,6 +1124,8 @@ pub struct Zheus {
     skills: Mutex<()>,
     /// Coucou is quitting: nothing more is started.
     quitting: AtomicBool,
+    /// The watchdog loop runs only once, however many times the gateway is turned on and off.
+    watchdog: AtomicBool,
 }
 
 struct Running {
@@ -1072,6 +1187,7 @@ pub(crate) fn status_of(app: &AppHandle) -> SetupStatus {
             .map(|_| CHATGPT_MODELS.iter().map(|m| m.to_string()).collect())
             .unwrap_or_default(),
         computer_use: settings.hermes_computer_use,
+        speed: settings.hermes_speed.clone(),
     }
 }
 
@@ -1275,7 +1391,12 @@ async fn setup(app: AppHandle, brain_id: String, house: bool, configure: bool, o
             // The computer use the user turned on stays on through a new setup (it is off in a fresh Hermes).
             if settings.hermes_computer_use {
                 set_progress(&skills_app, |p| p.step = t("Installing Hermes' computer use (cua-driver)…"));
-                problems.extend(run_computer_use(&skills_app, &skills_launcher, true, &cancel).err());
+                match run_computer_use(&skills_app, &skills_launcher, true, &cancel) {
+                    Ok(()) => {
+                        save_settings_with(&skills_app, |current| current.hermes_browser_off = true);
+                    }
+                    Err(e) => problems.push(e),
+                }
             }
             (!problems.is_empty()).then(|| problems.join(" · "))
         })
@@ -1290,6 +1411,8 @@ async fn setup(app: AppHandle, brain_id: String, house: bool, configure: bool, o
             current.home_mcp = true;
         }
     });
+    // Coucou starts with Windows now, so the gateway it runs comes back after a reboot without the user opening Coucou.
+    enable_coucou_autostart(&app);
     set_progress(&app, |p| p.step = t("Starting Hermes…"));
     let model = bring_up(&app).await?;
     connect_everything(&app, &model);
@@ -1579,23 +1702,32 @@ async fn bring_up(app: &AppHandle) -> Result<String, String> {
     if let Some(key) = env_key_of(&hermes_home()) {
         let _ = hermes::set_key(&address(), &key);
     }
-    if someone_answers().await {
-        let ours = match hermes::key_for_address(&address()) {
-            Some(key) => hermes::Client::new(Url::parse(&address()).map_err(|e| e.to_string())?, key).capabilities().await.ok(),
-            None => None,
-        };
-        let Some(caps) = ours else {
+    // A gateway already on the port is told apart by what it answers, never by the port alone: Coucou adopts its own
+    // (one it or its service left running), and never starts a second one beside a stranger.
+    match probe_address().await {
+        hermes::Health::Ready(model) => {
+            *app.state::<Zheus>().state.lock().unwrap() = GatewayState::Running;
+            changed(app);
+            remember_address(app, &model);
+            return Ok(model);
+        }
+        hermes::Health::Foreign | hermes::Health::Unauthorized => {
             *app.state::<Zheus>().state.lock().unwrap() = GatewayState::Elsewhere;
             changed(app);
             return Err(t("Another Hermes already runs on this computer: connect to it below, with the key of its .env."));
-        };
-        *app.state::<Zheus>().state.lock().unwrap() = GatewayState::Running;
-        changed(app);
-        remember_address(app, &caps.model);
-        return Ok(caps.model);
+        }
+        hermes::Health::Down => {}
     }
     start_gateway(app)?;
     wait_ready(app).await
+}
+
+/// Coucou's gateway address, probed with the key Coucou keeps for it (none: an empty key, so Hermes answers
+/// Unauthorized rather than being taken).
+async fn probe_address() -> hermes::Health {
+    let Ok(url) = Url::parse(&address()) else { return hermes::Health::Down };
+    let key = hermes::key_for_address(&address()).unwrap_or_default();
+    hermes::Client::new(url, key).health().await
 }
 
 /// The chat knows where Coucou's gateway is (the provider the user picks stays theirs).
@@ -1742,26 +1874,34 @@ pub fn start_gateway(app: &AppHandle) -> Result<(), String> {
         let reason = zheus.tail.lock().unwrap().iter().rev().take(3).rev().cloned().collect::<Vec<_>>().join(" · ");
         let quick = started.elapsed() < Duration::from_secs(60);
         let failures = RESTARTS.with_failure(quick);
-        if failures > 3 {
+        if failures > MAX_QUICK_STOPS {
             zheus.wanted.store(false, Ordering::SeqCst);
             let reason = if reason.is_empty() { t("Hermes stopped.") } else { reason };
             *zheus.state.lock().unwrap() = GatewayState::Stopped { reason };
             changed(&app);
             return;
         }
-        std::thread::sleep(Duration::from_secs(if quick { 5 * failures as u64 } else { 2 }));
+        // The wait grows with each quick stop (2, 4, 8, 16, 32 s), so a gateway that dies at once is never
+        // restarted in a tight loop; a clean, long run waits only a moment.
+        std::thread::sleep(Duration::from_secs(if quick { backoff_secs(failures) } else { 2 }));
         if zheus.wanted.load(Ordering::SeqCst) {
-            let _ = start_gateway(&app);
             let app = app.clone();
+            // bring_up adopts a gateway still on the port (the old one not freed yet) rather than starting a second.
             tauri::async_runtime::spawn(async move {
-                let _ = wait_ready(&app).await;
+                let _ = bring_up(&app).await;
             });
         }
     });
     Ok(())
 }
 
-/// Recent quick stops of the gateway: more than three in ten minutes and Coucou stops starting it again.
+/// The wait before the next restart, by how many quick stops there have been: 2, 4, 8, 16, 32, then 60 s at most
+/// (doubling, capped). Never zero.
+fn backoff_secs(failures: usize) -> u64 {
+    (1u64 << failures.clamp(1, 6)).min(60)
+}
+
+/// Recent quick stops of the gateway: more than MAX_QUICK_STOPS in ten minutes and Coucou stops starting it again.
 struct Restarts(Mutex<Vec<Instant>>);
 static RESTARTS: Restarts = Restarts(Mutex::new(Vec::new()));
 
@@ -1827,10 +1967,48 @@ pub fn stop_gateway(app: &AppHandle) {
     changed(app);
 }
 
-/// Another Hermes gateway already answers on this computer (Coucou's own, from before, or the user's).
-async fn someone_answers() -> bool {
-    let Ok(client) = reqwest::Client::builder().no_proxy().timeout(Duration::from_secs(2)).build() else { return false };
-    client.get(format!("{}/v1/capabilities", address())).send().await.is_ok()
+/// Watches a gateway Coucou adopted (one it did not start, so it has no child process to watch): every WATCHDOG, if
+/// Coucou still wants it up and believes it is running but it no longer answers, bring it back. A gateway Coucou
+/// started is watched by its own child thread (start_gateway); this covers the one Coucou only adopted.
+fn start_watchdog(app: &AppHandle) {
+    if app.state::<Zheus>().watchdog.swap(true, Ordering::SeqCst) {
+        return;
+    }
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        loop {
+            tokio::time::sleep(WATCHDOG).await;
+            let zheus = app.state::<Zheus>();
+            if zheus.quitting.load(Ordering::SeqCst) {
+                return;
+            }
+            let managed = app.state::<Shared>().settings.lock().unwrap().hermes_managed;
+            let wanted = zheus.wanted.load(Ordering::SeqCst);
+            // A gateway Coucou started has a child here; its own watcher handles crashes. Only an adopted one
+            // (no child) and a state of Running is this watchdog's to check.
+            let adopted = zheus.gateway.lock().unwrap().is_none() && matches!(*zheus.state.lock().unwrap(), GatewayState::Running);
+            if !(managed && wanted && adopted) {
+                continue;
+            }
+            if !matches!(probe_address().await, hermes::Health::Ready(_)) {
+                log::line("hermes: watchdog found the gateway gone, bringing it back");
+                let _ = bring_up(&app).await;
+            }
+        }
+    });
+}
+
+/// Before a chat turn: if Coucou runs Hermes but its gateway is not up, bring it back (adopt a leftover or start one),
+/// so the turn waits a moment instead of failing. A gateway already Running is trusted (the watchdog keeps it honest),
+/// so a healthy turn pays nothing here.
+pub async fn ensure_up_for_turn(app: &AppHandle) {
+    if !app.state::<Shared>().settings.lock().unwrap().hermes_managed {
+        return;
+    }
+    if matches!(*app.state::<Zheus>().state.lock().unwrap(), GatewayState::Running) {
+        return;
+    }
+    let _ = bring_up(app).await;
 }
 
 /// At Coucou's start: its gateway comes back if the user let Coucou run Hermes.
@@ -1841,6 +2019,8 @@ pub fn start_if_managed(app: &AppHandle) {
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
         RESTARTS.clear();
+        let catching = app.clone();
+        let _ = tauri::async_runtime::spawn_blocking(move || browser_catch_up(&catching)).await;
         if let Err(e) = bring_up(&app).await {
             log::line("hermes: gateway not up at start");
             let elsewhere = *app.state::<Zheus>().state.lock().unwrap() == GatewayState::Elsewhere;
@@ -1850,6 +2030,7 @@ pub fn start_if_managed(app: &AppHandle) {
                 changed(&app);
             }
         }
+        start_watchdog(&app);
     });
 }
 
@@ -2013,15 +2194,24 @@ async fn restart_gateway(app: &AppHandle) {
 /// What `hermes` is run with to let Hermes use this computer (`on`), or to stop it: Hermes' own installer of
 /// cua-driver, the background desktop driver of its computer_use tool (hermes_cli/tools_config_post_setup.py, the
 /// command its dashboard runs; macOS, Windows and Linux), then the tool on for the API server Coucou talks to, where
-/// it is off by default (toolsets.py, hermes-api-server). Off leaves cua-driver installed.
+/// it is off by default (toolsets.py, hermes-api-server), and its own browser off there: browser_* drive a browser
+/// hidden from the user, which Hermes otherwise reaches for first ("play the trailer on YouTube"), so the page never
+/// shows and the turn is slow. Off gives the browser back and leaves cua-driver installed.
 pub fn computer_use_commands(on: bool) -> Vec<Vec<String>> {
     let commands: &[&[&str]] = if on {
-        &[&["tools", "post-setup", "cua_driver"], &["tools", "enable", "computer_use", "--platform", "api_server"]]
+        &[
+            &["tools", "post-setup", "cua_driver"],
+            &["tools", "enable", "computer_use", "--platform", "api_server"],
+            HIDDEN_BROWSER_OFF,
+        ]
     } else {
-        &[&["tools", "disable", "computer_use", "--platform", "api_server"]]
+        &[&["tools", "disable", "computer_use", "--platform", "api_server"], &["tools", "enable", "browser", "--platform", "api_server"]]
     };
     commands.iter().map(|args| args.iter().map(|a| a.to_string()).collect()).collect()
 }
+
+/// Hermes' own browser off for the API server (computer_use_commands).
+const HIDDEN_BROWSER_OFF: &[&str] = &["tools", "disable", "browser", "--platform", "api_server"];
 
 /// Runs computer_use_commands, each to its end: the cause of the first one that fails (its output kept in the
 /// installation's record).
@@ -2071,7 +2261,10 @@ pub(crate) fn set_computer_use(app: &AppHandle, on: bool) -> Result<(), String> 
             .map_err(|e| e.to_string())
             .and_then(|r| r);
         if result.is_ok() {
-            save_settings_with(&app, |current| current.hermes_computer_use = on);
+            save_settings_with(&app, |current| {
+                current.hermes_computer_use = on;
+                current.hermes_browser_off = on;
+            });
             set_progress(&app, |p| p.step = t("Starting Hermes…"));
             restart_gateway(&app).await;
         }
@@ -2080,6 +2273,47 @@ pub(crate) fn set_computer_use(app: &AppHandle, on: bool) -> Result<(), String> 
             p.error = result.err();
         });
     });
+    Ok(())
+}
+
+/// A computer use turned on with a Coucou that left Hermes' own browser on (computer_use_commands): the browser off,
+/// once, before the gateway starts, so it starts without it. A failure is only logged; Hermes then keeps both.
+fn browser_catch_up(app: &AppHandle) {
+    let wanted = {
+        let shared = app.state::<Shared>();
+        let settings = shared.settings.lock().unwrap();
+        settings.hermes_computer_use && !settings.hermes_browser_off
+    };
+    let Some(launcher) = launcher_now().filter(|_| wanted) else { return };
+    let args: Vec<String> = HIDDEN_BROWSER_OFF.iter().map(|a| a.to_string()).collect();
+    match run_hermes(&launcher, &args, &AtomicBool::new(false)) {
+        Ok(()) => {
+            save_settings_with(app, |current| current.hermes_browser_off = true);
+            log::line("hermes: its own browser off, for the computer use");
+        }
+        Err(_) => log::line("hermes: its own browser could not be turned off"),
+    }
+}
+
+/// How quick Hermes is, as Settings offers it: "fast" thinks less before each step (a step of the computer use is
+/// a round trip to its model), "deep" more; "" is Hermes' own (medium on ChatGPT).
+pub const SPEEDS: &[&str] = &["fast", "", "deep"];
+
+/// The reasoning effort a run of Hermes is started with for `speed` (Hermes' model_options; None: its own).
+pub fn reasoning_effort(speed: &str) -> Option<&'static str> {
+    match speed {
+        "fast" => Some("low"),
+        "deep" => Some("high"),
+        _ => None,
+    }
+}
+
+/// Settings' speed for Hermes: kept, and given with each message from the next one on (no restart: hermes::Client::start).
+pub(crate) fn set_speed(app: &AppHandle, speed: &str) -> Result<(), String> {
+    let speed = SPEEDS.iter().find(|s| **s == speed).ok_or_else(|| t("Pick how quick Hermes should be."))?;
+    save_settings_with(app, |current| current.hermes_speed = speed.to_string());
+    log::line(format!("hermes: speed {}", if speed.is_empty() { "usual" } else { speed }));
+    changed(app);
     Ok(())
 }
 
@@ -2138,6 +2372,8 @@ pub(crate) async fn logout(app: &AppHandle) -> Result<(), String> {
 pub(crate) fn gateway_set(app: &AppHandle, on: bool) {
     save_settings_with(app, |current| current.hermes_managed = on);
     if on {
+        // Coucou runs the gateway, so it must come back after a reboot: start with Windows.
+        enable_coucou_autostart(app);
         start_if_managed(app);
     } else {
         stop_gateway(app);
@@ -2223,12 +2459,145 @@ pub fn hermes_model_set(app: AppHandle, window: WebviewWindow, model: String) ->
     Ok(status_of(&app))
 }
 
+/// How quick Hermes is: one of SPEEDS.
+#[tauri::command]
+pub fn hermes_speed_set(app: AppHandle, window: WebviewWindow, speed: String) -> Result<SetupStatus, String> {
+    crate::phone_link::only_settings(&window)?;
+    set_speed(&app, &speed)?;
+    Ok(status_of(&app))
+}
+
 /// "Let it use this computer" on (cua-driver installed, the tool on for its API server) or off.
 #[tauri::command]
 pub fn hermes_computer_use_set(app: AppHandle, window: WebviewWindow, on: bool) -> Result<SetupStatus, String> {
     crate::phone_link::only_settings(&window)?;
     set_computer_use(&app, on)?;
     Ok(status_of(&app))
+}
+
+/// A gateway service of Hermes' own — a Startup-folder entry (the fallback Hermes writes when it cannot make a
+/// scheduled task) or the `Hermes_Gateway` scheduled task — would run the gateway beside Coucou's, so two owners
+/// fight for the port. Detected to warn, and to offer "let only Coucou run it". Windows only.
+pub fn hermes_service_present() -> bool {
+    #[cfg(windows)]
+    {
+        hermes_startup_entries().into_iter().next().is_some() || scheduled_task_present()
+    }
+    #[cfg(not(windows))]
+    {
+        false
+    }
+}
+
+/// The Startup-folder files Hermes' own installer writes (its scheduled-task fallback): `Hermes_Gateway*.vbs|.cmd`
+/// under the user's Startup folder.
+#[cfg(windows)]
+fn hermes_startup_entries() -> Vec<PathBuf> {
+    let Some(appdata) = std::env::var_os("APPDATA") else { return Vec::new() };
+    let dir = PathBuf::from(appdata).join("Microsoft").join("Windows").join("Start Menu").join("Programs").join("Startup");
+    let Ok(entries) = std::fs::read_dir(&dir) else { return Vec::new() };
+    entries
+        .flatten()
+        .map(|e| e.path())
+        .filter(|p| {
+            let name = p.file_name().and_then(|n| n.to_str()).unwrap_or("");
+            name.starts_with("Hermes_Gateway") && (name.ends_with(".vbs") || name.ends_with(".cmd"))
+        })
+        .collect()
+}
+
+/// Whether a `Hermes_Gateway` scheduled task is registered (schtasks answers 0 when it is).
+#[cfg(windows)]
+fn scheduled_task_present() -> bool {
+    let mut cmd = Command::new("schtasks");
+    cmd.args(["/query", "/tn", "Hermes_Gateway"]).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null());
+    crate::platform::no_console(&mut cmd);
+    cmd.status().map(|s| s.success()).unwrap_or(false)
+}
+
+/// Settings → Hermes Agent: the live check behind the diagnosis panel. It probes the address once (a few seconds at
+/// most) and never changes anything.
+#[tauri::command]
+pub async fn hermes_diagnose(app: AppHandle, window: WebviewWindow) -> Result<Diagnosis, String> {
+    crate::phone_link::only_settings(&window)?;
+    let managed = app.state::<Shared>().settings.lock().unwrap().hermes_managed;
+    let health = probe_address().await;
+    Ok(Diagnosis {
+        installed: installed(),
+        managed,
+        health,
+        has_key: hermes::key_for_address(&address()).is_some(),
+        own_service: tauri::async_runtime::spawn_blocking(hermes_service_present).await.unwrap_or(false),
+        address: address(),
+    })
+}
+
+/// "Repair the key": a new key, written to Hermes' .env (the old file kept aside) and to Coucou's keystore for this
+/// address, then the gateway starts again with it. Only for a gateway Coucou runs on this computer; the authentication
+/// is never turned off. A new key is made even if one is there: that is the point of repairing a key that stopped working.
+#[tauri::command]
+pub async fn hermes_repair_key(app: AppHandle, window: WebviewWindow) -> Result<Diagnosis, String> {
+    crate::phone_link::only_settings(&window)?;
+    let managed = app.state::<Shared>().settings.lock().unwrap().hermes_managed;
+    if !managed || !installed() {
+        return Err(t("Coucou does not run Hermes on this computer, so there is no key for it to repair."));
+    }
+    let key = new_api_key()?;
+    let home = hermes_home();
+    tauri::async_runtime::spawn_blocking({
+        let key = key.clone();
+        move || write_env_key(&home, &key)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+    .map_err(|e| tf("Hermes' .env could not be written ({error}).", &[("error", &e.to_string())]))?;
+    hermes::set_key(&address(), &key)?;
+    log::line("hermes: API key repaired (new key in .env and the keystore)");
+    restart_gateway(&app).await;
+    hermes_diagnose(app, window).await
+}
+
+/// "Let only Coucou run Hermes": stops and removes Hermes' own gateway service (its scheduled task and Startup entry),
+/// turns Coucou's "Launch at startup" on so Hermes comes back after a reboot, and brings the gateway up under Coucou.
+/// Windows only; a best effort, each step logged. It removes only Hermes' own gateway service, never Hermes itself.
+#[tauri::command]
+pub async fn hermes_detach_service(app: AppHandle, window: WebviewWindow) -> Result<Diagnosis, String> {
+    crate::phone_link::only_settings(&window)?;
+    #[cfg(windows)]
+    {
+        let launcher = launcher();
+        let detach = tauri::async_runtime::spawn_blocking(move || {
+            if let Some(launcher) = launcher {
+                // Hermes' own commands: stop the service's gateway, then unregister the service.
+                let _ = run_hermes(&launcher, &["gateway".into(), "stop".into()], &AtomicBool::new(false));
+                let _ = run_hermes(&launcher, &["gateway".into(), "uninstall".into()], &AtomicBool::new(false));
+            }
+            // Delete the Startup-folder fallback files, which `gateway uninstall` may miss when the task was never made.
+            for entry in hermes_startup_entries() {
+                let _ = std::fs::remove_file(&entry);
+            }
+        });
+        let _ = detach.await;
+    }
+    enable_coucou_autostart(&app);
+    save_settings_with(&app, |current| current.hermes_managed = true);
+    if let Err(e) = bring_up(&app).await {
+        log::line(format!("hermes: detach left the gateway down ({e})"));
+    }
+    hermes_diagnose(app, window).await
+}
+
+/// Turns Coucou's "Launch at startup" on, so a gateway Coucou runs comes back after a reboot. Saved in the settings
+/// and applied to the OS's startup list.
+fn enable_coucou_autostart(app: &AppHandle) {
+    use tauri_plugin_autostart::ManagerExt;
+    let already = app.state::<Shared>().settings.lock().unwrap().autostart;
+    if !already {
+        save_settings_with(app, |current| current.autostart = true);
+    }
+    if let Err(e) = app.autolaunch().enable() {
+        log::line(format!("hermes: could not turn Launch at startup on ({e})"));
+    }
 }
 
 #[tauri::command]
@@ -2417,9 +2786,23 @@ mod tests {
     fn computer_use_is_hermes_own_driver_and_tool_for_the_api_server_only() {
         assert_eq!(
             computer_use_commands(true),
-            vec![vec!["tools", "post-setup", "cua_driver"], vec!["tools", "enable", "computer_use", "--platform", "api_server"]]
+            vec![
+                vec!["tools", "post-setup", "cua_driver"],
+                vec!["tools", "enable", "computer_use", "--platform", "api_server"],
+                vec!["tools", "disable", "browser", "--platform", "api_server"],
+            ],
+            "its hidden browser off: the pages open on the user's screen"
         );
-        assert_eq!(computer_use_commands(false), vec![vec!["tools", "disable", "computer_use", "--platform", "api_server"]]);
+        assert_eq!(
+            computer_use_commands(false),
+            vec![vec!["tools", "disable", "computer_use", "--platform", "api_server"], vec!["tools", "enable", "browser", "--platform", "api_server"]]
+        );
+    }
+
+    #[test]
+    fn fast_thinks_less_before_each_step_and_the_usual_is_hermes_own() {
+        assert_eq!(SPEEDS.iter().map(|s| reasoning_effort(s)).collect::<Vec<_>>(), [Some("low"), None, Some("high")]);
+        assert_eq!(reasoning_effort("max"), None, "only what Settings offers");
     }
 
     #[test]
@@ -2702,6 +3085,16 @@ mod tests {
         assert_eq!(env_value("API_SERVER_KEY=plain # note\n", "API_SERVER_KEY").as_deref(), Some("plain"));
         assert_eq!(env_value("API_SERVER_KEY=\n", "API_SERVER_KEY"), None);
         assert_eq!(env_value("API_SERVER_KEYS=x\n", "API_SERVER_KEY"), None);
+
+        // Repairing the key replaces that one line and keeps the rest; env_value then reads the new key back.
+        let repaired = replace_env_line(text, "API_SERVER_KEY", "newkey0123456789");
+        assert_eq!(env_value(&repaired, "API_SERVER_KEY").as_deref(), Some("newkey0123456789"));
+        assert!(repaired.contains("OTHER=1") && repaired.contains("# API_SERVER_KEY=commented"), "the other lines are kept");
+        assert_eq!(repaired.matches("API_SERVER_KEY=newkey0123456789").count(), 1, "every uncommented assignment becomes the new key, kept once");
+        // A .env without the key gains it, with the file's trailing newline.
+        let added = replace_env_line("OTHER=1\n", "API_SERVER_KEY", "k");
+        assert_eq!(added, "OTHER=1\nAPI_SERVER_KEY=k\n");
+        assert_eq!(replace_env_line("", "API_SERVER_KEY", "k"), "API_SERVER_KEY=k\n");
     }
 
     #[test]
@@ -2765,9 +3158,15 @@ mod tests {
         assert_eq!(restarts.with_failure(true), 1);
         assert_eq!(restarts.with_failure(true), 2);
         assert_eq!(restarts.with_failure(true), 3);
-        assert_eq!(restarts.with_failure(true), 4, "the fourth quick stop in ten minutes: given up");
+        assert_eq!(restarts.with_failure(true), 4);
+        assert_eq!(restarts.with_failure(true), 5);
+        assert_eq!(restarts.with_failure(true), 6, "the sixth quick stop in ten minutes: more than MAX_QUICK_STOPS, given up");
+        assert!(6 > MAX_QUICK_STOPS);
         restarts.clear();
         assert_eq!(restarts.with_failure(false), 0);
+        // The wait doubles with each quick stop, capped at a minute, and is never zero.
+        assert_eq!([1, 2, 3, 4, 5, 6, 7].map(backoff_secs), [2, 4, 8, 16, 32, 60, 60]);
+        assert_eq!(backoff_secs(0), 2, "never an instant retry");
     }
 
     #[cfg(unix)]

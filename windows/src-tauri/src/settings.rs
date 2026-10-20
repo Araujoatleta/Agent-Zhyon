@@ -166,6 +166,11 @@ pub struct Settings {
     /// Hermes may see and use this computer (screen, mouse, keyboard) with its computer_use tool, on the API server
     /// Coucou talks to. Off by default; owned by Rust (hermes_setup::set_computer_use).
     pub hermes_computer_use: bool,
+    /// Coucou turned Hermes' own (hidden) browser off for its API server, with the computer use
+    /// (hermes_setup::computer_use_commands). Owned by Rust.
+    pub hermes_browser_off: bool,
+    /// How quick Hermes is: "fast", "" (Hermes' own) or "deep" (hermes_setup::SPEEDS). Owned by Rust.
+    pub hermes_speed: String,
     /// The paired phone may change the assistant (name, tone, brain, skills; cap `assistant`). Off by default; owned
     /// by Rust like the other phone switches.
     pub phone_assistant: bool,
@@ -261,6 +266,8 @@ impl Default for Settings {
             hermes_skills: Vec::new(),
             hermes_skills_installed: Vec::new(),
             hermes_computer_use: false,
+            hermes_browser_off: false,
+            hermes_speed: String::new(),
             phone_assistant: false,
             phone_home: false,
         }
@@ -578,6 +585,8 @@ mod tests {
   "hermesSkills": ["search", "news"],
   "hermesSkillsInstalled": ["search"],
   "hermesComputerUse": true,
+  "hermesBrowserOff": true,
+  "hermesSpeed": "fast",
   "phoneAssistant": true,
   "phoneHome": true
 }"##;
@@ -853,6 +862,10 @@ mod tests {
         assert_eq!(loaded.hermes_skills_installed, ["search"]);
         assert!(loaded.hermes_computer_use);
         assert!(!parse(&custom_with("hermesComputerUse", None)).unwrap().hermes_computer_use, "off by default");
+        assert!(loaded.hermes_browser_off && loaded.hermes_speed == "fast");
+        let usual = parse(&custom_with("hermesSpeed", None)).unwrap();
+        assert!(usual.hermes_speed.is_empty(), "Hermes' own speed by default");
+        assert!(!parse(&custom_with("hermesBrowserOff", None)).unwrap().hermes_browser_off);
         let bad = parse(&custom_with("hermesSkills", Some(json!("search")))).unwrap();
         assert!(bad.hermes_skills.is_empty() && bad.hermes_skills_installed == ["search"], "a wrong type costs only itself");
     }
@@ -1201,6 +1214,8 @@ mod tests {
                 "hermesSkills",
                 "hermesSkillsInstalled",
                 "hermesComputerUse",
+                "hermesBrowserOff",
+                "hermesSpeed",
                 "phoneAssistant",
                 "phoneHome",
             ]

@@ -75,6 +75,8 @@ pub const INTERNAL_KEYS: &[&str] = &[
     // Mochi's home (smart_home/config.rs): Home Assistant's long-lived access token, and the Philips TVs' pairings.
     "home-assistant-token",
     "home-philips",
+    // Android devices over ADB (smart_home/android.rs): this computer's RSA key, which the devices allow on their screen.
+    "home-android-key",
     // Hermes Agent (hermes.rs): its API server's key, bound to its address; only ever sent there.
     "hermes-api-key",
 ];

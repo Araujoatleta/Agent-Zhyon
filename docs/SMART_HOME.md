@@ -15,6 +15,9 @@ Three ways in, all on your local network only:
   ports 8001 and 8002. The TV asks once on its screen whether to allow Coucou.
 - **Philips TVs**, straight to the TV over JointSpace, the API Philips TVs answer on ports 1925 and 1926. Android TVs
   are paired once with a PIN the TV shows.
+- **Android TVs, projectors and TV boxes**, straight to the device over ADB, Android's network debugging (port 5555),
+  once it is turned on in the device's Developer options. The device asks once on its screen whether to allow this
+  computer.
 
 A TV of another kind is not added: Coucou says what it does answer on, so the next step can be chosen from facts.
 
@@ -31,9 +34,9 @@ It is **off by default**. While it is off, nothing is read and nothing is sent.
 
 1. **Settings → Mochi's hands**: turn them on and pick a working folder. The house is reached through his hands.
 2. **Settings → Mochi's home**: turn on **Mochi's home**.
-3. **Search the network** looks for a few seconds (mDNS and UPnP). Home Assistant, Samsung and Philips TVs it finds
-   come with **Use** or **Add**; other TVs are listed for information only (see the limits). Nothing is added until
-   you click.
+3. **Search the network** looks for a few seconds (mDNS and UPnP). Home Assistant and the TVs it finds come with
+   **Use** or **Add**: a TV of another maker (an Android projector's screen-mirroring app, for one) is tried over ADB
+   when you add it, and otherwise says what it answers on. Nothing is added until you click.
 4. **Home Assistant**: its address (for example `http://homeassistant.local:8123`) and a **long-lived access token**
    (in Home Assistant: your profile → Security → Long-lived access tokens), then **Connect**. Coucou says which
    version answered. Rooms come from Home Assistant's areas when the token belongs to an administrator; otherwise
@@ -48,8 +51,10 @@ It is **off by default**. While it is off, nothing is read and nothing is sent.
      on 1925, and what it can do, and shows it:
      "55PUS8007/12 · JointSpace 6.4.0 · Android TV · encrypted (port 1926)". An Android TV needs **Pair**: it shows a
      PIN, type it in **PIN on the TV**, **Confirm**.
-   - **Neither**: the TV is not added, and the answer lists what it does answer on ("ADB (Android) (5555), DIAL…").
-     Send that line to whoever helps you with Coucou: it says which way, if any, could control it.
+   - **Android over ADB** (when it is neither): see *Android TVs, projectors and TV boxes* below.
+   - **None of them**: the device is not added, and the answer lists what it does answer on ("DIAL, UPnP
+     MediaRenderer…"), with how to turn on an Android device's network debugging. Send that line to whoever helps you
+     with Coucou: it says which way, if any, could control it.
 
    The **MAC address** (for switching the TV on from deep standby with Wake-on-LAN) comes from the TV or from the
    computer's neighbour table; you can also type it.
@@ -62,6 +67,30 @@ It is **off by default**. While it is off, nothing is read and nothing is sent.
    one; **New routine** to write your own (up to 20 steps, each with an optional wait of up to 120 s, for a TV that
    needs a moment before it opens an app).
 8. **Voice** (optional): **Read Mochi's answers aloud**, and **Try** to hear the voice. See *Voice* below.
+
+### Android TVs, projectors and TV boxes (ADB)
+
+Many Android devices without Google's TV certification (projectors such as the HY300, TV boxes) can only be reached
+through ADB, Android's debugging bridge. Coucou speaks it itself, on port 5555 (nothing to install):
+
+1. On the device, open **Settings → About** (on some projectors, "About" or "Sobre nós") and tap **Build number**
+   seven times: **Developer options** appear. Turn on **USB debugging** there, and **network debugging** (or "ADB over
+   network") when it is listed.
+2. In Coucou, type the device's address (in its network settings) under **TVs and projectors**, then **Add**. Coucou
+   asks Samsung's and Philips' ways first, then knocks on port 5555 without offering anything.
+3. Press **Pair**. The device shows **Allow USB debugging?** with this computer's key fingerprint: tick **Always allow
+   from this computer** and choose **Allow** (you have a minute). Coucou then reads what the device is (its model,
+   Android version and name), what it reports (volume, mute) and the apps its launcher shows.
+
+The key is an RSA-2048 one, as adb makes it, created by Coucou the first time and kept in the system's keystore
+(never in a file). ADB gives full control of a device, so Coucou only ever sends its own fixed commands: keys (wake,
+sleep, volume, mute), opening an app of the device's own list, and reading its state (`dumpsys`). Nothing the model
+writes ever becomes a command. Android 11's **wireless debugging** (with a pairing code) is a different protocol, with
+TLS, which Coucou does not speak: it says so, and the classic network debugging is the way in.
+
+What then works: turning it on from sleep and off (to sleep), the volume up and down and as a number, mute, opening an
+app, and reading whether it is awake, its volume and the app on screen. A device that turns its network off when it
+is switched off (most projectors and TV boxes) cannot be switched on from Coucou: turn it on with its remote.
 
 ## Talking to Mochi
 
@@ -136,9 +165,15 @@ lists. When something is ambiguous or not possible, Mochi says so instead of gue
   channel must be in the TV's own list.
 - **Home Assistant**: media players, lights and switches only. Rooms from its areas need an administrator's token (the
   template API); otherwise set rooms in Coucou. Channels are not offered through Home Assistant.
-- **Other brands** (LG, Sony, TCL, Android TVs of other makers…) are found by the search but not controlled directly:
-  add them to Home Assistant, whose integrations know many of them, and they show up as its media players. Adding one
-  by its address says what it answers on, for a later driver.
+- **Other brands** (LG, Sony, TCL…) are found by the search but not controlled directly: add them to Home Assistant,
+  whose integrations know many of them, and they show up as its media players. Adding one by its address says what it
+  answers on, for a later driver.
+- **Android over ADB** is tested against a simulated device (the handshake, the key's signature checked as Android
+  checks it, the question on its screen, commands and their output) and the outputs of Android 4.4, 7 to 9 and 13,
+  not yet against a real projector. Apps are named from their package (a list of known ones, else the package's own
+  word: "com.waxrain.airplaydmr" is "Waxrain"); the volume as a number moves by the device's steps (15 on most).
+  Whether a device keeps network debugging on after a restart depends on its firmware. A device that turns its Wi-Fi
+  off with it cannot be switched on over the network.
 - **Discovery** relies on mDNS and SSDP, which guest networks, VPNs or some routers block: add devices by address.
 - **Voice typing on the computer** is Windows' own; Linux has none. Reading aloud needs a voice for the app's
   language installed on the computer.
@@ -149,9 +184,11 @@ lists. When something is ambiguous or not possible, Mochi says so instead of gue
   `samsung.rs` (the Samsung remote: its API, the WebSocket with the Allow question and the token, apps),
   `upnp.rs` (a renderer's volume and mute), `philips.rs` (JointSpace, pairing, Wake-on-LAN, the pinned TLS used by
   both TVs), `digest.rs` (HTTP Digest, MD5 and SHA-256, with RFC test vectors),
-  `discovery.rs` (mDNS and SSDP), `routines.rs`, `journal.rs`, `config.rs` (settings and keystore), `mod.rs` (reading
-  the house, carrying out an action, Settings' commands). No new crate: everything rides on what the app already uses
-  (reqwest with rustls, ring, mdns-sd, tokio, tokio-tungstenite).
+  `discovery.rs` (mDNS and SSDP), `android.rs` (ADB: the protocol, the RSA key Android asks for, its public key
+  format, the fixed commands and the parsing of what they print), `routines.rs`, `journal.rs`, `config.rs` (settings
+  and keystore), `mod.rs` (reading the house, carrying out an action, Settings' commands). The crates are those the
+  app already uses (reqwest with rustls, ring, mdns-sd, tokio, tokio-tungstenite), and `num-bigint` for ADB's RSA key,
+  already in the lock file through the Linux keyring.
 - `windows/src-tauri/src/agent/tools.rs`: the tools `home_devices`, `home_control` and `home_routine`; `policy.rs`
   decides which action waits for a click.
 - `windows/src/settings/home.ts` and `windows/src/core/home.ts`: Settings → Mochi's home. `windows/src/core/voice.ts`:

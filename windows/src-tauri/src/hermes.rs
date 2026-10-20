@@ -138,6 +138,21 @@ fn valid_run_id(id: &str) -> bool {
 
 // ── The client ────────────────────────────────────────────────────────────────
 
+/// What probing the gateway's address found: the one place that tells a closed port from a stranger on it, from
+/// Hermes refusing the key, from Hermes ready. Used by the gateway's start, its watchdog and the diagnosis.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", tag = "state", content = "model")]
+pub enum Health {
+    /// Nothing answered at the address (closed port, or no answer in time).
+    Down,
+    /// Something answered, but it is not a Hermes API server (another program on the port, or a Hermes too old).
+    Foreign,
+    /// Hermes answered but refused the key (wrong, or none given).
+    Unauthorized,
+    /// Hermes answered and took the key; the name it runs as.
+    Ready(String),
+}
+
 /// A request that did not succeed: the HTTP status when Hermes answered, and what to tell the user.
 struct Refused {
     status: Option<u16>,
@@ -220,14 +235,36 @@ impl Client {
         }
     }
 
+    /// What the address is right now, told apart by the HTTP status (never by words): no answer, a stranger, a Hermes
+    /// that refuses the key, or a Hermes that takes it.
+    pub async fn health(&self) -> Health {
+        match self.get("v1/capabilities").await {
+            Ok(v) => match parse_capabilities(&v) {
+                Ok(caps) => Health::Ready(caps.model),
+                // It answered 200 but not as a Hermes Coucou can drive.
+                Err(_) => Health::Foreign,
+            },
+            Err(Refused { status: Some(401), .. }) => Health::Unauthorized,
+            // Any other HTTP answer is something on the port that is not Hermes.
+            Err(Refused { status: Some(_), .. }) => Health::Foreign,
+            // The request never got an answer: closed port, or nothing listening yet.
+            Err(Refused { status: None, .. }) => Health::Down,
+        }
+    }
+
     /// The name Hermes answers as, for the chat's model picker.
     pub async fn models(&self) -> Result<Vec<String>, String> {
         Ok(vec![self.capabilities().await?.model])
     }
 
     /// Starts a run with the user's message, in `session` (Hermes keeps its history there). Returns the run's id.
-    pub async fn start(&self, input: &str, session: &str, instructions: &str) -> Result<String, String> {
-        let body = json!({ "input": input, "session_id": session, "instructions": instructions });
+    /// `effort`: how long Hermes thinks before each step, for this run only (its `model_options`; Hermes' own
+    /// setting is left as it is); None leaves Hermes' own.
+    pub async fn start(&self, input: &str, session: &str, instructions: &str, effort: Option<&str>) -> Result<String, String> {
+        let mut body = json!({ "input": input, "session_id": session, "instructions": instructions });
+        if let Some(effort) = effort {
+            body["model_options"] = json!({ "reasoning_effort": effort });
+        }
         let answer = self.post("v1/runs", &body).await.map_err(|e| e.message)?;
         answer["run_id"].as_str().filter(|id| valid_run_id(id)).map(str::to_string).ok_or_else(not_hermes)
     }
@@ -595,7 +632,7 @@ pub mod tests {
 
     #[test]
     fn a_run_is_started_followed_answered_and_stopped_with_the_key() {
-        let (base, seen) = fake_hermes(|r| match (r.method.as_str(), r.path.as_str()) {
+        let (base, seen_runs) = fake_hermes(|r| match (r.method.as_str(), r.path.as_str()) {
             ("GET", "/v1/capabilities") => Reply::Json(200, capabilities_json()),
             ("POST", "/v1/runs") => Reply::Json(202, json!({"run_id": "run_abc", "status": "started"})),
             ("GET", "/v1/runs/run_abc/events") => Reply::Events(vec![
@@ -609,7 +646,7 @@ pub mod tests {
         });
         let client = Client::new(base, "secret-key".into());
         assert_eq!(block_on(client.capabilities()).unwrap().model, "zheus");
-        let run = block_on(client.start("Como está minha agenda hoje?", "coucou-1", "be brief")).unwrap();
+        let run = block_on(client.start("Como está minha agenda hoje?", "coucou-1", "be brief", None)).unwrap();
         assert_eq!(run, "run_abc");
         let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
         block_on(follow(client.clone(), run.clone(), tx));
@@ -621,12 +658,17 @@ pub mod tests {
         assert_eq!(events.len(), 3);
         assert_eq!(block_on(client.answer(&run, Some("r1"), true)), Ok(false), "nothing waits any more");
         assert_eq!(block_on(client.stop(&run)), Ok(()));
-        let seen = seen.lock().unwrap();
+        let seen = seen_runs.lock().unwrap();
         assert!(seen.iter().all(|r| r.authorization.as_deref() == Some("Bearer secret-key")));
         let start: Value = serde_json::from_str(&seen[1].body).unwrap();
         assert_eq!(start, json!({"input": "Como está minha agenda hoje?", "session_id": "coucou-1", "instructions": "be brief"}));
         let answer: Value = serde_json::from_str(&seen[3].body).unwrap();
         assert_eq!(answer, json!({"choice": "once", "request_id": "r1"}));
+        drop(seen);
+        // Fast, in Settings: this run thinks less before each step.
+        block_on(client.start("Abre o YouTube", "coucou-1", "be brief", Some("low"))).unwrap();
+        let fast: Value = serde_json::from_str(&seen_runs.lock().unwrap().last().unwrap().body).unwrap();
+        assert_eq!(fast["model_options"], json!({"reasoning_effort": "low"}));
     }
 
     #[test]
@@ -664,5 +706,23 @@ pub mod tests {
         assert!(block_on(Client::new(base, "wrong".into()).capabilities()).unwrap_err().contains("API_SERVER_KEY"));
         let (base, _) = fake_hermes(|_| Reply::Json(404, json!({"error": "not found"})));
         assert!(block_on(Client::new(base, "k".into()).capabilities()).unwrap_err().contains("hermes update"));
+    }
+
+    #[test]
+    fn a_probe_tells_a_closed_port_a_stranger_a_wrong_key_and_a_ready_hermes_apart() {
+        // Nothing listens: a closed port is Down (the watchdog starts the gateway, the diagnosis says "off").
+        let off = Client::new(Url::parse("http://127.0.0.1:9").unwrap(), "k".into());
+        assert_eq!(block_on(off.health()), Health::Down);
+        // Hermes takes the key.
+        let (base, _) = fake_hermes(|_| Reply::Json(200, capabilities_json()));
+        assert_eq!(block_on(Client::new(base, "k".into()).health()), Health::Ready("zheus".into()));
+        // Hermes refuses the key: a key problem, not a dead gateway.
+        let (base, _) = fake_hermes(|_| Reply::Json(401, json!({"error": {"message": "Invalid gateway API key"}})));
+        assert_eq!(block_on(Client::new(base, "wrong".into()).health()), Health::Unauthorized);
+        // Another program on the port, or a Hermes too old: a stranger, never adopted.
+        let (base, _) = fake_hermes(|_| Reply::Json(200, json!({"hello": "not hermes"})));
+        assert_eq!(block_on(Client::new(base, "k".into()).health()), Health::Foreign);
+        let (base, _) = fake_hermes(|_| Reply::Json(404, json!({"error": "not found"})));
+        assert_eq!(block_on(Client::new(base, "k".into()).health()), Health::Foreign);
     }
 }

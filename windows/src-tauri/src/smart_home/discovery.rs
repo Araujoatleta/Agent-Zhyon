@@ -28,7 +28,7 @@ const MAX_DESCRIPTION: usize = 256 * 1024;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Found {
-    /// "homeAssistant", "philipsTv", "samsungTv" or "otherTv" (a TV of another maker: not controlled directly).
+    /// "homeAssistant", "philipsTv", "samsungTv" or "otherTv" (a TV of another maker: tried over ADB when it is added).
     pub kind: String,
     pub name: String,
     pub host: String,

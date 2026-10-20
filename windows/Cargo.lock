@@ -634,6 +634,7 @@ dependencies = [
  "keyring",
  "libc",
  "mdns-sd",
+ "num-bigint",
  "qrcode",
  "rcgen",
  "regex",

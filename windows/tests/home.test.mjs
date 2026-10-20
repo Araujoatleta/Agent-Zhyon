@@ -278,3 +278,54 @@ test("a TV that is neither Samsung nor Philips is not added, and what it answers
   assert.deepEqual(sent("home_tv_add").at(-1), { host: "192.168.0.60" });
   assert.ok(all(section).some((e) => e.className === "notice err" && e.textContent === why));
 });
+
+const projector = (fields = {}) => ({
+  id: "android:5a6b7c8d",
+  brand: "android",
+  name: "ATV_99",
+  host: "192.168.0.99",
+  model: "HY300-T",
+  version: "13",
+  os: "Android 13",
+  android: true,
+  https: false,
+  needsPairing: true,
+  paired: false,
+  mac: "",
+  features: ["volume", "mute"],
+  ...fields,
+});
+
+test("an Android projector found on the network is tried over ADB, then allowed on its own screen", async () => {
+  assert.equal(tvLine(projector()), "HY300-T · Android 13 · network debugging (ADB, port 5555)");
+  answers = {
+    home_status: status({ tvs: [] }),
+    home_scan: [{ kind: "otherTv", name: "ATV_99", host: "192.168.0.99", model: "WaxRainPlayer", maker: "WaxRain" }],
+  };
+  const section = homeSection(toggle);
+  await flush();
+  byText(section, "BUTTON", "Search the network").fire("click");
+  await flush();
+  await flush();
+  // A TV of another maker has its Add button too: Coucou tries ADB before saying what it answers on.
+  answers.home_tv_add = projector();
+  answers.home_status = status({ tvs: [projector()] });
+  all(section).find((e) => e.tagName === "BUTTON" && e.textContent === "Add").fire("click");
+  await flush();
+  await flush();
+  assert.deepEqual(sent("home_tv_add").at(-1), { host: "192.168.0.99" });
+  assert.ok(all(section).some((e) => e.textContent === "Found: ATV_99 (HY300-T · Android 13 · network debugging (ADB, port 5555)). Now press Pair, then choose Allow on its screen."));
+  assert.ok(byText(section, "SPAN", "Needs pairing: press Pair, then choose Allow on the device's screen."));
+  let allow;
+  answers.home_tv_pair = () => new Promise((resolve) => (allow = resolve));
+  byText(section, "BUTTON", "Pair").fire("click");
+  await flush();
+  assert.ok(byText(section, "DIV", "Look at the device: it asks whether to allow USB debugging from this computer. Tick \"Always allow from this computer\", then choose Allow."));
+  answers.home_status = status({ tvs: [projector({ paired: true })] });
+  allow(projector({ paired: true }));
+  await flush();
+  await flush();
+  assert.deepEqual(sent("home_tv_pair").at(-1), { id: "android:5a6b7c8d" });
+  assert.ok(byText(section, "DIV", "Paired. Mochi can now use this TV."));
+  assert.equal(all(section).find((e) => e.tagName === "INPUT" && e.getAttribute("placeholder") === "PIN"), undefined, "no PIN for an Android device");
+});

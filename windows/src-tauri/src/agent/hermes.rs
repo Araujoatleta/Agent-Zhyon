@@ -35,9 +35,22 @@ const DELTA_INTERVAL: Duration = Duration::from_millis(1000 / 15);
 /// 300 s by default), so the answer reaches it while it still listens. On a phone, the phone's own limit.
 const WAIT_DESK: Duration = Duration::from_secs(280);
 
+/// How Hermes opens a page, a file or an app on the user's own screen: one command of its terminal tool. On Windows
+/// that terminal is Git Bash, where Hermes turns MSYS' path rewriting off (so `/c` reaches cmd as it is) and a link
+/// without spaces reaches cmd unquoted: an `&` of the link must be cmd's `^&`, or cmd cuts the link there.
+const OPEN: &str = if cfg!(windows) {
+    "cmd.exe /c start \"\" \"<link>\" (each & of the link written ^&)"
+} else if cfg!(target_os = "macos") {
+    "open \"<link>\""
+} else {
+    "xdg-open \"<link>\""
+};
+
 /// What Hermes is told about where the message comes from, besides its own instructions, the name the user gave their
 /// assistant (Settings → Hermes Agent), if any, and its tone: SOUL.md says the same, but only to sessions that start
-/// after it was written. `computer`: the user let it use this computer (its computer_use tool is on).
+/// after it was written. `computer`: the user let it use this computer (its computer_use tool is on); then the short
+/// way, as each step costs a round trip to its model: the page opened by its link in the user's own browser, rather
+/// than its hidden browser (browser_*), a search page clicked through, or its saved element file searched.
 fn instructions(origin: Origin, name: &str, style: &str, computer: bool) -> String {
     let place = if origin == Origin::Phone {
         " They are on their phone, away from the computer, maybe walking or driving: keep it very short."
@@ -49,11 +62,18 @@ fn instructions(origin: Origin, name: &str, style: &str, computer: bool) -> Stri
     let style = text::one_line(style, 300);
     let tone = if style.is_empty() { String::new() } else { format!(" Your tone: {style}") };
     let hands = if computer {
-        " The user lets you see and use this computer (its screen, mouse and keyboard) with your computer_use tool: when \
-they ask for something in an app or on a website (open a page, play a video, fill in a form), do it with that tool, \
-in the background, rather than saying you cannot. Each action may wait for their OK."
+        format!(
+            " The user lets you see and use this computer (its screen, mouse and keyboard): when they ask for something \
+in an app or on a website (open a page, play a video, fill in a form), do it on their own screen, rather than saying \
+you cannot, quickly and in as few steps as you can. Open a page, a file or an app with one terminal command: {OPEN}. \
+For a video or a page they name, find its exact link first (one web_search is usually enough) and open that link \
+itself rather than a search page: a YouTube video link starts playing on its own. Use your computer_use tool only for \
+what a link cannot do: capture, click by the element's number on the screenshot (or its coordinates) rather than \
+reading the saved element file, and pass capture_after=true rather than capturing again. Never use the browser_* \
+tools: their browser is hidden from the user. Each click, key or text may wait for the user's OK."
+        )
     } else {
-        ""
+        String::new()
     };
     format!(
         "The user is talking to you through Coucou, the app where Mochi, a small character, lives at the top of their \
@@ -242,6 +262,8 @@ async fn turn(
     phone_steps: Option<UnboundedSender<StepLine>>,
     on_text: impl FnMut(&str) + Send,
 ) -> Result<String, TurnError> {
+    // A gateway Coucou runs may have fallen between turns: bring it back before this one, rather than failing it.
+    crate::hermes_setup::ensure_up_for_turn(app).await;
     let client = Client::from_settings(settings).map_err(TurnError::Off)?;
     let agent = app.state::<Agent>();
     let (run_id, cancel) = agent.begin(origin).ok_or(TurnError::Busy)?;
@@ -264,16 +286,17 @@ async fn turn(
     let session = chat.hermes_session();
     let started = chat.begin(hermes::PROVIDER);
     let input = local_chat::user_text(started.first, context.as_ref(), &query);
-    let (name, style, computer) = {
+    let (name, style, computer, effort) = {
         let shared = app.state::<crate::Shared>();
         let current = shared.settings.lock().unwrap();
         (
             current.assistant_name.clone(),
             crate::hermes_setup::persona_style(&current.assistant_persona, &current.assistant_persona_text),
             current.hermes_computer_use,
+            crate::hermes_setup::reasoning_effort(&current.hermes_speed),
         )
     };
-    let result = match client.start(&input, &session, &instructions(origin, &name, &style, computer)).await {
+    let result = match client.start(&input, &session, &instructions(origin, &name, &style, computer), effort).await {
         Ok(run) => drive(&client, &run, &hands, &cancel, on_text).await,
         Err(message) => Err(Failed::Provider(message)),
     };
@@ -502,7 +525,14 @@ mod tests {
         // The computer, only once the user turned it on; the tone stays last.
         assert!(!instructions(Origin::Island, "", "", false).contains("computer_use"));
         let on = instructions(Origin::Island, "Zheus", &butler, true);
-        assert!(on.contains("computer_use") && on.contains("rather than saying you cannot") && on.ends_with(&format!("Your tone: {butler}")));
+        assert!(on.contains("computer_use") && on.contains("rather than saying") && on.ends_with(&format!("Your tone: {butler}")));
+        // The short way: the link opened in the user's own browser, by the terminal of this system.
+        assert!(on.contains(OPEN) && on.contains("Never use the browser_*") && on.contains("capture_after=true"));
+        assert!(!on.contains('\n'), "one line");
+        #[cfg(windows)]
+        assert!(OPEN.starts_with("cmd.exe /c start \"\" "));
+        #[cfg(target_os = "linux")]
+        assert_eq!(OPEN, "xdg-open \"<link>\"");
         assert_eq!(summary("memory", ""), "memory");
         assert_eq!(summary("terminal", "ls\n-la"), "terminal · ls -la");
         let ask = Ask { request_id: None, command: String::new(), description: "send an email".into() };

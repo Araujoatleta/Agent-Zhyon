@@ -17,17 +17,21 @@ pub const HA_TOKEN_KEY: &str = "home-assistant-token";
 pub const PHILIPS_KEY: &str = "home-philips";
 /// `TvConf::brand` of a Samsung TV ("" is a Philips TV, as every TV was before).
 pub const SAMSUNG: &str = "samsung";
+/// `TvConf::brand` of an Android device reached over ADB (a TV, a projector, a TV box).
+pub const ANDROID: &str = "android";
+/// This computer's ADB key (android.rs): its RSA primes, as JSON. One key for every Android device, as adb has.
+pub const ANDROID_KEY: &str = "home-android-key";
 
-/// A TV added in Settings → Mochi's home (Philips or Samsung), as its probe found it.
+/// A TV added in Settings → Mochi's home (Philips, Samsung, or an Android device over ADB), as its probe found it.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct TvConf {
-    /// `philips:` or `samsung:` and 8 hex digits, made when it is added.
+    /// `philips:`, `samsung:` or `android:` and 8 hex digits, made when it is added.
     pub id: String,
-    /// "" (Philips) or "samsung".
+    /// "" (Philips), "samsung" or "android".
     pub brand: String,
     pub host: String,
-    /// Philips: the JointSpace API (1, 5, 6). Samsung: 2.
+    /// Philips: the JointSpace API (1, 5, 6). Samsung: 2. Android: its API level (33 for Android 13).
     pub api: u8,
     /// Philips: https on 1926. Samsung: the remote wants a token, over wss on 8002.
     pub https: bool,
@@ -43,20 +47,28 @@ pub struct TvConf {
     /// "6.4.0" (JointSpace) or "2.0.25" (Samsung's API).
     pub version: String,
     pub features: BTreeMap<String, Vec<String>>,
-    /// Commands need pairing first (a PIN on a Philips TV, Allow on a Samsung TV's screen).
+    /// Commands need pairing first (a PIN on a Philips TV, Allow on a Samsung TV's or an Android device's screen).
     pub needs_pairing: bool,
+    /// An Android device allowed this computer's key (its user chose Allow on its screen). Written only when true, so
+    /// the other TVs' settings read as they always did.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub allowed: bool,
     /// A Samsung Frame TV: its power key is held to turn it off.
     pub frame: bool,
     /// The TV's UPnP RenderingControl (volume and mute as numbers), found when it was added; "" none.
     pub renderer: String,
     /// A Samsung TV's apps as it last listed them (when it was paired, then whenever it is on): kept, so that Mochi
-    /// can open one on a TV he has just turned on.
+    /// can open one on a TV he has just turned on. An Android device's, by "package/activity" (android.rs).
     pub apps: Vec<samsung::App>,
 }
 
 impl TvConf {
     pub fn samsung(&self) -> bool {
         self.brand == SAMSUNG
+    }
+
+    pub fn android(&self) -> bool {
+        self.brand == ANDROID
     }
 
     pub fn samsung_tv(&self) -> samsung::Tv {

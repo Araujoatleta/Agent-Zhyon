@@ -9,7 +9,7 @@ import { installFakeDom } from "./fakedom.mjs";
 import { internals, sent } from "./tauri.mjs";
 
 installFakeDom();
-const { hermesSection, zheusPlan, gatewayText, progressText, loginText } = await import("../src/settings/hermes.ts");
+const { hermesSection, zheusPlan, gatewayText, progressText, loginText, healthApiText, healthAuthText, diagnosisReport } = await import("../src/settings/hermes.ts");
 const { DEFAULT_SETTINGS } = await import("../src/core/state.ts");
 
 let answers = {};
@@ -60,6 +60,7 @@ const status = (over = {}) => ({
   model: "",
   models: [],
   computerUse: false,
+  speed: "",
   ...over,
 });
 const host = (settings) => ({ settings: () => settings, useInChat: async () => {}, toggle });
@@ -305,6 +306,7 @@ test("on ChatGPT the model is picked from the subscription's list or typed, and 
     hermes_setup_status: running(),
     hermes_model_set: (args) => running({ model: args.model }),
     hermes_computer_use_set: (args) => running({ computerUse: args.on }),
+    hermes_speed_set: (args) => running({ speed: args.speed }),
   };
   const section = hermesSection(host({ ...DEFAULT_SETTINGS }));
   await flush();
@@ -332,6 +334,15 @@ test("on ChatGPT the model is picked from the subscription's list or typed, and 
   sw.fire("click");
   await flush();
   assert.deepEqual(sent("hermes_computer_use_set").at(-1), { on: true });
+  // How quick it is: Hermes' own until another is picked, then given with each message.
+  const speedSelect = () => all(section.el).find((e) => e.tagName === "SELECT" && e.children.some((o) => o.getAttribute("value") === "fast"));
+  assert.equal(speedSelect().value, "", "Hermes' own");
+  assert.deepEqual(speedSelect().children.map((o) => o.getAttribute("value")), ["fast", "", "deep"]);
+  speedSelect().value = "fast";
+  speedSelect().fire("change");
+  await flush();
+  assert.deepEqual(sent("hermes_speed_set").at(-1), { speed: "fast" });
+  assert.equal(speedSelect().value, "fast", "redrawn from Rust's answer");
   // Another brain offers no list: its model is the one of its provider.
   answers.hermes_setup_status = running({ brain: "anthropic", models: [] });
   const other = hermesSection(host({ ...DEFAULT_SETTINGS }));
@@ -389,10 +400,44 @@ test("Settings comes to Hermes Agent after the installer's page, and Rust keeps 
   assert.match(main, /getElementById\("hermes"\)\?\.scrollIntoView/);
   assert.ok(!/assistantName = /.test(main), "the name is saved by hermes_assistant_set only");
   const lib = readFileSync(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
-  for (const field of ["assistant_name", "assistant_persona", "assistant_persona_text", "hermes_skills", "hermes_skills_installed", "hermes_computer_use", "phone_assistant", "phone_home"]) {
+  for (const field of ["assistant_name", "assistant_persona", "assistant_persona_text", "hermes_skills", "hermes_skills_installed", "hermes_computer_use", "hermes_browser_off", "hermes_speed", "phone_assistant", "phone_home"]) {
     assert.match(lib, new RegExp(`settings\\.${field} = current\\.${field}`), `${field} is Rust's`);
   }
-  for (const command of ["hermes_assistant_set", "hermes_skills_set", "hermes_login_start", "hermes_login_cancel", "hermes_logout", "hermes_model_set", "hermes_computer_use_set"]) {
+  for (const command of ["hermes_assistant_set", "hermes_skills_set", "hermes_login_start", "hermes_login_cancel", "hermes_logout", "hermes_model_set", "hermes_computer_use_set", "hermes_speed_set", "hermes_diagnose", "hermes_repair_key", "hermes_detach_service"]) {
     assert.ok(lib.includes(`hermes_setup::${command},`), `${command} is registered`);
   }
+});
+
+
+test("the diagnosis panel checks the integration, repairs the key, and gives a report without secrets", async () => {
+  const running = (over) => status({ installed: true, managed: true, brain: "chatgpt", brains: [CHATGPT, ...BRAINS], gateway: { state: "running" }, login: { state: "signedIn" }, model: "gpt-5.6-sol", models: ["gpt-5.6-sol"], ...over });
+  answers = {
+    home_mcp_status: { on: false, command: "x", homeOn: true },
+    hermes_setup_status: running(),
+    hermes_diagnose: { installed: true, managed: true, health: { state: "unauthorized" }, hasKey: true, ownService: true, address: "http://127.0.0.1:8642" },
+    hermes_repair_key: { installed: true, managed: true, health: { state: "ready", model: "zheus" }, hasKey: true, ownService: false, address: "http://127.0.0.1:8642" },
+    hermes_detach_service: { installed: true, managed: true, health: { state: "ready", model: "zheus" }, hasKey: true, ownService: false, address: "http://127.0.0.1:8642" },
+  };
+  const section = hermesSection(host({ ...DEFAULT_SETTINGS }));
+  await flush();
+  byText(section.el, "BUTTON", "Check the integration").fire("click");
+  await flush();
+  await flush();
+  assert.equal(sent("hermes_diagnose").length, 1);
+  // A wrong key: the auth line says so and Repair + Let only Coucou run it + Copy are offered.
+  assert.ok(all(section.el).some((e) => e.textContent === "The key is wrong or missing. Repair it below, or paste the API_SERVER_KEY of Hermes' .env."));
+  assert.ok(byText(section.el, "BUTTON", "Repair the key"));
+  assert.ok(byText(section.el, "BUTTON", "Let only Coucou run Hermes"));
+  byText(section.el, "BUTTON", "Repair the key").fire("click");
+  await flush();
+  await flush();
+  assert.equal(sent("hermes_repair_key").length, 1);
+  assert.ok(all(section.el).some((e) => e.textContent === "The key is valid: Hermes answers as zheus."), "after repair the key is valid");
+  assert.equal(all(section.el).find((e) => e.tagName === "BUTTON" && e.textContent === "Let only Coucou run Hermes"), undefined, "no service fight any more");
+
+  // The health lines read right, and the report carries no key.
+  assert.equal(healthApiText({ state: "down" }), "The API does not answer: the gateway is off, or nothing listens on the port yet.");
+  assert.equal(healthAuthText({ state: "ready", model: "zheus" }), "The key is valid: Hermes answers as zheus.");
+  const report = diagnosisReport({ installed: true, managed: true, health: { state: "ready", model: "zheus" }, hasKey: true, ownService: false, address: "http://127.0.0.1:8642" });
+  assert.ok(report.includes("127.0.0.1:8642") && !/key=|API_SERVER_KEY=\S/.test(report), "the report has the address but no secret");
 });

@@ -91,6 +91,49 @@ desligada no servidor de API que o Coucou usa) e reinicia o Hermes; desligar tir
 instalado. O que o Hermes faz na tela espera o seu OK, como as outras ações dele: Permitir na ilha ou no celular. Vem
 desligado.
 
+Com ele ligado, o navegador próprio do Hermes (as ferramentas `browser_*`, que rodam escondidas de você) também é
+desligado no servidor de API (`hermes tools disable browser --platform api_server`; desligar a chave devolve ele), e o
+Coucou ensina ao Hermes o caminho curto a cada mensagem: achar o link exato (uma busca na web), abrir no seu próprio
+navegador com um comando do terminal (`cmd.exe /c start "" "<link>"` no Windows, `xdg-open` no Linux; um link de vídeo
+do YouTube já começa a tocar sozinho) e usar o mouse e o teclado só para o que um link não resolve. Cada passo é uma ida
+e volta ao modelo dele: menos passos é o que deixa ele rápido. Um Coucou atualizado com a chave já ligada desliga o
+navegador escondido uma vez, ao abrir.
+
+### A velocidade dele
+
+**Velocidade** diz quanto o Hermes pensa antes de cada passo: **Rápido** (menos: responde e age na tela mais cedo, o
+melhor para abrir sites, tocar vídeos e clicar), **Normal** (o padrão do Hermes) ou **Caprichado** (mais). O Coucou
+manda isso com cada mensagem (`model_options.reasoning_effort` do Hermes: `low`, nada, `high`), então vale a partir da
+próxima mensagem, sem reiniciar o Hermes, e as configurações do próprio Hermes ficam como estão.
+
+### Manter ligado, e o diagnóstico
+
+Quando o Coucou roda o Hermes, ele mantém o gateway de pé sozinho, só em `127.0.0.1`, sem nenhuma janela de terminal
+para deixar aberta:
+
+- Ele diferencia **porta fechada** de **outro programa** na porta, de Hermes **recusando a chave**, de Hermes
+  **pronto** — uma verificação de saúde de verdade, não só "algo responde".
+- Um gateway **já na porta** (um que o Coucou ou o Hermes deixou rodando) é **adotado**, então o Coucou nunca cria um
+  segundo ao lado e os dois não brigam pela porta.
+- Um gateway que **cai** volta depois de uma espera que cresce (2, 4, 8, 16, 32 s); após cinco quedas rápidas em dez
+  minutos ele fica **Parado** com o motivo, nunca reiniciado em laço. Um gateway adotado é verificado a cada minuto e
+  antes de cada mensagem.
+- Quando o Coucou roda o Hermes, ele liga o **Iniciar com o Windows**, para o gateway voltar depois de reiniciar sem
+  você abrir o Coucou.
+
+**Configurações → Hermes Agent → Diagnóstico** → **Verificar a integração** mostra, no seu idioma: se o Hermes está
+instalado, se a API responde e se a chave é válida. Dali:
+
+- **Reparar a chave** cria uma chave nova, grava no `.env` do Hermes (seu arquivo antigo fica como `.env.backup-…`) e
+  no cofre do Coucou para este endereço, e reinicia o gateway. A autenticação nunca é desligada.
+- **Deixar só o Coucou cuidar do Hermes** (Windows) remove um serviço do próprio Hermes — uma tarefa agendada ou uma
+  entrada na pasta Inicializar — quando ele roda o gateway ao lado do do Coucou. Remove só esse serviço, nunca o
+  Hermes em si.
+- **Copiar o relatório** copia as linhas acima como texto (sem nenhuma chave ou segredo), para mandar a quem te ajuda.
+
+**Conectar** (para um Hermes que você mesmo roda) agora preenche a chave sozinho, lendo o `.env` do Hermes, quando você
+deixa em branco e o endereço é deste computador.
+
 ### O nome e o tom dele (SOUL.md)
 
 Em **O tom dele**, escolha **Amigável**, **Direto**, **Profissional**, **Divertido**, **Mordomo (formal e

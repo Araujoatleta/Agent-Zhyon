@@ -109,12 +109,11 @@ export function homeSection(makeToggle: Toggle, voice?: VoiceChoice): HTMLElemen
         haToken.focus();
       });
       row.append(use);
-    } else if (f.kind === "philipsTv" || f.kind === "samsungTv") {
+    } else {
+      // A TV of another maker is tried too: as an Android device over ADB, else Coucou says what it answers on.
       const add = h("button", { text: t("Add") }) as HTMLButtonElement;
       add.addEventListener("click", () => void addTv(f.host, add));
       row.append(add);
-    } else {
-      row.append(h("span", { class: "hint", text: t("Not controlled directly: add it to Home Assistant.") }));
     }
     return row;
   };
@@ -172,6 +171,9 @@ export function homeSection(makeToggle: Toggle, voice?: VoiceChoice): HTMLElemen
       const tv = await Bridge.homeTvAdd(host);
       tvHost.value = "";
       await refresh();
+      if (tv.needsPairing && !tv.paired && tv.brand === "android") {
+        return t("Found: {name} ({details}). Now press Pair, then choose Allow on its screen.", { name: tv.name, details: tvLine(tv) });
+      }
       return tv.needsPairing && !tv.paired
         ? t("Found: {name} ({details}). Now press Pair: the TV shows a PIN.", { name: tv.name, details: tvLine(tv) })
         : t("Found: {name} ({details}).", { name: tv.name, details: tvLine(tv) });
@@ -194,6 +196,7 @@ export function homeSection(makeToggle: Toggle, voice?: VoiceChoice): HTMLElemen
       void busy(pair, result, async () => {
         // A Samsung TV asks on its screen (for up to half a minute): say so while it waits.
         if (tv.brand === "samsung") result.append(notice(t("Look at the TV: it asks whether to allow Coucou. Choose Allow."), true));
+        if (tv.brand === "android") result.append(notice(t("Look at the device: it asks whether to allow USB debugging from this computer. Tick \"Always allow from this computer\", then choose Allow."), true));
         const paired = await Bridge.homeTvPair(tv.id);
         if (paired) {
           result.replaceChildren();
@@ -236,7 +239,9 @@ export function homeSection(makeToggle: Toggle, voice?: VoiceChoice): HTMLElemen
             ? t("Paired")
             : tv.brand === "samsung"
               ? t("Needs pairing: press Pair, then choose Allow on the TV.")
-              : t("Needs pairing: press Pair and type the PIN the TV shows."),
+              : tv.brand === "android"
+                ? t("Needs pairing: press Pair, then choose Allow on the device's screen.")
+                : t("Needs pairing: press Pair and type the PIN the TV shows."),
         })
       : h("span", { class: "hint", text: t("No pairing needed") });
     out.append(
@@ -251,12 +256,13 @@ export function homeSection(makeToggle: Toggle, voice?: VoiceChoice): HTMLElemen
     tvList.replaceChildren(...(status?.tvs ?? []).map(tvRow));
   };
   tvBox.append(
-    h("h3", { text: t("Samsung and Philips TVs") }),
+    h("h3", { text: t("TVs and projectors") }),
     h("div", { class: "row" }, h("label", { text: t("TV address") }), tvHost, tvAdd),
     tvList,
     tvNote,
     h("div", { class: "hint", text: t("Coucou asks the TV what it is and what it can do, and offers only that. Samsung TVs (2016 and later) ask once on their screen whether to allow Coucou; Philips Android TVs show a PIN. The TV's address is in its network settings. A TV of another kind is not added: Coucou says what it does answer on.") }),
     h("div", { class: "hint", text: t("To turn a TV on from standby: on a Samsung TV, turn on \"Power On with Mobile\" (Settings → General → Network → Expert Settings); on a Philips TV, \"Switch on with Wi-Fi\" (or \"with Chromecast\"). The MAC address, found by itself when possible, lets Coucou wake it from deep standby.") }),
+    h("div", { class: "hint", text: t("Android TVs, projectors and TV boxes, through Android's network debugging (ADB, port 5555): on the device, tap Build number 7 times (Settings → About) to show the Developer options, and turn on USB debugging there (and network debugging, when it is listed). Add its address here, press Pair, and choose Allow on its screen. Coucou only sends its own fixed commands: keys, its apps, reading its state.") }),
   );
 
   // ── Devices ──

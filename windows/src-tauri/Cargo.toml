@@ -49,6 +49,10 @@ regex = "1"
 # only beside the IPv4 one (socket2). Both already in the tree through mdns-sd, so nothing new is downloaded.
 if-addrs = "0.15"
 socket2 = "0.6"
+# Android TVs and projectors over ADB (smart_home/android.rs): the RSA key Android asks a computer for, made and used
+# with big numbers. Already in the lock file (through the Linux keyring's secret-service), so nothing new is
+# downloaded. MIT OR Apache-2.0.
+num-bigint = "0.4"
 
 [target.'cfg(windows)'.dependencies]
 keyring = { version = "3", features = ["windows-native"] }

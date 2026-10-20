@@ -16,6 +16,9 @@ Três caminhos, todos só na sua rede local:
   usam, nas portas 8001 e 8002. A TV pergunta uma vez na tela se pode permitir o Coucou.
 - **TVs Philips**, direto na TV, pelo JointSpace, a API que as TVs Philips respondem nas portas 1925 e 1926. As
   Android TVs são pareadas uma vez com um PIN que aparece na tela.
+- **TVs Android, projetores e TV boxes**, direto no aparelho pelo ADB, a depuração pela rede do Android (porta 5555),
+  depois de ligada nas Opções do desenvolvedor do aparelho. O aparelho pergunta uma vez na tela se pode permitir este
+  computador.
 
 Uma TV de outro tipo não é adicionada: o Coucou diz por onde ela responde, para o próximo passo ser escolhido com
 base em fatos.
@@ -34,9 +37,10 @@ Vem **desligada**. Enquanto está desligada, nada é lido e nada é enviado.
 
 1. **Configurações → Braços do Mochi**: ligue e escolha uma pasta de trabalho. A casa é usada pelos braços dele.
 2. **Configurações → Casa do Mochi**: ligue a **Casa do Mochi**.
-3. **Procurar na rede** procura por alguns segundos (mDNS e UPnP). O Home Assistant e as TVs Samsung e Philips
-   encontrados vêm com **Usar** ou **Adicionar**; as outras TVs aparecem só para informação (veja os limites). Nada é
-   adicionado sem o seu clique.
+3. **Procurar na rede** procura por alguns segundos (mDNS e UPnP). O Home Assistant e as TVs encontradas vêm com
+   **Usar** ou **Adicionar**: uma TV de outro fabricante (o app de espelhar tela de um projetor Android, por exemplo) é
+   testada pelo ADB quando você adiciona, e senão o Coucou diz por onde ela responde. Nada é adicionado sem o seu
+   clique.
 4. **Home Assistant**: o endereço (por exemplo `http://homeassistant.local:8123`) e um **token de acesso de longa
    duração** (no Home Assistant: seu perfil → Segurança → Tokens de acesso de longa duração), depois **Conectar**. O
    Coucou mostra a versão que respondeu. Os cômodos vêm das áreas do Home Assistant quando o token é de um
@@ -51,8 +55,10 @@ Vem **desligada**. Enquanto está desligada, nada é lido e nada é enviado.
    - **Philips**: o Coucou pergunta qual versão do JointSpace ela fala (6, 5 ou 1), por HTTPS na porta 1926 ou HTTP
      na 1925, e o que ela sabe fazer, e mostra: "55PUS8007/12 · JointSpace 6.4.0 · Android TV · criptografada (porta
      1926)". Uma Android TV precisa de **Parear**: ela mostra um PIN, digite em **PIN da TV** e **Confirmar**.
-   - **Nenhuma das duas**: a TV não é adicionada, e a resposta lista por onde ela responde ("ADB (Android) (5555),
-     DIAL…"). Mande essa linha para quem te ajuda com o Coucou: ela diz qual caminho, se houver, poderia controlá-la.
+   - **Android pelo ADB** (quando não é nenhuma das duas): veja *TVs Android, projetores e TV boxes* abaixo.
+   - **Nenhuma delas**: o aparelho não é adicionado, e a resposta lista por onde ele responde ("DIAL, UPnP
+     MediaRenderer…"), com o jeito de ligar a depuração pela rede de um aparelho Android. Mande essa linha para quem te
+     ajuda com o Coucou: ela diz qual caminho, se houver, poderia controlá-lo.
 
    O **endereço MAC** (para ligar a TV do standby profundo com Wake-on-LAN) vem da TV ou da tabela de vizinhos do
    computador; você também pode digitá-lo.
@@ -66,6 +72,33 @@ Vem **desligada**. Enquanto está desligada, nada é lido e nada é enviado.
    **Editar e salvar** para guardar uma; **Nova rotina** para escrever a sua (até 20 passos, cada um com uma espera
    opcional de até 120 s, para uma TV que precisa de um tempo antes de abrir um app).
 8. **Voz** (opcional): **Ler as respostas do Mochi em voz alta**, e **Testar** para ouvir a voz. Veja *Voz* abaixo.
+
+### TVs Android, projetores e TV boxes (ADB)
+
+Muitos aparelhos Android sem a certificação de TV do Google (projetores como o HY300, TV boxes) só podem ser usados
+pelo ADB, a ponte de depuração do Android. O próprio Coucou fala esse protocolo, na porta 5555 (nada para instalar):
+
+1. No aparelho, abra **Configurações → Sobre** (em alguns projetores, "Sobre nós") e toque sete vezes em **Número da
+   versão**: aparecem as **Opções do desenvolvedor**. Ligue lá a **Depuração USB**, e a **depuração pela rede** (ou
+   "ADB pela rede") quando ela estiver na lista.
+2. No Coucou, digite o endereço do aparelho (nas configurações de rede dele) em **TVs e projetores** e toque em
+   **Adicionar**. O Coucou tenta primeiro os caminhos da Samsung e da Philips, depois bate na porta 5555 sem oferecer
+   nada.
+3. Toque em **Parear**. O aparelho mostra **Permitir depuração USB?** com a impressão digital da chave deste
+   computador: marque **Sempre permitir neste computador** e escolha **Permitir** (você tem um minuto). O Coucou então
+   lê o que o aparelho é (modelo, versão do Android e nome), o que ele informa (volume, mudo) e os apps que a tela
+   inicial dele mostra.
+
+A chave é RSA-2048, como o adb faz, criada pelo Coucou na primeira vez e guardada no cofre do sistema (nunca em
+arquivo). O ADB dá controle total do aparelho, por isso o Coucou só manda os próprios comandos fixos: teclas (acordar,
+dormir, volume, mudo), abrir um app da lista do próprio aparelho e ler o estado dele (`dumpsys`). Nada que o modelo
+escreve vira comando. A **depuração sem fio** do Android 11 (com código de pareamento) é outro protocolo, com TLS, que
+o Coucou não fala: ele avisa, e o caminho é a depuração pela rede clássica.
+
+O que funciona depois: ligar a partir do modo de espera e desligar (para o modo de espera), volume para cima e para
+baixo e em número, mudo, abrir um app, e ler se ele está ligado, o volume e o app na tela. Um aparelho que desliga a
+rede quando é desligado (a maioria dos projetores e TV boxes) não pode ser ligado pelo Coucou: ligue pelo controle
+remoto.
 
 ## Falando com o Mochi
 
@@ -142,9 +175,15 @@ próprio aparelho. Quando algo é ambíguo ou não é possível, o Mochi diz iss
 - **Home Assistant**: só media players, luzes e interruptores. Cômodos vindos das áreas precisam de um token de
   administrador (a API de templates); senão, defina os cômodos no Coucou. Canais não são oferecidos pelo Home
   Assistant.
-- **Outras marcas** (LG, Sony, TCL, TVs Android de outros fabricantes…) aparecem na busca mas não são controladas
-  direto: adicione-as ao Home Assistant, que tem integrações para muitas delas, e elas aparecem como media players
-  dele. Adicionar uma pelo endereço diz por onde ela responde, para um suporte futuro.
+- **Outras marcas** (LG, Sony, TCL…) aparecem na busca mas não são controladas direto: adicione-as ao Home
+  Assistant, que tem integrações para muitas delas, e elas aparecem como media players dele. Adicionar uma pelo
+  endereço diz por onde ela responde, para um suporte futuro.
+- **Android pelo ADB** foi testado com um aparelho simulado (a conexão, a assinatura da chave conferida como o Android
+  confere, a pergunta na tela, comandos e o que eles imprimem) e com as saídas do Android 4.4, 7 a 9 e 13, ainda não
+  com um projetor de verdade. Os apps recebem o nome pelo pacote (uma lista de apps conhecidos, senão a palavra do
+  próprio pacote: "com.waxrain.airplaydmr" vira "Waxrain"); o volume em número anda nos passos do aparelho (15 na
+  maioria). Se o aparelho mantém a depuração pela rede ligada depois de reiniciar depende do firmware dele. Um aparelho
+  que desliga o Wi-Fi junto com ele não pode ser ligado pela rede.
 - **A busca** usa mDNS e SSDP, que redes de convidados, VPNs ou alguns roteadores bloqueiam: adicione pelo endereço.
 - **A digitação por voz no computador** é a do Windows; o Linux não tem. A leitura em voz alta precisa de uma voz do
   idioma do app instalada no computador.
@@ -155,9 +194,11 @@ próprio aparelho. Quando algo é ambíguo ou não é possível, o Mochi diz iss
   `home_assistant.rs`, `samsung.rs` (o controle remoto da Samsung: a API, o WebSocket com a pergunta "Permitir" e o
   token, os apps), `upnp.rs` (volume e mudo de um renderizador), `philips.rs` (JointSpace, pareamento, Wake-on-LAN, o
   TLS com certificado fixado usado pelas duas marcas), `digest.rs` (HTTP Digest, MD5 e SHA-256,
-  com os vetores de teste das RFCs), `discovery.rs` (mDNS e SSDP), `routines.rs`, `journal.rs`, `config.rs`
-  (configurações e cofre), `mod.rs` (leitura da casa, execução de uma ação, comandos das Configurações). Nenhuma
-  dependência nova: tudo usa o que o app já usa (reqwest com rustls, ring, mdns-sd, tokio, tokio-tungstenite).
+  com os vetores de teste das RFCs), `discovery.rs` (mDNS e SSDP), `android.rs` (ADB: o protocolo, a chave RSA que o
+  Android pede, o formato da chave pública dele, os comandos fixos e a leitura do que eles imprimem), `routines.rs`,
+  `journal.rs`, `config.rs` (configurações e cofre), `mod.rs` (leitura da casa, execução de uma ação, comandos das
+  Configurações). As dependências são as que o app já usa (reqwest com rustls, ring, mdns-sd, tokio,
+  tokio-tungstenite), e o `num-bigint` para a chave RSA do ADB, que já estava no lock file pelo cofre do Linux.
 - `windows/src-tauri/src/agent/tools.rs`: as ferramentas `home_devices`, `home_control` e `home_routine`; `policy.rs`
   decide qual ação espera um clique.
 - `windows/src/settings/home.ts` e `windows/src/core/home.ts`: Configurações → Casa do Mochi. `windows/src/core/voice.ts`:
