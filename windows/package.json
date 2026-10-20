@@ -10,9 +10,11 @@
     "test": "node --import ./tests/setup.mjs --test \"tests/**/*.test.mjs\"",
     "icons": "node scripts/gen-icons.mjs",
     "tauri": "tauri",
-    "predev": "cargo build --release -p coucou-hook",
-    "prebuild": "cargo build --release -p coucou-hook",
-    "pack": "tauri build && node scripts/pack.mjs"
+    "predev": "cargo build --release --locked -p coucou-hook -p coucou-edge-worker",
+    "prebuild": "cargo build --release --locked -p coucou-hook -p coucou-edge-worker",
+    "prepack": "cargo build --release --locked -p coucou-hook -p coucou-edge-worker",
+    "pack": "tauri build && node scripts/pack.mjs",
+    "verify:artifacts": "node scripts/pack.mjs --verify"
   },
   "devDependencies": {
     "@tauri-apps/cli": "2.12.0",

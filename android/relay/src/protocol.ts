@@ -62,9 +62,28 @@ export async function sameSecret(a: string, b: string): Promise<boolean> {
 
 /** Is this request's access key the configured one? Fails closed when none is configured (or it is too short to be a key). */
 export async function accessKeyOk(configured: string | undefined, header: string | null): Promise<boolean> {
+  return (await matchingAccessKey(configured, header)) !== null;
+}
+
+/**
+ * Return the configured key that admitted this request. Production can keep a
+ * separate, revocable key for every desktop while old single-key deployments
+ * continue to work unchanged.
+ */
+export async function matchingAccessKey(
+  configured: string | readonly string[] | undefined,
+  header: string | null,
+): Promise<string | null> {
   const sent = bearer(header);
-  if (!configured || configured.length < 16 || !sent) return false;
-  return sameSecret(sent, configured);
+  const keys = typeof configured === "string" ? [configured] : configured ?? [];
+  if (!sent || keys.length === 0) return null;
+  let match: string | null = null;
+  // Check every key instead of returning early. This avoids exposing the key's
+  // position in the on-disk directory through response timing.
+  for (const key of keys) {
+    if (key.length >= 16 && await sameSecret(sent, key)) match = key;
+  }
+  return match;
 }
 
 /** Tags a socket with the access key it was admitted under (first 8 bytes of its SHA-256, hex). */

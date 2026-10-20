@@ -1,0 +1,55 @@
+name: VPS control CI
+
+on:
+  pull_request:
+    paths:
+      - 'vps-control/**'
+      - 'scripts/vps_ops.py'
+      - 'scripts/test_vps_*.py'
+      - 'docs/VPS_MIGRATION_DEPLOY.pt-BR.md'
+      - 'docs/VPS_EDGE_CONTROL_PT.md'
+      - '.github/workflows/vps-control.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'vps-control/**'
+      - 'scripts/vps_ops.py'
+      - 'scripts/test_vps_*.py'
+      - 'docs/VPS_MIGRATION_DEPLOY.pt-BR.md'
+      - 'docs/VPS_EDGE_CONTROL_PT.md'
+      - '.github/workflows/vps-control.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  control:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: vps-control
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: vps-control/package-lock.json
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Type check
+        run: npm run check
+      - name: Test
+        run: npm test
+      - name: Test VPS operations and deploy automation
+        working-directory: .
+        run: |
+          bash -n vps-control/deploy/deploy.sh
+          python -m unittest scripts/test_vps_ops.py scripts/test_vps_deploy.py -v
+      - name: Audit production dependencies
+        run: npm audit --audit-level=high --omit=dev
+      - name: Build container
+        run: docker build --pull --tag coucou-vps-control:ci .

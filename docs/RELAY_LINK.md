@@ -15,7 +15,7 @@ end-to-end encrypted channel exactly as it travels over TLS on the LAN.
 | secret | size | made by | held by | relay sees it? |
 |---|---|---|---|---|
 | **K**, the pairing key | 256 bits | the computer, at pairing | computer (OS keystore), phone (Keystore-encrypted) | **never** |
-| **access key** | 256 bits | the user, once, at deploy time | the relay (a Worker secret), the computer (OS keystore), the phone (Keystore-encrypted) | yes: it only lets a request create or join rooms |
+| **access key** | 256 bits | the user, once per computer | the relay (a revocable file), that computer (OS keystore), its phone (Keystore-encrypted) | yes: it only lets a request create or join rooms |
 | room id | 128 bits | the computer, at pairing | all three | yes (it is the address) |
 | `K_join` (derived from K) | 256 bits | both sides | both sides; the relay sees only that value in the join header | yes, but it is a one-way derivation and cannot decrypt anything |
 
@@ -66,7 +66,7 @@ Sec-WebSocket-Protocol: coucou.v1, coucou.join.<K_join, base64url>
   (`setWebSocketAutoResponse`), without waking the room, so heartbeats cost almost nothing. These are the only text messages a
   client may send; any other text message closes the socket with `1003`. The relay has **no idle timer** (a timer would wake the
   room): liveness is judged by the clients, from the encrypted v1 `ping/pong` and from these `pong`s.
-- **Access key rotation takes effect on live rooms.** Each socket's attachment keeps the first 8 bytes of
+- **Access key rotation or per-computer revocation takes effect on live rooms.** Each socket keeps the first 8 bytes of
   `SHA-256(access key)` it was admitted with; when the next frame arrives and the current key's digest differs, the relay
   closes the socket with `1008 access key changed`.
 - The relay logs nothing (observability off), stores nothing (no storage API is used) and holds no key for any content.
@@ -157,7 +157,7 @@ is never sent it.
 
 | what | how | effect |
 |---|---|---|
-| **Access key** | `openssl rand -base64 32 \| tr '+/' '-_' \| tr -d '='` → `npx wrangler secret put ACCESS_KEY`, then paste the same value into the computer's setting | New connections with the old key are refused (`401`); live sockets are closed at their next frame (section 3). The computer sends `relayAccess` to paired phones so they follow without scanning again; a phone that was offline at that time re-scans or is sent it when it next connects over the LAN. |
+| **Access key** | VPS fleet: `./vpsctl issue NAME` / `./vpsctl revoke NAME`. Single-key Cloudflare deployment: rotate `ACCESS_KEY` and paste it into the computer. | A revoked computer can no longer reconnect (`401`) while the other computers keep their own keys. Live sockets using a removed key close at their next frame. |
 | **K and the room** (“Pair again”) | the computer makes a new K and room id | The old room stays empty forever; the old phone cannot read or write anything new. A stolen or lost phone is cut off this way. |
 | **A phone leaving** (“Disconnect this computer”) | the phone deletes K, access key and token | The pairing is gone on the phone; the computer can “Pair again”. |
 
@@ -180,4 +180,4 @@ The access key can be rotated as often as the user likes: it protects the quota,
   computer, which is not an allow.
 - An attacker who knows both the access key and a room id could occupy an empty room before its owner connects (the join
   proof is not stored); the owner sees “room is taken” and does “Pair again”.
-- Free-tier quota can be exhausted by anyone who holds the access key.
+- Quota can be exhausted by anyone who holds one admitted access key. VPS fleet mode limits that exposure to one revocable computer package.

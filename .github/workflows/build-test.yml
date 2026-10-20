@@ -1,0 +1,65 @@
+name: Build and Test
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, "feat/**"]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: vps-control/package-lock.json
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Test and type-check control plane
+        working-directory: vps-control
+        run: |
+          npm ci
+          npm test
+          npm run check
+
+      - name: Test edge worker
+        working-directory: windows
+        run: cargo test -p coucou-edge-worker --locked --verbose
+
+      - name: Build edge worker
+        working-directory: windows
+        run: cargo build -p coucou-edge-worker --release --locked
+
+      - name: Upload edge worker executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: coucou-edge-worker-windows-x64
+          path: windows/target/release/coucou-edge-worker.exe
+          if-no-files-found: error
+
+      - name: Upload VPS deployment bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: coucou-vps-control
+          path: |
+            vps-control/src
+            vps-control/deploy
+            vps-control/Dockerfile
+            vps-control/compose.yml
+            vps-control/package.json
+            vps-control/package-lock.json
+          if-no-files-found: error

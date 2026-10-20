@@ -74,6 +74,33 @@ const harness = async (): Promise<Harness> => {
 behaviour("Node twin", harness);
 
 describe("Node twin only", () => {
+  it("admits independent desktop keys and revokes only the removed key", async () => {
+    const first = "A".repeat(43);
+    const second = "B".repeat(43);
+    const r = await startRelay({ accessKey: [first, second] });
+    const connect = (key: string) => new Promise<WebSocket | number>((resolve) => {
+      const ws = new WebSocket(`ws://127.0.0.1:${r.port}/v1/room/${randomRoom()}?role=pc`, ["coucou.v1", `coucou.join.${proofOf(1)}`], { headers: { Authorization: `Bearer ${key}` } });
+      ws.on("unexpected-response", (_q, response) => (resolve(response.statusCode ?? 0), ws.terminate()));
+      ws.on("error", () => {});
+      ws.on("open", () => resolve(ws));
+    });
+    try {
+      const a = await connect(first);
+      const b = await connect(second);
+      expect(a).toBeInstanceOf(WebSocket);
+      expect(b).toBeInstanceOf(WebSocket);
+      (a as WebSocket).close();
+      (b as WebSocket).close();
+      await r.setAccessKeys([second]);
+      expect(await connect(first)).toBe(401);
+      const stillAllowed = await connect(second);
+      expect(stillAllowed).toBeInstanceOf(WebSocket);
+      (stillAllowed as WebSocket).close();
+    } finally {
+      await r.close();
+    }
+  });
+
   it("answers 429 after too many new connections from one address, before checking the key", async () => {
     const r = await startRelay({ accessKey: ACCESS, connectsPerMinute: 3 });
     try {

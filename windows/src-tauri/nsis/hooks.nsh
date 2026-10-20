@@ -60,6 +60,8 @@ Var CoucouName
 Var CoucouToneIndex
 Var CoucouPersona
 Var CoucouPhone
+Var CoucouVpsUrl
+Var CoucouDeviceName
 
 Var CoucouHwEnable
 Var CoucouHwBrainLabel
@@ -558,8 +560,47 @@ FunctionEnd
 
 ; ── Hooks ────────────────────────────────────────────────────────────────────
 
+!macro NSIS_HOOK_PREINSTALL
+  ; Release the executable before an update attempts to replace it.
+  ExecWait '"$SYSDIR\schtasks.exe" /End /TN "Coucou Edge Worker"' $0
+!macroend
+
 !macro NSIS_HOOK_POSTINSTALL
   Call CoucouSaveChoices
+  ; These are non-secret settings. The durable identity stays in Credential Manager.
+  StrCpy $CoucouVpsUrl "https://coucou-relay.navellux.com.br/control"
+  StrCpy $CoucouDeviceName "$COMPUTERNAME"
+  ${GetOptions} $CMDLINE "/VPSURL=" $0
+  ${IfNot} ${Errors}
+    StrCpy $CoucouVpsUrl $0
+  ${EndIf}
+  ${GetOptions} $CMDLINE "/DEVICENAME=" $0
+  ${IfNot} ${Errors}
+    StrCpy $CoucouDeviceName $0
+  ${EndIf}
+  StrCpy $0 $CoucouVpsUrl 8
+  ${If} $0 != "https://"
+    MessageBox MB_ICONSTOP|MB_OK "COUCOU_VPS_URL must use HTTPS."
+  ${Else}
+    WriteRegExpandStr HKCU "Environment" "COUCOU_VPS_URL" "$CoucouVpsUrl"
+    WriteRegExpandStr HKCU "Environment" "COUCOU_DEVICE_NAME" "$CoucouDeviceName"
+    System::Call 'kernel32::SetEnvironmentVariableW(w "COUCOU_VPS_URL", w "$CoucouVpsUrl")'
+    System::Call 'kernel32::SetEnvironmentVariableW(w "COUCOU_DEVICE_NAME", w "$CoucouDeviceName")'
+    ; Validate the exact runtime configuration before registering startup.
+    ExecWait '"$INSTDIR\coucou-edge-worker.exe" --validate-config' $0
+    ${If} $0 = 0
+      WriteRegStr HKCU "Software\Coucou\EdgeWorker" "IdentityServer" "$CoucouVpsUrl"
+      ; Stop only the instance owned by our task, then replace and run it in
+      ; the interactive user's session (never as a service/SYSTEM).
+      ExecWait '"$SYSDIR\schtasks.exe" /End /TN "Coucou Edge Worker"' $1
+      ExecWait '"$SYSDIR\schtasks.exe" /Create /TN "Coucou Edge Worker" /SC ONLOGON /TR "$\"$INSTDIR\coucou-edge-worker.exe$\"" /RL LIMITED /F' $0
+      ${If} $0 = 0
+        ExecWait '"$SYSDIR\schtasks.exe" /Run /TN "Coucou Edge Worker"' $1
+      ${EndIf}
+    ${Else}
+      MessageBox MB_ICONSTOP|MB_OK "Invalid edge worker configuration."
+    ${EndIf}
+  ${EndIf}
 !macroend
 
 ; The app stages coucou-hook.exe into %LOCALAPPDATA%\Coucou\bin at launch, so the
@@ -573,6 +614,17 @@ FunctionEnd
 ; printing anything, so a leftover entry costs nothing beyond a dead path.
 
 !macro NSIS_HOOK_PREUNINSTALL
+  ExecWait '"$SYSDIR\schtasks.exe" /End /TN "Coucou Edge Worker"' $0
+  ExecWait '"$SYSDIR\schtasks.exe" /Delete /TN "Coucou Edge Worker" /F' $0
+  ReadRegStr $1 HKCU "Software\Coucou\EdgeWorker" "IdentityServer"
+  ${If} $1 == ""
+    StrCpy $1 "$CoucouVpsUrl"
+  ${EndIf}
+  ExecWait '"$INSTDIR\coucou-edge-worker.exe" --remove-identity --identity-server "$1"' $0
+  DeleteRegKey HKCU "Software\Coucou\EdgeWorker"
+  DeleteRegValue HKCU "Environment" "COUCOU_VPS_URL"
+  DeleteRegValue HKCU "Environment" "COUCOU_DEVICE_NAME"
+  RMDir /r "$LOCALAPPDATA\Coucou\edge-worker"
   RMDir /r "$LOCALAPPDATA\Coucou\bin"
   RMDir /r "$LOCALAPPDATA\Coucou\inbox"
   Delete "$LOCALAPPDATA\Coucou\coucou.log"

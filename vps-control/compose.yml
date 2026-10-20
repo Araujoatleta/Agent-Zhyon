@@ -1,0 +1,15 @@
+services:
+  coucou-control:
+    build: .
+    restart: unless-stopped
+    environment:
+      ADMIN_TOKEN: ${ADMIN_TOKEN:?set ADMIN_TOKEN}
+      PORT: 8790
+      DATA_FILE: /data/control.json
+    volumes: ["coucou-control-data:/data"]
+    ports: ["127.0.0.1:8790:8790"]
+    security_opt: ["no-new-privileges:true"]
+    read_only: true
+    tmpfs: ["/tmp"]
+volumes:
+  coucou-control-data:
