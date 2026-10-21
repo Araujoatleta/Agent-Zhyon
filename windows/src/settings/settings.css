@@ -456,3 +456,277 @@ html[dir="rtl"] :is(.diff, .path, .keycap, input[type="password"], input[type="t
   gap: 6px;
   color: var(--ink);
 }
+
+/* ── Zheus One (settings/zheus.ts) ─────────────────────────────────────── */
+
+.zheus-segmented {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.zheus-segmented button {
+  padding: 5px 12px;
+  background: transparent;
+}
+
+.zheus-segmented button.on {
+  background: rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.zheus-rooms {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.zheus-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+}
+
+.zheus-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--dim);
+}
+
+/* ── Zheus One's TV mode (settings/tv.ts): the situation, full screen, in glass ── */
+
+.zheus-tv {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 2.2vh;
+  padding: 3.5vh 3.5vw;
+  color: var(--ink);
+  font: 400 clamp(14px, 1.35vw, 26px) / 1.45 var(--font);
+  background:
+    radial-gradient(60vw 50vh at 8% 0%, rgba(99, 102, 241, 0.38), rgba(99, 102, 241, 0) 70%),
+    radial-gradient(50vw 45vh at 100% 10%, rgba(34, 211, 238, 0.22), rgba(34, 211, 238, 0) 70%),
+    radial-gradient(70vw 60vh at 70% 110%, rgba(236, 72, 153, 0.2), rgba(236, 72, 153, 0) 70%),
+    linear-gradient(180deg, #11131b, #0a0b10);
+  overflow: hidden;
+}
+
+.zheus-tv[hidden] {
+  display: none;
+}
+
+.zheus-tv .zheus-glass {
+  border-radius: 24px;
+}
+
+.zheus-tv-head {
+  display: flex;
+  align-items: center;
+  gap: 2vw;
+}
+
+.zheus-tv-title {
+  display: flex;
+  align-items: center;
+  gap: 0.8vw;
+  font: 600 clamp(20px, 2.1vw, 40px) var(--font);
+  letter-spacing: -0.01em;
+}
+
+.zheus-tv-title svg {
+  color: #a5b4fc;
+  width: clamp(20px, 2vw, 38px);
+  height: clamp(20px, 2vw, 38px);
+}
+
+.zheus-tv-presence {
+  color: var(--dim);
+}
+
+.zheus-tv-clock {
+  margin-left: auto;
+  font: 300 clamp(22px, 2.6vw, 52px) var(--font);
+  font-variant-numeric: tabular-nums;
+}
+
+.zheus-tv-close {
+  font-size: inherit;
+  padding: 0.5em 1.1em;
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+}
+
+.zheus-tv-grid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1.25fr 1fr 1fr;
+  gap: 2vw;
+}
+
+.zheus-tv-col {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.6vh;
+  overflow: hidden;
+}
+
+.zheus-tv-col > h2 {
+  font: 600 1em var(--font);
+  color: var(--dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.8em;
+}
+
+.zheus-tv-tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.2vw;
+}
+
+.zheus-tv-tile {
+  padding: 1.4vw;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4em;
+}
+
+.zheus-tv-tile.on {
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.08) 60%, rgba(255, 255, 255, 0.12));
+}
+
+.zheus-tv-icon {
+  width: 2.6em;
+  height: 2.6em;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.12);
+  margin-bottom: 0.4em;
+}
+
+.zheus-tv-tile.on .zheus-tv-icon {
+  background: #2f81f7;
+  box-shadow: 0 0 22px rgba(47, 129, 247, 0.6);
+}
+
+.zheus-tv-tile.vacuum.on .zheus-tv-icon {
+  background: #22c55e;
+  box-shadow: 0 0 22px rgba(34, 197, 94, 0.55);
+}
+
+.zheus-tv-tile.light.on .zheus-tv-icon {
+  background: #f5a524;
+  color: #1a1205;
+  box-shadow: 0 0 22px rgba(245, 165, 36, 0.6);
+}
+
+.zheus-tv-tile-title {
+  font-weight: 600;
+}
+
+.zheus-tv-tile-line,
+.zheus-tv-sub,
+.zheus-tv-quiet {
+  color: var(--dim);
+  font-size: 0.85em;
+}
+
+.zheus-tv-rooms {
+  padding: 1vw 1.4vw;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4em;
+}
+
+.zheus-tv-room {
+  display: flex;
+  justify-content: space-between;
+  gap: 1em;
+}
+
+.zheus-tv-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3em;
+  color: #c7d2fe;
+  font-size: 0.85em;
+}
+
+.zheus-tv-plan {
+  padding: 1.2vw 1.4vw;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45em;
+  overflow-y: auto;
+}
+
+.zheus-tv-step {
+  display: grid;
+  grid-template-columns: 4.2em minmax(0, 1fr);
+  gap: 0.8em;
+}
+
+.zheus-tv-step.done {
+  color: var(--dim);
+}
+
+.zheus-tv-step.done .zheus-when::after {
+  content: " ✓";
+  color: var(--green);
+}
+
+.zheus-tv-step.failed {
+  color: #ff8d97;
+}
+
+.zheus-tv .zheus-conflict {
+  color: #fcd34d;
+  font-size: 0.85em;
+}
+
+.zheus-tv-decision {
+  padding: 1vw 1.2vw;
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6em;
+  background: rgba(99, 102, 241, 0.2);
+  box-shadow: inset 0 0 0 1px rgba(165, 180, 252, 0.28);
+}
+
+.zheus-tv-buttons {
+  display: flex;
+  gap: 0.6em;
+  justify-content: flex-end;
+}
+
+.zheus-tv-buttons button {
+  font-size: 0.85em;
+  padding: 0.45em 1.2em;
+}
+
+.zheus-tv-brief {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 1.4vw 1.6vw;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6em;
+}
+
+.zheus-tv-brief .md-p,
+.zheus-tv-brief .md-h {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

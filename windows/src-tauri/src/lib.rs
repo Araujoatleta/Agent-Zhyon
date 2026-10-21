@@ -38,6 +38,7 @@ mod spotify;
 mod tray;
 #[cfg(windows)]
 mod webview_drop;
+mod zheus_one;
 
 use std::process::Command;
 use std::sync::atomic::Ordering;
@@ -141,6 +142,10 @@ fn save_settings(app: AppHandle, shared: State<Shared>, settings: Settings) {
         settings.hermes_speed = current.hermes_speed.clone();
         settings.phone_assistant = current.phone_assistant;
         settings.phone_home = current.phone_home;
+        // Zheus One: only Settings → Zheus One's own commands (zheus_one/).
+        settings.zheus_enabled = current.zheus_enabled;
+        settings.zheus_arrival = current.zheus_arrival.clone();
+        settings.zheus_goals = current.zheus_goals.clone();
         // Mochi's hands too: only Settings → Mochi's hands changes them (agent::agent_settings_set).
         settings.agent_enabled = current.agent_enabled;
         settings.agent_folder = current.agent_folder.clone();
@@ -510,16 +515,20 @@ async fn chat_send(
     hands: Option<bool>,
 ) -> Result<ChatReply, String> {
     let settings = shared.settings.lock().unwrap().clone();
+    // Zheus One reads the user's own words first ("I'm on my way home", "yes"): what it did goes to the assistant too.
+    let routed = zheus_one::route(&app, &query).await;
+    let query = routed.text.clone();
     // Hermes Agent always works with its own tools, whatever the hands toggle says (agent/hermes.rs).
-    if settings.chat_provider == hermes::PROVIDER {
+    let reply = if settings.chat_provider == hermes::PROVIDER {
         let context = context.map(chat::checked_context).transpose()?;
-        return agent::hermes::run_island(&app, &chat, &settings, query, context).await;
-    }
-    if hands == Some(true) && settings.agent_enabled {
+        agent::hermes::run_island(&app, &chat, &settings, query, context).await
+    } else if hands == Some(true) && settings.agent_enabled {
         let context = context.map(chat::checked_context).transpose()?;
-        return agent::run_island(&app, &chat, &settings, query, context).await;
-    }
-    chat::send(&app, &chat, &settings, query, context).await
+        agent::run_island(&app, &chat, &settings, query, context).await
+    } else {
+        chat::send(&app, &chat, &settings, query, context).await
+    };
+    zheus_one::answered(&app, &routed, reply.map(|r| r.text)).map(|text| ChatReply { text })
 }
 
 /// Settings → Hermes Agent → Connect: keeps the key with the address, asks Hermes what it is, and on success stores
@@ -773,6 +782,7 @@ pub fn run() {
         .manage(agent::Agent::default())
         .manage(smart_home::Home::default())
         .manage(hermes_setup::Zheus::default())
+        .manage(zheus_one::ZheusOne::default())
         .manage(shortcuts::Registry::default())
         .manage(recap::load())
         .invoke_handler(tauri::generate_handler![
@@ -928,6 +938,17 @@ pub fn run() {
             spotify::spotify_control,
             spotify::spotify_open,
             spotify::spotify_installed,
+            zheus_one::zheus_status,
+            zheus_one::zheus_set,
+            zheus_one::zheus_prefs_set,
+            zheus_one::zheus_world,
+            zheus_one::zheus_plan,
+            zheus_one::zheus_choose,
+            zheus_one::zheus_approve,
+            zheus_one::zheus_cancel,
+            zheus_one::zheus_suggestion,
+            zheus_one::zheus_device,
+            zheus_one::zheus_tv,
         ])
         .setup(move |app| {
             let handle = app.handle().clone();
@@ -967,6 +988,8 @@ pub fn run() {
             phone_link::start_if_enabled(&handle);
             hermes_setup::start_if_managed(&handle);
             hermes_setup::login_refresh_at_start(&handle);
+            // The Autopilot looks at the house only while Zheus One and one of its goals are on.
+            zheus_one::start_looking(&handle);
             // What the installer's page asked for (setup.exe), once.
             first_run::run(&handle);
             integrations::start(handle.clone());

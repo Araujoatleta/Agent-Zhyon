@@ -2,6 +2,20 @@
 // Drawn on a 24×24 grid so they read at the same optical size.
 
 export const ICONS = {
+  // Zheus One: a large and a small four-pointed spark (sparkles)
+  sparkles: "M10 2.5c.7 4.6 3.1 7 7.7 7.7-4.6.7-7 3.1-7.7 7.7-.7-4.6-3.1-7-7.7-7.7 4.6-.7 7-3.1 7.7-7.7zM18.5 14c.35 2.1 1.4 3.15 3.5 3.5-2.1.35-3.15 1.4-3.5 3.5-.35-2.1-1.4-3.15-3.5-3.5 2.1-.35 3.15-1.4 3.5-3.5z",
+  // A robot vacuum, from above (stroke)
+  vacuum: "M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17zM12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 3.5V8M7.5 16.8l-1.6 1.6M16.5 16.8l1.6 1.6",
+  // snowflake: the air conditioning (stroke)
+  snowflake: "M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9M9.6 4.6 12 7l2.4-2.4M9.6 19.4 12 17l2.4 2.4M3.6 10.9l3.3.9-.9 3.3M20.4 13.1l-3.3-.9.9-3.3",
+  // lightbulb (stroke)
+  bulb: "M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.7.5 1.1 1.3 1.1 2.2h5c0-.9.4-1.7 1.1-2.2A6 6 0 0 0 12 3z",
+  // tv (stroke)
+  tv: "M3.5 6.5h17v11h-17zM8 21h8M12 17.5V21",
+  // thermometer (stroke)
+  thermometer: "M10 4.5a2 2 0 0 1 4 0v9.2a4 4 0 1 1-4 0V4.5zM12 10.5v5",
+  // drop: humidity (stroke)
+  drop: "M12 3.5s6 6.4 6 10.5a6 6 0 0 1-12 0c0-4.1 6-10.5 6-10.5z",
   // house.fill
   house: "M12 3.2 2.8 10.6V21h6.6v-5.4h5.2V21h6.6V10.6L12 3.2z",
   // bubble.left.fill

@@ -10,6 +10,7 @@ import type { CodexPlanUsage, PlanUsage } from "./plan";
 import type { ProviderId } from "./providers";
 import type { FileDiff } from "./diff";
 import type { HandsRequest, HandsStep } from "./hands";
+import type { ZheusStatus } from "./zheus";
 import type { Bindings } from "./shortcuts";
 import { DEFAULT_OUTFIT, type Outfit } from "../mochi/wardrobe";
 import { pillColor } from "./pill-colors";
@@ -200,6 +201,10 @@ export interface Settings {
   /** The phone may change the assistant, and use Mochi's home. Rust owns them, like the other phone switches. */
   phoneAssistant?: boolean;
   phoneHome?: boolean;
+  /** Zheus One on (src-tauri/src/zheus_one). Rust owns it, with its preferences and goals. */
+  zheusEnabled?: boolean;
+  /** The island's look: "glass" (Liquid Glass) or "classic" (black). The island's own choice. */
+  islandLook?: string;
   /** Mochi on the desktop. Rust owns it: whatever the page sends back is ignored. */
   desktopMochi?: {
     onDesktop: boolean;
@@ -208,6 +213,7 @@ export interface Settings {
 }
 
 export const DEFAULT_SETTINGS: Settings = {
+  islandLook: "glass",
   soundEnabled: true,
   soundVolume: 0.12,
   autoCloseInterval: 15,
@@ -305,6 +311,9 @@ class AppState {
 
   /** Outfit shown on Mochi while the pointer rests on a wardrobe button. */
   wardrobePreview: Outfit | null = null;
+
+  /** Zheus One as Rust last told it (src/island/zheus.ts keeps it fresh); null until then. */
+  zheus: ZheusStatus | null = null;
 
   lastActivity = performance.now();
 

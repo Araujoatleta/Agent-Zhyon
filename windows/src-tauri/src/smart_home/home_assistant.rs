@@ -1,10 +1,11 @@
 // Home Assistant, through its official REST API (developers.home-assistant.io/docs/api/rest), with a long-lived
 // access token the user creates in their Home Assistant profile (kept in the OS keystore, never on disk).
 //
-// Only three kinds of entities become devices: media players (TVs and speakers), lights and switches — what Mochi's
-// home controls today. What each can do comes from what Home Assistant reports for it (`supported_features`,
-// `supported_color_modes`, `source_list`), and an action becomes exactly one service call from a fixed list
-// (`service`): Mochi can never call an arbitrary service (a script, a shell command, a restart).
+// Only these entities become devices: media players (TVs and speakers), lights, switches, robot vacuums, climate
+// devices (air conditioners, thermostats) and temperature and humidity sensors (read only). People (`person`) are read
+// for who is home, never acted on. What each device can do comes from what Home Assistant reports for it
+// (`supported_features`, `supported_color_modes`, `source_list`), and an action becomes exactly one service call from a
+// fixed list (`service`): Mochi can never call an arbitrary service (a script, a shell command, a restart).
 //
 // Only an address on the local network is accepted, so the token never travels past the house.
 
@@ -31,10 +32,30 @@ mod feature {
     pub const SELECT_SOURCE: u64 = 2048;
     /// The old LightEntityFeature.BRIGHTNESS, for lights that do not list color modes.
     pub const LIGHT_BRIGHTNESS: u64 = 1;
+    /// VacuumEntityFeature (homeassistant/components/vacuum/const.py).
+    pub const VACUUM_PAUSE: u64 = 4;
+    pub const VACUUM_RETURN_HOME: u64 = 16;
+    pub const VACUUM_START: u64 = 8192;
+    pub const VACUUM_CLEAN_AREA: u64 = 16384;
+    /// ClimateEntityFeature (homeassistant/components/climate/const.py).
+    pub const CLIMATE_TARGET_TEMPERATURE: u64 = 1;
+    pub const CLIMATE_TURN_OFF: u64 = 128;
+    pub const CLIMATE_TURN_ON: u64 = 256;
 }
 
 /// The domains that become devices.
-pub const DOMAINS: &[&str] = &["media_player", "light", "switch"];
+pub const DOMAINS: &[&str] = &["media_player", "light", "switch", "vacuum", "climate", "sensor"];
+/// Read with the devices, never one: the people (who is home).
+const PEOPLE: &str = "person";
+
+/// Someone of the house, as Home Assistant's `person` says (its companion app on their phone, their router…): the
+/// signal Zheus One may use for "home" and "away", the user's own.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Person {
+    pub name: String,
+    pub home: bool,
+}
 
 /// What `check` learns about the server.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
@@ -115,13 +136,22 @@ impl HomeAssistant {
         Ok(ServerInfo { version: s("version"), location: s("location_name") })
     }
 
-    /// Every entity of the domains that become devices.
+    /// Every entity of the domains that become devices, and the people.
     pub async fn states(&self) -> Result<Vec<Value>, String> {
         let all = self.get_json("/api/states").await?;
         Ok(all
             .as_array()
-            .map(|list| list.iter().filter(|s| entity_domain(s).is_some_and(|d| DOMAINS.contains(&d))).cloned().collect())
+            .map(|list| list.iter().filter(|s| entity_domain(s).is_some_and(|d| DOMAINS.contains(&d) || d == PEOPLE)).cloned().collect())
             .unwrap_or_default())
+    }
+
+    /// The areas of the house, id → name (`vacuum.clean_area` takes their ids).
+    pub async fn area_ids(&self) -> BTreeMap<String, String> {
+        let template = "{% for a in areas() %}{{ a }}\t{{ area_name(a) }}\n{% endfor %}";
+        let Ok(bytes) = self.send(reqwest::Method::POST, "/api/template", Some(&json!({ "template": template }))).await else {
+            return BTreeMap::new();
+        };
+        parse_areas(&String::from_utf8_lossy(&bytes))
     }
 
     pub async fn state(&self, entity_id: &str) -> Result<Value, String> {
@@ -131,7 +161,8 @@ impl HomeAssistant {
     /// The area of each entity, through the template API. Best effort: it needs an administrator's token, and without
     /// it the rooms are only the ones set in Settings.
     pub async fn areas(&self) -> BTreeMap<String, String> {
-        let template = "{% for d in ['media_player', 'light', 'switch'] %}{% for s in states[d] %}{{ s.entity_id }}\t{{ area_name(s.entity_id) or '' }}\n{% endfor %}{% endfor %}";
+        let domains = DOMAINS.iter().map(|d| format!("'{d}'")).collect::<Vec<_>>().join(", ");
+        let template = format!("{{% for d in [{domains}] %}}{{% for s in states[d] %}}{{{{ s.entity_id }}}}\t{{{{ area_name(s.entity_id) or '' }}}}\n{{% endfor %}}{{% endfor %}}");
         let Ok(bytes) = self.send(reqwest::Method::POST, "/api/template", Some(&json!({ "template": template }))).await else {
             return BTreeMap::new();
         };
@@ -162,6 +193,64 @@ fn entity_domain(state: &Value) -> Option<&str> {
     state.get("entity_id").and_then(Value::as_str)?.split_once('.').map(|(d, _)| d)
 }
 
+/// The people among the states: their names, and whether Home Assistant says they are home.
+pub fn people(states: &[Value]) -> Vec<Person> {
+    states
+        .iter()
+        .filter(|s| entity_domain(s) == Some("person"))
+        .filter_map(|s| {
+            let id = s.get("entity_id").and_then(Value::as_str)?;
+            let name = s.pointer("/attributes/friendly_name").and_then(Value::as_str).map(str::trim).filter(|n| !n.is_empty()).unwrap_or(id);
+            let state = s.get("state").and_then(Value::as_str).unwrap_or("unknown");
+            (!matches!(state, "unknown" | "unavailable")).then(|| Person { name: name.chars().take(60).collect(), home: state == "home" })
+        })
+        .collect()
+}
+
+/// A vacuum's battery from its own battery sensor (`sensor.robo_battery` for `vacuum.robo`): Home Assistant moved it
+/// out of the vacuum's attributes.
+pub fn battery_for(states: &[Value], vacuum_entity: &str) -> Option<u8> {
+    let object = vacuum_entity.strip_prefix("vacuum.")?;
+    states
+        .iter()
+        .filter(|s| s.pointer("/attributes/device_class").and_then(Value::as_str) == Some("battery"))
+        .find(|s| s.get("entity_id").and_then(Value::as_str).and_then(|id| id.strip_prefix("sensor.")).is_some_and(|o| o.starts_with(object)))
+        .and_then(|s| s.get("state").and_then(Value::as_str)?.trim().parse::<f64>().ok())
+        .map(|b| b.round().clamp(0.0, 100.0) as u8)
+}
+
+/// The area ids that `rooms` name (by the area's name or id, case and accents aside). `areas`: id → name.
+pub fn area_ids_for(areas: &BTreeMap<String, String>, rooms: &[String]) -> Result<Vec<String>, String> {
+    let mut out = Vec::new();
+    for room in rooms {
+        let want = model::normalize(room);
+        let found = areas.iter().find(|(id, name)| model::normalize(name) == want || model::normalize(id) == want);
+        match found {
+            Some((id, _)) => {
+                if !out.contains(id) {
+                    out.push(id.clone());
+                }
+            }
+            None => {
+                let known: Vec<&str> = areas.values().map(String::as_str).collect();
+                return Err(tf(
+                    "Home Assistant has no area called {room}. Its areas: {areas}.",
+                    &[("room", room), ("areas", &if known.is_empty() { "—".to_string() } else { known.join(", ") })],
+                ));
+            }
+        }
+    }
+    Ok(out)
+}
+
+fn tenths(v: f64) -> i16 {
+    (v * 10.0).round().clamp(-500.0, 1500.0) as i16
+}
+
+fn percent_of(v: f64) -> u8 {
+    v.round().clamp(0.0, 100.0) as u8
+}
+
 /// The only service calls Mochi can make, whatever the model asks.
 const ALLOWED: &[(&str, &str)] = &[
     ("media_player", "turn_on"),
@@ -175,6 +264,13 @@ const ALLOWED: &[(&str, &str)] = &[
     ("light", "turn_off"),
     ("switch", "turn_on"),
     ("switch", "turn_off"),
+    ("vacuum", "start"),
+    ("vacuum", "clean_area"),
+    ("vacuum", "pause"),
+    ("vacuum", "return_to_base"),
+    ("climate", "turn_on"),
+    ("climate", "turn_off"),
+    ("climate", "set_temperature"),
 ];
 
 pub fn allowed(domain: &str, service: &str) -> bool {
@@ -249,6 +345,55 @@ pub fn device(state: &Value, prefs: &Prefs, area: Option<&str>) -> Option<Device
             caps.extend([Capability::TurnOn, Capability::TurnOff]);
             if attrs.get("device_class").and_then(Value::as_str) == Some("outlet") { Kind::Plug } else { Kind::Switch }
         }
+        "vacuum" => {
+            for (bit, cap) in [
+                (feature::VACUUM_START, Capability::Clean),
+                (feature::VACUUM_CLEAN_AREA, Capability::CleanArea),
+                (feature::VACUUM_PAUSE, Capability::Pause),
+                (feature::VACUUM_RETURN_HOME, Capability::Dock),
+            ] {
+                if has(bit) {
+                    caps.push(cap);
+                }
+            }
+            state_out.on = match raw_state {
+                "cleaning" | "returning" => Some(true),
+                "docked" | "idle" | "paused" | "error" => Some(false),
+                _ => None,
+            };
+            state_out.status = online.then(|| raw_state.to_string());
+            state_out.battery = attrs.get("battery_level").and_then(Value::as_f64).map(percent_of);
+            Kind::Vacuum
+        }
+        "climate" => {
+            for (bit, cap) in [
+                (feature::CLIMATE_TURN_ON, Capability::TurnOn),
+                (feature::CLIMATE_TURN_OFF, Capability::TurnOff),
+                (feature::CLIMATE_TARGET_TEMPERATURE, Capability::Temperature),
+            ] {
+                if has(bit) {
+                    caps.push(cap);
+                }
+            }
+            state_out.status = online.then(|| raw_state.to_string());
+            state_out.temperature = attrs.get("current_temperature").and_then(Value::as_f64).map(tenths);
+            state_out.target = attrs.get("temperature").and_then(Value::as_f64).map(tenths);
+            state_out.humidity = attrs.get("current_humidity").and_then(Value::as_f64).map(percent_of);
+            Kind::Climate
+        }
+        "sensor" => {
+            let reading = raw_state.trim().replace(',', ".").parse::<f64>().ok();
+            match attrs.get("device_class").and_then(Value::as_str) {
+                Some("temperature") => {
+                    let fahrenheit = attrs.get("unit_of_measurement").and_then(Value::as_str) == Some("°F");
+                    state_out.temperature = reading.map(|v| if fahrenheit { (v - 32.0) * 5.0 / 9.0 } else { v }).map(tenths);
+                }
+                Some("humidity") => state_out.humidity = reading.map(percent_of),
+                _ => return None,
+            }
+            state_out.on = None;
+            Kind::Sensor
+        }
         _ => return None,
     };
     caps.sort();
@@ -290,6 +435,12 @@ pub fn service(device: &Device, action: &Action) -> Result<(String, &'static str
         ("media_player", Action::Mute(m)) => ("volume_mute", with(json!({ "is_volume_muted": m }))),
         ("media_player", Action::OpenApp(app)) => ("select_source", with(json!({ "source": model::resolve_app(device, app)? }))),
         ("light", Action::SetBrightness(p)) => ("turn_on", with(json!({ "brightness_pct": p }))),
+        ("vacuum", Action::Clean) => ("start", base.clone()),
+        // The rooms are Home Assistant area ids by now (mod.rs turns the names into ids first).
+        ("vacuum", Action::CleanArea(areas)) => ("clean_area", with(json!({ "cleaning_area_id": areas }))),
+        ("vacuum", Action::Pause) => ("pause", base.clone()),
+        ("vacuum", Action::Dock) => ("return_to_base", base.clone()),
+        ("climate", Action::SetTemperature(t)) => ("set_temperature", with(json!({ "temperature": t }))),
         _ => return Err(format!("{} cannot {} through Home Assistant.", device.name, action.describe())),
     };
     if !allowed(&domain, service) {
@@ -349,8 +500,61 @@ mod tests {
         assert!(!plug.state.online);
         let overridden = device(&json!({"entity_id":"switch.cafeteira","state":"on"}), &Prefs { name: "Café".into(), room: "Cozinha".into(), exposed: true, ask: Some(false) }, Some("Area")).unwrap();
         assert_eq!((overridden.name.as_str(), overridden.room.as_str(), overridden.ask), ("Café", "Cozinha", false));
-        assert!(device(&json!({"entity_id":"sensor.temperature","state":"21"}), &exposed(), None).is_none());
+        assert!(device(&json!({"entity_id":"sensor.temperature","state":"21"}), &exposed(), None).is_none(), "a sensor without a class");
+        assert!(device(&json!({"entity_id":"sensor.power","state":"21","attributes":{"device_class":"power"}}), &exposed(), None).is_none());
         assert!(device(&json!({"entity_id":"script.reboot","state":"off"}), &exposed(), None).is_none());
+        assert!(device(&json!({"entity_id":"person.ana","state":"home"}), &exposed(), None).is_none(), "people are not devices");
+    }
+
+    #[test]
+    fn a_vacuum_an_air_conditioner_and_sensors_report_what_they_can_do() {
+        // START | PAUSE | RETURN_HOME | CLEAN_AREA | STATE
+        let robo = device(
+            &json!({"entity_id":"vacuum.robo","state":"docked","attributes":{"friendly_name":"Robô","supported_features":8192|4|16|16384|4096,"battery_level":87}}),
+            &exposed(),
+            Some("Sala"),
+        )
+        .unwrap();
+        assert_eq!(robo.kind, Kind::Vacuum);
+        assert_eq!(robo.caps, vec![Capability::Clean, Capability::CleanArea, Capability::Pause, Capability::Dock]);
+        assert_eq!((robo.state.on, robo.state.status.as_deref(), robo.state.battery), (Some(false), Some("docked"), Some(87)));
+        assert!(!robo.ask, "a vacuum does not ask by default");
+        let cleaning = device(&json!({"entity_id":"vacuum.robo","state":"cleaning","attributes":{"supported_features":8192}}), &exposed(), None).unwrap();
+        assert_eq!((cleaning.state.on, cleaning.caps.clone()), (Some(true), vec![Capability::Clean]));
+        // TARGET_TEMPERATURE | TURN_OFF | TURN_ON
+        let ar = device(
+            &json!({"entity_id":"climate.quarto","state":"cool","attributes":{"supported_features":1|128|256,"current_temperature":27.5,"temperature":23,"current_humidity":55.4}}),
+            &exposed(),
+            Some("Quarto"),
+        )
+        .unwrap();
+        assert_eq!(ar.kind, Kind::Climate);
+        assert_eq!(ar.caps, vec![Capability::TurnOn, Capability::TurnOff, Capability::Temperature]);
+        assert_eq!(ar.state, DeviceState { online: true, on: Some(true), status: Some("cool".into()), temperature: Some(275), target: Some(230), humidity: Some(55), ..DeviceState::default() });
+        let off = device(&json!({"entity_id":"climate.sala","state":"off","attributes":{"supported_features":1}}), &exposed(), None).unwrap();
+        assert_eq!((off.state.on, off.caps.clone()), (Some(false), vec![Capability::Temperature]));
+        let temp = device(&json!({"entity_id":"sensor.sala_t","state":"77","attributes":{"device_class":"temperature","unit_of_measurement":"°F"}}), &exposed(), None).unwrap();
+        assert_eq!((temp.kind, temp.state.temperature, temp.state.on, temp.caps.len()), (Kind::Sensor, Some(250), None, 0));
+        let hum = device(&json!({"entity_id":"sensor.sala_h","state":"61,6","attributes":{"device_class":"humidity"}}), &exposed(), None).unwrap();
+        assert_eq!(hum.state.humidity, Some(62));
+    }
+
+    #[test]
+    fn people_batteries_and_areas_are_read_from_the_states() {
+        let states = vec![
+            json!({"entity_id":"person.ana","state":"home","attributes":{"friendly_name":"Ana"}}),
+            json!({"entity_id":"person.bruno","state":"not_home"}),
+            json!({"entity_id":"person.caio","state":"unknown"}),
+            json!({"entity_id":"sensor.robo_battery","state":"42","attributes":{"device_class":"battery"}}),
+            json!({"entity_id":"sensor.robo_cleaned_area","state":"12","attributes":{"device_class":"area"}}),
+        ];
+        assert_eq!(people(&states), vec![Person { name: "Ana".into(), home: true }, Person { name: "person.bruno".into(), home: false }]);
+        assert_eq!(battery_for(&states, "vacuum.robo"), Some(42));
+        assert_eq!(battery_for(&states, "vacuum.outro"), None);
+        let areas: BTreeMap<String, String> = [("quarto".to_string(), "Quarto".to_string()), ("sala_de_estar".into(), "Sala de Estar".into())].into();
+        assert_eq!(area_ids_for(&areas, &["sala de estar".into(), "QUARTO".into(), "Quarto".into()]).unwrap(), vec!["sala_de_estar", "quarto"]);
+        let err = area_ids_for(&areas, &["Garagem".into()]).unwrap_err();
+        assert!(err.contains("Garagem") && err.contains("Quarto"), "{err}");
     }
 
     #[test]
@@ -369,6 +573,18 @@ mod tests {
         assert!(s(Action::OpenApp("Spotify".into())).is_err());
         assert!(s(Action::SetBrightness(40)).is_err());
         assert!(s(Action::SetChannel("5".into())).is_err(), "channels are not offered through Home Assistant");
+        assert!(s(Action::Clean).is_err(), "a TV does not clean");
+        let robo = device(&json!({"entity_id":"vacuum.robo","state":"docked","attributes":{"supported_features":8192|4|16|16384}}), &exposed(), None).unwrap();
+        let v = |a: Action| service(&robo, &a).map(|(d, s, data)| (format!("{d}.{s}"), data));
+        assert_eq!(v(Action::Clean).unwrap(), ("vacuum.start".into(), json!({"entity_id":"vacuum.robo"})));
+        assert_eq!(v(Action::CleanArea(vec!["quarto".into(), "sala".into()])).unwrap(), ("vacuum.clean_area".into(), json!({"entity_id":"vacuum.robo","cleaning_area_id":["quarto","sala"]})));
+        assert_eq!(v(Action::Pause).unwrap().0, "vacuum.pause");
+        assert_eq!(v(Action::Dock).unwrap().0, "vacuum.return_to_base");
+        let ar = device(&json!({"entity_id":"climate.quarto","state":"off","attributes":{"supported_features":1|128|256}}), &exposed(), None).unwrap();
+        let c = |a: Action| service(&ar, &a).map(|(d, s, data)| (format!("{d}.{s}"), data));
+        assert_eq!(c(Action::TurnOn).unwrap().0, "climate.turn_on");
+        assert_eq!(c(Action::SetTemperature(23)).unwrap(), ("climate.set_temperature".into(), json!({"entity_id":"climate.quarto","temperature":23})));
+        assert!(!allowed("vacuum", "send_command") && !allowed("climate", "set_preset_mode"), "nothing past the list");
         let lamp = device(&json!({"entity_id":"light.teto","state":"on","attributes":{"supported_color_modes":["hs"]}}), &exposed(), None).unwrap();
         assert_eq!(service(&lamp, &Action::SetBrightness(40)).unwrap().2, json!({"entity_id":"light.teto","brightness_pct":40}));
         // Whatever comes in, only the list goes out.

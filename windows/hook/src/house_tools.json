@@ -6,26 +6,56 @@
     "inputSchema": {
       "type": "object",
       "properties": {
-        "device": { "type": "string", "description": "Optional: one device (id or name) to see in full, with all its apps and channels." }
+        "device": {
+          "type": "string",
+          "description": "Optional: one device (id or name) to see in full, with all its apps and channels."
+        }
       }
     }
   },
   {
     "name": "home_control",
     "title": "Mochi's home: control a device",
-    "description": "Do one action on one device of the user's home: turn it on or off, set or step the volume, mute, open an app, change the channel, set a light's brightness. Only actions the device reports in home_devices work. One action per call, in order: to turn on the TV and open an app, call turn_on, read its answer, then open_app. The answer says what the device reports afterwards: tell the user exactly that, and never say an action worked if the answer says otherwise. Plugs, switches and some devices wait for the user's approval in Coucou (on the computer, or on their phone).",
+    "description": "Do one action on one device of the user's home: turn it on or off, set or step the volume, mute, open an app, change the channel, set a light's brightness, start, pause or dock the vacuum or send it to some rooms, set the air conditioning's temperature. Only actions the device reports in home_devices work. One action per call, in order: to turn on the TV and open an app, call turn_on, read its answer, then open_app. The answer says what the device reports afterwards: tell the user exactly that, and never say an action worked if the answer says otherwise. Plugs, switches and some devices wait for the user's approval in Coucou (on the computer, or on their phone).",
     "inputSchema": {
       "type": "object",
       "properties": {
-        "device": { "type": "string", "description": "The device's id from home_devices, or its name with its room, like \"TV da sala\"." },
+        "device": {
+          "type": "string",
+          "description": "The device's id from home_devices, or its name with its room, like \"TV da sala\"."
+        },
         "action": {
           "type": "string",
-          "enum": ["turn_on", "turn_off", "set_volume", "volume_up", "volume_down", "mute", "unmute", "open_app", "set_channel", "channel_up", "channel_down", "set_brightness"],
+          "enum": [
+            "turn_on",
+            "turn_off",
+            "set_volume",
+            "volume_up",
+            "volume_down",
+            "mute",
+            "unmute",
+            "open_app",
+            "set_channel",
+            "channel_up",
+            "channel_down",
+            "set_brightness",
+            "clean",
+            "clean_area",
+            "pause",
+            "return_to_base",
+            "set_temperature"
+          ],
           "description": "What to do."
         },
-        "value": { "type": "string", "description": "set_volume and set_brightness: a percent from 0 to 100. open_app: the app's name. set_channel: the channel's number or name. Leave it out for the other actions." }
+        "value": {
+          "type": "string",
+          "description": "set_volume and set_brightness: a percent from 0 to 100. set_temperature: degrees Celsius from 10 to 32. open_app: the app's name. set_channel: the channel's number or name. clean_area: the rooms, comma separated, like \"Quarto, Sala\". Leave it out for the other actions."
+        }
       },
-      "required": ["device", "action"]
+      "required": [
+        "device",
+        "action"
+      ]
     }
   },
   {
@@ -35,9 +65,48 @@
     "inputSchema": {
       "type": "object",
       "properties": {
-        "routine": { "type": "string", "description": "The routine's name or id." }
+        "routine": {
+          "type": "string",
+          "description": "The routine's name or id."
+        }
       },
-      "required": ["routine"]
+      "required": [
+        "routine"
+      ]
+    }
+  },
+  {
+    "name": "zheus_world",
+    "title": "Zheus One: the World State",
+    "description": "Zheus One's World State: the user's home as one picture — each shared device and its state (the vacuum, the air conditioning, the lights, the TVs, the sensors), who is home, each room's temperature, and the facts that tie them together. Call it before planning anything in the house, or when the user asks how the house is.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    }
+  },
+  {
+    "name": "zheus_mission",
+    "title": "Zheus One: start a mission",
+    "description": "Start one of Zheus One's missions. \"arrival\": the user is on their way home; Coucou plans the whole house for their arrival (air conditioning on time, the vacuum done before they arrive, lights after dark, the day's summary), shows the plan with what clashes, and runs it only once the user says yes. \"situation\": the house, the plan and the decisions waiting go full screen on the user's TV. Never act on the devices yourself for a mission: Coucou runs it.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "mission": {
+          "type": "string",
+          "enum": [
+            "arrival",
+            "situation"
+          ],
+          "description": "Which mission."
+        },
+        "eta_minutes": {
+          "type": "integer",
+          "description": "arrival: the minutes until the user is home, when they said it. Leave it out otherwise."
+        }
+      },
+      "required": [
+        "mission"
+      ]
     }
   }
 ]

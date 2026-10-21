@@ -70,6 +70,8 @@ pub struct Home {
     pairings: Mutex<HashMap<String, philips::PairingState>>,
     /// One reading of the house at a time.
     reading: tokio::sync::Mutex<()>,
+    /// Who Home Assistant said was home, at the last reading (empty without Home Assistant or its `person`s).
+    people: Mutex<Vec<home_assistant::Person>>,
 }
 
 #[derive(Clone)]
@@ -124,6 +126,7 @@ pub async fn read(app: &AppHandle, fresh: bool) -> Vec<Device> {
     let _one = home.reading.lock().await;
     let s = setup(app);
     let mut devices = Vec::new();
+    let mut people = Vec::new();
     if let (false, Some(token)) = (s.ha_url.is_empty(), config::ha_token()) {
         match HomeAssistant::new(&s.ha_url, &token) {
             Ok(ha) => match ha.states().await {
@@ -134,9 +137,13 @@ pub async fn read(app: &AppHandle, fresh: bool) -> Vec<Device> {
                         let prefs = ha_prefs(s.prefs.get(&format!("ha:{id}")));
                         if let Some(mut d) = home_assistant::device(state, &prefs, areas.get(id).map(String::as_str)) {
                             d.ask |= s.ask_all;
+                            if d.kind == Kind::Vacuum && d.state.battery.is_none() {
+                                d.state.battery = home_assistant::battery_for(&states, id);
+                            }
                             devices.push(d);
                         }
                     }
+                    people = home_assistant::people(&states);
                 }
                 Err(e) => log::line(format!("home: Home Assistant not read: {e}")),
             },
@@ -159,7 +166,13 @@ pub async fn read(app: &AppHandle, fresh: bool) -> Vec<Device> {
     }
     devices.sort_by(|a, b| (model::normalize(&a.room), model::normalize(&a.name)).cmp(&(model::normalize(&b.room), model::normalize(&b.name))));
     *home.cache.lock().unwrap() = Some((Instant::now(), devices.clone()));
+    *home.people.lock().unwrap() = people;
     devices
+}
+
+/// Who Home Assistant said was home at the last reading of the house (read() first for a fresh answer).
+pub fn people(app: &AppHandle) -> Vec<home_assistant::Person> {
+    app.try_state::<Home>().map(|h| h.people.lock().unwrap().clone()).unwrap_or_default()
 }
 
 fn ha_prefs(p: Option<&DevicePrefs>) -> home_assistant::Prefs {
@@ -273,10 +286,13 @@ pub fn state_text(s: &DeviceState) -> String {
         return "not answering".into();
     }
     let mut parts = Vec::new();
-    match s.on {
-        Some(true) => parts.push("on".to_string()),
-        Some(false) => parts.push("off (standby)".to_string()),
-        None => {}
+    // A vacuum's or an air conditioner's own status ("docked", "cool") says more than on or off.
+    let status = s.status.as_deref().filter(|st| *st != "off");
+    match (s.on, status) {
+        (_, Some(_)) => {}
+        (Some(true), None) => parts.push("on".to_string()),
+        (Some(false), None) => parts.push("off (standby)".to_string()),
+        (None, None) => {}
     }
     if let Some(v) = s.volume {
         parts.push(format!("volume {v}%"));
@@ -293,7 +309,41 @@ pub fn state_text(s: &DeviceState) -> String {
     if let Some(c) = &s.channel {
         parts.push(format!("channel {c}"));
     }
+    if let Some(st) = status {
+        parts.push(st.replace('_', " "));
+    }
+    if let Some(b) = s.battery {
+        parts.push(format!("battery {b}%"));
+    }
+    if let Some(t) = s.temperature {
+        parts.push(format!("{} °C in the room", model::degrees_text(t)));
+    }
+    if let Some(t) = s.target {
+        parts.push(format!("set to {} °C", model::degrees_text(t)));
+    }
+    if let Some(h) = s.humidity {
+        parts.push(format!("humidity {h}%"));
+    }
     if parts.is_empty() { "answering".into() } else { parts.join(", ") }
+}
+
+/// A vacuum's or a climate device's status in the user's words ("Cleaning", "Cooling"); None for "off" (said by
+/// On/Off already) and for a status nobody named.
+pub fn status_words(status: &str) -> Option<String> {
+    Some(match status {
+        "cleaning" => t("Cleaning"),
+        "docked" => t("On its dock"),
+        "returning" => t("Going back to its dock"),
+        "paused" => t("Paused"),
+        "idle" => t("Idle"),
+        "error" => t("Needs help"),
+        "cool" => t("Cooling"),
+        "heat" => t("Heating"),
+        "heat_cool" | "auto" => t("Automatic"),
+        "dry" => t("Drying"),
+        "fan_only" => t("Fan"),
+        _ => return None,
+    })
 }
 
 /// The state in the user's words, for the island, Settings and the record: "On · volume 20% · YouTube".
@@ -302,10 +352,12 @@ pub fn state_words(s: &DeviceState) -> String {
         return t("Not answering");
     }
     let mut parts = Vec::new();
-    match s.on {
-        Some(true) => parts.push(t("On")),
-        Some(false) => parts.push(t("Off")),
-        None => {}
+    let status = s.status.as_deref().and_then(status_words);
+    match (s.on, &status) {
+        (_, Some(_)) => {}
+        (Some(true), None) => parts.push(t("On")),
+        (Some(false), None) => parts.push(t("Off")),
+        (None, None) => {}
     }
     if let Some(v) = s.volume {
         parts.push(tf("Volume {percent}%", &[("percent", &v.to_string())]));
@@ -321,6 +373,21 @@ pub fn state_words(s: &DeviceState) -> String {
     }
     if let Some(c) = &s.channel {
         parts.push(tf("Channel {channel}", &[("channel", c)]));
+    }
+    if let Some(words) = status {
+        parts.push(words);
+    }
+    if let Some(b) = s.battery {
+        parts.push(tf("Battery {percent}%", &[("percent", &b.to_string())]));
+    }
+    if let Some(t) = s.temperature {
+        parts.push(format!("{} °C", model::degrees_text(t)));
+    }
+    if let Some(t) = s.target {
+        parts.push(tf("Set to {degrees} °C", &[("degrees", &model::degrees_text(t))]));
+    }
+    if let Some(h) = s.humidity {
+        parts.push(tf("Humidity {percent}%", &[("percent", &h.to_string())]));
     }
     parts.join(" · ")
 }
@@ -449,6 +516,9 @@ async fn tv_act(app: &AppHandle, conf: &TvConf, device: &Device, action: &Action
             Ok(Done { confirmed: true, state: tv_state(app.clone(), conf.clone()).await, already: false })
         }
         Action::SetBrightness(_) => Err(format!("{} has no brightness.", device.name)),
+        Action::Clean | Action::CleanArea(_) | Action::Pause | Action::Dock | Action::SetTemperature(_) => {
+            Err(tf("{device} does not offer that.", &[("device", &device.name)]))
+        }
     }
 }
 
@@ -686,7 +756,13 @@ async fn samsung_act(app: &AppHandle, conf: &TvConf, device: &Device, action: &A
             samsung_key(app, conf, if *action == Action::ChannelUp { "KEY_CHUP" } else { "KEY_CHDOWN" }, false).await?;
             Ok(Done { confirmed: true, state: now().await, already: false })
         }
-        Action::SetChannel(_) | Action::SetBrightness(_) => Err(tf("{device} does not offer that.", &[("device", &device.name)])),
+        Action::SetChannel(_)
+        | Action::SetBrightness(_)
+        | Action::Clean
+        | Action::CleanArea(_)
+        | Action::Pause
+        | Action::Dock
+        | Action::SetTemperature(_) => Err(tf("{device} does not offer that.", &[("device", &device.name)])),
     }
 }
 
@@ -889,9 +965,15 @@ async fn android_act(conf: &TvConf, device: &Device, action: &Action) -> Result<
             let (confirmed, state) = until(CONFIRM_WAIT, reader, move |s| s.app.as_deref() == Some(label.as_str())).await;
             Ok(Done { confirmed, state, already: false })
         }
-        Action::SetChannel(_) | Action::ChannelUp | Action::ChannelDown | Action::SetBrightness(_) => {
-            Err(tf("{device} does not offer that.", &[("device", &device.name)]))
-        }
+        Action::SetChannel(_)
+        | Action::ChannelUp
+        | Action::ChannelDown
+        | Action::SetBrightness(_)
+        | Action::Clean
+        | Action::CleanArea(_)
+        | Action::Pause
+        | Action::Dock
+        | Action::SetTemperature(_) => Err(tf("{device} does not offer that.", &[("device", &device.name)])),
     }
 }
 
@@ -906,7 +988,12 @@ async fn ha_state(url: String, token: String, entity: String, prefs: home_assist
 async fn ha_act(s: &Setup, device: &Device, action: &Action) -> Result<Done, String> {
     let token = config::ha_token().ok_or_else(|| t("Connect Home Assistant first, in Settings → Mochi's home."))?;
     let ha = HomeAssistant::new(&s.ha_url, &token)?;
-    let (domain, service, data) = home_assistant::service(device, action)?;
+    // The rooms by their names, as the user and the model say them; Home Assistant wants its area ids.
+    let sent = match action {
+        Action::CleanArea(rooms) => Action::CleanArea(home_assistant::area_ids_for(&ha.area_ids().await, rooms)?),
+        other => other.clone(),
+    };
+    let (domain, service, data) = home_assistant::service(device, &sent)?;
     ha.call(&domain, service, &data).await?;
     let entity = device.id.trim_start_matches("ha:").to_string();
     let prefs = ha_prefs(s.prefs.get(&device.id));
@@ -919,7 +1006,11 @@ async fn ha_act(s: &Setup, device: &Device, action: &Action) -> Result<Done, Str
         Action::OpenApp(app) => model::resolve_app(device, app).ok(),
         _ => None,
     };
-    let wait = if matches!(action, Action::TurnOn | Action::TurnOff) { Duration::from_secs(10) } else { Duration::from_secs(3) };
+    let wait = if matches!(action, Action::TurnOn | Action::TurnOff | Action::Clean | Action::CleanArea(_) | Action::Pause | Action::Dock) {
+        Duration::from_secs(10)
+    } else {
+        Duration::from_secs(3)
+    };
     let (confirmed, state) = until(wait, reader, move |st| match &action {
         Action::TurnOn => st.on == Some(true),
         Action::TurnOff => st.on == Some(false),
@@ -927,6 +1018,10 @@ async fn ha_act(s: &Setup, device: &Device, action: &Action) -> Result<Done, Str
         Action::Mute(m) => st.muted == Some(*m),
         Action::OpenApp(_) => st.app == source,
         Action::SetBrightness(p) => st.brightness.is_some_and(|b| b.abs_diff(*p) <= 3),
+        Action::Clean | Action::CleanArea(_) => st.status.as_deref() == Some("cleaning"),
+        Action::Pause => st.status.as_deref() == Some("paused"),
+        Action::Dock => matches!(st.status.as_deref(), Some("returning" | "docked")),
+        Action::SetTemperature(t) => st.target.is_some_and(|v| (v - i16::from(*t) * 10).abs() <= 5),
         _ => true,
     })
     .await;
@@ -1047,6 +1142,17 @@ impl HomeRunner for Runner {
             HomeResult { ok: o.ok, text: o.text, detail: o.detail }
         })
     }
+
+    fn world<'a>(&'a self) -> BoxFuture<'a, HomeResult> {
+        Box::pin(async move {
+            let w = crate::zheus_one::world_now(&self.app, true).await;
+            HomeResult { ok: true, text: w.for_model(), detail: w.headline() }
+        })
+    }
+
+    fn mission<'a>(&'a self, mission: &'a str, eta: Option<u32>) -> BoxFuture<'a, HomeResult> {
+        Box::pin(async move { crate::zheus_one::mission_for_agent(&self.app, mission, eta).await })
+    }
 }
 
 /// What Mochi's hands get for one turn: the devices he may use and the routines, and the way to act on them. None
@@ -1084,6 +1190,7 @@ pub async fn agent_env_for(app: &AppHandle, origin: &'static str) -> Option<Home
         devices,
         routines,
         runner: Arc::new(Runner { app: app.clone(), origin }),
+        zheus: app.state::<Shared>().settings.lock().unwrap().zheus_enabled,
     })
 }
 

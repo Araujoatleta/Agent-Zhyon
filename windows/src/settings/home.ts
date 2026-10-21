@@ -4,7 +4,7 @@
 
 import { Bridge } from "../core/bridge";
 import {
-  ACTIONS, actionsFor, capsLine, cloneRoutine, foundLine, kindLabel, originLabel, roomsOf, stateLine, stepLine, tvLine,
+  ACTIONS, actionsFor, capsLine, cloneRoutine, foundLine, kindLabel, originLabel, roomsOf, stateLine, stepLine, tvLine, valueHint,
   type DevicePrefs, type Found, type HomeDevice, type HomeStatus, type Routine, type RoutineStep, type TvSummary,
 } from "../core/home";
 import { answerVoice, speak } from "../core/voice";
@@ -319,7 +319,7 @@ export function homeSection(makeToggle: Toggle, voice?: VoiceChoice): HTMLElemen
     const fillValues = () => {
       const kind = ACTIONS.find((a) => a.id === pick.value)?.value ?? null;
       value.hidden = kind === null;
-      value.placeholder = kind === "percent" ? "0–100" : kind === "app" ? "YouTube" : kind === "channel" ? "5" : "";
+      value.placeholder = valueHint(kind);
       const list = kind === "app" ? d.apps : kind === "channel" ? d.channels.map((c) => `${c.number}`) : [];
       values.replaceChildren(...list.slice(0, 400).map((v) => h("option", { value: v })));
     };
@@ -415,7 +415,7 @@ export function homeSection(makeToggle: Toggle, voice?: VoiceChoice): HTMLElemen
           const showValue = () => {
             const kind = ACTIONS.find((a) => a.id === action.value)?.value ?? null;
             value.hidden = kind === null;
-            value.placeholder = kind === "percent" ? "0–100" : kind === "app" ? "YouTube" : kind === "channel" ? "5" : "";
+            value.placeholder = valueHint(kind);
           };
           showValue();
           device.addEventListener("change", () => {
