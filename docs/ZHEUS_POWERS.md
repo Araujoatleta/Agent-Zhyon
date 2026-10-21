@@ -30,7 +30,10 @@ Coucou keeps a copy before it replaces the list (the last 10, in `powers-backups
 ## Trying it: talk to it
 
 1. **The fund guardian** — "How are my real-estate funds?", "What needs me in my funds this month?" (record dates,
-   payments, assemblies and their deadlines, offerings, material facts, each with the document's link).
+   payments, assemblies and their deadlines, offerings, material facts, each with the document's link). If Zheus says
+   it does not know a fund's CNPJ (the CVM lists some funds without the ISIN of their shares; the island says so too),
+   tell it: "BTCI11's CNPJ is 09.552.812/0001-14" (the fund's monthly report on FundosNet shows it). Coucou checks its
+   digits and the name B3 trades the shares under, then reads the fund.
 2. **Unsustainable dividends** — "Is any of my funds paying more than it earns?" (VP per share falling while it pays,
    negative asset returns, dividends below their average, P/VP; for paper funds, a projection from the Focus survey).
 3. **A living thesis** — "My thesis for TIMS3: EBITDA margin above 40%, net debt/EBITDA below 2, revenue growing. Keep

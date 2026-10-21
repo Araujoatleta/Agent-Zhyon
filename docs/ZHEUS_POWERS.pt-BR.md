@@ -34,6 +34,9 @@ Os exemplos abaixo são frases que você pode mandar como estão, na ilha, no iP
 - "Como estão meus FIIs?"
 - "O que precisa de mim nos meus fundos este mês?" (data-com, pagamentos, assembleias com prazo, ofertas, fatos
   relevantes, com o link do documento)
+- Se o Zheus disser que não sabe o CNPJ de um fundo (a CVM publica alguns fundos sem o ISIN das cotas; a ilha também
+  avisa), diga: "O CNPJ do BTCI11 é 09.552.812/0001-14" (ele aparece no relatório gerencial do fundo na FundosNet). O
+  Coucou confere os dígitos e o nome de pregão das cotas na B3 e passa a ler o fundo.
 
 **2. Detector de dividendo insustentável**
 - "Algum FII meu está pagando mais do que ganha?" (VP/cota caindo enquanto paga, retorno dos ativos negativo,
