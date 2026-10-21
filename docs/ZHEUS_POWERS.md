@@ -120,10 +120,11 @@ On 21 October 2026 a GitHub Actions workflow (`powers-live.yml`) read the real s
   future; BTCI11's fund reports the ISIN of its old ticker, FEXC11 (Zheus now asks for the CNPJ); since 2025 the CVM
   writes a fund's receivables as CRI_CRA and LCI_LCA, so paper funds read as brick (now BTCI11, 82 % in CRI, and
   PORD11, 88 %, read as paper); B3's register of listed funds answers nothing any more, so it is no longer asked;
-- **not checked against the real files yet**: the share count from the CVM's "composição do capital" (the GitHub
-  Actions runs stopped starting on 21 October, before they reached it); without it, Graham, Lynch and a share's Bazin
-  say they lack it, and Zheus can give the figures itself. FundosNet is slow from abroad; from Brazil it usually
-  answers well.
+- **a share's ceiling prices**: the share count from the CVM's "composição do capital" was read too (TIM: 2,388,668,322
+  shares on 30 June 2026, those in treasury left out), and with it the earnings, book value and dividends a share of
+  Bazin, projected Bazin and Graham. TIM's Peter Lynch is left out while the CVM has no earnings for the year before
+  (the 2025 DFP came at zero); Zheus can give the growth. FundosNet is slow from abroad; from Brazil it usually answers
+  well.
 
 Not tested yet: Hermes calling these tools in a real session on your Windows computer (the tests cover the MCP protocol
 and Coucou's side), and the screens on Windows itself (they were looked at in Chromium).

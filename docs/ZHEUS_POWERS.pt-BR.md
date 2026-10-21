@@ -159,9 +159,11 @@ Em 21/10/2026, um workflow do GitHub Actions (`powers-live.yml`) leu as fontes r
   desde 2025 a CVM registra os recebíveis dos fundos em CRI_CRA e LCI_LCA, e os fundos de papel saíam como tijolo
   (agora o BTCI11, 82% em CRI, e o PORD11, 88%, saem como papel); o cadastro de fundos listados da B3 não responde mais
   nada, então deixou de ser consultado;
-- **ainda não conferido com os arquivos reais**: o número de ações da "composição do capital" da CVM (as execuções do
-  GitHub Actions pararam de iniciar em 21/10, antes de chegar nele); sem ele, Graham, Lynch e o Bazin das ações dizem
-  que falta, e o Zheus pode passar os números. A FundosNet é lenta vista do exterior; do Brasil costuma responder bem.
+- **o preço teto das ações**: o número de ações da "composição do capital" da CVM também foi lido (TIM: 2.388.668.322
+  ações em 30/06/2026, já sem as em tesouraria), e com ele o LPA, o VPA e o dividendo por ação do Bazin, do Bazin
+  projetivo e do Graham. O Peter Lynch da TIM fica de fora enquanto a CVM não tem o lucro do ano anterior (a DFP 2025
+  veio zerada); o Zheus pode passar o crescimento. A FundosNet é lenta vista do exterior; do Brasil costuma responder
+  bem.
 
 Ainda não testado: o Hermes chamando estas ferramentas numa sessão real no seu Windows (os testes cobrem o protocolo MCP
 e o Coucou), e as telas no Windows (vistas no Chromium daqui).
