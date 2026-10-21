@@ -508,6 +508,9 @@ pub struct CompanyData {
     pub figures: Vec<Figures>,
     #[serde(default)]
     pub checked: Option<Date>,
+    /// The CVM's files that could not be read at the last reading (the others were).
+    #[serde(default)]
+    pub problems: Vec<String>,
 }
 
 /// What Zheus read from the official sources, kept between runs.

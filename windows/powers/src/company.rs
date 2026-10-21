@@ -104,6 +104,38 @@ fn balances(figures: &[Figures]) -> (Option<&Figures>, Option<&Figures>) {
     (latest, year_before)
 }
 
+/// The quarters of `end`'s year so far (to `end`), at a year's pace, and the months they cover: for a company whose
+/// filings do not reach four quarters yet. None without the year's first quarter.
+pub fn so_far(quarters: &[Quarter], end: Date) -> Option<(Twelve, u32)> {
+    let qs: Vec<&Quarter> = quarters.iter().filter(|q| q.end.y == end.y && q.end <= end).collect();
+    let months = qs.len() as u32 * 3;
+    if qs.is_empty() || qs[0].end.m != 3 || months >= 12 {
+        return None;
+    }
+    let pace = 12.0 / months as f64;
+    let sum = |get: &dyn Fn(&Quarter) -> Option<f64>| qs.iter().map(|q| get(q)).sum::<Option<f64>>().map(|v| v * pace);
+    let ebit = sum(&|q| q.ebit);
+    let dep = sum(&|q| q.depreciation);
+    let ocf = sum(&|q| q.operating_cash);
+    let capex = sum(&|q| q.capex.or(Some(0.0)));
+    Some((
+        Twelve {
+            end,
+            revenue: sum(&|q| q.revenue),
+            gross_profit: sum(&|q| q.gross_profit),
+            ebit,
+            ebitda: ebit.zip(dep).map(|(e, d)| e + d),
+            financial_result: sum(&|q| q.financial_result),
+            net_income: sum(&|q| q.net_income),
+            operating_cash: ocf,
+            capex,
+            free_cash_flow: ocf.zip(capex).map(|(o, c)| o - c),
+            dividends_paid: sum(&|q| q.dividends_paid.or(Some(0.0))),
+        },
+        months,
+    ))
+}
+
 /// Twelve months of flows ending at a quarter.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -164,6 +196,10 @@ pub fn twelve(quarters: &[Quarter], end: Date) -> Option<Twelve> {
 #[serde(rename_all = "camelCase")]
 pub struct Metrics {
     pub end: Option<Date>,
+    /// The months the flows cover: 12, or fewer while the filings do not reach four quarters (the flows are then at
+    /// a year's pace; the ratios are the period's own).
+    #[serde(default)]
+    pub months: u32,
     pub now: BTreeMap<String, f64>,
     pub year_before: BTreeMap<String, f64>,
 }
@@ -218,11 +254,22 @@ pub fn metrics(figures: &[Figures]) -> Metrics {
     let Some(last) = qs.last().map(|q| q.end) else { return Metrics::default() };
     let (balance, balance_before) = balances(figures);
     let mut out = Metrics { end: Some(last), ..Metrics::default() };
+    let before = last.add_months(-12).last_of_month();
     if let Some(t) = twelve(&qs, last) {
         out.now = metrics_of(&t, balance);
-    }
-    if let Some(t) = twelve(&qs, last.add_months(-12).last_of_month()) {
-        out.year_before = metrics_of(&t, balance_before);
+        out.months = 12;
+        if let Some(t) = twelve(&qs, before) {
+            out.year_before = metrics_of(&t, balance_before);
+        }
+    } else if let Some((t, months)) = so_far(&qs, last) {
+        // Fewer than four quarters filed: the year so far, against the same months a year before.
+        out.now = metrics_of(&t, balance);
+        out.months = months;
+        if let Some((t, m)) = so_far(&qs, before) {
+            if m == months {
+                out.year_before = metrics_of(&t, balance_before);
+            }
+        }
     }
     for (k, label) in [("revenue", "revenue_growth"), ("net_income", "net_income_growth"), ("ebitda", "ebitda_growth"), ("dividends_paid", "dividends_growth")] {
         if let (Some(now), Some(then)) = (out.now.get(k), out.year_before.get(k)) {
@@ -397,6 +444,12 @@ fn show(metric: &str, v: f64) -> String {
 pub fn for_model(ticker: &str, name: &str, m: &Metrics, checks: &[Check], flags: &[String]) -> String {
     let mut out = format!("{ticker} — {name}");
     match m.end {
+        Some(end) if m.months > 0 && m.months < 12 => out.push_str(&format!(
+            " (CVM filings: {} months of {} to {}, the amounts at a year's pace, since fewer than four quarters are filed; ratios are the period's own)",
+            m.months,
+            end.y,
+            end.br()
+        )),
         Some(end) => out.push_str(&format!(" (CVM filings, twelve months to {})", end.br())),
         None => {
             out.push_str(": no quarterly figures from the CVM yet.");
@@ -500,6 +553,39 @@ pub mod fixtures {
 mod tests {
     use super::fixtures::figures;
     use super::*;
+
+    #[test]
+    fn two_quarters_filed_read_at_a_years_pace() {
+        let d = |y, m, day| Date::new(y, m, day).unwrap();
+        let flows = |start: Date, end: Date, rev: f64, ebit: f64, net: f64, dep: Option<f64>, ocf: Option<f64>, capex: Option<f64>, div: Option<f64>| Figures {
+            start: Some(start),
+            end,
+            revenue: Some(rev),
+            ebit: Some(ebit),
+            net_income: Some(net),
+            depreciation: dep,
+            operating_cash: ocf,
+            capex,
+            dividends_paid: div,
+            ..Figures::default()
+        };
+        // TIM's 2026 ITRs as the CVM gave them (October 2026): the first quarter, the second's own DRE, the half year.
+        let figures = vec![
+            flows(d(2026, 1, 1), d(2026, 3, 31), 6_806_150_000.0, 1_514_518_000.0, 817_093_000.0, Some(1_738_642_000.0), Some(2_666_012_000.0), Some(1_353_901_000.0), Some(478_153_000.0)),
+            flows(d(2026, 4, 1), d(2026, 6, 30), 6_965_463_000.0, 1_700_788_000.0, 969_571_000.0, None, None, None, None),
+            flows(d(2026, 1, 1), d(2026, 6, 30), 13_771_614_000.0, 3_215_307_000.0, 1_786_664_000.0, Some(3_535_006_000.0), Some(5_781_258_000.0), Some(2_288_751_000.0), Some(1_631_400_000.0)),
+            Figures { start: None, end: d(2026, 6, 30), debt: Some(2_649_163_000.0), cash: Some(2_677_384_000.0), equity: Some(25_015_378_000.0), ..Figures::default() },
+        ];
+        let m = metrics(&figures);
+        assert_eq!(m.months, 6);
+        assert!((m.now["revenue"] - 13_771_614_000.0 * 2.0).abs() < 1.0, "the half year at a year's pace");
+        let margin = (3_215_307_000.0 + 3_535_006_000.0) / 13_771_614_000.0 * 100.0;
+        assert!((m.now["ebitda_margin"] - margin).abs() < 1e-6, "a ratio is the period's own: {}", m.now["ebitda_margin"]);
+        assert!(m.now["net_debt_ebitda"] < 0.0, "more cash than debt");
+        let text = for_model("TIMS3", "TIM S.A.", &m, &[], &[]);
+        assert!(text.contains("6 months of 2026") && text.contains("ebitda_margin: 49"), "{text}");
+        assert!(m.year_before.is_empty(), "no 2025 quarter to compare with");
+    }
 
     #[test]
     fn quarters_come_from_three_month_figures_or_the_year_so_far() {

@@ -60,6 +60,8 @@ pub struct Env {
     pub web_search: bool,
     /// Mochi's home (the house, not the home folder), when it is on and has devices for him (smart_home::agent_env).
     pub house: Option<HomeEnv>,
+    /// Zheus' superpowers, when the user turned them on (powers::runner).
+    pub powers: Option<Arc<dyn PowersRunner>>,
 }
 
 /// Mochi's home for one turn: the devices he may use (read at the start of the turn), the routines, and the way to
@@ -108,6 +110,38 @@ pub trait HomeRunner: Send + Sync {
         Box::pin(async { HomeResult { ok: false, text: NO_ZHEUS.into(), detail: String::new() } })
     }
 }
+
+/// Zheus' superpowers (powers/ in the app, coucou-powers underneath): the user's portfolio, studies, English and
+/// training, read against the official data. They only read and keep the user's own records in Coucou: nothing on
+/// the computer, no money moved, no message sent. Behind a trait so the tools are tested without the app.
+pub trait PowersRunner: Send + Sync {
+    /// One of POWER_TOOLS with its arguments: the text for the model, and a short detail for the step.
+    fn call<'a>(&'a self, tool: &'a str, input: &'a Value) -> BoxFuture<'a, HomeResult>;
+}
+
+/// The superpowers' tools, described (with their arguments) in coucou-hook's house_tools.json, which both Mochi
+/// and the agents reached over MCP read.
+pub const POWER_TOOLS: &[&str] = &[
+    "wealth_portfolio",
+    "wealth_update",
+    "wealth_fii",
+    "wealth_events",
+    "wealth_company",
+    "wealth_plan",
+    "wealth_audit",
+    "wealth_decision",
+    "wealth_committee",
+    "wealth_macro",
+    "life_study",
+    "life_cards",
+    "life_english",
+    "life_gym",
+    "life_day",
+    "life_content",
+];
+
+/// What the model is told when it calls a superpower while they are off.
+pub const NO_POWERS: &str = "Zheus' superpowers are off on this computer: the user turns them on in Coucou, Settings → Zheus' superpowers.";
 
 /// What the model is told when it calls a home tool while the home is off.
 const NO_HOME: &str = "Mochi's home is not available on this computer: it is off, or no device is ticked for Mochi in Settings → Mochi's home.";
@@ -231,7 +265,23 @@ pub fn definitions(env: &Env) -> Vec<ToolDef> {
     if let Some(h) = &env.house {
         tools.extend(home_definitions(h));
     }
+    if env.powers.is_some() {
+        tools.extend(power_definitions());
+    }
     tools
+}
+
+/// The superpowers' tools as coucou-hook offers them to other agents: one description for both.
+pub fn power_definitions() -> Vec<ToolDef> {
+    let listed: Value = serde_json::from_str(include_str!("../../../hook/src/house_tools.json")).unwrap_or_else(|_| json!([]));
+    let Some(listed) = listed.as_array() else { return Vec::new() };
+    POWER_TOOLS
+        .iter()
+        .filter_map(|name| {
+            let t = listed.iter().find(|t| t["name"] == *name)?;
+            Some(ToolDef { name, description: t["description"].as_str()?.to_string(), schema: t["inputSchema"].clone() })
+        })
+        .collect()
 }
 
 /// The home's tools, offered only while the home has devices for Mochi.
@@ -314,6 +364,8 @@ pub enum Action {
     Open { url: Url },
     Info,
     Home(HomeCall),
+    /// One of Zheus' superpowers, with its arguments as the model sent them.
+    Power { tool: String, input: Value },
 }
 
 /// A call to Mochi's home, checked.
@@ -608,11 +660,31 @@ pub fn prepare(call: &Call, env: &Env) -> Result<Prepared, String> {
             // Showing a plan acts on nothing: the user's yes runs it, in Coucou.
             (Action::Home(HomeCall::Mission { mission: mission.clone(), eta }), Effect::Info, None, mission)
         }
+        name if POWER_TOOLS.contains(&name) => {
+            if env.powers.is_none() {
+                return Err(NO_POWERS.into());
+            }
+            let input = if input.is_object() { input.clone() } else { json!({}) };
+            let summary = power_summary(&input);
+            // They read the official data and keep the user's own records in Coucou: nothing to approve.
+            (Action::Power { tool: name.to_string(), input }, Effect::Info, None, summary)
+        }
         other => return Err(format!("There is no tool named \"{other}\".")),
     };
     let (inside, secret) = path_for_gate.as_deref().map_or((true, false), place);
     let gate = policy::gate(env.level, effect, inside, secret);
     Ok(Prepared { tool: call.name.clone(), action, gate, summary, outside: !inside, secret })
+}
+
+/// A superpower call in a few words, for its step: the asset or what it does ("GARE11", "record").
+fn power_summary(input: &Value) -> String {
+    let word = |key: &str| str_arg(input, key).map(str::trim).filter(|w| !w.is_empty() && w.chars().count() <= 40);
+    match (word("ticker"), word("action")) {
+        (Some(t), Some(a)) => format!("{a} · {t}"),
+        (Some(t), None) => t.to_uppercase(),
+        (None, Some(a)) => a.to_string(),
+        (None, None) => String::new(),
+    }
 }
 
 /// The routine `query` names: its id, or its name (case and accents aside).
@@ -718,6 +790,20 @@ pub async fn execute(prepared: &Prepared, env: &Env) -> Output {
         }
         Action::Info => Output::ok(system_info(env), None),
         Action::Home(call) => home_execute(call, env).await,
+        Action::Power { tool, input } => match &env.powers {
+            Some(p) => from_result(p.call(tool, input).await),
+            None => Output::error(NO_POWERS),
+        },
+    }
+}
+
+/// What a house action or a superpower gave, as a step.
+fn from_result(result: HomeResult) -> Output {
+    Output {
+        text: text::clip_middle(&result.text, MAX_RESULT),
+        is_error: !result.ok,
+        detail: (!result.detail.is_empty()).then(|| text::one_line(&result.detail, 120)),
+        output: (!result.ok).then(|| text::one_line(&result.detail, 300)),
     }
 }
 
@@ -733,12 +819,7 @@ async fn home_execute(call: &HomeCall, env: &Env) -> Output {
         HomeCall::World => h.runner.world().await,
         HomeCall::Mission { mission, eta } => h.runner.mission(mission, *eta).await,
     };
-    Output {
-        text: text::clip_middle(&result.text, MAX_RESULT),
-        is_error: !result.ok,
-        detail: (!result.detail.is_empty()).then(|| text::one_line(&result.detail, 120)),
-        output: (!result.ok).then(|| text::one_line(&result.detail, 300)),
-    }
+    from_result(result)
 }
 
 fn human_size(bytes: u64) -> String {
@@ -1134,6 +1215,7 @@ pub(crate) mod tests {
                 cancel: Arc::new(AtomicBool::new(false)),
                 web_search: false,
                 house: None,
+                powers: None,
             }
         }
     }
@@ -1471,6 +1553,56 @@ pub(crate) mod tests {
         let r = prepare(&call("home_routine", json!({"routine":"boa noite"})), &env).unwrap();
         assert_eq!((r.gate.clone(), r.summary.as_str()), (Gate::Free, "Boa noite"));
         assert!(prepare(&call("home_routine", json!({"routine":"festa"})), &env).unwrap_err().contains("Boa noite"));
+    }
+
+    /// Superpowers that record what they were asked and answer as Coucou would.
+    struct FakePowers {
+        calls: std::sync::Mutex<Vec<(String, Value)>>,
+    }
+
+    impl PowersRunner for FakePowers {
+        fn call<'a>(&'a self, tool: &'a str, input: &'a Value) -> BoxFuture<'a, HomeResult> {
+            self.calls.lock().unwrap().push((tool.to_string(), input.clone()));
+            let ok = tool != "wealth_company";
+            Box::pin(async move { HomeResult { ok, text: format!("{tool} answered"), detail: if ok { String::new() } else { "not read yet".into() } } })
+        }
+    }
+
+    #[test]
+    fn the_superpowers_come_only_while_they_are_on_and_need_no_click() {
+        let s = Scratch::new("powers");
+        let mut env = s.env(Level::ReadOnly);
+        assert!(!definitions(&env).iter().any(|d| POWER_TOOLS.contains(&d.name)));
+        assert_eq!(prepare(&call("wealth_portfolio", json!({})), &env).unwrap_err(), NO_POWERS);
+        let runner = Arc::new(FakePowers { calls: Default::default() });
+        env.powers = Some(runner.clone());
+        let names: Vec<&str> = definitions(&env).iter().map(|d| d.name).filter(|n| POWER_TOOLS.contains(n)).collect();
+        assert_eq!(names, POWER_TOOLS, "all of them, from house_tools.json");
+        assert!(power_definitions().iter().all(|d| d.schema["type"] == "object" && !d.description.is_empty()));
+        // Even read only: they change nothing on the computer.
+        let p = prepare(&call("wealth_decision", json!({"action": "record", "ticker": "GARE11", "reasons": "P/VP abaixo de 1"})), &env).unwrap();
+        assert_eq!((p.gate.clone(), p.summary.as_str()), (Gate::Free, "record · GARE11"));
+        let out = block_on(execute(&p, &env));
+        assert!(!out.is_error && out.text == "wealth_decision answered");
+        assert_eq!(runner.calls.lock().unwrap()[0].1["reasons"], "P/VP abaixo de 1", "the arguments go as the model sent them");
+        // Arguments that are not an object arrive as an empty one; a failure is the step's error.
+        let p = prepare(&call("wealth_company", json!("TIMS3")), &env).unwrap();
+        let out = block_on(execute(&p, &env));
+        assert!(out.is_error && out.output.as_deref() == Some("not read yet"));
+        assert_eq!(runner.calls.lock().unwrap()[1].1, json!({}));
+    }
+
+    #[test]
+    fn a_thesis_condition_names_the_metrics_coucou_measures() {
+        let defs = power_definitions();
+        let company = defs.iter().find(|d| d.name == "wealth_company").unwrap();
+        let metrics: Vec<&str> = company.schema["properties"]["conditions"]["items"]["properties"]["metric"]["enum"].as_array().unwrap().iter().map(|m| m.as_str().unwrap()).collect();
+        let known: Vec<&str> = coucou_powers::company::METRICS.iter().map(|(k, _)| *k).collect();
+        assert_eq!(metrics, known);
+        let classes = defs.iter().find(|d| d.name == "wealth_update").unwrap().schema["properties"]["positions"]["items"]["properties"]["class"]["enum"].clone();
+        for c in classes.as_array().unwrap() {
+            assert!(coucou_powers::model::AssetClass::parse(c.as_str().unwrap()).is_some(), "{c}");
+        }
     }
 
     #[test]

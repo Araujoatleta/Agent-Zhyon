@@ -171,7 +171,18 @@ pub fn figures(accounts: &[Account]) -> Vec<Figures> {
             add(&mut f.leases, a.value);
         }
     }
-    periods.into_values().collect()
+    // A filing sent with every value at zero (it happens) tells nothing: as if it were not there.
+    periods.into_values().filter(|f| !all_zero(f)).collect()
+}
+
+fn all_zero(f: &Figures) -> bool {
+    [
+        f.revenue, f.gross_profit, f.ebit, f.financial_result, f.net_income, f.depreciation, f.operating_cash, f.capex, f.dividends_paid, f.total_assets,
+        f.current_assets, f.cash, f.investments, f.receivables, f.current_liabilities, f.debt, f.leases, f.equity,
+    ]
+    .iter()
+    .flatten()
+    .all(|v| v.abs() < 0.5)
 }
 
 /// Tickers ("TIMS3") to (CNPJ digits, company), from the FCA's securities table.
@@ -277,6 +288,20 @@ mod tests {
         assert_eq!(balance.cash, Some(3_000_000_000.0));
         assert_eq!(balance.equity, Some(25_000_000_000.0));
         assert!(f.iter().all(|p| p.end.y == 2026), "the comparative period is skipped");
+    }
+
+    #[test]
+    fn a_filing_sent_with_every_value_at_zero_is_left_out() {
+        // As the CVM's DFP 2025 had TIM's: every account, of both years, at 0.
+        let head = "CNPJ_CIA;DT_REFER;VERSAO;DENOM_CIA;CD_CVM;GRUPO_DFP;MOEDA;ESCALA_MOEDA;ORDEM_EXERC;DT_INI_EXERC;DT_FIM_EXERC;CD_CONTA;DS_CONTA;VL_CONTA;ST_CONTA_FIXA";
+        let row = |order: &str, start: &str, end: &str, code: &str, desc: &str, v: &str| format!("02.421.421/0001-11;2025-12-31;1;TIM S.A.;024929;DF Consolidado - Demonstração do Resultado;REAL;MIL;{order};{start};{end};{code};{desc};{v};S");
+        let zeros = [head.to_string(), row("ÚLTIMO", "2025-01-01", "2025-12-31", "3.01", "Receita de Venda de Bens e/ou Serviços", "0.0000000000"), row("ÚLTIMO", "2025-01-01", "2025-12-31", "3.05", "Resultado Antes do Resultado Financeiro e dos Tributos", "0.0000000000")].join("\n");
+        let wanted = vec!["02421421000111".to_string()];
+        assert_eq!(parse_accounts(&zeros, &wanted).len(), 2, "read");
+        assert!(figures(&parse_accounts(&zeros, &wanted)).is_empty(), "but no figure");
+        let real = [head.to_string(), row("ÚLTIMO", "2026-01-01", "2026-03-31", "3.01", "Receita de Venda de Bens e/ou Serviços", "6806150.0000000000")].join("\n");
+        let f = figures(&parse_accounts(&real, &wanted));
+        assert_eq!(f[0].revenue, Some(6_806_150_000.0), "thousands, the data's way of writing them");
     }
 
     #[test]

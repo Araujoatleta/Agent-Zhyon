@@ -2,7 +2,9 @@
 // computer, calls home_devices, home_control or home_routine; coucou-hook relays each call over the hooks' pipe
 // (pipe.rs) and it lands here. Mochi's own rules apply: only once the user shared the house (Settings → Hermes Agent),
 // only the devices ticked for Mochi and the actions each reported, a click on the island or a paired phone for what
-// asks first, and every action in the home's record under the agent's name. No other tool of Mochi's is reachable.
+// asks first, and every action in the home's record under the agent's name. Zheus' superpowers (wealth_*, life_*)
+// come the same way, once the user turned them on (Settings → Zheus' superpowers). No other tool of Mochi's is
+// reachable.
 
 use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
@@ -15,7 +17,7 @@ use tauri::{AppHandle, Emitter, Manager, State};
 use super::policy::{Gate, Level};
 use super::run::{Hands, DENIED};
 use super::shell::Shell;
-use super::tools::{self, Call, Env, RoutineInfo};
+use super::tools::{self, Call, Env, RoutineInfo, POWER_TOOLS};
 use super::{Agent, LiveHands, Origin, WAIT_PHONE};
 use crate::i18n::{t, tf};
 use crate::settings::{self, Settings};
@@ -69,16 +71,20 @@ fn routines_text(routines: &[RoutineInfo]) -> String {
 /// One call relayed by coucou-hook --mcp: `{"name", "arguments", "client"}`. The answer is an MCP tool result.
 pub async fn call(app: &AppHandle, payload: &Value) -> Value {
     let settings = app.state::<Shared>().settings.lock().unwrap().clone();
-    if !settings.home_mcp {
-        return reply("The user has not shared Mochi's home with other agents. They can do it in Coucou: Settings → Hermes Agent → Mochi's home for Hermes.", true);
-    }
     let name = payload["name"].as_str().unwrap_or("");
-    if !HOUSE_TOOLS.contains(&name) {
+    let power = POWER_TOOLS.contains(&name);
+    if !HOUSE_TOOLS.contains(&name) && !power {
         return reply(format!("There is no tool named \"{name}\"."), true);
+    }
+    if power && !settings.powers_enabled {
+        return reply(tools::NO_POWERS, true);
+    }
+    if !power && !settings.home_mcp {
+        return reply("The user has not shared Mochi's home with other agents. They can do it in Coucou: Settings → Hermes Agent → Mochi's home for Hermes.", true);
     }
     let client = payload["client"].as_str().unwrap_or("");
     let origin = origin_of(client);
-    let house = tokio::time::timeout(Duration::from_secs(8), crate::smart_home::agent_env_for(app, origin)).await.ok().flatten();
+    let house = if power { None } else { tokio::time::timeout(Duration::from_secs(8), crate::smart_home::agent_env_for(app, origin)).await.ok().flatten() };
     let home = crate::platform::home_dir();
     let env = Env {
         folder: home.clone(),
@@ -88,6 +94,7 @@ pub async fn call(app: &AppHandle, payload: &Value) -> Value {
         cancel: Arc::new(AtomicBool::new(false)),
         web_search: false,
         house,
+        powers: if power { crate::powers::runner(app) } else { None },
     };
     let arguments = if payload["arguments"].is_object() { payload["arguments"].clone() } else { json!({}) };
     let call = Call { id: "mcp".into(), name: name.into(), input: arguments, broken: None };
@@ -229,7 +236,7 @@ mod tests {
     fn the_tools_offered_by_coucou_hook_are_the_house_tools_with_mochis_arguments() {
         let listed: Value = serde_json::from_str(include_str!("../../../hook/src/house_tools.json")).unwrap();
         let names: Vec<&str> = listed.as_array().unwrap().iter().map(|t| t["name"].as_str().unwrap()).collect();
-        assert_eq!(names, HOUSE_TOOLS);
+        assert_eq!(names, [HOUSE_TOOLS, POWER_TOOLS].concat(), "the house's, then the superpowers'");
         let control = &listed[1]["inputSchema"];
         let words: Vec<&str> = control["properties"]["action"]["enum"].as_array().unwrap().iter().map(|w| w.as_str().unwrap()).collect();
         assert_eq!(words, crate::smart_home::model::ACTION_WORDS, "the same actions as Mochi's own home_control");

@@ -11,6 +11,7 @@ import type { SpotifyState } from "./spotify";
 import type { HandsStatusReport } from "./hands";
 import type { DevicePrefs, Found, HomeDevice, HomeStatus, LogEntry, Routine, ServerInfo, TestResult, TvSummary } from "./home";
 import type { ArrivalPrefs, Goals, Plan, World, ZheusStatus } from "./zheus";
+import type { PowersView } from "./powers";
 
 export const IS_TAURI =
   typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -434,6 +435,21 @@ export const Bridge = {
   zheusDevice: (id: string, action: string, value: string | null) =>
     callOrThrow<{ ok: boolean; detail: string }>("zheus_device", { id, action, value }),
   zheusTv: (open: boolean) => callOrThrow<void>("zheus_tv", { open }),
+  // ── Zheus' superpowers (src-tauri/src/powers) ──
+  powersStatus: () => call<PowersView>("powers_status"),
+  /** Settings only: on or off. */
+  powersSet: (on: boolean) => callOrThrow<PowersView>("powers_set", { on }),
+  /** Everything that may have changed, read again now (in the background). */
+  powersRefresh: () => callOrThrow<PowersView>("powers_refresh"),
+  /** A file of B3's Área do Investidor (or a broker's table), as its bytes. */
+  powersImport: (name: string, bytes: number[]) => callOrThrow<{ text: string; view: PowersView }>("powers_import", { name, bytes }),
+  powersPaste: (text: string) => callOrThrow<{ text: string; view: PowersView }>("powers_paste", { text }),
+  /** Settings only: a form saved through the tool the brain uses (wealth_update, life_study, life_english, life_gym). */
+  powersSave: (tool: string, input: unknown) => callOrThrow<PowersView>("powers_save", { tool, input }),
+  /** The month's content kit: its folder. */
+  powersKit: (month: string | null) => callOrThrow<string>("powers_kit", { month }),
+  powersSavePng: (folder: string, name: string, bytes: number[]) => callOrThrow<void>("powers_save_png", { folder, name, bytes }),
+  powersOpenFolder: (month: string | null) => callOrThrow<void>("powers_open_folder", { month }),
   homeTemplates: () => callOrThrow<Routine[]>("home_templates"),
   // ── Notifications with Coucou closed (src-tauri/src/phone_link/push.rs) ──
   phonePushStatus: () => call<PhonePushStatus>("phone_push_status"),

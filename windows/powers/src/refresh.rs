@@ -9,6 +9,9 @@ use crate::date::{previous_business_day, Date};
 use crate::model::{AssetClass, CompanyData, FundData, Market, Store};
 use crate::sources::{self, b3, cvm_fii, fetch::Http, fnet};
 
+/// The dividend notices read for a fund at one reading, newest first.
+pub const PAYOUTS_PER_READING: usize = 8;
+
 /// What is due for a refresh.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Due {
@@ -44,7 +47,8 @@ pub fn due(store: &Store, market: &Market, today: Date, evening: bool, force: bo
     Due {
         quotes: if force || quotes_stale { tickers } else { Vec::new() },
         funds: funds_due,
-        fund_months: !funds.is_empty() && (missing_cnpj || market.funds_read.is_none_or(|d| d.until(today) >= 7) || (force && market.funds_read != Some(today))),
+        // A fund the reports do not name (a mistyped ticker) is looked for again the next day, not at every refresh.
+        fund_months: !funds.is_empty() && market.funds_read != Some(today) && (missing_cnpj || force || market.funds_read.is_none_or(|d| d.until(today) >= 7)),
         economy: force || market.economy_read.is_none_or(|d| d < today),
     }
 }
@@ -64,37 +68,55 @@ pub struct Funds {
 /// their latest documents, and the dividends of the structured notices not read yet (`known_documents`).
 pub async fn funds(http: &Http, tickers: &[String], roots: &BTreeMap<String, String>, months: bool, known_documents: &HashMap<String, Vec<u64>>, today: Date) -> Funds {
     let mut out = Funds { roots: roots.clone(), ..Funds::default() };
+    let mut all = Vec::new();
     if months {
         match sources::fii_months(http, &[today.y, today.y - 1], &[]).await {
-            Ok(all) => {
-                for (root, cnpj) in cvm_fii::cnpj_by_root(&all) {
+            Ok(read) => {
+                for (root, cnpj) in cvm_fii::cnpj_by_root(&read) {
                     out.roots.insert(root, cnpj);
                 }
-                for t in tickers {
-                    if let Some(cnpj) = out.roots.get(crate::text::ticker_root(t)) {
-                        let mut mine: Vec<cvm_fii::FiiMonth> = all.iter().filter(|m| &m.cnpj == cnpj).cloned().collect();
-                        mine.sort_by_key(|m| m.date);
-                        out.months.insert(t.clone(), mine);
-                    }
-                }
+                all = read;
                 out.months_read = true;
             }
             Err(e) => out.errors.push(e),
         }
     }
+    // A fund whose shares the CVM's reports leave without an ISIN: its CNPJ from B3's register of listed funds.
+    for t in tickers {
+        let root = crate::text::ticker_root(t);
+        if !out.roots.contains_key(root) {
+            if let Some(cnpj) = http.text(&b3::fund_search_url(root)).await.ok().and_then(|body| b3::cnpj_in_search(&body, root)) {
+                out.roots.insert(root.to_string(), cnpj);
+            }
+        }
+    }
+    if out.months_read {
+        for t in tickers {
+            if let Some(cnpj) = out.roots.get(crate::text::ticker_root(t)) {
+                let mut mine: Vec<cvm_fii::FiiMonth> = all.iter().filter(|m| &m.cnpj == cnpj).cloned().collect();
+                mine.sort_by_key(|m| m.date);
+                out.months.insert(t.clone(), mine);
+            }
+        }
+    }
     for t in tickers {
         let Some(cnpj) = out.roots.get(crate::text::ticker_root(t)).cloned() else {
-            out.errors.push(format!("{t}: its CNPJ is not known yet (the CVM's reports could not be read)"));
+            out.errors.push(format!("{t}: its CNPJ is not in the CVM's reports nor in B3's register of funds"));
             continue;
         };
         match sources::fund_documents(http, &cnpj, 60).await {
             Ok(docs) => {
                 let known = known_documents.get(t).cloned().unwrap_or_default();
                 let mut payouts = Vec::new();
-                for d in docs.iter().filter(|d| d.structured && d.topic == fnet::Topic::Payout && !known.contains(&d.id)).take(15) {
+                // The newest notices first, a few at a time: FundosNet can be slow, and the rest come at the next
+                // reading. A notice that does not come stops this fund's for now.
+                for d in docs.iter().filter(|d| d.structured && d.topic == fnet::Topic::Payout && !known.contains(&d.id)).take(PAYOUTS_PER_READING) {
                     match sources::payouts_of(http, d).await {
                         Ok(p) => payouts.extend(p),
-                        Err(e) => out.errors.push(format!("{t}: {e}")),
+                        Err(e) => {
+                            out.errors.push(format!("{t}: {e}"));
+                            break;
+                        }
                     }
                 }
                 out.payouts.insert(t.clone(), payouts);
@@ -118,7 +140,7 @@ pub fn merge_funds(market: &mut Market, read: Funds, today: Date) {
     if read.months_read {
         market.funds_read = Some(today);
     }
-    let tickers: Vec<String> = read.months.keys().chain(read.documents.keys()).cloned().collect();
+    let tickers: std::collections::BTreeSet<String> = read.months.keys().chain(read.documents.keys()).chain(read.payouts.keys()).cloned().collect();
     for t in tickers {
         let f = market.funds.entry(t.clone()).or_insert_with(|| FundData { ticker: t.clone(), ..FundData::default() });
         if let Some(cnpj) = read.roots.get(crate::text::ticker_root(&t)) {
@@ -135,8 +157,12 @@ pub fn merge_funds(market: &mut Market, read: Funds, today: Date) {
         }
         if let Some(p) = read.payouts.get(&t) {
             for payout in p {
-                if !f.payouts.iter().any(|x| x.document == payout.document && x.record == payout.record && x.amortization == payout.amortization) {
-                    f.payouts.push(payout.clone());
+                // The same payout in another document (a notice published again) is kept once, from the newest one.
+                let same = |x: &fnet::Payout| x.record == payout.record && x.amortization == payout.amortization && (x.value - payout.value).abs() < 1e-6;
+                match f.payouts.iter_mut().find(|x| same(x)) {
+                    Some(x) if x.document < payout.document => *x = payout.clone(),
+                    Some(_) => {}
+                    None => f.payouts.push(payout.clone()),
                 }
             }
             f.payouts.sort_by_key(|x| x.record);
@@ -173,8 +199,8 @@ pub async fn company(http: &Http, ticker: &str, known: &BTreeMap<String, (String
             found
         }
     };
-    let figures = sources::company_figures(http, &cnpj, &[today.y - 1, today.y - 2], &[today.y, today.y - 1]).await?;
-    Ok((CompanyData { ticker: ticker.to_string(), cnpj, name, figures, checked: Some(today) }, register))
+    let (figures, problems) = sources::company_figures(http, &cnpj, &[today.y - 1, today.y - 2], &[today.y, today.y - 1]).await?;
+    Ok((CompanyData { ticker: ticker.to_string(), cnpj, name, figures, checked: Some(today), problems }, register))
 }
 
 /// Classes guessed at import (a ticker ending in 11) set from what the sources say: a fund in the CVM's reports is a
@@ -227,6 +253,9 @@ mod tests {
         let d = due(&store, &market, today, false, false);
         assert!(d.quotes.is_empty(), "yesterday's close is in");
         assert!(d.fund_months, "no CNPJ known yet");
+        market.funds_read = Some(today);
+        assert!(!due(&store, &market, today, false, false).fund_months, "looked for today already: tomorrow again");
+        market.funds_read = None;
         assert_eq!(d.funds.len(), 4);
         assert!(d.economy);
         let evening = due(&store, &market, today, true, false);
@@ -274,6 +303,12 @@ mod tests {
         assert_eq!(f.cnpj, "111");
         assert_eq!(f.checked, Some(today));
         assert_eq!(known_documents(&market)["GGRC11"], vec![1, 2]);
+        // The same payout in a notice published again: kept once, from the newer document.
+        let again = Funds { payouts: [("GGRC11".to_string(), vec![payout(5, "2026-10-14")])].into(), ..Funds::default() };
+        merge_funds(&mut market, again, today);
+        let f = &market.funds["GGRC11"];
+        assert_eq!(f.payouts.len(), 2);
+        assert_eq!(f.payouts.iter().find(|p| p.record == Date::parse("2026-10-14").unwrap()).unwrap().document, 5);
         let mut store = Store::default();
         store.portfolio.positions.push(Position { ticker: "GGRC11".into(), class: AssetClass::Etf, quantity: 1.0, average_price: 9.0, subtype: String::new(), current_value: None, note: "guessed".into() });
         assert_eq!(fix_classes(&mut store, &market), vec!["GGRC11"]);

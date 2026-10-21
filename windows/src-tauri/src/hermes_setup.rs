@@ -1355,7 +1355,9 @@ async fn setup(app: AppHandle, brain_id: String, house: bool, configure: bool, o
         let settings = app.state::<Shared>().settings.lock().unwrap().clone();
         let model = model_for(&settings, brain);
         let hook = settings::hook_exe_path();
-        let commands = config_commands(brain, &model, base_url(&settings, brain).as_deref(), house.then_some(hook.as_path()));
+        // Coucou's MCP server for Mochi's home, and for Zheus' superpowers when they are on.
+        let tools = house || settings.powers_enabled;
+        let commands = config_commands(brain, &model, base_url(&settings, brain).as_deref(), tools.then_some(hook.as_path()));
         let cancel = zheus_cancel.clone();
         let launcher_for = launcher.clone();
         tauri::async_runtime::spawn_blocking(move || -> Result<(), String> {
@@ -2181,6 +2183,35 @@ pub(crate) fn set_model(app: &AppHandle, model: &str) -> Result<(), String> {
     Ok(())
 }
 
+/// Hermes' config.yaml (`text`) names Coucou's MCP server already.
+pub fn has_coucou_mcp(text: &str) -> bool {
+    text.contains("mcp_servers") && text.lines().any(|l| !l.trim_start().starts_with('#') && l.contains("coucou-hook"))
+}
+
+/// Zheus' superpowers turned on: Coucou's MCP server added to the Hermes Coucou runs (`hermes config set`, a merge of
+/// that one key), then its gateway again, so Hermes has the tools from its next message. Nothing when Hermes has it
+/// already, or when Coucou does not run Hermes (Settings shows the lines to add instead). In the background.
+pub(crate) fn offer_tools(app: &AppHandle) {
+    let managed = app.state::<Shared>().settings.lock().unwrap().hermes_managed;
+    let Some(launcher) = launcher_now().filter(|_| managed) else { return };
+    let config = std::fs::read_to_string(hermes_home().join("config.yaml")).unwrap_or_default();
+    if has_coucou_mcp(&config) {
+        return;
+    }
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        let args = vec!["config".to_string(), "set".into(), "mcp_servers.coucou".into(), mcp_entry(&settings::hook_exe_path())];
+        let set = tauri::async_runtime::spawn_blocking(move || run_hermes(&launcher, &args, &AtomicBool::new(false))).await;
+        if matches!(set, Ok(Ok(()))) {
+            log::line("hermes: Coucou's tools added for the superpowers");
+            restart_gateway(&app).await;
+            changed(&app);
+        } else {
+            log::line("hermes: Coucou's tools could not be added for the superpowers");
+        }
+    });
+}
+
 /// Coucou's gateway, when it runs, starts again: Hermes reads its tools and its model when its server starts.
 async fn restart_gateway(app: &AppHandle) {
     if app.state::<Zheus>().gateway.lock().unwrap().is_none() {
@@ -2711,6 +2742,14 @@ mod tests {
         let quiet: Vec<String> = ["step one", "step two", "  "].iter().map(|s| s.to_string()).collect();
         assert_eq!(telling_line(&quiet, "").as_deref(), Some("step two"));
         assert_eq!(telling_line(&[], "dependency install failed"), None);
+    }
+
+    #[test]
+    fn coucous_tools_are_found_in_hermes_config() {
+        let ours = "model:\n  provider: openai-codex\nmcp_servers:\n  coucou:\n    command: 'C:\\Users\\Lea\\AppData\\Local\\Coucou\\bin\\coucou-hook.exe'\n    args: ['--mcp']\n";
+        assert!(has_coucou_mcp(ours));
+        assert!(!has_coucou_mcp("model:\n  provider: openai-codex\n"));
+        assert!(!has_coucou_mcp("mcp_servers:\n  # coucou: coucou-hook.exe --mcp\n  other:\n    command: x\n"), "a comment is not the server");
     }
 
     #[test]

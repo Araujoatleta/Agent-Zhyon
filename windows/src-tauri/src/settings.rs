@@ -185,6 +185,10 @@ pub struct Settings {
     pub zheus_goals: crate::zheus_one::autopilot::Goals,
     /// The island's look: "glass" (Liquid Glass, translucent and frosted) or "classic" (black). The island's own choice.
     pub island_look: String,
+    /// Zheus' superpowers (powers/): the user's portfolio, studies, English and training, read against the official
+    /// data (B3, the CVM, FundosNet, the Banco Central) and given to the brain as tools. Off by default; owned by Rust
+    /// (powers::powers_set). The data itself is in powers.json, beside this file.
+    pub powers_enabled: bool,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -283,6 +287,7 @@ impl Default for Settings {
             zheus_arrival: crate::zheus_one::plan::ArrivalPrefs::default(),
             zheus_goals: crate::zheus_one::autopilot::Goals::default(),
             island_look: "glass".into(),
+            powers_enabled: false,
         }
     }
 }
@@ -628,7 +633,8 @@ mod tests {
     "agendaAt": 450,
     "awayMinutes": 30
   },
-  "islandLook": "classic"
+  "islandLook": "classic",
+  "powersEnabled": true
 }"##;
 
     fn custom() -> Value {
@@ -1262,6 +1268,7 @@ mod tests {
                 "zheusArrival",
                 "zheusGoals",
                 "islandLook",
+                "powersEnabled",
             ]
         );
         let _ = std::fs::remove_dir_all(&dir);

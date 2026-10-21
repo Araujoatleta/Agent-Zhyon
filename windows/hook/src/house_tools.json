@@ -108,5 +108,746 @@
         "mission"
       ]
     }
+  },
+  {
+    "name": "wealth_portfolio",
+    "title": "Zheus: the portfolio",
+    "description": "The user's investment portfolio as Coucou keeps it, valued at B3's last close: each holding (quantity, average price, value, gain), each class against the user's targets, the passive income a month with each holding's yield, and the economy (Selic, CDI, IPCA). Call it before talking about the user's investments. Read only.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    }
+  },
+  {
+    "name": "wealth_update",
+    "title": "Zheus: save the portfolio",
+    "description": "Save the user's portfolio, or its settings, in Coucou: a table or text the user pasted (from Investidor10 or their broker, or lines like \"150 GGRC11 a 9,20\": it replaces the list unless mode is merge), positions (merged by ticker), the targets per class, the passive income goal, the monthly contribution, the cash at the broker, tickers to remove. Only what the user said or pasted: never invent a position. Coucou keeps a copy of the list it replaces. This only changes Coucou's record: nothing is bought or sold. The answer shows the portfolio as it is now.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "description": "A table or lines the user pasted or typed, as they are."
+        },
+        "positions": {
+          "type": "array",
+          "description": "Positions to save, merged by ticker.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "ticker": {
+                "type": "string",
+                "description": "The ticker (\"GGRC11\"), or a fixed-income product's name (\"Tesouro Selic 2031\")."
+              },
+              "quantity": {
+                "type": "number",
+                "description": "Shares held; 0 removes the position."
+              },
+              "average_price": {
+                "type": "number",
+                "description": "Average price per share, R$."
+              },
+              "class": {
+                "type": "string",
+                "enum": [
+                  "acao",
+                  "fii",
+                  "etf",
+                  "bdr",
+                  "renda_fixa",
+                  "tesouro",
+                  "cripto",
+                  "outro"
+                ],
+                "description": "The asset class, when known."
+              },
+              "current_value": {
+                "type": "number",
+                "description": "Fixed income: its value now, R$."
+              }
+            },
+            "required": [
+              "ticker"
+            ]
+          }
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "merge",
+            "replace"
+          ],
+          "description": "For text: replace (the default) or merge into the list."
+        },
+        "targets": {
+          "type": "object",
+          "description": "Percent per class, like {\"acoes\": 25, \"fiis\": 25, \"etfs\": 25, \"renda_fixa\": 25}.",
+          "additionalProperties": {
+            "type": "number"
+          }
+        },
+        "income_goal": {
+          "type": "number",
+          "description": "Passive income wanted a month, R$."
+        },
+        "monthly_contribution": {
+          "type": "number",
+          "description": "What the user adds a month, R$."
+        },
+        "cash": {
+          "type": "number",
+          "description": "Cash at the broker, R$."
+        },
+        "remove": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Tickers to remove."
+        }
+      }
+    }
+  },
+  {
+    "name": "wealth_fii",
+    "title": "Zheus: real-estate funds",
+    "description": "The real-estate funds (FII) the user holds, or one fund: from the CVM's monthly reports and FundosNet's dividend notices — the VP per share and its trend over six and twelve months, the P/VP, the dividend yield, the last dividends and their three- and twelve-month averages, whether the dividend is sustainable (paid from what the fund earns, its cash, a cut coming), the holders, and for paper funds a projection from the Focus survey. Read only.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "ticker": {
+          "type": "string",
+          "description": "One fund (\"GGRC11\"), held or not. Leave it out for all the user's funds."
+        }
+      }
+    }
+  },
+  {
+    "name": "wealth_events",
+    "title": "Zheus: what needs the user",
+    "description": "What needs the user in their funds: record dates (data-com) and payments ahead with the amount for their shares, amortizations, assemblies and their deadlines to vote, offerings and preemptive rights to decide, material facts. The most important first, each with what it asks of the user and the document's link. Read only.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "days": {
+          "type": "integer",
+          "description": "How many days back to look at the funds' documents. Default 30."
+        }
+      }
+    }
+  },
+  {
+    "name": "wealth_company",
+    "title": "Zheus: a company and the user's thesis",
+    "description": "A listed company's statements from the CVM (yearly and quarterly, consolidated): twelve months of revenue, EBITDA and its margin, net income, free cash flow, net debt over EBITDA, ROE and payout, against the year before, the red flags, and the user's own thesis checked condition by condition. To write or change the thesis, pass it in the user's words (\"margem EBITDA acima de 40%; dívida líquida/EBITDA abaixo de 2; receita crescendo\"): Coucou keeps it and checks it at every new filing. Read only, apart from the thesis.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "ticker": {
+          "type": "string",
+          "description": "The share's ticker (\"TIMS3\")."
+        },
+        "thesis": {
+          "type": "string",
+          "description": "The user's thesis in their words, conditions separated by ; or new lines."
+        },
+        "conditions": {
+          "type": "array",
+          "description": "Or the conditions themselves.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "metric": {
+                "type": "string",
+                "enum": [
+                  "revenue_growth",
+                  "net_income_growth",
+                  "ebitda_growth",
+                  "dividends_growth",
+                  "gross_margin",
+                  "ebit_margin",
+                  "ebitda_margin",
+                  "net_margin",
+                  "fcf_margin",
+                  "roe",
+                  "payout",
+                  "net_debt_ebitda",
+                  "interest_burden",
+                  "net_debt",
+                  "fcf",
+                  "revenue",
+                  "ebitda",
+                  "net_income",
+                  "dividends_paid"
+                ],
+                "description": "What is measured."
+              },
+              "op": {
+                "type": "string",
+                "enum": [
+                  ">",
+                  ">=",
+                  "<",
+                  "<=",
+                  "rising",
+                  "falling"
+                ],
+                "description": "Above or below the value, or rising or falling against the year before."
+              },
+              "value": {
+                "type": "number",
+                "description": "The threshold (percent for margins and growth; times for net_debt_ebitda). Not needed for rising and falling."
+              },
+              "label": {
+                "type": "string",
+                "description": "The condition in the user's words."
+              }
+            },
+            "required": [
+              "metric",
+              "op"
+            ]
+          }
+        }
+      },
+      "required": [
+        "ticker"
+      ]
+    }
+  },
+  {
+    "name": "wealth_plan",
+    "title": "Zheus: the portfolio's twin",
+    "description": "The portfolio's digital twin: the road to the user's targets without selling (how much to add, and in how many months at their contribution), where this month's contribution goes by class with the user's own holdings least weighted first, the magic numbers, a scenario (the Selic, the IPCA, the dollar or the stock market moving) with rough rules of thumb, and the shadow portfolio (the same money always on the targets). Math on the user's own targets, never a recommendation to buy a given asset. Read only.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "contribution": {
+          "type": "number",
+          "description": "The amount to place now, R$. Default: the user's monthly contribution."
+        },
+        "scenario": {
+          "type": "object",
+          "description": "Moves to simulate over twelve months.",
+          "properties": {
+            "selic": {
+              "type": "number",
+              "description": "Change of the Selic, percentage points (-2 for two points down)."
+            },
+            "ipca": {
+              "type": "number",
+              "description": "Change of the IPCA, percentage points."
+            },
+            "dollar": {
+              "type": "number",
+              "description": "Change of the dollar, percent."
+            },
+            "stocks": {
+              "type": "number",
+              "description": "Change of the stock market, percent."
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "wealth_audit",
+    "title": "Zheus: taxes",
+    "description": "Taxes from the user's B3 history (the \"Negociação\" and \"Movimentação\" exports of B3's Área do Investidor, imported in Coucou): each month's sales and gains by kind (shares with the R$ 20,000 exemption, FIIs at 20 %, ETFs, day trade), the losses carried, the DARF 6015 and its due date; the payouts the funds announced that B3 does not show; and the differences between B3's quantities and the portfolio. With report \"declaration\", the yearly income tax declaration (IRPF): assets and rights with their codes, exempt income and interest on equity. Read only: Coucou never pays or files anything.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "report": {
+          "type": "string",
+          "enum": [
+            "monthly",
+            "declaration"
+          ],
+          "description": "monthly (the default) or the yearly declaration."
+        },
+        "year": {
+          "type": "integer",
+          "description": "The declaration's base year. Default: last year."
+        }
+      }
+    }
+  },
+  {
+    "name": "wealth_decision",
+    "title": "Zheus: the decision journal",
+    "description": "The user's decision journal. record: a decision (buy, sell, hold or avoid a ticker) with the user's reasons in their own words, what they expect and their confidence; it comes back for a review after a month, six months and a year. review: how one went (right, wrong or mixed). list (the default): the decisions, the reviews due and the calibration (how often their confidence was right, against the CDI). Recording is not trading: Coucou never buys or sells.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": [
+            "list",
+            "record",
+            "review",
+            "take",
+            "drop"
+          ],
+          "description": "What to do."
+        },
+        "ticker": {
+          "type": "string",
+          "description": "record: the asset."
+        },
+        "decision": {
+          "type": "string",
+          "enum": [
+            "buy",
+            "sell",
+            "hold",
+            "avoid"
+          ],
+          "description": "record: the decision."
+        },
+        "reasons": {
+          "type": "string",
+          "description": "record: why, in the user's words."
+        },
+        "expectation": {
+          "type": "string",
+          "description": "record: what the user expects, and by when."
+        },
+        "confidence": {
+          "type": "number",
+          "description": "record: the user's confidence, 0 to 100."
+        },
+        "quantity": {
+          "type": "number",
+          "description": "record: shares."
+        },
+        "price": {
+          "type": "number",
+          "description": "record: price per share, R$. Default: the last close."
+        },
+        "proposed": {
+          "type": "boolean",
+          "description": "record: not taken yet (a proposal)."
+        },
+        "id": {
+          "type": "string",
+          "description": "review, take, drop: the decision's id."
+        },
+        "verdict": {
+          "type": "string",
+          "enum": [
+            "right",
+            "wrong",
+            "mixed"
+          ],
+          "description": "review: how it went."
+        },
+        "note": {
+          "type": "string",
+          "description": "review: what the user learned."
+        }
+      }
+    }
+  },
+  {
+    "name": "wealth_committee",
+    "title": "Zheus: an investment committee",
+    "description": "Before the user decides: an investment committee on their proposal (\"comprar 50 cotas de GARE11\"). Gives the facts (their position, the fund's or company's figures, the recent events, the economy, their past decisions on it, the size against their targets) and the protocol to follow: answer as four voices — the advocate, the skeptic, the risk manager, and taxes and costs — then a synthesis with what would change the decision. Then offer to record it with wealth_decision. Read only.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "proposal": {
+          "type": "string",
+          "description": "The user's proposal, in their words."
+        },
+        "ticker": {
+          "type": "string",
+          "description": "The asset, when the proposal does not name it."
+        }
+      },
+      "required": [
+        "proposal"
+      ]
+    }
+  },
+  {
+    "name": "wealth_macro",
+    "title": "Zheus: the economy",
+    "description": "The economy now, from the Banco Central: the Selic target, the CDI, the IPCA over twelve months, the dollar, and the Focus survey's medians for the end of this year and the next, with the real rate. Read only.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    }
+  },
+  {
+    "name": "life_study",
+    "title": "Zheus: studies for a public exam",
+    "description": "The user's study plan for a public exam (concurso): the week split by the subjects' weights and the user's weak spots, today's blocks and the spaced reviews (1, 7 and 30 days), progress (hours, questions and accuracy by subject, the streak), what passing is worth (the salary against their income now) and what one hour of study is worth, and the portfolio's projection with the new salary. action set saves the profile; action log records a session the user did.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": [
+            "show",
+            "set",
+            "log"
+          ],
+          "description": "show (the default), set or log."
+        },
+        "exam": {
+          "type": "string",
+          "description": "set: the exam (\"Analista do BACEN\")."
+        },
+        "board": {
+          "type": "string",
+          "description": "set: the examining board (\"Cebraspe\")."
+        },
+        "date": {
+          "type": "string",
+          "description": "set: the exam's date, DD/MM/YYYY; log: the session's day (default today)."
+        },
+        "salary": {
+          "type": "number",
+          "description": "set: the post's monthly salary, R$."
+        },
+        "current_income": {
+          "type": "number",
+          "description": "set: the user's monthly income now, R$."
+        },
+        "hours_per_week": {
+          "type": "number",
+          "description": "set: hours of study a week."
+        },
+        "chance": {
+          "type": "number",
+          "description": "set: the user's chance of passing, percent."
+        },
+        "subjects": {
+          "type": "array",
+          "description": "set: the subjects.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "The subject."
+              },
+              "weight": {
+                "type": "number",
+                "description": "Its weight in the exam (points or questions)."
+              },
+              "level": {
+                "type": "number",
+                "description": "The user's level, 0 (nothing) to 5 (mastered)."
+              },
+              "topics": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Its topics."
+              }
+            },
+            "required": [
+              "name"
+            ]
+          }
+        },
+        "subject": {
+          "type": "string",
+          "description": "log: the subject studied."
+        },
+        "minutes": {
+          "type": "number",
+          "description": "log: minutes studied."
+        },
+        "questions": {
+          "type": "number",
+          "description": "log: questions answered."
+        },
+        "correct": {
+          "type": "number",
+          "description": "log: questions right."
+        }
+      }
+    }
+  },
+  {
+    "name": "life_cards",
+    "title": "Zheus: spaced-repetition cards",
+    "description": "Spaced-repetition cards (SM-2) for the exam and for English. add: new cards (front and back). due (the default): the cards to review now. grade: after the user answers each one (again, hard, good, easy — or errei, difícil, acertei, fácil). stats: per deck. To quiz the user: get the due cards, ask one front at a time, wait for their answer, show the back, then grade it.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": [
+            "due",
+            "add",
+            "grade",
+            "stats"
+          ],
+          "description": "What to do."
+        },
+        "deck": {
+          "type": "string",
+          "description": "The deck: \"concurso\", \"english\", or a subject."
+        },
+        "cards": {
+          "type": "array",
+          "description": "add: the cards.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "front": {
+                "type": "string",
+                "description": "The question or the word."
+              },
+              "back": {
+                "type": "string",
+                "description": "The answer."
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Tags."
+              }
+            },
+            "required": [
+              "front",
+              "back"
+            ]
+          }
+        },
+        "grades": {
+          "type": "array",
+          "description": "grade: one per card answered.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "The card's id from due."
+              },
+              "grade": {
+                "type": "string",
+                "description": "again, hard, good or easy (errei, difícil, acertei, fácil)."
+              }
+            },
+            "required": [
+              "id",
+              "grade"
+            ]
+          }
+        },
+        "limit": {
+          "type": "integer",
+          "description": "due: how many cards. Default 10."
+        }
+      }
+    }
+  },
+  {
+    "name": "life_english",
+    "title": "Zheus: English from the portfolio",
+    "description": "English from the user's own investments: today's lesson (a company of their portfolio or its peers, its results to read in English, five words with examples, a speaking prompt), the user's level, minutes a day and streak. English mode: while it is on, answer the user in English and correct their sentences briefly at the end of each answer. action set saves the level, the minutes a day and the mode; action mode turns English mode on or off; action log records practice.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": [
+            "lesson",
+            "set",
+            "mode",
+            "log"
+          ],
+          "description": "lesson (the default), set, mode or log."
+        },
+        "level": {
+          "type": "string",
+          "enum": [
+            "A1",
+            "A2",
+            "B1",
+            "B2",
+            "C1",
+            "C2"
+          ],
+          "description": "set: the user's level."
+        },
+        "minutes_per_day": {
+          "type": "number",
+          "description": "set: minutes a day."
+        },
+        "mode": {
+          "type": "boolean",
+          "description": "set, mode: English mode on or off."
+        },
+        "minutes": {
+          "type": "number",
+          "description": "log: minutes practised."
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "reading",
+            "speaking",
+            "listening",
+            "writing",
+            "cards"
+          ],
+          "description": "log: what was practised."
+        }
+      }
+    }
+  },
+  {
+    "name": "life_gym",
+    "title": "Zheus: training",
+    "description": "The user's training: today's session (the next of their split, each exercise with its sets, reps and the load to try from the last session, by double progression), today's readiness from their sleep, soreness, energy and study load (normal, light or rest), the weekly sets per muscle group and the consistency. action log records a workout; action wellness records the night's sleep, soreness and energy; action set saves the training profile.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": [
+            "today",
+            "set",
+            "log",
+            "wellness"
+          ],
+          "description": "today (the default), set, log or wellness."
+        },
+        "workout": {
+          "type": "object",
+          "description": "log: the workout done.",
+          "properties": {
+            "session": {
+              "type": "string",
+              "description": "Its name (\"Upper A\"). Default: the session that was due."
+            },
+            "exercises": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "The exercise (\"Supino reto\")."
+                  },
+                  "sets": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "reps": {
+                          "type": "number",
+                          "description": "Repetitions."
+                        },
+                        "kg": {
+                          "type": "number",
+                          "description": "Load, kg."
+                        }
+                      },
+                      "required": [
+                        "reps"
+                      ]
+                    },
+                    "description": "Each set."
+                  },
+                  "sets_count": {
+                    "type": "number",
+                    "description": "Or the number of sets, with reps and kg once."
+                  },
+                  "reps": {
+                    "type": "number",
+                    "description": "Repetitions of each set."
+                  },
+                  "kg": {
+                    "type": "number",
+                    "description": "Load of each set, kg."
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            },
+            "minutes": {
+              "type": "number",
+              "description": "How long it took."
+            },
+            "effort": {
+              "type": "number",
+              "description": "How hard, 1 to 10."
+            },
+            "note": {
+              "type": "string",
+              "description": "A note."
+            }
+          }
+        },
+        "days_per_week": {
+          "type": "number",
+          "description": "set: training days a week."
+        },
+        "split": {
+          "type": "string",
+          "enum": [
+            "full_body",
+            "upper_lower",
+            "ppl"
+          ],
+          "description": "set: the split."
+        },
+        "goal": {
+          "type": "string",
+          "description": "set: hipertrofia, força, emagrecimento or saúde."
+        },
+        "session_minutes": {
+          "type": "number",
+          "description": "set: minutes a session."
+        },
+        "sleep_hours": {
+          "type": "number",
+          "description": "wellness: hours slept last night."
+        },
+        "soreness": {
+          "type": "number",
+          "description": "wellness: 0 (none) to 3 (a lot)."
+        },
+        "energy": {
+          "type": "number",
+          "description": "wellness: 1 (exhausted) to 5 (great)."
+        }
+      }
+    }
+  },
+  {
+    "name": "life_day",
+    "title": "Zheus: the user's day",
+    "description": "The user's day in one list, the things not to miss first: their funds' record dates, payments and deadlines, a DARF due, the decisions to look at again, the study blocks and reviews, the training or rest, the English lesson. Give it as a short morning briefing. Read only.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    }
+  },
+  {
+    "name": "life_content",
+    "title": "Zheus: a content kit",
+    "description": "A monthly content kit from the user's own numbers, for their social media: square charts (the portfolio's growth, the income by month, the split by class) saved as image files in their Documents folder, each with a short caption to adapt. Private mode, the default, shows percentages and no amounts in reais. Coucou only saves the files: it never posts anything.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "month": {
+          "type": "string",
+          "description": "The month, YYYY-MM. Default: this month."
+        }
+      }
+    }
   }
 ]

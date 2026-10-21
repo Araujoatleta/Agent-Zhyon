@@ -414,9 +414,19 @@ pub struct Routed {
     pub briefing: bool,
 }
 
-/// Reads the user's own message (the island's chat or the phone's) for Zheus One. Unchanged when Zheus One is off or
-/// the message asks nothing of it.
+/// Reads the user's own message (the island's chat or the phone's) for Zheus One and the superpowers: what Zheus did
+/// or the brain should know is added. Unchanged when neither has anything to add.
 pub async fn route(app: &AppHandle, message: &str) -> Routed {
+    let mut routed = route_zheus(app, message).await;
+    let notes = crate::powers::notes(app, message);
+    if !notes.is_empty() {
+        routed.text = format!("{}\n\n(Coucou — Zheus' superpowers: {})", routed.text, notes.join(" "));
+    }
+    routed
+}
+
+/// Zheus One's part: unchanged when it is off or the message asks nothing of it.
+async fn route_zheus(app: &AppHandle, message: &str) -> Routed {
     let unchanged = Routed { text: message.to_string(), fallback: None, briefing: false };
     let s = current(app);
     if !s.zheus_enabled {

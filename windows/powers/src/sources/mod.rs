@@ -15,12 +15,17 @@ use crate::date::{is_business_day, previous_business_day, Date};
 use fetch::Http;
 
 /// The latest closing quotes of `tickers`: the newest day B3 has published, looking back from `today` (today's own
-/// file only once the evening has come, `evening`). Returns that day and one quote per ticker found.
-pub async fn quotes(http: &Http, today: Date, evening: bool, tickers: &[String]) -> Result<(Date, HashMap<String, b3::Quote>), String> {
+/// file only once the evening has come, `evening`), and never back to `have` (a day already read: its file is not
+/// downloaded again). Returns that day and one quote per ticker found.
+pub async fn quotes(http: &Http, today: Date, evening: bool, tickers: &[String], have: Option<Date>) -> Result<(Date, HashMap<String, b3::Quote>), String> {
     let wanted: HashSet<String> = tickers.iter().cloned().collect();
     let mut day = if evening && is_business_day(today, true) { today } else { previous_business_day(today, true) };
     let mut last_error = String::new();
     for _ in 0..6 {
+        if let Some(h) = have.filter(|h| day <= *h) {
+            // Nothing newer yet: the day already read stands.
+            return Ok((h, HashMap::new()));
+        }
         match http.zip_entries(&b3::url(day), &[".txt".to_string()]).await {
             Ok(files) if !files.is_empty() => {
                 let text = crate::text::decode(&files[0].1);
@@ -81,7 +86,11 @@ pub async fn economy(http: &Http) -> Result<bcb::Macro, String> {
                     2 => m.ipca_12m = Some(value),
                     _ => m.usd = Some(value),
                 }
-                m.date = Some(m.date.map_or(date, |d: Date| d.max(date)));
+                // The Selic target's series runs ahead to the next Copom meeting, and the IPCA's is a month's:
+                // the figures are as of the daily series' last day.
+                if code == bcb::CDI || code == bcb::USD {
+                    m.date = Some(m.date.map_or(date, |d: Date| d.max(date)));
+                }
             }
             Ok(None) => {}
             Err(e) => errors.push(e),
@@ -108,8 +117,8 @@ pub async fn company_tickers(http: &Http, year: i32) -> Result<HashMap<String, (
 }
 
 /// A company's figures per period (CNPJ digits): the yearly statements of `years` and the quarterly ones of
-/// `quarter_years`, consolidated, oldest first.
-pub async fn company_figures(http: &Http, cnpj: &str, years: &[i32], quarter_years: &[i32]) -> Result<Vec<cvm_cia::Figures>, String> {
+/// `quarter_years`, consolidated, oldest first; and the files that could not be read.
+pub async fn company_figures(http: &Http, cnpj: &str, years: &[i32], quarter_years: &[i32]) -> Result<(Vec<cvm_cia::Figures>, Vec<String>), String> {
     let wanted = vec![cnpj.to_string()];
     let mut accounts = Vec::new();
     let mut errors = Vec::new();
@@ -133,5 +142,5 @@ pub async fn company_figures(http: &Http, cnpj: &str, years: &[i32], quarter_yea
             format!("the CVM's statements could not be read: {}", errors.join("; "))
         });
     }
-    Ok(cvm_cia::figures(&accounts))
+    Ok((cvm_cia::figures(&accounts), errors))
 }

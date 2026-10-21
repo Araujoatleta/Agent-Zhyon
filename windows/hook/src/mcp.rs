@@ -18,9 +18,13 @@ const VERSIONS: &[&str] = &["2025-06-18", "2025-03-26", "2024-11-05"];
 /// A call may wait for the user's click (two minutes at most, on Coucou's side).
 const CALL_BUDGET: Duration = Duration::from_secs(150);
 const TOOLS: &str = include_str!("house_tools.json");
-const INSTRUCTIONS: &str = "Coucou is the app where Mochi lives on the user's screen. These tools act on the user's home \
-through Coucou: only the devices the user let agents use, and the actions each one reported. Some actions wait for the \
-user's approval in Coucou. Call home_devices first when you do not know a device.";
+const INSTRUCTIONS: &str = "Coucou is the app where Mochi lives on the user's screen. The home_ and zheus_ tools act on the \
+user's home through Coucou: only the devices the user let agents use, and the actions each one reported. Some actions \
+wait for the user's approval in Coucou. Call home_devices first when you do not know a device. The wealth_ and life_ \
+tools are Zheus' superpowers: the user's portfolio read against Brazil's official data (B3, the CVM, FundosNet, the \
+Banco Central), and their studies, English and training. They only read and keep the user's own records in Coucou: \
+they never buy, sell, pay, send or post anything. Call wealth_portfolio before talking about the user's investments, \
+and life_day for their day.";
 
 pub fn tools() -> Value {
     serde_json::from_str(TOOLS).unwrap_or_else(|_| json!([]))
@@ -135,7 +139,9 @@ mod tests {
         assert!(answer(&json!({"jsonrpc": "2.0", "method": "notifications/initialized"}), &mut client, &|_| None).is_none());
         let list = answer(&json!({"jsonrpc": "2.0", "id": "a", "method": "tools/list"}), &mut client, &|_| None).unwrap();
         let names: Vec<&str> = list["result"]["tools"].as_array().unwrap().iter().map(|t| t["name"].as_str().unwrap()).collect();
-        assert_eq!(names, vec!["home_devices", "home_control", "home_routine", "zheus_world", "zheus_mission"]);
+        assert_eq!(&names[..5], ["home_devices", "home_control", "home_routine", "zheus_world", "zheus_mission"]);
+        assert_eq!(names.len(), 21, "and the sixteen superpowers");
+        assert!(names[5..].iter().all(|n| n.starts_with("wealth_") || n.starts_with("life_")));
         assert!(list["result"]["tools"].as_array().unwrap().iter().all(|t| t["inputSchema"]["type"] == "object"));
         let other = answer(&json!({"jsonrpc": "2.0", "id": 3, "method": "resources/list"}), &mut client, &|_| None).unwrap();
         assert_eq!(other["error"]["code"], -32601);

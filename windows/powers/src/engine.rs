@@ -66,6 +66,15 @@ pub fn portfolio(store: &Store, market: &Market, today: Date) -> String {
     if !unpriced.is_empty() {
         out.push_str(&format!("\nNo B3 quote yet for {}: valued at cost.", unpriced.join(", ")));
     }
+    let unread: Vec<&str> = v
+        .holdings
+        .iter()
+        .filter(|h| h.class == AssetClass::Fii && market.funds.get(&h.ticker).is_none_or(|f| !f.payouts.iter().any(|x| !x.amortization)))
+        .map(|h| h.ticker.as_str())
+        .collect();
+    if !unread.is_empty() {
+        out.push_str(&format!("\nDividends not read yet for {} (FundosNet has not answered yet, or the fund was not found): the passive income above leaves them out.", unread.join(", ")));
+    }
     let guessed: Vec<&str> = p.positions.iter().filter(|x| x.note.contains("guessed")).map(|x| x.ticker.as_str()).collect();
     if !guessed.is_empty() {
         out.push_str(&format!("\nClass guessed (ends in 11): {} — ask the user whether each is a FII, an ETF or a unit.", guessed.join(", ")));
@@ -95,12 +104,30 @@ fn position_from(v: &Value) -> Option<Position> {
     })
 }
 
-fn merge_positions(store: &mut Store, incoming: Vec<Position>, replace: bool) -> (usize, usize, usize) {
+/// How positions coming in meet the list: merged by ticker, replacing the whole list (a table of the whole
+/// portfolio), or replacing only the classes they hold (B3's position export: a bank's CDB it does not know stays).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Fold {
+    Merge,
+    Replace,
+    Classes,
+}
+
+fn merge_positions(store: &mut Store, incoming: Vec<Position>, fold: Fold) -> (usize, usize, usize) {
     let (mut added, mut changed, mut removed) = (0, 0, 0);
     let old = store.portfolio.positions.clone();
-    if replace {
-        removed = old.iter().filter(|o| !incoming.iter().any(|n| n.ticker == o.ticker)).count();
-        store.portfolio.positions.clear();
+    let gone = |o: &Position| !incoming.iter().any(|n| n.ticker == o.ticker);
+    match fold {
+        Fold::Replace => {
+            removed = old.iter().filter(|o| gone(o)).count();
+            store.portfolio.positions.clear();
+        }
+        Fold::Classes => {
+            let classes: Vec<AssetClass> = incoming.iter().map(|n| n.class).collect();
+            removed = old.iter().filter(|o| classes.contains(&o.class) && gone(o)).count();
+            store.portfolio.positions.retain(|o| !(classes.contains(&o.class) && gone(o)));
+        }
+        Fold::Merge => {}
     }
     for mut p in incoming {
         let before = old.iter().find(|o| o.ticker == p.ticker);
@@ -150,7 +177,12 @@ pub fn update(store: &mut Store, args: &Value, file: Option<Imported>, today: Da
     let mut touched = false;
     let mode = s(args, "mode").map(|m| crate::text::plain(&m));
     let mut incoming: Vec<Position> = list(args, "positions").into_iter().filter_map(position_from).collect();
-    let mut replace = mode.as_deref() == Some("replace");
+    let mut fold = match mode.as_deref() {
+        Some("replace") => Fold::Replace,
+        Some("classes") => Fold::Classes,
+        _ => Fold::Merge,
+    };
+    let from_file = file.as_ref().is_some_and(|f| !f.positions.is_empty());
     let mut imported = file.unwrap_or_default();
     if let Some(text) = s(args, "text") {
         let typed = import::positions_from_text(&text);
@@ -162,7 +194,10 @@ pub fn update(store: &mut Store, args: &Value, file: Option<Imported>, today: Da
         imported.warnings.extend(typed.warnings);
     }
     if !imported.positions.is_empty() {
-        replace = mode.as_deref() != Some("merge");
+        // A whole table replaces the list; B3's export, the classes it holds. Unless the user said otherwise.
+        if mode.is_none() {
+            fold = if from_file { Fold::Classes } else { Fold::Replace };
+        }
         for mut p in imported.positions.drain(..) {
             if imported.guessed.contains(&p.ticker) {
                 p.note = "guessed".into();
@@ -171,8 +206,13 @@ pub fn update(store: &mut Store, args: &Value, file: Option<Imported>, today: Da
         }
     }
     if !incoming.is_empty() {
-        let (a, c, r) = merge_positions(store, incoming, replace);
-        notes.push(format!("Positions: {a} added, {c} updated, {r} removed{}.", if replace { " (the list replaced the old one)" } else { "" }));
+        let (a, c, r) = merge_positions(store, incoming, fold);
+        let how = match fold {
+            Fold::Replace => " (the list replaced the old one)",
+            Fold::Classes => " (the file's classes replaced their old positions; the others stay)",
+            Fold::Merge => "",
+        };
+        notes.push(format!("Positions: {a} added, {c} updated, {r} removed{how}."));
         touched = true;
     }
     if !imported.trades.is_empty() || !imported.events.is_empty() {
@@ -311,6 +351,9 @@ pub fn company_view(store: &mut Store, market: &Market, t: &str, args: &Value, t
     let checks = company::check(&m, &thesis);
     let flags = company::red_flags(&m);
     let mut out = company::for_model(t, &c.name, &m, &checks, &flags);
+    if !c.problems.is_empty() {
+        out.push_str(&format!("\nNot read from the CVM this time: {}.", c.problems.join("; ")));
+    }
     if let Some(price) = market.price(t) {
         out.push_str(&format!("\nLast close {}.", brl(price)));
     }
@@ -754,7 +797,7 @@ pub fn gym_view(store: &mut Store, args: &Value, today: Date, study_hours: f64) 
                     let mut sets: Vec<SetLog> = list(e, "sets").into_iter().filter_map(|x| Some(SetLog { reps: f(x, "reps")? as u32, kg: f(x, "kg").unwrap_or(0.0) })).collect();
                     // "3x10 com 60 kg": sets, reps and kg given once.
                     if sets.is_empty() {
-                        if let (Some(n), Some(reps)) = (f(e, "sets"), f(e, "reps")) {
+                        if let (Some(n), Some(reps)) = (f(e, "sets").or_else(|| f(e, "sets_count")), f(e, "reps")) {
                             sets = (0..n.clamp(1.0, 20.0) as u32).map(|_| SetLog { reps: reps as u32, kg: f(e, "kg").unwrap_or(0.0) }).collect();
                         }
                     }
@@ -846,7 +889,12 @@ pub struct ClassLine {
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Alert {
+    /// "fund" (a fund's dividends or value at risk) or "thesis" (conditions of the user's thesis that broke).
     pub kind: String,
+    pub ticker: String,
+    /// How many conditions broke (thesis).
+    pub count: usize,
+    /// Why, in English (for the brain, and as the island's tooltip).
     pub text: String,
     pub urgent: bool,
 }
@@ -879,7 +927,7 @@ pub fn summary(store: &Store, market: &Market, today: Date) -> Summary {
         if let Some(fund) = market.funds.get(&t) {
             let r = fii::report(fund, market.price(&t), &market.economy, today);
             if r.health == Health::Risk {
-                alerts.push(Alert { kind: "fund".into(), text: format!("{t}: {}", r.signals.first().cloned().unwrap_or_default()), urgent: true });
+                alerts.push(Alert { kind: "fund".into(), ticker: t.clone(), count: r.signals.len(), text: r.signals.join(" "), urgent: true });
             }
         }
     }
@@ -888,7 +936,7 @@ pub fn summary(store: &Store, market: &Market, today: Date) -> Summary {
             let m = company::metrics(&c.figures);
             let broken: Vec<String> = company::check(&m, &th.conditions).into_iter().filter(|c| c.holds == Some(false)).map(|c| if c.condition.label.is_empty() { c.condition.metric } else { c.condition.label }).collect();
             if !broken.is_empty() {
-                alerts.push(Alert { kind: "thesis".into(), text: format!("{}: {}", th.ticker, broken.join("; ")), urgent: false });
+                alerts.push(Alert { kind: "thesis".into(), ticker: th.ticker.clone(), count: broken.len(), text: broken.join("; "), urgent: false });
             }
         }
     }
@@ -963,9 +1011,16 @@ mod tests {
             positions: vec![Position { ticker: "GGRC11".into(), class: AssetClass::Fii, quantity: 200.0, average_price: 0.0, subtype: String::new(), current_value: None, note: String::new() }],
             ..Imported::default()
         };
-        update(&mut store, &json!({"mode": "merge"}), Some(file), today()).unwrap();
+        update(&mut store, &json!({"mode": "merge"}), Some(file.clone()), today()).unwrap();
         let g = store.portfolio.position("GGRC11").unwrap();
         assert_eq!((g.quantity, g.average_price, g.subtype.as_str()), (200.0, 9.20, "tijolo"));
+        assert_eq!(store.portfolio.positions.len(), 7, "merged: the rest stays");
+        // By default B3's export replaces the classes it holds: the FIIs sold are gone, the rest stays.
+        let note = update(&mut store, &json!({}), Some(file), today()).unwrap();
+        assert!(note.contains("3 removed") && note.contains("the others stay"), "{note}");
+        let fiis = store.portfolio.tickers(Some(AssetClass::Fii));
+        assert_eq!(fiis, vec!["GGRC11"]);
+        assert!(store.portfolio.position("TIMS3").is_some() && store.portfolio.position("Tesouro Selic 2031").is_some());
     }
 
     #[test]
@@ -999,7 +1054,8 @@ mod tests {
         let en = english_view(&mut store, &json!({"action": "set", "level": "b1", "minutes_per_day": 15, "mode": "sim"}), today()).unwrap();
         assert!(en.contains("English mode on") && store.english.mode);
         assert!(english_view(&mut store, &json!({"action": "log", "minutes": 10, "kind": "speaking"}), today()).unwrap().contains("streak 1"));
-        let g = gym_view(&mut store, &json!({"action": "log", "workout": {"session": "Upper A", "exercises": [{"name": "Supino reto", "sets": 3, "reps": 10, "kg": "60"}]}}), today(), 2.0).unwrap();
+        let g = gym_view(&mut store, &json!({"action": "log", "workout": {"session": "Upper A", "exercises": [{"name": "Supino reto", "sets": 3, "reps": 10, "kg": "60"}, {"name": "Remada curvada", "sets_count": 3, "reps": 10, "kg": 50}]}}), today(), 2.0).unwrap();
+        assert_eq!(store.workouts[0].exercises[1].sets.len(), 3, "sets_count with reps and kg once");
         assert!(g.contains("Workout logged: Upper A") && g.contains("Next session: Lower A"), "{g}");
         let well = gym_view(&mut store, &json!({"action": "wellness", "sleep_hours": 5, "energy": 2, "soreness": 2}), today(), 5.0).unwrap();
         assert!(well.contains("rest or walk"), "{well}");
@@ -1020,7 +1076,7 @@ mod tests {
         let mut market = Market::default();
         let (text, changed) = company_view(&mut store, &market, "TIMS3", &json!({"thesis": "margem EBITDA acima de 45%; dívida caindo; gosto do CEO"}), today());
         assert!(changed && text.contains("could not be read") && text.contains("saved"));
-        market.companies.insert("TIMS3".into(), crate::model::CompanyData { ticker: "TIMS3".into(), cnpj: "1".into(), name: "TIM S.A.".into(), figures: crate::company::fixtures::figures(0.1), checked: Some(today()) });
+        market.companies.insert("TIMS3".into(), crate::model::CompanyData { ticker: "TIMS3".into(), cnpj: "1".into(), name: "TIM S.A.".into(), figures: crate::company::fixtures::figures(0.1), checked: Some(today()), problems: vec![] });
         let (text, changed) = company_view(&mut store, &market, "TIMS3", &json!({"thesis": "margem EBITDA acima de 45%; dívida caindo; gosto do CEO"}), today());
         assert!(changed);
         assert!(text.contains("holds") && text.contains("Not measurable as written: gosto do CEO"), "{text}");

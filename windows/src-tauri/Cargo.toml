@@ -53,6 +53,9 @@ socket2 = "0.6"
 # with big numbers. Already in the lock file (through the Linux keyring's secret-service), so nothing new is
 # downloaded. MIT OR Apache-2.0.
 num-bigint = "0.4"
+# Zheus' superpowers (powers/): the user's portfolio, studies, English and training, read against the official data
+# (B3, the CVM, FundosNet, the Banco Central). A crate of this workspace; it brings nothing new.
+coucou-powers = { path = "../powers" }
 
 [target.'cfg(windows)'.dependencies]
 keyring = { version = "3", features = ["windows-native"] }

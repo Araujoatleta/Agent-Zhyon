@@ -489,6 +489,12 @@ export function buildPrompt(onHeightChange: () => void): ViewHost {
 
       input.placeholder = t(State.chatHistory.length === 0 ? STRINGS.placeholderFirst : STRINGS.placeholderNext);
       input.disabled = sending;
+      // A question written by another view (Zheus' superpowers): in the field, for the user to send or change.
+      if (State.chatDraft != null && State.view === "prompt" && !sending) {
+        input.value = State.chatDraft;
+        State.chatDraft = null;
+        input.focus();
+      }
     },
     focus() {
       input.focus();

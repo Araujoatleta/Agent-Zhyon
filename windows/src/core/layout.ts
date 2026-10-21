@@ -24,7 +24,8 @@ export type IslandViewName =
   | "greeting"
   | "recap"
   | "wardrobe"
-  | "zheus";
+  | "zheus"
+  | "powers";
 
 export type BotStateName =
   | "idle"
@@ -96,6 +97,8 @@ export const VIEW_LAYOUTS: Record<IslandViewName, ViewLayout> = {
   wardrobe: { height: 160, botX: 68, botY: null, botDiameter: 58, agentMode: "none" },
   // Zheus One: the house's tiles, the missions and a plan's timeline (views/zheus.ts).
   zheus: { height: 300, botX: 46, botY: 76, botDiameter: 40, agentMode: "none" },
+  // Zheus' superpowers: the portfolio against its targets and the day (views/powers.ts).
+  powers: { height: 300, botX: 46, botY: 76, botDiameter: 40, agentMode: "none" },
 };
 
 // The upload views above are only the fallback geometry. Once a file is actually

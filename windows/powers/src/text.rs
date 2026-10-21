@@ -185,6 +185,24 @@ pub fn clip(s: &str, max: usize) -> String {
     format!("{}…", cut.trim_end_matches([',', ';', '.', ' ']))
 }
 
+/// `data` in base64 (standard alphabet, padded): what some sites take in their addresses.
+pub fn base64(data: &[u8]) -> String {
+    const T: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut out = String::new();
+    for chunk in data.chunks(3) {
+        let b = [chunk[0], *chunk.get(1).unwrap_or(&0), *chunk.get(2).unwrap_or(&0)];
+        let n = (b[0] as u32) << 16 | (b[1] as u32) << 8 | b[2] as u32;
+        for i in 0..4 {
+            if i <= chunk.len() {
+                out.push(T[(n >> (18 - 6 * i) & 63) as usize] as char);
+            } else {
+                out.push('=');
+            }
+        }
+    }
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -224,6 +242,13 @@ mod tests {
         assert_eq!(decode(&[0x50, 0x52, 0x45, 0xC7, 0x4F]), "PREÇO");
         assert_eq!(decode("Preço".as_bytes()), "Preço");
         assert_eq!(decode(&[0xEF, 0xBB, 0xBF, b'a']), "a");
+    }
+
+    #[test]
+    fn base64_as_the_sites_read_it() {
+        assert_eq!(base64(b"{\"typeFund\":7}"), "eyJ0eXBlRnVuZCI6N30=");
+        assert_eq!(base64(b"Ma"), "TWE=");
+        assert_eq!(base64(b""), "");
     }
 
     #[test]
