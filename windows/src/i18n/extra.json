@@ -9142,17 +9142,6 @@
    "ru": "Кондиционер на",
    "id": "AC di suhu"
   },
-  "°C (0 leaves it alone)": {
-   "zh-Hans": "°C（0 表示不动它）",
-   "hi": "°C (0 = इसे न छेड़ें)",
-   "es": "°C (0 lo deja como está)",
-   "ar": "°C (0 يتركه كما هو)",
-   "fr": "°C (0 : n'y touche pas)",
-   "bn": "°C (0 দিলে হাত দেয় না)",
-   "pt-BR": "°C (0 deixa como está)",
-   "ru": "°C (0 — не трогать)",
-   "id": "°C (0 = biarkan saja)"
-  },
   "Turned on before you arrive": {
    "zh-Hans": "提前开启",
    "hi": "पहुँचने से पहले चालू",
@@ -9339,17 +9328,6 @@
    "pt-BR": "Casa vazia há",
    "ru": "Дом пуст",
    "id": "Rumah kosong selama"
-  },
-  "min, before turning things off": {
-   "zh-Hans": "分钟后再关闭设备",
-   "hi": "मिनट, चीज़ें बंद करने से पहले",
-   "es": "min, antes de apagar nada",
-   "ar": "دقيقة قبل إطفاء الأجهزة",
-   "fr": "min, avant d'éteindre quoi que ce soit",
-   "bn": "মিনিট, কিছু বন্ধ করার আগে",
-   "pt-BR": "min, antes de desligar algo",
-   "ru": "мин, прежде чем что-то выключать",
-   "id": "mnt, sebelum mematikan apa pun"
   },
   "TV mode": {
    "zh-Hans": "电视模式",
@@ -9633,7 +9611,7 @@
    "ar": "تصل نحو {time}",
    "fr": "Vous arrivez vers {time}",
    "bn": "আপনি প্রায় {time}-এ পৌঁছাবেন",
-   "pt-BR": "Você chega por volta de {time}",
+   "pt-BR": "Você chega por volta das {time}",
    "ru": "Вы приедете около {time}",
    "id": "Anda tiba sekitar {time}"
   },
@@ -10307,6 +10285,94 @@
    "pt-BR": "O Home Assistant não tem nenhuma área chamada {room}. As áreas dele: {areas}.",
    "ru": "В Home Assistant нет зоны {room}. Его зоны: {areas}.",
    "id": "Home Assistant tidak punya area bernama {room}. Areanya: {areas}."
+  },
+  "Share it with Zheus in Settings → Mochi's home": {
+   "zh-Hans": "在“设置 → Mochi 的家”中与 Zheus 共享",
+   "hi": "इसे सेटिंग्स → Mochi का घर में Zheus के साथ साझा करें",
+   "es": "Compártelo con Zheus en Configuración → La casa de Mochi",
+   "ar": "شاركه مع Zheus في الإعدادات ← منزل Mochi",
+   "fr": "Partagez-le avec Zheus dans Réglages → La maison de Mochi",
+   "bn": "সেটিংস → Mochi-র বাড়ি থেকে এটি Zheus-এর সাথে শেয়ার করুন",
+   "pt-BR": "Compartilhe com o Zheus em Configurações → Casa do Mochi",
+   "ru": "Поделитесь им с Zheus в «Настройки → Дом Mochi»",
+   "id": "Bagikan dengan Zheus di Pengaturan → Rumah Mochi"
+  },
+  "Not shared yet": {
+   "zh-Hans": "尚未共享",
+   "hi": "अभी साझा नहीं",
+   "es": "Aún no compartido",
+   "ar": "لم تتم مشاركته بعد",
+   "fr": "Pas encore partagé",
+   "bn": "এখনো শেয়ার করা হয়নি",
+   "pt-BR": "Ainda não compartilhado",
+   "ru": "Пока не добавлено",
+   "id": "Belum dibagikan"
+  },
+  "before turning things off": {
+   "zh-Hans": "后再关闭设备",
+   "hi": "चीज़ें बंद करने से पहले",
+   "es": "antes de apagar nada",
+   "ar": "قبل إطفاء الأجهزة",
+   "fr": "avant d'éteindre quoi que ce soit",
+   "bn": "কিছু বন্ধ করার আগে",
+   "pt-BR": "antes de desligar algo",
+   "ru": "прежде чем что-то выключать",
+   "id": "sebelum mematikan apa pun"
+  },
+  "0 leaves it alone": {
+   "zh-Hans": "0 表示不动它",
+   "hi": "0 = इसे न छेड़ें",
+   "es": "0 lo deja como está",
+   "ar": "0 يتركه كما هو",
+   "fr": "0 : n'y touche pas",
+   "bn": "0 দিলে হাত দেয় না",
+   "pt-BR": "0 deixa como está",
+   "ru": "0 — не трогать",
+   "id": "0 = biarkan saja"
+  },
+  "Rooms": {
+   "zh-Hans": "房间",
+   "hi": "कमरे",
+   "es": "Habitaciones",
+   "ar": "الغرف",
+   "fr": "Pièces",
+   "bn": "ঘরগুলো",
+   "pt-BR": "Cômodos",
+   "ru": "Комнаты",
+   "id": "Ruangan"
+  },
+  "Lights and TV": {
+   "zh-Hans": "灯和电视",
+   "hi": "लाइटें और टीवी",
+   "es": "Luces y TV",
+   "ar": "الأضواء والتلفاز",
+   "fr": "Lumières et TV",
+   "bn": "লাইট ও টিভি",
+   "pt-BR": "Luzes e TV",
+   "ru": "Свет и телевизор",
+   "id": "Lampu dan TV"
+  },
+  "Act": {
+   "zh-Hans": "执行",
+   "hi": "काम करे",
+   "es": "Actuar",
+   "ar": "التصرّف",
+   "fr": "Agir",
+   "bn": "কাজ",
+   "pt-BR": "Agir",
+   "ru": "Действовать",
+   "id": "Bertindak"
+  },
+  "Arrival": {
+   "zh-Hans": "到家",
+   "hi": "आगमन",
+   "es": "Llegada",
+   "ar": "الوصول",
+   "fr": "Arrivée",
+   "bn": "আগমন",
+   "pt-BR": "Chegada",
+   "ru": "Приезд",
+   "id": "Tiba"
   }
  }
 }

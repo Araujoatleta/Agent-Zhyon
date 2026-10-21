@@ -1,0 +1,347 @@
+//! The official sources, for real: what each one sends today, and what Zheus makes of it. Ignored by default (they
+//! need the internet, and the sites change on their own schedule); `.github/workflows/powers-live.yml` runs them:
+//!
+//!     cargo test -p coucou-powers --test live -- --ignored --nocapture --test-threads=1
+//!
+//! The raw_ tests print the first lines of every file, so a change of format shows in the log; the others print
+//! what was read and check that it makes sense.
+
+use std::collections::{BTreeMap, HashMap};
+use std::time::{SystemTime, UNIX_EPOCH};
+
+use coucou_powers::date::{previous_business_day, Date};
+use coucou_powers::model::{AssetClass, Market, Store};
+use coucou_powers::sources::{self, b3, bcb, cvm_cia, cvm_fii, fetch::Http, fnet};
+use coucou_powers::{company, engine, fii, refresh, zip};
+use serde_json::json;
+
+/// A portfolio of real tickers (made-up quantities and prices), pasted the way Investidor10 shows it.
+const PASTE: &str = "FIIs\nGGRC11 150 R$ 9,20\nGARE11 180 R$ 8,55\nBTCI11 140 R$ 8,90\nPORD11 120 R$ 8,45\nAções\nTIMS3 30 R$ 18,60\nETFs\nSPXB11 40 R$ 16,75";
+const FUNDS: [&str; 4] = ["GGRC11", "GARE11", "BTCI11", "PORD11"];
+
+/// Today in Brasília.
+fn today() -> Date {
+    let secs = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs() as i64).unwrap_or(0);
+    Date::from_days((secs - 3 * 3600).div_euclid(86_400))
+}
+
+fn head(text: &str, lines: usize) -> String {
+    text.lines().take(lines).map(|l| coucou_powers::text::clip(l, 400)).collect::<Vec<_>>().join("\n")
+}
+
+fn rows_with(text: &str, needle: &str, n: usize) -> String {
+    text.lines().filter(|l| l.contains(needle)).take(n).map(|l| coucou_powers::text::clip(l, 400)).collect::<Vec<_>>().join("\n")
+}
+
+fn section(title: &str) {
+    println!("\n══════ {title} ══════");
+}
+
+async fn fund_months(http: &Http, today: Date) -> Vec<cvm_fii::FiiMonth> {
+    sources::fii_months(http, &[today.y, today.y - 1], &[]).await.expect("the CVM's fund reports")
+}
+
+// ── What each source sends ────────────────────────────────────────────────────
+
+#[tokio::test]
+#[ignore]
+async fn live_raw_b3() {
+    let http = Http::new();
+    let mut day = previous_business_day(today(), true);
+    for _ in 0..6 {
+        section(&format!("B3 COTAHIST {}", day.br()));
+        match http.zip_entries(&b3::url(day), &[".txt".to_string()]).await {
+            Ok(files) if !files.is_empty() => {
+                let (name, bytes) = &files[0];
+                let text = coucou_powers::text::decode(bytes);
+                println!("{name}: {} bytes, {} lines", bytes.len(), text.lines().count());
+                println!("{}", head(&text, 2));
+                for t in FUNDS.iter().chain(["TIMS3", "SPXB11"].iter()) {
+                    println!("{}", rows_with(&text, &format!("{t:<12}"), 2));
+                }
+                return;
+            }
+            Ok(_) => println!("empty"),
+            Err(e) => println!("error: {e}"),
+        }
+        day = previous_business_day(day, true);
+    }
+    panic!("no COTAHIST file in six business days");
+}
+
+#[tokio::test]
+#[ignore]
+async fn live_raw_cvm_fii() {
+    let http = Http::new();
+    let year = today().y;
+    section(&format!("CVM FII monthly reports {year}"));
+    let bytes = http.get(&cvm_fii::url(year)).await.expect("the year's ZIP");
+    let archive = zip::Archive::new(&bytes).expect("a ZIP");
+    println!("{} bytes", bytes.len());
+    for e in &archive.entries {
+        println!("entry {} ({} → {} bytes)", e.name, e.compressed, e.size);
+    }
+    for e in &archive.entries {
+        let text = coucou_powers::text::decode(&archive.read(e).expect("entry"));
+        println!("\n— {} ({} lines)\n{}", e.name, text.lines().count(), head(&text, 2));
+        // GGRC11's fund, by its ISIN or its name.
+        let rows = rows_with(&text, "GGRC", 2);
+        println!("{}", if rows.is_empty() { rows_with(&text, "GGR COVEPI", 2) } else { rows });
+    }
+}
+
+#[tokio::test]
+#[ignore]
+async fn live_raw_fnet() {
+    let http = Http::new();
+    let today = today();
+    let months = fund_months(&http, today).await;
+    let roots = cvm_fii::cnpj_by_root(&months);
+    let cnpj = roots.get("GGRC").expect("GGRC11's CNPJ from the ISINs").clone();
+    section(&format!("FundosNet list for GGRC11 ({cnpj})"));
+    let body = http.text(&fnet::list_url(&cnpj, 20)).await.expect("the list");
+    println!("{}", coucou_powers::text::clip(&body, 3000));
+    let docs = fnet::parse_list(&body).expect("parsed");
+    for d in docs.iter().take(20) {
+        println!("{} {:?} [{} / {} / {}] ref {} delivered {:?} structured {} — {}", d.id, d.topic, d.category, d.kind, d.species, d.reference, d.delivered, d.structured, coucou_powers::text::clip(&d.info, 80));
+    }
+    if let Some(d) = docs.iter().find(|d| d.structured && d.topic == fnet::Topic::Payout) {
+        section(&format!("Structured payout notice {}", d.id));
+        let raw = http.get(&fnet::download_url(d.id)).await.expect("the document");
+        println!("raw: {}", coucou_powers::text::clip(&String::from_utf8_lossy(&raw[..raw.len().min(200)]), 200));
+        let xml = coucou_powers::text::decode(&fnet::unwrap_download(&raw));
+        println!("{}", coucou_powers::text::clip(&xml, 4000));
+        println!("parsed: {:?}", fnet::parse_payouts(&xml, d.id));
+    } else {
+        println!("no structured payout notice among the last 20 documents");
+    }
+}
+
+#[tokio::test]
+#[ignore]
+async fn live_raw_bcb() {
+    let http = Http::new();
+    for code in [bcb::SELIC, bcb::CDI, bcb::IPCA_12M, bcb::USD] {
+        section(&format!("SGS {code}"));
+        match http.text(&bcb::series_url(code, 2)).await {
+            Ok(b) => println!("{}", coucou_powers::text::clip(&b, 600)),
+            Err(e) => println!("error: {e}"),
+        }
+    }
+    for indicator in ["Selic", "IPCA"] {
+        section(&format!("Focus {indicator}"));
+        match http.text(&bcb::focus_url(indicator)).await {
+            Ok(b) => println!("{}", coucou_powers::text::clip(&b, 1500)),
+            Err(e) => println!("error: {e}"),
+        }
+    }
+}
+
+#[tokio::test]
+#[ignore]
+async fn live_raw_cvm_companies() {
+    let http = Http::new();
+    let today = today();
+    let mut tim = String::new();
+    for year in [today.y, today.y - 1] {
+        section(&format!("CVM FCA {year}: valor_mobiliario"));
+        match http.zip_entries(&cvm_cia::fca_url(year), &[format!("valor_mobiliario_{year}.csv")]).await {
+            Ok(files) => {
+                for (name, bytes) in &files {
+                    let text = coucou_powers::text::decode(bytes);
+                    println!("{name}: {} lines\n{}\n{}", text.lines().count(), head(&text, 2), rows_with(&text, "TIMS3", 3));
+                    let map = cvm_cia::tickers(&text);
+                    println!("{} tickers read; TIMS3 → {:?}; PETR4 → {:?}", map.len(), map.get("TIMS3"), map.get("PETR4"));
+                    if let Some((cnpj, _)) = map.get("TIMS3") {
+                        tim = cnpj.clone();
+                    }
+                }
+                if !tim.is_empty() {
+                    break;
+                }
+            }
+            Err(e) => println!("error: {e}"),
+        }
+    }
+    assert!(!tim.is_empty(), "TIMS3 in the register");
+    for (kind, year) in [("dfp", today.y - 1), ("itr", today.y)] {
+        let names: Vec<String> = cvm_cia::TABLES.iter().map(|t| cvm_cia::entry_name(kind, t, year)).collect();
+        section(&format!("CVM {kind} {year}"));
+        match http.zip_entries(&cvm_cia::url(kind, year), &names).await {
+            Ok(files) => {
+                for (name, bytes) in &files {
+                    let text = coucou_powers::text::decode(bytes);
+                    let mine: Vec<&str> = text.lines().filter(|l| coucou_powers::sources::cvm_fii::digits(l).contains(&tim)).collect();
+                    println!("\n— {name}: {} lines, {} of TIM\n{}", text.lines().count(), mine.len(), head(&text, 1));
+                    for l in mine.iter().take(6) {
+                        println!("{}", coucou_powers::text::clip(l, 400));
+                    }
+                }
+            }
+            Err(e) => println!("error: {e}"),
+        }
+    }
+}
+
+// ── What Zheus makes of it ────────────────────────────────────────────────────
+
+#[tokio::test]
+#[ignore]
+async fn live_quotes() {
+    let http = Http::new();
+    let tickers: Vec<String> = FUNDS.iter().chain(["TIMS3", "SPXB11"].iter()).map(|t| t.to_string()).collect();
+    let (day, quotes) = sources::quotes(&http, today(), false, &tickers).await.expect("quotes");
+    section(&format!("Quotes of {}", day.br()));
+    for t in &tickers {
+        match quotes.get(t) {
+            Some(q) => println!("{t}: close {} (open {}, low {}, high {}), {} trades, bdi {} kind {} isin {} → {}", q.close, q.open, q.low, q.high, q.trades, q.bdi, q.kind, q.isin, b3::kind_of(q)),
+            None => println!("{t}: not found"),
+        }
+    }
+    assert!(today().until(day) >= -10, "a recent day");
+    for t in &tickers {
+        let q = quotes.get(t).unwrap_or_else(|| panic!("{t} quoted"));
+        assert!(q.close > 1.0 && q.close < 1000.0, "{t} at {}", q.close);
+    }
+    assert_eq!(b3::kind_of(&quotes["GGRC11"]), "fii");
+    assert_eq!(b3::kind_of(&quotes["SPXB11"]), "etf");
+    assert_eq!(b3::kind_of(&quotes["TIMS3"]), "acao");
+}
+
+#[tokio::test]
+#[ignore]
+async fn live_economy() {
+    let m = sources::economy(&Http::new()).await.expect("the Banco Central");
+    section("Economy");
+    println!("{m:#?}");
+    let selic = m.selic.expect("Selic");
+    assert!((2.0..30.0).contains(&selic), "Selic {selic}");
+    assert!(m.cdi.is_some_and(|c| (c - selic).abs() < 1.0), "CDI next to the Selic: {:?}", m.cdi);
+    assert!(m.ipca_12m.is_some_and(|i| (-3.0..20.0).contains(&i)));
+    assert!(m.usd.is_some_and(|u| (2.0..15.0).contains(&u)));
+    let y = today().y;
+    assert!(m.selic_at(y).is_some() || m.selic_at(y + 1).is_some(), "Focus Selic");
+    assert!(m.ipca_at(y + 1).is_some(), "Focus IPCA");
+}
+
+#[tokio::test]
+#[ignore]
+async fn live_funds() {
+    let http = Http::new();
+    let today = today();
+    let tickers: Vec<String> = FUNDS.iter().map(|t| t.to_string()).collect();
+    let read = refresh::funds(&http, &tickers, &BTreeMap::new(), true, &HashMap::new(), today).await;
+    section("Funds read");
+    println!("errors: {:?}", read.errors);
+    println!("{} ticker roots known", read.roots.len());
+    for t in &tickers {
+        let root = coucou_powers::text::ticker_root(t);
+        println!("{t}: CNPJ {:?}, {} months, {} documents, {} payouts", read.roots.get(root), read.months.get(t).map_or(0, |m| m.len()), read.documents.get(t).map_or(0, |d| d.len()), read.payouts.get(t).map_or(0, |p| p.len()));
+        if let Some(last) = read.months.get(t).and_then(|m| m.last()) {
+            println!("  last month {}: VP/cota {:?}, DY {:?} %, holders {:?}, segment {:?}, mandate {:?} → {}", last.date.br(), last.vp_share, last.dividend_yield, last.holders, last.segment, last.mandate, cvm_fii::subtype(last));
+        }
+        for p in read.payouts.get(t).into_iter().flatten().take(6) {
+            println!("  payout record {} pay {:?} R$ {} amort {} ({})", p.record.br(), p.payment.map(|d| d.br()), p.value, p.amortization, p.period);
+        }
+    }
+    let mut market = Market::default();
+    refresh::merge_funds(&mut market, read, today);
+    market.economy = sources::economy(&http).await.unwrap_or_default();
+    if let Ok((day, quotes)) = sources::quotes(&http, today, false, &tickers).await {
+        refresh::merge_quotes(&mut market, day, quotes);
+    }
+    for t in &tickers {
+        let fund = market.funds.get(t).unwrap_or_else(|| panic!("{t} read"));
+        let r = fii::report(fund, market.price(t), &market.economy, today);
+        section(&format!("{t} for the brain"));
+        println!("{}", fii::report_for_model(&r));
+        let ev = fii::events(fund, 100.0, today, 60);
+        println!("{}", fii::events_for_model(&ev));
+        assert!(!fund.cnpj.is_empty(), "{t}'s CNPJ");
+        assert!(fund.months.len() >= 6, "{t}: months of reports");
+        assert!(r.vp_share.is_some_and(|v| v > 1.0 && v < 1000.0), "{t}: VP/cota {:?}", r.vp_share);
+        assert!(!fund.documents.is_empty(), "{t}: documents from FundosNet");
+        assert!(fund.payouts.iter().any(|p| !p.amortization && p.value > 0.0 && p.value < 10.0), "{t}: dividends from the structured notices");
+    }
+}
+
+#[tokio::test]
+#[ignore]
+async fn live_company() {
+    let http = Http::new();
+    let today = today();
+    let (c, register) = refresh::company(&http, "TIMS3", &BTreeMap::new(), today).await.expect("TIM's statements");
+    section(&format!("{} ({}), {} periods; register of {} tickers", c.name, c.cnpj, c.figures.len(), register.as_ref().map_or(0, |r| r.len())));
+    for f in &c.figures {
+        println!("{:?} → {}: revenue {:?}, ebit {:?}, net {:?}, dep {:?}, cash flow {:?}, capex {:?}, dividends {:?}, debt {:?}, cash {:?}, equity {:?}", f.start.map(|d| d.br()), f.end.br(), f.revenue, f.ebit, f.net_income, f.depreciation, f.operating_cash, f.capex, f.dividends_paid, f.debt, f.cash, f.equity);
+    }
+    let m = company::metrics(&c.figures);
+    let thesis: Vec<_> = ["margem EBITDA acima de 40%", "dívida líquida/EBITDA abaixo de 2", "receita crescendo"].iter().filter_map(|s| company::parse_condition(s)).collect();
+    let checks = company::check(&m, &thesis);
+    println!("{}", company::for_model("TIMS3", &c.name, &m, &checks, &company::red_flags(&m)));
+    assert!(c.name.to_uppercase().contains("TIM"));
+    let revenue = m.now.get("revenue").copied().expect("twelve months of revenue");
+    assert!(revenue > 1e10 && revenue < 1e11, "TIM's yearly revenue {revenue}");
+    let margin = m.now.get("ebitda_margin").copied().expect("EBITDA margin");
+    assert!((20.0..70.0).contains(&margin), "EBITDA margin {margin}");
+    assert_eq!(thesis.len(), 3);
+}
+
+/// Everything at once, the way the app does it, and what the brain reads back.
+#[tokio::test]
+#[ignore]
+async fn live_zheus_end_to_end() {
+    let http = Http::new();
+    let today = today();
+    let mut store = Store::default();
+    let note = engine::update(&mut store, &json!({"text": PASTE, "targets": {"ações": 25, "fiis": 25, "etfs": 25, "renda fixa": 25}, "monthly_contribution": 500, "income_goal": 1000}), None, today).expect("the paste");
+    println!("{note}");
+    let mut market = Market::default();
+    let due = refresh::due(&store, &market, today, false, true);
+    println!("{due:?}");
+    let (day, quotes) = sources::quotes(&http, today, false, &due.quotes).await.expect("quotes");
+    refresh::merge_quotes(&mut market, day, quotes);
+    let read = refresh::funds(&http, &due.funds, &market.fund_cnpjs, due.fund_months, &refresh::known_documents(&market), today).await;
+    println!("fund errors: {:?}", read.errors);
+    refresh::merge_funds(&mut market, read, today);
+    market.economy = sources::economy(&http).await.expect("economy");
+    market.economy_read = Some(today);
+    println!("classes fixed: {:?}", refresh::fix_classes(&mut store, &market));
+    for t in store.portfolio.tickers(Some(AssetClass::Acao)) {
+        match refresh::company(&http, &t, &market.company_cnpjs, today).await {
+            Ok((c, register)) => {
+                if let Some(r) = register {
+                    market.company_cnpjs.extend(r);
+                }
+                market.companies.insert(t, c);
+            }
+            Err(e) => println!("{t}: {e}"),
+        }
+    }
+    engine::snapshot(&mut store, &market, today);
+    for (title, text) in [
+        ("wealth_portfolio", engine::portfolio(&store, &market, today)),
+        ("wealth_fii", engine::funds(&store, &market, None, today)),
+        ("wealth_events", engine::events(&store, &market, 30, today)),
+        ("wealth_plan", engine::plan(&store, &market, &json!({"contribution": 500, "scenario": {"selic": -2, "ipca": 1}}), today)),
+        ("wealth_macro", engine::economy(&market, today)),
+        ("wealth_company", engine::company_view(&mut store, &market, "TIMS3", &json!({"thesis": "margem EBITDA acima de 40%; dívida líquida/EBITDA abaixo de 2"}), today).0),
+        ("wealth_committee", engine::committee(&store, &market, &json!({"proposal": "comprar 50 cotas de GARE11"}), today).unwrap()),
+        ("wealth_audit", engine::audit_view(&store, &market, &json!({}), today)),
+        ("life_day", coucou_powers::day::for_model(&engine::day_plan(&store, &market, today))),
+    ] {
+        section(title);
+        println!("{text}");
+    }
+    let summary = engine::summary(&store, &market, today);
+    section("island summary");
+    println!("{}", serde_json::to_string_pretty(&summary).unwrap());
+    assert!(summary.value > 3_000.0 && summary.value < 30_000.0, "the portfolio's value {}", summary.value);
+    assert!(summary.income > 20.0 && summary.income < 400.0, "monthly income {}", summary.income);
+    let (files, brief) = engine::content_kit(&store, &json!({}), today);
+    section("content kit");
+    println!("{brief}");
+    for f in &files {
+        println!("{} ({} bytes): {}", f.name, f.svg.len(), f.about);
+    }
+}

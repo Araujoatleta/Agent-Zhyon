@@ -16,10 +16,11 @@ padrão.
 
 1. Ligue a **Casa do Mochi** e marque os aparelhos que o Zheus pode usar (Configurações → Casa do Mochi). O aspirador,
    o ar-condicionado e os sensores vêm do Home Assistant (2026.3 ou mais novo para limpar cômodo por cômodo).
-2. Configurações → **Zheus One**: ligue, e ajuste **Sua chegada**: quanto tempo o caminho de casa costuma levar, a
-   temperatura do ar e quantos minutos antes de você chegar ele liga, se o aspirador limpa antes de você chegar, os
-   cômodos que ele limpa com os minutos de cada um (na ordem de importância), a bateria mínima, as luzes para uma
-   chegada depois de escurecer, a TV e um app, e se o resumo do dia é contado na chegada.
+2. Configurações → **Zheus One** (em vidro, como a ilha): ligue e ajuste os cartões. **Sua chegada**: quanto tempo o
+   caminho de casa costuma levar, a temperatura do ar e quantos minutos antes de você chegar ele liga, e se o resumo do
+   dia é contado na chegada. **Aspirador**: se ele limpa antes de você chegar, quanto tempo leva a casa inteira, a
+   bateria mínima e os cômodos que ele limpa com os minutos de cada um (na ordem de importância). **Luzes e TV**: a
+   partir de que hora está escuro, as luzes para uma chegada depois de escurecer, a TV e um app.
 3. Aparece uma aba **✦** na ilha: a tela do Zheus One.
 
 ## A missão da chegada
@@ -55,17 +56,18 @@ A sua mensagem continua indo para o assistente, com o plano junto, então o rest
 ## O World State (o estado da casa)
 
 A tela ✦ mostra a casa em cartões de vidro: o aspirador (limpando, na base, a bateria), o ar-condicionado (a
-temperatura dele, a do ambiente, − e +), as luzes (quantas estão acesas) e a TV, cada um com um clique para agir; onde
-você está (a caminho, em casa, fora); os fatos que ligam as coisas ("a TV está ligada onde o aspirador está limpando",
-"não tem ninguém em casa, e isto está ligado"); e as missões: **Preparar minha chegada** em 15, 30, 45 ou 60 minutos, e
-**Situação** para a TV. Quem está em casa vem das pessoas do Home Assistant (o app companion no seu celular, o seu
-roteador), ou do que você disse ("cheguei").
+temperatura dele, a do ambiente, − e +), as luzes (quantas estão acesas) e a TV, cada um com a sua chave (a do
+aspirador manda limpar, ou voltar para a base); um tipo de aparelho que você ainda não compartilhou guarda o lugar
+num cartão vazio, que abre as Configurações; onde você está (a caminho, em casa, fora); os fatos que ligam as coisas
+("a TV está ligada onde o aspirador está limpando", "não tem ninguém em casa, e isto está ligado"); e as missões:
+**Chegada 15 · 30 · 45 · 60 min** (preparar minha chegada nesses minutos) e **Situação** para a TV. Quem está em casa
+vem das pessoas do Home Assistant (o app companion no seu celular, o seu roteador), ou do que você disse ("cheguei").
 
 ## O Autopilot
 
 Objetivos permanentes em vez de comandos repetidos, em Configurações → Zheus One → Autopilot. Cada objetivo fica
-**Desligado**, **Sugerir** ou **Agir dentro dos limites**; o Zheus olha a casa a cada cinco minutos enquanto algum está
-ligado, e nada roda quando estão todos desligados.
+**Desligado**, **Sugerir** ou **Agir** (dentro dos limites logo abaixo dele); o Zheus olha a casa a cada cinco minutos
+enquanto algum está ligado, e nada roda quando estão todos desligados.
 
 - **Menos desperdício de energia**: o que ficou ligado (luzes, TV, ar — nunca uma tomada) enquanto não tem ninguém em
   casa há os minutos que você definiu.
@@ -88,10 +90,11 @@ enquanto está na tela, e nada depois de fechado.
 
 ## O visual: Liquid Glass
 
-Configurações → Zheus One → **Visual da ilha**: **Liquid Glass** (translúcido, fosco, luz nas bordas, os cartões
-foscos sobre um campo suave de cor) ou **Clássica** (a ilha preta). O vidro é desenhado pela página, não pela janela (a
-ilha mora numa janela fixa e transparente, e desfocar a área de trabalho foscaria o retângulo inteiro), e nada nele se
-mexe: não custa nada enquanto a ilha está escondida.
+Configurações → Zheus One → **Visual da ilha**: **Liquid Glass** (luz nas bordas, os cartões foscos sobre um campo
+suave de cor) ou **Clássica** (a ilha preta). O vidro é desenhado pela página, não pela janela (a ilha mora numa janela
+fixa e transparente, e desfocar a área de trabalho foscaria o retângulo inteiro), por isso o tom dele é escuro o
+bastante para a página atrás da ilha nunca aparecer através dela. Nada nele se mexe: não custa nada enquanto a ilha
+está escondida.
 
 ## Para o Hermes e outros agentes
 
