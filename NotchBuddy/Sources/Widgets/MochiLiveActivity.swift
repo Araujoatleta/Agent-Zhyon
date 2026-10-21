@@ -99,7 +99,7 @@ struct LockScreenActivityView: View {
                     }
                 }
                 HStack(spacing: 6) {
-                    Text(stale ? "Your Mac went quiet" : state.statusText)
+                    Text(stale ? (state.computer == true ? "Open Coucou to see the latest" : "Your Mac went quiet") : state.statusText)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(stale ? Color.secondary : state.toneColor)
                         .lineLimit(1)

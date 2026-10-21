@@ -175,6 +175,7 @@ final class PCLink {
     func appWentAway() {
         onScreen = false
         saveChat()
+        PCLiveActivity.shared.leftScreen()
         guard busy, backgroundTask == .invalid else { return }
         backgroundTask = UIApplication.shared.beginBackgroundTask(withName: "Coucou computer link") { [weak self] in
             MainActor.assumeIsolated { self?.backgroundTimeOver() }
@@ -1024,6 +1025,7 @@ final class PCLink {
         guard let computer else {
             items = []
             PhoneLink.shared.computerSessionsChanged()
+            PCLiveActivity.shared.update(items: [], linked: true, onScreen: onScreen)
             return
         }
         var list: [SessionItem] = []
@@ -1047,6 +1049,8 @@ final class PCLink {
         }
         items = list.sorted { $0.updatedAt > $1.updatedAt }
         PhoneLink.shared.computerSessionsChanged()
+        // Mochi in the Dynamic Island for this computer, in a build the Mac's push cannot reach.
+        PCLiveActivity.shared.update(items: items, linked: welcomed, onScreen: onScreen)
     }
 
     // MARK: Notifications (only while Coucou is away from the screen)

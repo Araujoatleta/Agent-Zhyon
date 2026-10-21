@@ -23,6 +23,11 @@ struct MochiActivityState: Codable, Hashable, Sendable {
     /// The fingerprint of the command waiting for your OK (an opaque hash,
     /// never the command): the Lock Screen's Allow and Deny answer this one.
     var approval: String? = nil
+    /// Started by the iPhone itself for the Windows or Linux computer
+    /// (PCLiveActivity), not pushed by the Mac: once iOS suspends Coucou, only
+    /// opening it again brings it up to date. Optional so the Mac's pushes
+    /// still decode.
+    var computer: Bool? = nil
 
     var botState: BotState { BotState(rawValue: state) ?? .idle }
     var isActive: Bool { ["waiting", "question", "working", "error"].contains(tone) }
