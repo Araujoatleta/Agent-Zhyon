@@ -1,9 +1,11 @@
 // Entry point: boot the bridge, wire the island, start the greeting.
 
+import "./liquid.css";
 import "./style.css";
 import "./zheus.css";
 import "./powers.css";
 import { Bridge, IS_TAURI, onEvent } from "./core/bridge";
+import { startGlass } from "./core/liquid";
 import { Sound } from "./core/sound";
 import { State, type Settings } from "./core/state";
 import { Island } from "./island/island";
@@ -29,6 +31,7 @@ async function main() {
   if (!root) return;
 
   void Sound.preload();
+  startGlass();
 
   const island = new Island(root);
 

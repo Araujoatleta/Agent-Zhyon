@@ -2,9 +2,11 @@
 // Stage 2 covers the Claude Code hooks and the general preferences; API keys and
 // integrations land here too in a later stage.
 
+import "../liquid.css";
 import "./settings.css";
 import "../zheus.css";
 import "../powers.css";
+import { namedGlass, startGlass } from "../core/liquid";
 import { Bridge, onEvent, type HookPreview, type HookStatus, type ShortcutsReport } from "../core/bridge";
 import { CUSTOM_SERVER_KEY, providerDef, urlExposure } from "../core/providers";
 import {
@@ -18,6 +20,7 @@ import {
   sanitizeDeclared, toggleDeclared, type PillDefinition,
 } from "../core/pills";
 import { h, clear } from "../views/dom";
+import { ICONS } from "../views/icons";
 import { agentsSection } from "./agents";
 import { phoneSection } from "./phone";
 import { handsSection } from "./hands";
@@ -27,7 +30,7 @@ import { zheusSection } from "./zheus";
 import { powersSection } from "./powers";
 import { wireTvMode } from "./tv";
 import { colorDot } from "./colors";
-import { renderDiff, statusDot } from "./parts";
+import { keyDot, keyDotFailed, keyDotSet, keyWell, renderDiff, statusDot } from "./parts";
 import {
   LANGUAGES, N_, isRtl, onLanguageChange, resolveLanguage, setLanguage, systemLanguages, t, tn,
 } from "../i18n/i18n";
@@ -404,7 +407,7 @@ function apiSection(hasKey: boolean): HTMLElement {
     {},
     h("h2", {}, dot, h("span", { text: "Claude" })),
     state,
-    h("div", { class: "row" }, h("label", { text: t("API key") }), field, saveBtn, clearBtn),
+    h("div", { class: "row" }, h("label", { text: t("API key") }), keyWell(field, saveBtn), clearBtn),
     h("div", { class: "row" }, h("label", { text: t("Model") }), model),
     feedback,
   );
@@ -534,7 +537,7 @@ function chatProvidersSection(
   present: Record<string, boolean>,
   keyChanged: (key: string, on: boolean) => void,
 ): HTMLElement {
-  const list = h("div", { style: "display:flex;flex-direction:column;gap:8px" });
+  const list = h("div", { class: "key-list" });
   for (const def of CLOUD) {
     const p = providerDef(def.id);
     const key = p.key!;
@@ -543,14 +546,13 @@ function chatProvidersSection(
       placeholder: present[key] ? CHAT_STRINGS.stored : def.placeholder,
       autocomplete: "off",
       spellcheck: "false",
-      style: "flex:1 1 auto;min-width:0",
     }) as HTMLInputElement;
-    const dotEl = statusDot(present[key] ?? false);
+    const dotEl = keyDot(present[key] ?? false);
     const saveBtn = h("button", { text: CHAT_STRINGS.save });
     const removeBtn = h("button", { class: "danger", text: CHAT_STRINGS.remove });
     const refresh = () => {
       input.placeholder = present[key] ? CHAT_STRINGS.stored : def.placeholder;
-      dotEl.style.background = present[key] ? "#22c55e" : "#f4505e";
+      keyDotSet(dotEl, present[key] ?? false);
       removeBtn.style.display = present[key] ? "" : "none";
     };
     saveBtn.addEventListener("click", async () => {
@@ -562,7 +564,7 @@ function chatProvidersSection(
         input.value = "";
         keyChanged(key, true);
       } catch {
-        dotEl.style.background = "#f5a524";
+        keyDotFailed(dotEl);
         return;
       }
       refresh();
@@ -573,21 +575,22 @@ function chatProvidersSection(
         present[key] = false;
         keyChanged(key, false);
       } catch {
-        dotEl.style.background = "#f5a524";
+        keyDotFailed(dotEl);
         return;
       }
       refresh();
     });
     refresh();
     list.append(
-      h("div", { class: "row" },
-        h("label", {},
-          h("i", { class: "dot", style: `background:${p.accent};margin-right:8px` }),
-          h("span", { text: def.name }),
+      h("div", { class: "key-item" },
+        h("div", { class: "key-head" },
+          h("i", { class: "dot", style: `background:${p.accent};color:${p.accent}` }),
+          h("span", { class: "key-name", text: def.name }),
+          h("span", { class: "key-where", text: t("Key from {site}", { site: def.where }) }),
+          dotEl,
         ),
-        input, saveBtn, removeBtn, dotEl,
+        h("div", { class: "key-line" }, keyWell(input, saveBtn), removeBtn),
       ),
-      h("div", { class: "hint", style: "margin:-4px 0 0 144px", text: t("Key from {site}", { site: def.where }) }),
     );
   }
   return h(
@@ -802,7 +805,7 @@ function declaredChanged() {
 
 function integrationsSection(present: Record<string, boolean>): HTMLElement {
   const note = h("div", { class: "hint" });
-  const list = h("div", { style: "display:flex;flex-direction:column;gap:14px" });
+  const list = h("div", { class: "key-list" });
 
   function updateNote() {
     const used = settings.activeIntegrations.length;
@@ -826,17 +829,23 @@ function integrationsSection(present: Record<string, boolean>): HTMLElement {
       declaredChanged();
     });
 
-    const rows = h("div", { style: "display:flex;flex-direction:column;gap:6px;flex:1 1 auto;min-width:0" });
+    const item = h("div", { class: "key-item" },
+      h("div", { class: "key-head" },
+        colorDot(def, "", () => settings.pillColors, pickColor),
+        h("span", { class: "key-name", text: def.name }),
+        h("span", { class: "spacer" }),
+        sw,
+      ),
+    );
     for (const field of def.fields) {
       const input = h("input", {
         type: field.secret ? "password" : "text",
         placeholder: present[field.key] ? CHAT_STRINGS.stored : field.placeholder,
         autocomplete: "off",
         spellcheck: "false",
-        style: "flex:1 1 auto;min-width:0",
       }) as HTMLInputElement;
       const saveBtn = h("button", { text: t("Save") });
-      const dotEl = statusDot(present[field.key] ?? false);
+      const dotEl = keyDot(present[field.key] ?? false);
       saveBtn.addEventListener("click", async () => {
         const value = input.value.trim();
         try {
@@ -844,39 +853,29 @@ function integrationsSection(present: Record<string, boolean>): HTMLElement {
           present[field.key] = value.length > 0;
           input.value = "";
           input.placeholder = value ? CHAT_STRINGS.stored : field.placeholder;
-          dotEl.style.background = value ? "#22c55e" : "#f4505e";
+          keyDotSet(dotEl, value.length > 0);
         } catch {
-          dotEl.style.background = "#f5a524";
+          keyDotFailed(dotEl);
         }
       });
-      rows.append(
-        h("div", { class: "row" },
-          h("label", { style: "min-width:104px", text: t(field.label) }),
-          input, saveBtn, dotEl,
+      item.append(
+        h("div", { class: "key-field" },
+          h("span", { class: "key-label", text: t(field.label) }),
+          h("div", { class: "key-line" }, keyWell(input, saveBtn), dotEl),
         ),
       );
     }
 
-    if (def.hint) rows.append(h("div", { class: "hint", text: t(def.hint) }));
+    if (def.hint) item.append(h("div", { class: "hint", text: t(def.hint) }));
     if (def.id === "integration_spotify") {
       // As on the Mac's row: said only when there is no Spotify to launch.
-      const hint = h("div", { class: "hint", style: "padding-top:5px" });
-      rows.append(hint);
+      const hint = h("div", { class: "hint" });
+      item.append(hint);
       void Bridge.spotifyInstalled().then((ok) => {
         hint.textContent = ok === false ? t("Not installed") : "";
       });
     }
-
-    list.append(
-      h("div", { style: "display:flex;gap:12px;align-items:flex-start" },
-        h("div", { style: "display:flex;align-items:center;gap:8px;min-width:132px;padding-top:4px" },
-          sw,
-          colorDot(def, "", () => settings.pillColors, pickColor),
-          h("span", { style: "font-size:12.5px", text: def.name }),
-        ),
-        rows,
-      ),
-    );
+    list.append(item);
   }
 
   updateNote();
@@ -1304,10 +1303,14 @@ async function rerender() {
 /** Brings a section into view: "hermes" when the installer's page set the assistant up (src-tauri/src/first_run.rs). */
 function focusSection(id: string) {
   if (id !== "hermes") return;
+  showPage?.("zheus");
   document.getElementById("hermes")?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 async function main() {
+  startGlass();
+  // The switches' drops (a pseudo-element, which the engine can't find): one size, one filter.
+  namedGlass("knob", "drop", 24, 24);
   void onEvent<string>("settings-focus", focusSection);
   wireTvMode(root);
   const boot = await Bridge.boot();
@@ -1389,30 +1392,154 @@ async function render() {
   });
   hermesRedraw = hermes.redraw;
   shortcutsListener = null;
+  const pages: Page[] = [
+    {
+      id: "zheus",
+      label: "Zheus",
+      sections: [
+        hermes.el,
+        zheusSection(toggle, { get: () => settings.islandLook ?? "glass", set: (look) => { settings.islandLook = look; void save(); } }),
+        powersSection(toggle),
+      ],
+    },
+    { id: "agents", label: t("Agents"), sections: [claudeSection(status), agentsSection(agents), planSection(status), handsSection(toggle)] },
+    { id: "models", label: t("AI models"), sections: [apiSection(hasKey), chatProvidersSection(chatKeys, keyChanged), localSection(customKey)] },
+    {
+      id: "home",
+      label: t("Mochi's home"),
+      sections: [homeSection(toggle, { on: settings.readAloud === true, set: (on) => { settings.readAloud = on; void save(); } })],
+    },
+    { id: "integrations", label: t("Integrations"), sections: [activePillsSection(connected), integrationsSection(present)] },
+    { id: "phone", label: t("Phone"), sections: [phoneSection(settings.phoneLink ?? false, toggle, settings)] },
+    { id: "general", label: t("General"), sections: [generalSection(), shortcutsSection(shortcutReport)] },
+  ];
   clear(root);
-  root.append(
-    h("h1", {}, h("span", { text: "Coucou" }), h("span", { class: "version", text: version })),
-    claudeSection(status),
-    agentsSection(agents),
-    planSection(status),
-    apiSection(hasKey),
-    chatProvidersSection(chatKeys, keyChanged),
-    localSection(customKey),
-    hermes.el,
-    handsSection(toggle),
-    homeSection(toggle, { on: settings.readAloud === true, set: (on) => { settings.readAloud = on; void save(); } }),
-    zheusSection(toggle, { get: () => settings.islandLook ?? "glass", set: (look) => { settings.islandLook = look; void save(); } }),
-    powersSection(toggle),
-    activePillsSection(connected),
-    integrationsSection(present),
-    phoneSection(settings.phoneLink ?? false, toggle, settings),
-    generalSection(),
-    shortcutsSection(shortcutReport),
-    h("div", {
-      class: "hint",
-      text: t("No telemetry. Network requests only go to the services you configure yourself."),
-    }),
+  root.append(...layout(pages));
+}
+
+// ── Pages ─────────────────────────────────────────────────────────────────────
+
+type PageId = "zheus" | "agents" | "models" | "home" | "integrations" | "phone" | "general";
+
+interface Page {
+  id: PageId;
+  label: string;
+  sections: HTMLElement[];
+}
+
+/** The page on screen, kept while the window is hidden and shown again, and across redraws. */
+let page: PageId = "zheus";
+/** Shows a page from outside the rail (focusSection). */
+let showPage: ((id: PageId) => void) | null = null;
+
+/** The rail's icons, on the 24 × 24 grid of views/icons.ts: filled, or stroked where `stroke`. */
+const RAIL_ICONS: Record<PageId, { d: string; stroke?: boolean }> = {
+  zheus: { d: ICONS.sparkles },
+  agents: { d: "M4.5 6.5 9.5 12l-5 5.5M12.5 17.5h7", stroke: true },
+  models: {
+    d: "M7.2 6.5h9.6c.4 0 .7.3.7.7v9.6c0 .4-.3.7-.7.7H7.2a.7.7 0 0 1-.7-.7V7.2c0-.4.3-.7.7-.7zM9.5 9.5h5v5h-5zM9 3.5v3M15 3.5v3M9 17.5v3M15 17.5v3M3.5 9h3M3.5 15h3M17.5 9h3M17.5 15h3",
+    stroke: true,
+  },
+  home: { d: ICONS.house },
+  integrations: {
+    d: "M7 4h3a3 3 0 0 1 0 6H7a3 3 0 0 1 0-6zM14 4h3a3 3 0 0 1 0 6h-3a3 3 0 0 1 0-6zM7 14h3a3 3 0 0 1 0 6H7a3 3 0 0 1 0-6zM14 14h3a3 3 0 0 1 0 6h-3a3 3 0 0 1 0-6z",
+    stroke: true,
+  },
+  phone: { d: "M8.2 2.8h7.6c.9 0 1.7.8 1.7 1.7v15c0 .9-.8 1.7-1.7 1.7H8.2c-.9 0-1.7-.8-1.7-1.7v-15c0-.9.8-1.7 1.7-1.7zM10.5 18.4h3", stroke: true },
+  general: { d: ICONS.gear },
+};
+
+function railIcon(id: PageId): SVGSVGElement {
+  const { d, stroke } = RAIL_ICONS[id];
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("aria-hidden", "true");
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("d", d);
+  if (stroke) {
+    path.setAttribute("fill", "none");
+    path.setAttribute("stroke", "currentColor");
+    path.setAttribute("stroke-width", "1.7");
+    path.setAttribute("stroke-linecap", "round");
+    path.setAttribute("stroke-linejoin", "round");
+  } else {
+    path.setAttribute("fill", "currentColor");
+  }
+  svg.append(path);
+  return svg;
+}
+
+/** A few drops resting on the glass, where the pages leave it bare: size (px) and place (% of the window). */
+const DROPLETS: Array<[number, number, number]> = [
+  [34, 93, 7], [12, 89, 14], [7, 97, 19], [20, 96, 86], [9, 91, 92], [5, 87, 96],
+];
+
+/**
+ * The window: water behind everything, a rail of glass with the pages' names and a lens on the one shown, and that
+ * page's sections as panes of glass. Pages stay built, hidden, so what a section holds survives switching.
+ */
+function layout(pages: Page[]): HTMLElement[] {
+  const lens = h("span", { class: "rail-lens", "data-glass": "lens", "aria-hidden": "true" });
+  const list = h("div", { class: "rail-items", role: "tablist" }, lens);
+  const main = h("main", { class: "pages" });
+  const tabs = new Map<PageId, HTMLElement>();
+  const bodies = new Map<PageId, HTMLElement>();
+
+  const place = (animate: boolean) => {
+    const on = tabs.get(page);
+    if (!on || !on.offsetHeight) return;
+    lens.classList.remove("flow");
+    if (animate) {
+      // Restarts the lens's squash as it flows to its new place.
+      void lens.offsetWidth;
+      lens.classList.add("flow");
+    }
+    lens.style.transform = `translateY(${on.offsetTop}px)`;
+    lens.style.height = `${on.offsetHeight}px`;
+  };
+  const show = (id: PageId, animate = true) => {
+    const changed = id !== page;
+    page = id;
+    for (const [k, tab] of tabs) {
+      tab.classList.toggle("on", k === id);
+      tab.setAttribute("aria-selected", String(k === id));
+    }
+    for (const [k, body] of bodies) body.hidden = k !== id;
+    place(animate && changed);
+    if (changed) window.scrollTo({ top: 0 });
+  };
+  showPage = (id) => show(id, false);
+
+  for (const p of pages) {
+    const tab = h("button", { class: "rail-item", role: "tab", "data-page": p.id, onclick: () => show(p.id) }, railIcon(p.id), h("span", { text: p.label }));
+    tabs.set(p.id, tab);
+    list.append(tab);
+    for (const s of p.sections) s.dataset.glass = "panel";
+    const body = h("div", { class: "page", "data-page": p.id }, h("h1", { class: "page-title", text: p.label }), ...p.sections);
+    bodies.set(p.id, body);
+    main.append(body);
+  }
+
+  const rail = h(
+    "nav",
+    { class: "rail", "data-glass": "panel", "data-glass-bend": "16" },
+    h("div", { class: "brand" },
+      h("span", { class: "brand-drop", "data-glass": "drop", "aria-hidden": "true" }),
+      h("div", { class: "brand-name" }, h("b", { text: "Coucou" }), h("small", { text: version })),
+    ),
+    list,
+    h("div", { class: "rail-foot", text: t("No telemetry. Network requests only go to the services you configure yourself.") }),
   );
+
+  const drops = DROPLETS.map(([size, x, y]) =>
+    h("span", { class: "droplet", "data-glass": "drop", style: `width:${size}px;height:${size}px;left:${x}%;top:${y}%` }),
+  );
+
+  show(page, false);
+  // The lens finds its place once the rail has a layout, and again when the window's size changes it.
+  requestAnimationFrame(() => place(false));
+  new ResizeObserver(() => place(false)).observe(list);
+  return [h("div", { class: "water", "aria-hidden": "true" }), ...drops, rail, main];
 }
 
 void main();

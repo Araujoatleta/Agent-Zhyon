@@ -11759,6 +11759,17 @@
    "pt-BR": "seu próprio preço teto",
    "ru": "ваша собственная предельная цена",
    "id": "harga plafon Anda sendiri"
+  },
+  "AI models": {
+   "zh-Hans": "AI 模型",
+   "hi": "AI मॉडल",
+   "es": "Modelos de IA",
+   "ar": "نماذج الذكاء الاصطناعي",
+   "fr": "Modèles d'IA",
+   "bn": "AI মডেল",
+   "pt-BR": "Modelos de IA",
+   "ru": "Модели ИИ",
+   "id": "Model AI"
   }
  }
 }

@@ -717,8 +717,9 @@ fn create_settings_window(app: &AppHandle) {
     match WebviewWindowBuilder::new(app, "settings", url)
         .additional_browser_args(BROWSER_ARGS)
         .title(i18n::t("Settings — Coucou"))
-        .inner_size(560.0, 680.0)
-        .min_inner_size(460.0, 480.0)
+        // Wide enough for the rail of pages beside them; narrower, the rail keeps its icons only.
+        .inner_size(900.0, 680.0)
+        .min_inner_size(520.0, 480.0)
         .resizable(true)
         .visible(false)
         .center()

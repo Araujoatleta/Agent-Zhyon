@@ -22,11 +22,21 @@ import { USC, UploadSeq } from "../upload/sequence";
 import { closePlanCard, openPlanColor, planCardOpen } from "../views/usage";
 import { buildHeader, buildViews, type ViewActions, type ViewHost } from "../views/views";
 import { h } from "../views/dom";
+import { markGlass } from "../core/liquid";
 import { IslandStateMachine } from "./fsm";
 import { refreshHookPills } from "./integrations";
 import { DesktopLink } from "./desktop";
 import type { ViewCommand } from "./shortcuts";
 import { DRAG_THRESHOLD } from "../mochi/desktop-logic";
+
+/** The open island's bottom corners in the glass look (the classic one keeps layout's EXPANDED_CORNER). */
+const GLASS_EXPANDED_CORNER = 30;
+
+/** What is glass in the island's glass look (core/liquid.ts): the cards and the field to write in. */
+const ISLAND_GLASS = [
+  [".card", "panel"],
+  [".chat-bar", "capsule"],
+] as const;
 
 const BOT_OVERHANG = 40;
 const CLAUDE_DESKTOP_ID = "agent_claude-desktop";
@@ -648,7 +658,9 @@ export class Island {
     if (State.mode === "expanded" && State.view === "question" && State.pendingApproval?.questions) {
       h = QUESTION_PICKER_H;
     }
-    const r = State.mode === "expanded" ? EXPANDED_CORNER : ROUNDED_CORNER;
+    // In glass, the open island is rounder: a drop hanging from the top of the screen.
+    const open = State.settings.islandLook === "classic" ? EXPANDED_CORNER : GLASS_EXPANDED_CORNER;
+    const r = State.mode === "expanded" ? open : ROUNDED_CORNER;
     return { w, h, r };
   }
 
@@ -1195,7 +1207,9 @@ export class Island {
   /** Applies settings coming from Rust at boot. */
   applySettings() {
     // Liquid Glass unless the user picked the classic black island (Settings → Zheus One → Look).
-    document.documentElement.dataset.look = State.settings.islandLook === "classic" ? "classic" : "glass";
+    const glass = State.settings.islandLook !== "classic";
+    document.documentElement.dataset.look = glass ? "glass" : "classic";
+    markGlass(ISLAND_GLASS, glass);
     Sound.setEnabled(State.settings.soundEnabled);
     Sound.setVolume(State.settings.soundVolume);
     this.fsm.homeToPetitDelay = State.settings.autoCloseInterval;
