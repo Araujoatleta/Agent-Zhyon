@@ -4,6 +4,7 @@
 
 import "./settings.css";
 import "../zheus.css";
+import "../powers.css";
 import { Bridge, onEvent, type HookPreview, type HookStatus, type ShortcutsReport } from "../core/bridge";
 import { CUSTOM_SERVER_KEY, providerDef, urlExposure } from "../core/providers";
 import {
@@ -23,6 +24,7 @@ import { handsSection } from "./hands";
 import { homeSection } from "./home";
 import { hermesSection } from "./hermes";
 import { zheusSection } from "./zheus";
+import { powersSection } from "./powers";
 import { wireTvMode } from "./tv";
 import { colorDot } from "./colors";
 import { renderDiff, statusDot } from "./parts";
@@ -1400,6 +1402,7 @@ async function render() {
     handsSection(toggle),
     homeSection(toggle, { on: settings.readAloud === true, set: (on) => { settings.readAloud = on; void save(); } }),
     zheusSection(toggle, { get: () => settings.islandLook ?? "glass", set: (look) => { settings.islandLook = look; void save(); } }),
+    powersSection(toggle),
     activePillsSection(connected),
     integrationsSection(present),
     phoneSection(settings.phoneLink ?? false, toggle, settings),

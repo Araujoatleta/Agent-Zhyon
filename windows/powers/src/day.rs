@@ -2,6 +2,8 @@
 //! decisions to look at again, the study blocks and reviews, the training (or rest) and the English lesson — and the
 //! morning briefing Zheus says from it.
 
+use std::collections::BTreeMap;
+
 use serde::{Deserialize, Serialize};
 
 use crate::date::{last_business_day, Date};
@@ -19,6 +21,17 @@ pub struct Item {
     /// Something the user must not miss today.
     #[serde(default)]
     pub urgent: bool,
+    /// What it is, for the island to say in the user's language: a fund event's kind ("record", "payment",
+    /// "amortization", "assembly", "offering", "material_fact", "notice", "report"), "darf", "decision", "study",
+    /// "study_review", "training", "training_light", "rest" or "english"; its values in `vars`.
+    #[serde(default)]
+    pub code: String,
+    #[serde(default)]
+    pub vars: BTreeMap<String, String>,
+}
+
+fn vars(pairs: &[(&str, String)]) -> BTreeMap<String, String> {
+    pairs.iter().filter(|(_, v)| !v.is_empty()).map(|(k, v)| (k.to_string(), v.clone())).collect()
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -43,6 +56,8 @@ pub struct Inputs<'a> {
     pub training: Option<(String, String)>,
     /// The company of the English lesson, and cards due.
     pub english: Option<(String, usize)>,
+    /// Assets below a watched ceiling: (ticker, percent below, method, ceiling).
+    pub opportunities: Vec<(String, f64, String, f64)>,
 }
 
 pub fn plan(i: Inputs) -> DayPlan {
@@ -60,6 +75,18 @@ pub fn plan(i: Inputs) -> DayPlan {
             title: format!("{} — {} ({when})", e.ticker, e.title),
             detail: e.action.clone(),
             urgent: e.importance == Importance::High || (e.kind == "record" && today),
+            code: e.kind.clone(),
+            vars: vars(&[("ticker", e.ticker.clone()), ("when", when.into()), ("amount", e.amount.map(|a| format!("{a:.2}")).unwrap_or_default())]),
+        });
+    }
+    for (ticker, below, method, ceiling) in &i.opportunities {
+        items.push(Item {
+            area: "money".into(),
+            title: format!("{ticker}: {} below its ceiling ({}: {})", crate::text::pct(*below, 1), crate::ceiling::label(method), brl(*ceiling)),
+            detail: "The close under the ceiling price the user's method gives: a chance to buy for less, never an order.".into(),
+            urgent: false,
+            code: "opportunity".into(),
+            vars: vars(&[("ticker", ticker.clone()), ("pct", format!("{below:.1}")), ("method", method.clone()), ("ceiling", format!("{ceiling:.2}"))]),
         });
     }
     if let Some(amount) = i.darf.filter(|a| *a > 0.0) {
@@ -71,25 +98,48 @@ pub fn plan(i: Inputs) -> DayPlan {
                 title: format!("DARF 6015 of {} due {}", brl(amount), due.br()),
                 detail: "The month's gains in the stock market: pay it in the bank's app or the Receita's site.".into(),
                 urgent: left <= 1,
+                code: "darf".into(),
+                vars: vars(&[("amount", format!("{amount:.2}")), ("due", due.to_string())]),
             });
         }
     }
     for (id, what) in &i.reviews {
-        items.push(Item { area: "decision".into(), title: format!("Look again at your decision: {what}"), detail: format!("Journal entry {id}: right, wrong or mixed?"), urgent: false });
+        items.push(Item {
+            area: "decision".into(),
+            title: format!("Look again at your decision: {what}"),
+            detail: format!("Journal entry {id}: right, wrong or mixed?"),
+            urgent: false,
+            code: "decision".into(),
+            vars: vars(&[("id", id.clone()), ("what", what.clone())]),
+        });
     }
     if !i.study.is_empty() {
-        items.push(Item { area: "study".into(), title: format!("Study: {}", i.study.join(", ")), detail: String::new(), urgent: false });
+        items.push(Item {
+            area: "study".into(),
+            title: format!("Study: {}", i.study.join(", ")),
+            detail: String::new(),
+            urgent: false,
+            code: "study".into(),
+            vars: vars(&[("subjects", i.study.join(", "))]),
+        });
     }
     if !i.study_reviews.is_empty() {
-        items.push(Item { area: "study".into(), title: format!("Review: {}", i.study_reviews.join(", ")), detail: "Spaced at 1, 7 and 30 days.".into(), urgent: false });
+        items.push(Item {
+            area: "study".into(),
+            title: format!("Review: {}", i.study_reviews.join(", ")),
+            detail: "Spaced at 1, 7 and 30 days.".into(),
+            urgent: false,
+            code: "study_review".into(),
+            vars: vars(&[("subjects", i.study_reviews.join(", "))]),
+        });
     }
     if let Some((session, readiness)) = &i.training {
-        let title = match readiness.as_str() {
-            "rest" => "Training: rest or a walk today".to_string(),
-            "light" => format!("Training: {session}, light"),
-            _ => format!("Training: {session}"),
+        let (title, code) = match readiness.as_str() {
+            "rest" => ("Training: rest or a walk today".to_string(), "rest"),
+            "light" => (format!("Training: {session}, light"), "training_light"),
+            _ => (format!("Training: {session}"), "training"),
         };
-        items.push(Item { area: "training".into(), title, detail: String::new(), urgent: false });
+        items.push(Item { area: "training".into(), title, detail: String::new(), urgent: false, code: code.into(), vars: vars(&[("session", session.clone())]) });
     }
     if let Some((company, cards)) = &i.english {
         items.push(Item {
@@ -97,6 +147,8 @@ pub fn plan(i: Inputs) -> DayPlan {
             title: format!("English: {company}'s results{}", if *cards > 0 { format!(" and {cards} cards") } else { String::new() }),
             detail: String::new(),
             urgent: false,
+            code: "english".into(),
+            vars: vars(&[("company", company.clone()), ("cards", cards.to_string())]),
         });
     }
     items.sort_by_key(|x| !x.urgent);
@@ -147,6 +199,7 @@ mod tests {
             study_reviews: vec!["Português".into()],
             training: Some(("Upper B".into(), "light".into())),
             english: Some(("Nvidia".into(), 4)),
+            opportunities: vec![("GGRC11".into(), 10.5, "bazin_projected".into(), 10.34)],
         });
         let titles: Vec<&str> = p.items.iter().map(|i| i.title.as_str()).collect();
         assert!(p.items[0].urgent);
@@ -156,8 +209,17 @@ mod tests {
         assert!(titles.iter().any(|t| t.starts_with("DARF 6015")), "due the 30th");
         assert!(titles.iter().any(|t| t == &"Training: Upper B, light"));
         assert!(titles.iter().any(|t| t.contains("Nvidia") && t.contains("4 cards")));
+        let record = p.items.iter().find(|i| i.code == "record").unwrap();
+        assert_eq!((record.vars["ticker"].as_str(), record.vars["when"].as_str()), ("GGRC11", "today"));
+        let darf = p.items.iter().find(|i| i.code == "darf").unwrap();
+        assert_eq!((darf.vars["amount"].as_str(), darf.vars["due"].as_str()), ("199.68", "2026-10-30"));
+        assert!(p.items.iter().any(|i| i.code == "training_light" && i.vars["session"] == "Upper B"));
+        assert!(p.items.iter().any(|i| i.code == "english" && i.vars["cards"] == "4"));
+        let o = p.items.iter().find(|i| i.code == "opportunity").unwrap();
+        assert_eq!(o.title, "GGRC11: 10,5% below its ceiling (projected Bazin: R$ 10,34)");
+        assert_eq!((o.vars["pct"].as_str(), o.vars["method"].as_str(), o.vars["ceiling"].as_str()), ("10.5", "bazin_projected", "10.34"));
         assert!(for_model(&p).contains("don't miss"));
-        let empty = plan(Inputs { today, events: &[], reviews: vec![], darf: None, study: vec![], study_reviews: vec![], training: None, english: None });
+        let empty = plan(Inputs { today, events: &[], reviews: vec![], darf: None, study: vec![], study_reviews: vec![], training: None, english: None, opportunities: vec![] });
         assert!(for_model(&empty).contains("Nothing planned"));
     }
 }

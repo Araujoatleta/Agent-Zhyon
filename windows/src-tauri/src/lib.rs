@@ -7,6 +7,7 @@ mod chat;
 mod claude;
 mod codex_plan;
 mod config_file;
+mod crash;
 mod desktop;
 mod files;
 mod first_run;
@@ -25,6 +26,7 @@ mod openai_compat;
 mod phone_link;
 mod pipe;
 mod platform;
+mod powers;
 #[cfg(target_os = "linux")]
 mod portal;
 mod recap;
@@ -146,6 +148,8 @@ fn save_settings(app: AppHandle, shared: State<Shared>, settings: Settings) {
         settings.zheus_enabled = current.zheus_enabled;
         settings.zheus_arrival = current.zheus_arrival.clone();
         settings.zheus_goals = current.zheus_goals.clone();
+        // Zheus' superpowers: only their own switch (powers::powers_set).
+        settings.powers_enabled = current.powers_enabled;
         // Mochi's hands too: only Settings → Mochi's hands changes them (agent::agent_settings_set).
         settings.agent_enabled = current.agent_enabled;
         settings.agent_folder = current.agent_folder.clone();
@@ -750,6 +754,7 @@ fn open_settings_window(app: AppHandle) {
 }
 
 pub fn run() {
+    crash::install();
     platform::prepare_environment();
     let loaded = settings::load();
     i18n::set_picked(&loaded.language);
@@ -783,6 +788,7 @@ pub fn run() {
         .manage(smart_home::Home::default())
         .manage(hermes_setup::Zheus::default())
         .manage(zheus_one::ZheusOne::default())
+        .manage(powers::Powers::load())
         .manage(shortcuts::Registry::default())
         .manage(recap::load())
         .invoke_handler(tauri::generate_handler![
@@ -949,6 +955,15 @@ pub fn run() {
             zheus_one::zheus_suggestion,
             zheus_one::zheus_device,
             zheus_one::zheus_tv,
+            powers::powers_status,
+            powers::powers_set,
+            powers::powers_refresh,
+            powers::powers_import,
+            powers::powers_paste,
+            powers::powers_save,
+            powers::powers_kit,
+            powers::powers_save_png,
+            powers::powers_open_folder,
         ])
         .setup(move |app| {
             let handle = app.handle().clone();
@@ -990,6 +1005,8 @@ pub fn run() {
             hermes_setup::login_refresh_at_start(&handle);
             // The Autopilot looks at the house only while Zheus One and one of its goals are on.
             zheus_one::start_looking(&handle);
+            // Zheus' superpowers read the official data only while they are on.
+            powers::start(&handle);
             // What the installer's page asked for (setup.exe), once.
             first_run::run(&handle);
             integrations::start(handle.clone());

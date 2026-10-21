@@ -41,7 +41,7 @@ use policy::Level;
 pub use run::BoxFuture;
 use run::{Failed, Hands, Job, Status, Step, Transport};
 use shell::Shell;
-pub use tools::{HomeEnv, HomeResult, HomeRunner, RoutineInfo};
+pub use tools::{HomeEnv, HomeResult, HomeRunner, PowersRunner, RoutineInfo, NO_POWERS};
 use tools::{Env, Request};
 use wire::Flavor;
 
@@ -531,6 +531,11 @@ fn system_prompt(env: &Env, origin: Origin) -> String {
     } else {
         ""
     };
+    let powers = if env.powers.is_some() {
+        "\n- You also have Zheus' superpowers: the wealth_ tools for the user's investments (their portfolio, real-estate funds, companies and their thesis, the road to their targets, taxes, a committee before a decision, their decision journal), read against Brazil's official data, and the life_ tools for their studies for a public exam, spaced-repetition cards, English, training and their day. Use them whenever the user talks about these. They only read and keep the user's records in Coucou: they never buy, sell, pay or post anything, and you never present their math as a recommendation to buy a given asset."
+    } else {
+        ""
+    };
     let phone = if origin == Origin::Phone {
         "\nThe user is talking to you from their phone, away from the computer: keep your answers short."
     } else {
@@ -547,7 +552,7 @@ How you work:
 - Work in small steps and check them: run the tests or the program, read back what you changed.
 - If the user denies an action, do not try another way to do the same thing: ask what they want instead.
 - Never print, copy or send secrets you come across (keys, tokens, passwords).
-- When you are done, say briefly what you did and what changed.{house}{phone}
+- When you are done, say briefly what you did and what changed.{house}{powers}{phone}
 
 Use light Markdown when it helps: short paragraphs, bullet lists, **bold**, `inline code` and fenced code blocks. Avoid tables and big headings: the chat window is small.",
         folder = policy::display(&env.folder),
@@ -608,6 +613,7 @@ async fn turn(
         cancel,
         web_search: matches!(brain, Brain::Claude),
         house,
+        powers: crate::powers::runner(app),
     };
     let started = chat.begin(&format!("{provider}+hands"));
     let job = brain.job(model, system_prompt(&env, origin), started.history.clone(), started.first, context.as_ref(), &query);
@@ -909,6 +915,7 @@ mod tests {
             cancel: Arc::new(AtomicBool::new(false)),
             web_search: false,
             house: None,
+            powers: None,
         };
         let p = system_prompt(&env, Origin::Island);
         assert!(p.contains("The working folder is /work/proj."));
@@ -1000,6 +1007,7 @@ mod tests {
             cancel: Arc::new(AtomicBool::new(false)),
             web_search: false,
             house: None,
+            powers: None,
         };
         let job = brain.job("qwen", system_prompt(&env, Origin::Island), vec![], true, None, "what is on my list?");
         let done = tokio::runtime::Builder::new_current_thread()

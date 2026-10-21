@@ -547,7 +547,7 @@ mod tests {
     }
 
     fn trade(date: &str, t: &str, kind: TradeKind, q: f64, p: f64) -> Trade {
-        Trade { date: d(date), ticker: t.into(), kind, quantity: q, price: p, fees: 0.0, class: None }
+        Trade { date: d(date), ticker: t.into(), kind, quantity: q, price: p, ..Trade::default() }
     }
 
     fn event(date: &str, t: &str, kind: EventKind, q: f64, v: f64) -> Event {

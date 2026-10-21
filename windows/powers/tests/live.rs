@@ -18,6 +18,13 @@ use serde_json::json;
 /// A portfolio of real tickers (made-up quantities and prices), pasted the way Investidor10 shows it.
 const PASTE: &str = "FIIs\nGGRC11 150 R$ 9,20\nGARE11 180 R$ 8,55\nBTCI11 140 R$ 8,90\nPORD11 120 R$ 8,45\nAções\nTIMS3 30 R$ 18,60\nETFs\nSPXB11 40 R$ 16,75";
 const FUNDS: [&str; 4] = ["GGRC11", "GARE11", "BTCI11", "PORD11"];
+/// BTCI11's fund, as its own monthly reports on FundosNet give it: the CVM's reports list the fund without the ISIN of
+/// its shares, so the user gives it to Zheus.
+const BTCI_CNPJ: &str = "09.552.812/0001-14";
+
+fn given() -> BTreeMap<String, String> {
+    [("BTCI".to_string(), coucou_powers::text::cnpj(BTCI_CNPJ).unwrap())].into()
+}
 
 /// Today in Brasília.
 fn today() -> Date {
@@ -88,6 +95,33 @@ async fn live_raw_cvm_fii() {
         let rows = rows_with(&text, "GGRC", 2);
         println!("{}", if rows.is_empty() { rows_with(&text, "GGR COVEPI", 2) } else { rows });
     }
+    // Each fund of the portfolio as the general table names it: its ISIN, or the rows of its name.
+    let general = archive.entries.iter().find(|e| e.name.contains("geral")).map(|e| coucou_powers::text::decode(&archive.read(e).unwrap())).unwrap_or_default();
+    let blank_isin = general.lines().skip(1).filter(|l| l.split(';').nth(8).is_some_and(|i| i.trim().is_empty())).count();
+    println!("\n{blank_isin} rows of the general table have no ISIN");
+    for (root, names) in [("BTCI", ["BTG PACTUAL CR", "BTG CRED"]), ("GARE", ["GUARDIAN", "GUARDIAL"]), ("PORD", ["POLO CR", "POLO CRÉD"]), ("GGRC", ["ZAGROS", "GGR COVEPI"])] {
+        let by_isin = rows_with(&general, root, 1);
+        let by_name: Vec<String> = names.iter().map(|n| rows_with(&general.to_uppercase(), n, 2)).filter(|r| !r.is_empty()).collect();
+        println!("{root}: by ISIN {}\n  by name {}", if by_isin.is_empty() { "none".into() } else { coucou_powers::text::clip(&by_isin, 300) }, coucou_powers::text::clip(&by_name.join(" | "), 900));
+    }
+    // BTCI11's fund by its CNPJ, in each table, and the names of BTG's funds.
+    let cnpj = &BTCI_CNPJ[..10];
+    for e in &archive.entries {
+        let text = coucou_powers::text::decode(&archive.read(e).expect("entry"));
+        println!("{} rows of {cnpj} in {}: {}", text.lines().filter(|l| l.contains(cnpj)).count(), e.name, rows_with(&text, cnpj, 2));
+    }
+    // What each fund holds, column by column: the assets table's names as the CVM writes them now.
+    if let Some(e) = archive.entries.iter().find(|e| e.name.contains("ativo_passivo")) {
+        let text = coucou_powers::text::decode(&archive.read(e).expect("entry"));
+        let header: Vec<&str> = text.lines().next().unwrap_or("").split(';').collect();
+        println!("\n{} columns in {}: {}", header.len(), e.name, header.iter().enumerate().map(|(i, h)| format!("{i} {h}")).collect::<Vec<_>>().join(" | "));
+        for (fund, cnpj) in [("BTCI11", "09.552.812"), ("PORD11", "17.156.502"), ("GGRC11", "26.614.291"), ("GARE11", "37.295.919")] {
+            if let Some(row) = text.lines().filter(|l| l.starts_with(cnpj)).last() {
+                let cells: Vec<String> = row.split(';').zip(&header).filter(|(v, _)| !v.trim().is_empty() && v.trim() != "0").map(|(v, h)| format!("{h}={v}")).collect();
+                println!("{fund}: {}", cells.join("; "));
+            }
+        }
+    }
 }
 
 #[tokio::test]
@@ -114,6 +148,17 @@ async fn live_raw_fnet() {
         println!("parsed: {:?}", fnet::parse_payouts(&xml, d.id));
     } else {
         println!("no structured payout notice among the last 20 documents");
+    }
+    let btci = coucou_powers::text::cnpj(BTCI_CNPJ).unwrap();
+    section(&format!("FundosNet list for BTCI11 ({btci}, its CNPJ as its reports give it)"));
+    match http.text(&fnet::list_url(&btci, 10)).await {
+        Ok(body) => {
+            println!("{}", coucou_powers::text::clip(&body, 1500));
+            for d in fnet::parse_list(&body).unwrap_or_default().iter().take(10) {
+                println!("{} {:?} [{} / {}] ref {} delivered {:?} — {}", d.id, d.topic, d.category, d.kind, d.reference, d.delivered, coucou_powers::text::clip(&d.info, 80));
+            }
+        }
+        Err(e) => println!("error: {e}"),
     }
 }
 
@@ -171,7 +216,7 @@ async fn live_raw_cvm_companies() {
             Ok(files) => {
                 for (name, bytes) in &files {
                     let text = coucou_powers::text::decode(bytes);
-                    let mine: Vec<&str> = text.lines().filter(|l| coucou_powers::sources::cvm_fii::digits(l).contains(&tim)).collect();
+                    let mine: Vec<&str> = text.lines().filter(|l| coucou_powers::text::cnpj_chars(l).contains(&tim)).collect();
                     println!("\n— {name}: {} lines, {} of TIM\n{}", text.lines().count(), mine.len(), head(&text, 1));
                     for l in mine.iter().take(6) {
                         println!("{}", coucou_powers::text::clip(l, 400));
@@ -190,7 +235,7 @@ async fn live_raw_cvm_companies() {
 async fn live_quotes() {
     let http = Http::new();
     let tickers: Vec<String> = FUNDS.iter().chain(["TIMS3", "SPXB11"].iter()).map(|t| t.to_string()).collect();
-    let (day, quotes) = sources::quotes(&http, today(), false, &tickers).await.expect("quotes");
+    let (day, quotes) = sources::quotes(&http, today(), false, &tickers, None).await.expect("quotes");
     section(&format!("Quotes of {}", day.br()));
     for t in &tickers {
         match quotes.get(t) {
@@ -230,15 +275,29 @@ async fn live_funds() {
     let http = Http::new();
     let today = today();
     let tickers: Vec<String> = FUNDS.iter().map(|t| t.to_string()).collect();
-    let read = refresh::funds(&http, &tickers, &BTreeMap::new(), true, &HashMap::new(), today).await;
+    let read = refresh::funds(&http, &tickers, &BTreeMap::new(), &given(), Some(&tickers), &HashMap::new(), today).await;
     section("Funds read");
     println!("errors: {:?}", read.errors);
     println!("{} ticker roots known", read.roots.len());
     for t in &tickers {
         let root = coucou_powers::text::ticker_root(t);
-        println!("{t}: CNPJ {:?}, {} months, {} documents, {} payouts", read.roots.get(root), read.months.get(t).map_or(0, |m| m.len()), read.documents.get(t).map_or(0, |d| d.len()), read.payouts.get(t).map_or(0, |p| p.len()));
+        println!("{t}: CNPJ {:?} (from the sources {:?}), {} months, {} documents, {} payouts", read.cnpjs.get(t), read.roots.get(root), read.months.get(t).map_or(0, |m| m.len()), read.documents.get(t).map_or(0, |d| d.len()), read.payouts.get(t).map_or(0, |p| p.len()));
         if let Some(last) = read.months.get(t).and_then(|m| m.last()) {
-            println!("  last month {}: VP/cota {:?}, DY {:?} %, holders {:?}, segment {:?}, mandate {:?} → {}", last.date.br(), last.vp_share, last.dividend_yield, last.holders, last.segment, last.mandate, cvm_fii::subtype(last));
+            println!(
+                "  last month {}: VP/cota {:?}, DY {:?} %, holders {:?}, segment {:?}, mandate {:?}; invested {:?}: buildings {:?}, receivables {:?}, funds {:?} → {} (from the assets: {:?})",
+                last.date.br(),
+                last.vp_share,
+                last.dividend_yield,
+                last.holders,
+                last.segment,
+                last.mandate,
+                last.invested,
+                last.in_buildings,
+                last.in_receivables,
+                last.in_funds,
+                cvm_fii::subtype(last),
+                cvm_fii::subtype_from_assets(last)
+            );
         }
         for p in read.payouts.get(t).into_iter().flatten().take(6) {
             println!("  payout record {} pay {:?} R$ {} amort {} ({})", p.record.br(), p.payment.map(|d| d.br()), p.value, p.amortization, p.period);
@@ -247,22 +306,35 @@ async fn live_funds() {
     let mut market = Market::default();
     refresh::merge_funds(&mut market, read, today);
     market.economy = sources::economy(&http).await.unwrap_or_default();
-    if let Ok((day, quotes)) = sources::quotes(&http, today, false, &tickers).await {
+    if let Ok((day, quotes)) = sources::quotes(&http, today, false, &tickers, None).await {
         refresh::merge_quotes(&mut market, day, quotes);
     }
+    let mut with_months = 0;
     for t in &tickers {
-        let fund = market.funds.get(t).unwrap_or_else(|| panic!("{t} read"));
+        let Some(fund) = market.funds.get(t) else {
+            section(&format!("{t}: nothing read"));
+            continue;
+        };
         let r = fii::report(fund, market.price(t), &market.economy, today);
         section(&format!("{t} for the brain"));
         println!("{}", fii::report_for_model(&r));
         let ev = fii::events(fund, 100.0, today, 60);
         println!("{}", fii::events_for_model(&ev));
         assert!(!fund.cnpj.is_empty(), "{t}'s CNPJ");
+        if fund.months.is_empty() {
+            println!("{t}: no month in the CVM's reports under {}", fund.cnpj);
+            continue;
+        }
+        with_months += 1;
         assert!(fund.months.len() >= 6, "{t}: months of reports");
         assert!(r.vp_share.is_some_and(|v| v > 1.0 && v < 1000.0), "{t}: VP/cota {:?}", r.vp_share);
-        assert!(!fund.documents.is_empty(), "{t}: documents from FundosNet");
-        assert!(fund.payouts.iter().any(|p| !p.amortization && p.value > 0.0 && p.value < 10.0), "{t}: dividends from the structured notices");
     }
+    assert!(with_months >= 3, "the CVM's months for {with_months} of the 4 funds");
+    // FundosNet is slow from abroad: at least half the funds' documents and dividends in one reading.
+    let with_documents = tickers.iter().filter(|t| market.funds.get(*t).is_some_and(|f| !f.documents.is_empty())).count();
+    let with_dividends = tickers.iter().filter(|t| market.funds.get(*t).is_some_and(|f| f.payouts.iter().any(|p| !p.amortization && p.value > 0.0 && p.value < 10.0))).count();
+    println!("documents for {with_documents} funds, dividends for {with_dividends}");
+    assert!(with_documents >= 2 && with_dividends >= 1, "FundosNet gave documents for {with_documents} and dividends for {with_dividends} of the 4 funds");
 }
 
 #[tokio::test]
@@ -271,7 +343,7 @@ async fn live_company() {
     let http = Http::new();
     let today = today();
     let (c, register) = refresh::company(&http, "TIMS3", &BTreeMap::new(), today).await.expect("TIM's statements");
-    section(&format!("{} ({}), {} periods; register of {} tickers", c.name, c.cnpj, c.figures.len(), register.as_ref().map_or(0, |r| r.len())));
+    section(&format!("{} ({}), {} periods; register of {} tickers; not read: {:?}", c.name, c.cnpj, c.figures.len(), register.as_ref().map_or(0, |r| r.len()), c.problems));
     for f in &c.figures {
         println!("{:?} → {}: revenue {:?}, ebit {:?}, net {:?}, dep {:?}, cash flow {:?}, capex {:?}, dividends {:?}, debt {:?}, cash {:?}, equity {:?}", f.start.map(|d| d.br()), f.end.br(), f.revenue, f.ebit, f.net_income, f.depreciation, f.operating_cash, f.capex, f.dividends_paid, f.debt, f.cash, f.equity);
     }
@@ -279,6 +351,10 @@ async fn live_company() {
     let thesis: Vec<_> = ["margem EBITDA acima de 40%", "dívida líquida/EBITDA abaixo de 2", "receita crescendo"].iter().filter_map(|s| company::parse_condition(s)).collect();
     let checks = company::check(&m, &thesis);
     println!("{}", company::for_model("TIMS3", &c.name, &m, &checks, &company::red_flags(&m)));
+    // The share count from the archives' "composição do capital", and the ceilings it gives.
+    println!("shares {:?} on {:?}; per share: {:?}", c.shares, c.shares_date.map(|d| d.br()), coucou_powers::ceiling::per_share(&c, Some(19.0)));
+    let a = coucou_powers::ceiling::assess_stock("TIMS3", Some(&c), Some(19.0), &Default::default(), &Default::default());
+    println!("{}", coucou_powers::ceiling::for_model(&a, 0.0));
     assert!(c.name.to_uppercase().contains("TIM"));
     let revenue = m.now.get("revenue").copied().expect("twelve months of revenue");
     assert!(revenue > 1e10 && revenue < 1e11, "TIM's yearly revenue {revenue}");
@@ -299,13 +375,29 @@ async fn live_zheus_end_to_end() {
     let mut market = Market::default();
     let due = refresh::due(&store, &market, today, false, true);
     println!("{due:?}");
-    let (day, quotes) = sources::quotes(&http, today, false, &due.quotes).await.expect("quotes");
+    let (day, quotes) = sources::quotes(&http, today, false, &due.quotes, None).await.expect("quotes");
     refresh::merge_quotes(&mut market, day, quotes);
-    let read = refresh::funds(&http, &due.funds, &market.fund_cnpjs, due.fund_months, &refresh::known_documents(&market), today).await;
+    let held = store.portfolio.tickers(Some(AssetClass::Fii));
+    let read = refresh::funds(&http, &due.funds, &market.fund_cnpjs, &store.fund_cnpjs, due.fund_months.then_some(held.as_slice()), &refresh::known_documents(&market), today).await;
     println!("fund errors: {:?}", read.errors);
     refresh::merge_funds(&mut market, read, today);
     market.economy = sources::economy(&http).await.expect("economy");
     market.economy_read = Some(today);
+    // A fund the CVM lists without the ISIN of its shares: Zheus asks for its CNPJ, the user gives it.
+    let nameless = engine::without_cnpj(&store, &market);
+    println!("funds without a CNPJ: {nameless:?}");
+    if !nameless.is_empty() {
+        section("wealth_fii before the CNPJ");
+        println!("{}", engine::funds(&store, &market, Some(&nameless[0]), today));
+        let given: serde_json::Map<String, serde_json::Value> = nameless.iter().filter(|t| t.starts_with("BTCI")).map(|t| (t.clone(), json!(BTCI_CNPJ))).collect();
+        println!("{}", engine::update(&mut store, &json!({"fund_cnpjs": given}), None, today).expect("the CNPJ"));
+        let due = refresh::due(&store, &market, today, false, false);
+        println!("{due:?}");
+        let read = refresh::funds(&http, &due.funds, &market.fund_cnpjs, &store.fund_cnpjs, due.fund_months.then_some(held.as_slice()), &refresh::known_documents(&market), today).await;
+        println!("fund errors: {:?}", read.errors);
+        refresh::merge_funds(&mut market, read, today);
+        assert!(!refresh::due(&store, &market, today, false, false).fund_months, "read under it: not due again");
+    }
     println!("classes fixed: {:?}", refresh::fix_classes(&mut store, &market));
     for t in store.portfolio.tickers(Some(AssetClass::Acao)) {
         match refresh::company(&http, &t, &market.company_cnpjs, today).await {
@@ -333,6 +425,8 @@ async fn live_zheus_end_to_end() {
         section(title);
         println!("{text}");
     }
+    section("wealth_ceiling");
+    println!("{}", engine::ceiling_view(&mut store, &market, &json!({}), today).unwrap_or_else(|e| e));
     let summary = engine::summary(&store, &market, today);
     section("island summary");
     println!("{}", serde_json::to_string_pretty(&summary).unwrap());

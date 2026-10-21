@@ -110,8 +110,11 @@ impl Http {
             let tail_from = total.saturating_sub(zip::TAIL);
             let tail = self.range(url, tail_from, total).await?;
             let (offset, size) = zip::directory_location(&tail, total)?;
+            // A server that sent less of the end than asked (or a file changed between the two requests) gives a
+            // directory past what came: that is an error to report, not an index to trust.
             let directory = if offset >= tail_from {
-                tail[(offset - tail_from) as usize..(offset - tail_from + size) as usize].to_vec()
+                let at = (offset - tail_from) as usize;
+                tail.get(at..at + size as usize).ok_or_else(|| format!("{}: the archive's directory is past what the server sent", short(url)))?.to_vec()
             } else {
                 self.range(url, offset, offset + size).await?
             };

@@ -130,8 +130,7 @@ fn main() {
 
     // The worker owns every blocking call. If it overruns the budget we simply
     // stop listening and exit: the process dying takes the pipe handle with it.
-    // (No catch_unwind here — the release profile is panic = "abort", so it would
-    // be dead code. `talk` is written to have nothing to panic on instead.)
+    // (`talk` is written to have nothing to panic on.)
     let (tx, rx) = mpsc::channel::<Option<String>>();
     let line = event.line.clone();
     std::thread::spawn(move || {
@@ -334,6 +333,49 @@ fn cut(s: &mut String, max: usize) -> bool {
     s.truncate(end);
     s.push('…');
     true
+}
+
+/// Whether Coucou is open: its pipe (socket) takes a connection.
+fn reachable() -> bool {
+    connect().is_some()
+}
+
+/// Starts the Coucou at `app` on its own, outside this process's console and job, with nothing of ours inherited
+/// (our stdout is an MCP client's channel). For an MCP call only; a hook never starts anything.
+fn launch(app: &std::path::Path) -> bool {
+    use std::process::{Command, Stdio};
+    let command = || {
+        let mut c = Command::new(app);
+        c.stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null());
+        c
+    };
+    #[cfg(windows)]
+    let child = {
+        use std::os::windows::process::CommandExt;
+        const DETACHED_PROCESS: u32 = 0x0000_0008;
+        const CREATE_NEW_PROCESS_GROUP: u32 = 0x0000_0200;
+        const CREATE_BREAKAWAY_FROM_JOB: u32 = 0x0100_0000;
+        // Out of the MCP client's job when it allows it, so closing that client does not close Coucou.
+        command()
+            .creation_flags(DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP | CREATE_BREAKAWAY_FROM_JOB)
+            .spawn()
+            .or_else(|_| command().creation_flags(DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP).spawn())
+    };
+    #[cfg(unix)]
+    let child = {
+        use std::os::unix::process::CommandExt;
+        command().process_group(0).spawn()
+    };
+    match child {
+        Ok(mut child) => {
+            // Reaped if it ends first (a second Coucou hands over to the first and leaves).
+            std::thread::spawn(move || {
+                let _ = child.wait();
+            });
+            true
+        }
+        Err(_) => false,
+    }
 }
 
 /// Connect, send, and — for a permission request — wait for the island's word.

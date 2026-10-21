@@ -9,6 +9,11 @@ on:
       - 'windows/powers/**'
       - '.github/workflows/powers-live.yml'
   workflow_dispatch:
+    inputs:
+      only:
+        description: 'Only the live tests whose names contain this (empty: all of them)'
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -16,7 +21,7 @@ permissions:
 jobs:
   live:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 60
     defaults:
       run:
         working-directory: windows
@@ -39,23 +44,34 @@ jobs:
       - name: Unit tests (locked)
         run: cargo test --locked -p coucou-powers
 
+      - name: Only the tests asked for
+        if: inputs.only != ''
+        env:
+          ONLY: ${{ inputs.only }}
+        run: cargo test --locked -p coucou-powers --test live -- --ignored --nocapture --test-threads=1 "$ONLY"
+
       # Each source in its own step, so one site being down does not hide the
       # others. The first lines of every file go to the log.
       - name: What the sources send
+        if: inputs.only == ''
         run: cargo test --locked -p coucou-powers --test live -- --ignored --nocapture --test-threads=1 live_raw_
         continue-on-error: true
 
       - name: Quotes and the economy
+        if: inputs.only == ''
         run: cargo test --locked -p coucou-powers --test live -- --ignored --nocapture --test-threads=1 live_quotes live_economy
         continue-on-error: true
 
       - name: Real-estate funds
+        if: inputs.only == ''
         run: cargo test --locked -p coucou-powers --test live -- --ignored --nocapture --exact live_funds
         continue-on-error: true
 
       - name: A company's statements
+        if: inputs.only == ''
         run: cargo test --locked -p coucou-powers --test live -- --ignored --nocapture --exact live_company
         continue-on-error: true
 
       - name: Everything together
+        if: inputs.only == ''
         run: cargo test --locked -p coucou-powers --test live -- --ignored --nocapture --exact live_zheus_end_to_end

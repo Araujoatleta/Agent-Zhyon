@@ -109,7 +109,7 @@ pub fn kind_of(q: &Quote) -> &'static str {
         "14" if k.starts_with("CI") => "etf",
         "34" | "35" => "bdr",
         "02" | "96" if k.starts_with("ON") || k.starts_with("PN") || k.starts_with("UNT") => "acao",
-        _ if q.isin.len() >= 9 && &q.isin[6..9] == "CTF" => "fii",
+        _ if q.isin.get(6..9) == Some("CTF") => "fii",
         _ => "",
     }
 }

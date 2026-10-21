@@ -356,6 +356,7 @@ pub fn ensure_hook_exe(app: &AppHandle) {
     {
         return;
     }
+    note_app_path(dir);
 
     let mut candidates: Vec<PathBuf> = Vec::new();
     if let Ok(p) = app.path().resolve(platform::HOOK_EXE, tauri::path::BaseDirectory::Resource) {
@@ -382,6 +383,17 @@ pub fn ensure_hook_exe(app: &AppHandle) {
         return;
     };
     install_relay(&src, &dest);
+}
+
+/// Where this Coucou is, beside the relay: `coucou-hook --mcp` starts it from there when an MCP client (Hermes) calls
+/// while it is closed. Must match APP_FILE in hook/src/mcp.rs.
+fn note_app_path(dir: &Path) {
+    let Ok(exe) = std::env::current_exe() else { return };
+    let file = dir.join("coucou-app.txt");
+    let text = exe.to_string_lossy().to_string();
+    if std::fs::read_to_string(&file).ok().as_deref() != Some(text.as_str()) {
+        let _ = std::fs::write(&file, text);
+    }
 }
 
 #[cfg(windows)]

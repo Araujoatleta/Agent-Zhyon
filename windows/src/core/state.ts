@@ -11,6 +11,7 @@ import type { ProviderId } from "./providers";
 import type { FileDiff } from "./diff";
 import type { HandsRequest, HandsStep } from "./hands";
 import type { ZheusStatus } from "./zheus";
+import type { PowersView } from "./powers";
 import type { Bindings } from "./shortcuts";
 import { DEFAULT_OUTFIT, type Outfit } from "../mochi/wardrobe";
 import { pillColor } from "./pill-colors";
@@ -203,6 +204,8 @@ export interface Settings {
   phoneHome?: boolean;
   /** Zheus One on (src-tauri/src/zheus_one). Rust owns it, with its preferences and goals. */
   zheusEnabled?: boolean;
+  /** Zheus' superpowers on (src-tauri/src/powers). Rust owns it. */
+  powersEnabled?: boolean;
   /** The island's look: "glass" (Liquid Glass) or "classic" (black). The island's own choice. */
   islandLook?: string;
   /** Mochi on the desktop. Rust owns it: whatever the page sends back is ignored. */
@@ -276,6 +279,8 @@ class AppState {
   noteMessage: string | null = null;
   searchResult: SearchResult | null = null;
   chatHistory: ChatMessage[] = [];
+  /** A question another view wrote for the chat (views/powers.ts): the chat puts it in its field, for the user to send. */
+  chatDraft: string | null = null;
   /** An action of Mochi's hands waiting for a click (from the island's chat or the phone's). */
   handsRequest: HandsRequest | null = null;
   /** The turn with hands the island's chat is running, as Rust numbered it; null when none. */
@@ -314,6 +319,8 @@ class AppState {
 
   /** Zheus One as Rust last told it (src/island/zheus.ts keeps it fresh); null until then. */
   zheus: ZheusStatus | null = null;
+  /** Zheus' superpowers as Rust last told them (src/island/powers.ts keeps it fresh); null until then. */
+  powers: PowersView | null = null;
 
   lastActivity = performance.now();
 

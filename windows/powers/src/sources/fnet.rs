@@ -63,6 +63,11 @@ pub struct Document {
     pub topic: Topic,
     /// Structured (XML) rather than a PDF.
     pub structured: bool,
+    /// The fund's name, and its shares' name at B3 ("FII GGR ZAG"), as the document gives them.
+    #[serde(default)]
+    pub fund: String,
+    #[serde(default)]
+    pub trading: String,
 }
 
 impl Document {
@@ -131,6 +136,8 @@ pub fn parse_list(body: &str) -> Result<Vec<Document>, String> {
                 delivered: Date::parse(&text(d, "dataEntrega")),
                 info,
                 structured,
+                fund: text(d, "descricaoFundo"),
+                trading: text(d, "nomePregao"),
             })
         })
         .collect())

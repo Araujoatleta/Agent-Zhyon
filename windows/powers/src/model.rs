@@ -141,14 +141,15 @@ impl Portfolio {
 
 // ── Trades and payouts (from B3's statements) ────────────────────────────────
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum TradeKind {
+    #[default]
     Buy,
     Sell,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Trade {
     pub date: Date,
@@ -160,6 +161,18 @@ pub struct Trade {
     pub fees: f64,
     #[serde(default)]
     pub class: Option<AssetClass>,
+    /// "14:30", when the user said the time.
+    #[serde(default)]
+    pub time: String,
+    /// "chat" for a trade the user told Zheus, "" for one from a file.
+    #[serde(default)]
+    pub source: String,
+    /// The order the user told their trades in (1, 2…; 0 for a file's): what "undo the last one" undoes.
+    #[serde(default)]
+    pub seq: u64,
+    /// For a trade told in the chat: the position's average price after it (a sale's cost basis).
+    #[serde(default)]
+    pub average: Option<f64>,
 }
 
 /// Something that happened to a holding other than a trade.
@@ -477,6 +490,39 @@ pub struct Store {
     pub workouts: Vec<Workout>,
     pub wellness: Vec<Wellness>,
     pub content: ContentPrefs,
+    /// Ticker roots to the CNPJ of their fund, as the user (or Zheus' brain) gave it: for the funds the CVM's reports
+    /// list without the ISIN of their shares. It wins over what Coucou learned.
+    pub fund_cnpjs: BTreeMap<String, String>,
+    /// How the user wants ceiling prices worked out, their own ceilings, and the opportunities already told.
+    pub ceilings: Ceilings,
+}
+
+/// The user's choices for ceiling prices (ceiling.rs).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct Ceilings {
+    /// The dividend yield a share must pay, percent a year: Décio Bazin's own 6 %.
+    pub stock_yield: f64,
+    /// The yield a fund must pay, percent a year. None: the CDI after the 15 % income tax, the fund's tax-free
+    /// dividend against what the safe alternative pays.
+    pub fund_yield: Option<f64>,
+    /// The most P/VP the user pays for a fund (1: its VP per share).
+    pub max_pvp: f64,
+    /// How far below a ceiling the close must be to be told, percent.
+    pub margin: f64,
+    /// The methods that make an opportunity ("bazin", "bazin_projected", "graham", "lynch", "pvp"); empty: the
+    /// projected Bazin for funds, and the projected Bazin and Graham for shares.
+    pub methods: Vec<String>,
+    /// Ceilings the user set themselves, by ticker: those assets are watched too, held or not.
+    pub manual: BTreeMap<String, f64>,
+    /// When each opportunity was last told, and how far below its ceiling it was then (percent).
+    pub told: BTreeMap<String, (Date, f64)>,
+}
+
+impl Default for Ceilings {
+    fn default() -> Self {
+        Ceilings { stock_yield: 6.0, fund_yield: None, max_pvp: 1.0, margin: 0.0, methods: Vec::new(), manual: BTreeMap::new(), told: BTreeMap::new() }
+    }
 }
 
 /// A fund as Zheus read it.
@@ -508,6 +554,17 @@ pub struct CompanyData {
     pub figures: Vec<Figures>,
     #[serde(default)]
     pub checked: Option<Date>,
+    /// The CVM's files that could not be read at the last reading (the others were).
+    #[serde(default)]
+    pub problems: Vec<String>,
+    /// Its shares outstanding (issued, less those in treasury), from the CVM's "composição do capital", and when.
+    #[serde(default)]
+    pub shares: Option<f64>,
+    #[serde(default)]
+    pub shares_date: Option<Date>,
+    /// The reader that read it (refresh::COMPANY_READER): one read by an older one is read again once.
+    #[serde(default)]
+    pub reader: u32,
 }
 
 /// What Zheus read from the official sources, kept between runs.
@@ -517,7 +574,7 @@ pub struct Market {
     pub quotes: BTreeMap<String, Quote>,
     pub quotes_day: Option<Date>,
     pub funds: BTreeMap<String, FundData>,
-    /// Ticker roots to fund CNPJs (from the CVM's reports).
+    /// Ticker roots to fund CNPJs (from the ISINs in the CVM's reports).
     pub fund_cnpjs: BTreeMap<String, String>,
     pub funds_read: Option<Date>,
     pub companies: BTreeMap<String, CompanyData>,

@@ -24,12 +24,12 @@ export interface LookChoice {
 
 const errorText = (err: unknown) => String(err).replace(/^Error:\s*/, "");
 
-function notice(text: string, ok: boolean): HTMLElement {
+export function notice(text: string, ok: boolean): HTMLElement {
   return h("div", { class: `notice ${ok ? "ok" : "err"}`, text });
 }
 
 /** A number with its unit inside the field: "30 min", "23 °C". */
-function number(value: number, min: number, max: number, unit: string): { el: HTMLElement; input: HTMLInputElement } {
+export function number(value: number, min: number, max: number, unit: string): { el: HTMLElement; input: HTMLInputElement } {
   const input = h("input", { type: "number", min: String(min), max: String(max) }) as HTMLInputElement;
   input.value = String(value);
   return { el: h("label", { class: "zheus-input" }, input, h("span", { class: "zheus-unit", text: unit })), input };
@@ -52,7 +52,7 @@ function readTime(el: HTMLInputElement, fallback: number): number {
 }
 
 /** One setting as a small tile of glass: its name above, its field below, and a word on it if it needs one. */
-function field(label: string, control: (Node | null)[], hint?: string): HTMLElement {
+export function field(label: string, control: (Node | null)[], hint?: string): HTMLElement {
   return h(
     "div",
     { class: "zheus-field" },
@@ -63,7 +63,7 @@ function field(label: string, control: (Node | null)[], hint?: string): HTMLElem
 }
 
 /** A card of glass with its icon and title. */
-function glassCard(icon: SVGSVGElement, title: string, ...children: (Node | null)[]): HTMLElement {
+export function glassCard(icon: SVGSVGElement, title: string, ...children: (Node | null)[]): HTMLElement {
   return h(
     "div",
     { class: "zheus-box" },

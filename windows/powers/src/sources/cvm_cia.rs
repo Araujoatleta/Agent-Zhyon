@@ -12,7 +12,6 @@ use crate::date::Date;
 use crate::table::Table;
 use crate::text::{num, plain};
 
-use super::cvm_fii::digits;
 
 /// "dfp" (yearly) or "itr" (quarterly).
 pub fn url(kind: &str, year: i32) -> String {
@@ -25,10 +24,39 @@ pub fn fca_url(year: i32) -> String {
 
 /// The tables read from a DFP or ITR archive (consolidated statements), by the end of their names.
 pub const TABLES: &[&str] = &["DRE_con", "BPA_con", "BPP_con", "DFC_MI_con"];
+/// The table of the capital's composition (shares issued and in treasury), in the same archives.
+pub const CAPITAL: &str = "composicao_capital";
 
 /// The archive entry of a table: "itr_cia_aberta_DRE_con_2026.csv".
 pub fn entry_name(kind: &str, table: &str, year: i32) -> String {
     format!("{kind}_cia_aberta_{table}_{year}.csv")
+}
+
+/// A company's shares outstanding (issued and paid in, less those in treasury) at its latest filing in a "composição
+/// do capital" table, and that filing's date. None when the table has no row for it.
+pub fn parse_shares(text: &str, cnpj: &str) -> Option<(Date, f64)> {
+    let t = Table::csv(text);
+    let c_cnpj = t.find(&["cnpj_cia", "cnpj"]);
+    let c_ref = t.find(&["dt_refer"]);
+    let c_ver = t.find(&["versao"]);
+    let c_total = t.find(&["qt_acao_total_cap_integr", "qt_acao_total_capital_integralizado"]);
+    let c_treasury = t.find(&["qt_acao_total_tesouro", "qt_acao_total_tesouraria"]);
+    let mut best: Option<(Date, f64, f64)> = None;
+    for row in &t.rows {
+        if crate::text::cnpj_chars(Table::cell(row, c_cnpj)) != cnpj {
+            continue;
+        }
+        let (Some(date), Some(total)) = (Date::parse(Table::cell(row, c_ref)), num(Table::cell(row, c_total))) else { continue };
+        let version = num(Table::cell(row, c_ver)).unwrap_or(0.0);
+        let shares = total - num(Table::cell(row, c_treasury)).unwrap_or(0.0).max(0.0);
+        if shares <= 0.0 {
+            continue;
+        }
+        if best.is_none_or(|(d, v, _)| (date, version) > (d, v)) {
+            best = Some((date, version, shares));
+        }
+    }
+    best.map(|(d, _, s)| (d, s))
 }
 
 /// One account of one statement, in reais.
@@ -63,7 +91,7 @@ pub fn parse_accounts(text: &str, wanted: &[String]) -> Vec<Account> {
     let mut version: HashMap<(String, Date), f64> = HashMap::new();
     let mut kept = Vec::new();
     for row in &t.rows {
-        let cnpj = digits(Table::cell(row, c_cnpj));
+        let cnpj = crate::text::cnpj_chars(Table::cell(row, c_cnpj));
         if !wanted.is_empty() && !wanted.contains(&cnpj) {
             continue;
         }
@@ -171,7 +199,18 @@ pub fn figures(accounts: &[Account]) -> Vec<Figures> {
             add(&mut f.leases, a.value);
         }
     }
-    periods.into_values().collect()
+    // A filing sent with every value at zero (it happens) tells nothing: as if it were not there.
+    periods.into_values().filter(|f| !all_zero(f)).collect()
+}
+
+fn all_zero(f: &Figures) -> bool {
+    [
+        f.revenue, f.gross_profit, f.ebit, f.financial_result, f.net_income, f.depreciation, f.operating_cash, f.capex, f.dividends_paid, f.total_assets,
+        f.current_assets, f.cash, f.investments, f.receivables, f.current_liabilities, f.debt, f.leases, f.equity,
+    ]
+    .iter()
+    .flatten()
+    .all(|v| v.abs() < 0.5)
 }
 
 /// Tickers ("TIMS3") to (CNPJ digits, company), from the FCA's securities table.
@@ -182,7 +221,7 @@ pub fn tickers(text: &str) -> HashMap<String, (String, String)> {
     let c_name = t.find(&["nome_empresarial", "denom_social", "nome"]);
     let mut out = HashMap::new();
     for row in &t.rows {
-        let cnpj = digits(Table::cell(row, c_cnpj));
+        let cnpj = crate::text::cnpj_chars(Table::cell(row, c_cnpj));
         if cnpj.is_empty() {
             continue;
         }
@@ -277,6 +316,32 @@ mod tests {
         assert_eq!(balance.cash, Some(3_000_000_000.0));
         assert_eq!(balance.equity, Some(25_000_000_000.0));
         assert!(f.iter().all(|p| p.end.y == 2026), "the comparative period is skipped");
+    }
+
+    #[test]
+    fn shares_outstanding_from_the_capital_table() {
+        let text = "CNPJ_CIA;DT_REFER;VERSAO;DENOM_CIA;CD_CVM;QT_ACAO_ORDIN_CAP_INTEGR;QT_ACAO_PREF_CAP_INTEGR;QT_ACAO_TOTAL_CAP_INTEGR;QT_ACAO_ORDIN_TESOURO;QT_ACAO_PREF_TESOURO;QT_ACAO_TOTAL_TESOURO\n\
+            02.421.421/0001-11;2026-03-31;1;TIM S.A.;024929;2420804398;0;2420804398;1000000;0;1000000\n\
+            02.421.421/0001-11;2026-06-30;1;TIM S.A.;024929;2420804398;0;2420804398;2000000;0;2000000\n\
+            02.421.421/0001-11;2026-06-30;2;TIM S.A.;024929;2420804398;0;2420804398;2500000;0;2500000\n\
+            33.000.167/0001-01;2026-06-30;1;PETROBRAS;009512;7442454142;5602042788;13044496930;0;0;0\n";
+        assert_eq!(parse_shares(text, "02421421000111"), Some((Date::new(2026, 6, 30).unwrap(), 2_420_804_398.0 - 2_500_000.0)), "the latest filing's latest version, less the treasury");
+        assert_eq!(parse_shares(text, "33000167000101").map(|s| s.1), Some(13_044_496_930.0));
+        assert_eq!(parse_shares(text, "11111111000111"), None);
+    }
+
+    #[test]
+    fn a_filing_sent_with_every_value_at_zero_is_left_out() {
+        // As the CVM's DFP 2025 had TIM's: every account, of both years, at 0.
+        let head = "CNPJ_CIA;DT_REFER;VERSAO;DENOM_CIA;CD_CVM;GRUPO_DFP;MOEDA;ESCALA_MOEDA;ORDEM_EXERC;DT_INI_EXERC;DT_FIM_EXERC;CD_CONTA;DS_CONTA;VL_CONTA;ST_CONTA_FIXA";
+        let row = |order: &str, start: &str, end: &str, code: &str, desc: &str, v: &str| format!("02.421.421/0001-11;2025-12-31;1;TIM S.A.;024929;DF Consolidado - Demonstração do Resultado;REAL;MIL;{order};{start};{end};{code};{desc};{v};S");
+        let zeros = [head.to_string(), row("ÚLTIMO", "2025-01-01", "2025-12-31", "3.01", "Receita de Venda de Bens e/ou Serviços", "0.0000000000"), row("ÚLTIMO", "2025-01-01", "2025-12-31", "3.05", "Resultado Antes do Resultado Financeiro e dos Tributos", "0.0000000000")].join("\n");
+        let wanted = vec!["02421421000111".to_string()];
+        assert_eq!(parse_accounts(&zeros, &wanted).len(), 2, "read");
+        assert!(figures(&parse_accounts(&zeros, &wanted)).is_empty(), "but no figure");
+        let real = [head.to_string(), row("ÚLTIMO", "2026-01-01", "2026-03-31", "3.01", "Receita de Venda de Bens e/ou Serviços", "6806150.0000000000")].join("\n");
+        let f = figures(&parse_accounts(&real, &wanted));
+        assert_eq!(f[0].revenue, Some(6_806_150_000.0), "thousands, the data's way of writing them");
     }
 
     #[test]

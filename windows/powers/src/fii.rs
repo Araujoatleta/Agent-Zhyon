@@ -47,8 +47,14 @@ pub struct FundReport {
     pub last_dividend: Option<f64>,
     pub avg_dividend_3m: Option<f64>,
     pub avg_dividend_12m: Option<f64>,
-    /// Yearly yield at the price: twelve months of dividends over it, percent.
+    /// Yearly yield at the price: twelve months of dividends over it, percent (fewer months known: at their pace).
     pub yield_12m: Option<f64>,
+    /// How many of the last twelve months the dividends known cover.
+    #[serde(default)]
+    pub yield_months: u32,
+    /// A year of dividends a share, R$: the last twelve months, or the months known at their pace.
+    #[serde(default)]
+    pub dividends_year: Option<f64>,
     pub holders: Option<f64>,
     pub holders_change_12m: Option<f64>,
     /// Cash and liquid assets over net assets, percent.
@@ -80,7 +86,20 @@ fn average(values: &[f64]) -> Option<f64> {
 fn last_dividends(payouts: &[Payout], today: Date, n: usize) -> Vec<f64> {
     let mut list: Vec<&Payout> = payouts.iter().filter(|p| !p.amortization && p.record <= today).collect();
     list.sort_by_key(|p| std::cmp::Reverse(p.record));
+    // A notice published again (or corrected) for the same record date counts once.
+    list.dedup_by_key(|p| p.record);
     list.into_iter().take(n).map(|p| p.value).collect()
+}
+
+/// The dividends of the twelve months to `today`, one per record date, and how many months they cover.
+fn year_of_dividends(payouts: &[Payout], today: Date) -> (f64, usize) {
+    let year_ago = today.add_months(-12);
+    let mut list: Vec<&Payout> = payouts.iter().filter(|p| !p.amortization && p.record > year_ago && p.record <= today).collect();
+    list.sort_by_key(|p| p.record);
+    list.dedup_by_key(|p| p.record);
+    let mut months: Vec<(i32, u32)> = list.iter().map(|p| (p.record.y, p.record.m)).collect();
+    months.dedup();
+    (list.iter().map(|p| p.value).sum(), months.len())
 }
 
 pub fn report(fund: &FundData, price: Option<f64>, economy: &Macro, today: Date) -> FundReport {
@@ -103,12 +122,18 @@ pub fn report(fund: &FundData, price: Option<f64>, economy: &Macro, today: Date)
     let d3 = average(&last_dividends(&fund.payouts, today, 3));
     let d12_list = last_dividends(&fund.payouts, today, 12);
     let d12 = average(&d12_list);
-    let year_ago = today.add_months(-12);
-    let twelve: f64 = fund.payouts.iter().filter(|p| !p.amortization && p.record > year_ago && p.record <= today).map(|p| p.value).sum();
+    // Fewer than twelve months known (FundosNet gives the latest documents first): the months known, at a year's pace.
+    let (twelve, covered) = year_of_dividends(&fund.payouts, today);
+    let yearly = match covered {
+        12.. => Some(twelve),
+        3..=11 => Some(twelve / covered as f64 * 12.0),
+        _ => None,
+    };
     let kind = info.map(|m| subtype(m).to_string()).unwrap_or_default();
     let mut r = FundReport {
         ticker: fund.ticker.clone(),
-        name: info.map(|m| m.name.clone()).unwrap_or_default(),
+        // A fund the CVM's reports do not list (read under the CNPJ the user gave): its name from FundosNet.
+        name: info.map(|m| m.name.clone()).filter(|n| !n.is_empty()).or_else(|| fund.documents.iter().map(|d| d.fund.clone()).find(|n| !n.is_empty())).unwrap_or_default(),
         cnpj: fund.cnpj.clone(),
         kind: kind.clone(),
         segment: info.map(|m| m.segment.clone()).unwrap_or_default(),
@@ -127,7 +152,12 @@ pub fn report(fund: &FundData, price: Option<f64>, economy: &Macro, today: Date)
         last_dividend: last,
         avg_dividend_3m: d3,
         avg_dividend_12m: d12,
-        yield_12m: price.filter(|p| *p > 0.0 && twelve > 0.0).map(|p| twelve / p * 100.0),
+        yield_12m: match (price, yearly) {
+            (Some(p), Some(y)) if p > 0.0 && y > 0.0 => Some(y / p * 100.0),
+            _ => None,
+        },
+        yield_months: covered.min(12) as u32,
+        dividends_year: yearly,
         holders: latest.and_then(|m| m.holders),
         holders_change_12m: change(latest.and_then(|m| m.holders), holders_12),
         liquidity: latest.and_then(|m| match (m.cash, m.net_assets) {
@@ -381,9 +411,14 @@ pub fn report_for_model(r: &FundReport) -> String {
         facts.push(format!("12m average {}", brl(x)));
     }
     if let Some(x) = r.yield_12m {
-        facts.push(format!("12m yield {}", pct(x, 1)));
+        if r.yield_months >= 12 {
+            facts.push(format!("12m yield {}", pct(x, 1)));
+        } else {
+            facts.push(format!("yield {} a year at the pace of the last {} months known", pct(x, 1), r.yield_months));
+        }
     }
-    if let Some(x) = r.dy_month {
+    // Some funds leave the month's DY at zero in their report while they pay: then it says nothing.
+    if let Some(x) = r.dy_month.filter(|x| *x > 0.0) {
         facts.push(format!("DY reported for the month {}", pct(x, 2)));
     }
     if let Some(x) = r.holders {
@@ -465,6 +500,23 @@ mod tests {
     }
 
     #[test]
+    fn six_months_of_notices_are_a_years_pace_and_a_repeated_one_counts_once() {
+        // As FundosNet gave GGRC11's: six monthly notices of R$ 0,10, two of them published twice.
+        let today = d("2026-10-21");
+        let mut f = FundData { ticker: "GGRC11".into(), ..FundData::default() };
+        for (i, rec) in ["2026-05-04", "2026-06-01", "2026-07-01", "2026-08-03", "2026-09-01", "2026-10-01"].iter().enumerate() {
+            f.payouts.push(Payout { document: 10 + i as u64, ..payout(rec, 0.10) });
+        }
+        f.payouts.push(Payout { document: 99, ..payout("2026-08-03", 0.10) });
+        f.payouts.push(Payout { document: 98, ..payout("2026-06-01", 0.10) });
+        let r = report(&f, Some(9.25), &Macro::default(), today);
+        assert_eq!(r.yield_months, 6);
+        assert!((r.yield_12m.unwrap() - 1.2 / 9.25 * 100.0).abs() < 1e-6, "{:?}", r.yield_12m);
+        assert!((r.avg_dividend_12m.unwrap() - 0.10).abs() < 1e-9);
+        assert!(report_for_model(&r).contains("at the pace of the last 6 months known"));
+    }
+
+    #[test]
     fn a_steady_fund_is_healthy() {
         let f = fund(&[9.5; 13], &[0.088; 12]);
         let r = report(&f, Some(9.12), &Macro::default(), d("2026-10-21"));
@@ -532,6 +584,8 @@ mod tests {
             info: String::new(),
             topic,
             structured: false,
+            fund: String::new(),
+            trading: String::new(),
         };
         f.documents = vec![
             doc(1, Topic::Assembly, "Assembleia", "10/11/2026", "2026-10-10"),

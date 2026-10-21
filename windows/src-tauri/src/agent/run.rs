@@ -300,7 +300,7 @@ mod tests {
     }
 
     fn env(dir: &Folder, level: Level) -> Env {
-        Env { folder: dir.0.clone(), home: dir.0.clone(), level, shell: Shell::detect(), cancel: Arc::new(AtomicBool::new(false)), web_search: false, house: None }
+        Env { folder: dir.0.clone(), home: dir.0.clone(), level, shell: Shell::detect(), cancel: Arc::new(AtomicBool::new(false)), web_search: false, house: None, powers: None }
     }
 
     fn job(flavor: Flavor) -> Job {
