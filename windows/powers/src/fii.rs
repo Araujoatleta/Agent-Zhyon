@@ -52,6 +52,9 @@ pub struct FundReport {
     /// How many of the last twelve months the dividends known cover.
     #[serde(default)]
     pub yield_months: u32,
+    /// A year of dividends a share, R$: the last twelve months, or the months known at their pace.
+    #[serde(default)]
+    pub dividends_year: Option<f64>,
     pub holders: Option<f64>,
     pub holders_change_12m: Option<f64>,
     /// Cash and liquid assets over net assets, percent.
@@ -154,6 +157,7 @@ pub fn report(fund: &FundData, price: Option<f64>, economy: &Macro, today: Date)
             _ => None,
         },
         yield_months: covered.min(12) as u32,
+        dividends_year: yearly,
         holders: latest.and_then(|m| m.holders),
         holders_change_12m: change(latest.and_then(|m| m.holders), holders_12),
         liquidity: latest.and_then(|m| match (m.cash, m.net_assets) {

@@ -2,7 +2,7 @@
 
 *Português: [ZHEUS_POWERS.pt-BR.md](ZHEUS_POWERS.pt-BR.md)*
 
-Zheus — the Hermes Coucou runs, or Mochi's own chat — gets 16 new tools. With them it follows **your portfolio**
+Zheus — the Hermes Coucou runs, or Mochi's own chat — gets 18 new tools. With them it follows **your portfolio**
 against the official data of B3, the CVM, FundosNet and the Banco Central (Brazil's exchange, securities regulator,
 fund filings system and central bank), and **your routine**: a public exam to pass, English, training and the month's
 content. You just talk to it.
@@ -31,9 +31,10 @@ Coucou keeps a copy before it replaces the list (the last 10, in `powers-backups
 
 1. **The fund guardian** — "How are my real-estate funds?", "What needs me in my funds this month?" (record dates,
    payments, assemblies and their deadlines, offerings, material facts, each with the document's link). If Zheus says
-   it does not know a fund's CNPJ (the CVM lists some funds without the ISIN of their shares; the island says so too),
-   tell it: "BTCI11's CNPJ is 09.552.812/0001-14" (the fund's monthly report on FundosNet shows it). Coucou checks its
-   digits and the name B3 trades the shares under, then reads the fund.
+   it does not know a fund's CNPJ (the CVM's reports give some funds no ISIN for their shares, or their old ticker's
+   — BTCI11's fund still reports FEXC11's; the island says so too), tell it: "BTCI11's CNPJ is 09.552.812/0001-14"
+   (the fund's monthly report on FundosNet shows it). Coucou checks its digits and the name B3 trades the shares
+   under, then reads the fund.
 2. **Unsustainable dividends** — "Is any of my funds paying more than it earns?" (VP per share falling while it pays,
    negative asset returns, dividends below their average, P/VP; for paper funds, a projection from the Focus survey).
 3. **A living thesis** — "My thesis for TIMS3: EBITDA margin above 40%, net debt/EBITDA below 2, revenue growing. Keep
@@ -53,6 +54,20 @@ Coucou keeps a copy before it replaces the list (the last 10, in `powers-backups
    "I slept 5 hours and I'm wrecked" (the day becomes normal, light or rest).
 10. **The month's content kit** — "Make this month's content kit" (square PNG charts in Documents → Coucou → Zheus →
     YYYY-MM, and a carousel, Reels and stories script written with you; in private mode, percentages only).
+11. **Your contributions, as you make them** — "Today at 14:30 I bought 10 GGRC11 at R$ 9,20" (or several at once,
+    with the costs when you know them): the position's quantity and average price are worked out the way the Receita
+    counts them, and the trade is kept for the month's taxes. "I sold 20 GARE11 at 9,10" (it says what you made),
+    "Show my contributions this year" (month by month, against the contribution you set), "Undo the last one". A
+    spreadsheet of your contributions (Date, Asset, Quantity, Price, and a Type or C/V column if it has sales; .xlsx or
+    .csv) imports the same way, and builds the portfolio when it is empty ("rebuild my positions from my trades"
+    otherwise).
+12. **Ceiling prices, and the opportunities** — "What are my ceiling prices?", "TIMS3's ceiling by Graham", "Use 10 %
+    for my funds", "My own ceiling for VALE3 is R$ 70". For funds: Bazin (a year of dividends over the yield you
+    want; by default the CDI after the 15 % income tax), projected Bazin (the last three months' pace; a paper fund's
+    moved by the Focus survey) and P/VP; for shares: Bazin (6 %), projected Bazin, Graham (√(22,5 × LPA × VPA)) and
+    Peter Lynch (LPA × (growth + DY)), from the CVM's statements and share count. When a close falls below a watched
+    ceiling (projected Bazin for funds; projected Bazin and Graham for shares; and your own), the island says so by
+    itself, once a week at most for each asset unless it falls 5 points further, and it is in the morning's day.
 
 And "What is my day?" — between 7 and 11, once a day, the island says it by itself.
 
@@ -63,9 +78,8 @@ And "What is my day?" — between 7 and 11, once a day, the island says it by it
 | B3 (COTAHIST) | each asset's close | when B3 publishes the day (in the evening) |
 | CVM, the funds' monthly reports | VP per share, dividend yield, holders, segment | once a week |
 | FundosNet | notices, material facts, assemblies, offerings and dividend notices | once a day |
-| CVM, DFP and ITR, and the register (FCA) | the companies' statements | once a month |
+| CVM, DFP and ITR, and the register (FCA) | the companies' statements and share count | once a month |
 | Banco Central (SGS and Focus) | Selic, CDI, IPCA, the dollar and expectations | once a day |
-| B3, the register of listed funds | the CNPJ of a fund the CVM lists without an ISIN | only when missing |
 
 While the superpowers are on, Coucou wakes every half hour to see what is due; when nothing is, nothing is read. A
 question to Zheus waits about 20 seconds at most for what is due (and up to 40 for an asset you do not hold); the
@@ -97,14 +111,19 @@ that text goes to OpenAI. Your figures go to no one else.
 On 21 October 2026 a GitHub Actions workflow (`powers-live.yml`) read the real sources:
 
 - **working**: B3's quotes for six assets; the Selic, CDI, IPCA, dollar and Focus survey from the Banco Central; the
-  CVM's reports (VP per share, dividend yield and holders over 21 months) for GGRC11, GARE11 and PORD11; FundosNet's
-  documents and dividend notices; the CVM's register of companies and TIM's 2026 quarters;
+  CVM's reports (VP per share, dividend yield and holders over 21 months) for GGRC11, GARE11, PORD11 and BTCI11;
+  FundosNet's documents and dividend notices; the CVM's register of companies and TIM's 2026 quarters; and the whole
+  conversation, BTCI11's CNPJ included: asked for, given, checked ("FII BTG CRI" at FundosNet as at B3) and read;
 - **fixed since**: dividend notices published twice were counted twice; the yield of a fund with few months of
   notices read came out low (it now goes at the pace of the months known); the CVM published TIM's 2025 DFP with every
   value at zero (it is now left out, and Zheus reads 2026's quarters at a year's pace); the Selic's date showed in the
-  future;
-- **being checked**: BTCI11 has no ISIN in the CVM's reports, so Coucou now looks its CNPJ up in B3's register of
-  funds. FundosNet is slow from abroad; from Brazil it usually answers well.
+  future; BTCI11's fund reports the ISIN of its old ticker, FEXC11 (Zheus now asks for the CNPJ); since 2025 the CVM
+  writes a fund's receivables as CRI_CRA and LCI_LCA, so paper funds read as brick (now BTCI11, 82 % in CRI, and
+  PORD11, 88 %, read as paper); B3's register of listed funds answers nothing any more, so it is no longer asked;
+- **not checked against the real files yet**: the share count from the CVM's "composição do capital" (the GitHub
+  Actions runs stopped starting on 21 October, before they reached it); without it, Graham, Lynch and a share's Bazin
+  say they lack it, and Zheus can give the figures itself. FundosNet is slow from abroad; from Brazil it usually
+  answers well.
 
 Not tested yet: Hermes calling these tools in a real session on your Windows computer (the tests cover the MCP protocol
 and Coucou's side), and the screens on Windows itself (they were looked at in Chromium).

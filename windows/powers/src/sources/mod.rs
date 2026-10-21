@@ -117,18 +117,31 @@ pub async fn company_tickers(http: &Http, year: i32) -> Result<HashMap<String, (
 }
 
 /// A company's figures per period (CNPJ digits): the yearly statements of `years` and the quarterly ones of
-/// `quarter_years`, consolidated, oldest first; and the files that could not be read.
-pub async fn company_figures(http: &Http, cnpj: &str, years: &[i32], quarter_years: &[i32]) -> Result<(Vec<cvm_cia::Figures>, Vec<String>), String> {
+/// `quarter_years`, consolidated, oldest first; the files that could not be read; and its shares outstanding at its
+/// latest filing, from the same archives' "composição do capital" (None when they have no such table).
+pub async fn company_figures(http: &Http, cnpj: &str, years: &[i32], quarter_years: &[i32]) -> Result<(Vec<cvm_cia::Figures>, Vec<String>, Option<(Date, f64)>), String> {
     let wanted = vec![cnpj.to_string()];
     let mut accounts = Vec::new();
     let mut errors = Vec::new();
+    let mut shares: Option<(Date, f64)> = None;
     for (kind, list) in [("dfp", years), ("itr", quarter_years)] {
         for &year in list {
-            let names: Vec<String> = cvm_cia::TABLES.iter().map(|t| cvm_cia::entry_name(kind, t, year)).collect();
+            let mut names: Vec<String> = cvm_cia::TABLES.iter().map(|t| cvm_cia::entry_name(kind, t, year)).collect();
+            let capital = cvm_cia::entry_name(kind, cvm_cia::CAPITAL, year);
+            names.push(capital.clone());
             match http.zip_entries(&cvm_cia::url(kind, year), &names).await {
                 Ok(files) => {
-                    for (_, bytes) in files {
-                        accounts.extend(cvm_cia::parse_accounts(&crate::text::decode(&bytes), &wanted));
+                    for (name, bytes) in files {
+                        let text = crate::text::decode(&bytes);
+                        if name.to_ascii_lowercase().ends_with(&capital.to_ascii_lowercase()) {
+                            if let Some(found) = cvm_cia::parse_shares(&text, cnpj) {
+                                if shares.is_none_or(|(d, _)| found.0 > d) {
+                                    shares = Some(found);
+                                }
+                            }
+                        } else {
+                            accounts.extend(cvm_cia::parse_accounts(&text, &wanted));
+                        }
                     }
                 }
                 Err(e) => errors.push(e),
@@ -142,5 +155,5 @@ pub async fn company_figures(http: &Http, cnpj: &str, years: &[i32], quarter_yea
             format!("the CVM's statements could not be read: {}", errors.join("; "))
         });
     }
-    Ok((cvm_cia::figures(&accounts), errors))
+    Ok((cvm_cia::figures(&accounts), errors, shares))
 }

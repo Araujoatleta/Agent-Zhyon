@@ -124,6 +124,8 @@ pub trait PowersRunner: Send + Sync {
 pub const POWER_TOOLS: &[&str] = &[
     "wealth_portfolio",
     "wealth_update",
+    "wealth_trade",
+    "wealth_ceiling",
     "wealth_fii",
     "wealth_events",
     "wealth_company",
@@ -683,7 +685,15 @@ fn power_summary(input: &Value) -> String {
         (Some(t), Some(a)) => format!("{a} · {t}"),
         (Some(t), None) => t.to_uppercase(),
         (None, Some(a)) => a.to_string(),
-        (None, None) => String::new(),
+        // wealth_trade: the trades' tickers ("GGRC11 +1").
+        (None, None) => {
+            let tickers: Vec<String> = input["trades"].as_array().into_iter().flatten().filter_map(|t| t["ticker"].as_str()).map(|t| t.trim().to_uppercase()).filter(|t| !t.is_empty() && t.len() <= 12).collect();
+            match tickers.as_slice() {
+                [] => String::new(),
+                [one] => one.clone(),
+                [first, rest @ ..] => format!("{first} +{}", rest.len()),
+            }
+        }
     }
 }
 
@@ -1582,6 +1592,8 @@ pub(crate) mod tests {
         // Even read only: they change nothing on the computer.
         let p = prepare(&call("wealth_decision", json!({"action": "record", "ticker": "GARE11", "reasons": "P/VP abaixo de 1"})), &env).unwrap();
         assert_eq!((p.gate.clone(), p.summary.as_str()), (Gate::Free, "record · GARE11"));
+        let trade = prepare(&call("wealth_trade", json!({"trades": [{"ticker": "ggrc11", "side": "buy", "quantity": 10}, {"ticker": "TIMS3", "side": "buy", "quantity": 1}]})), &env).unwrap();
+        assert_eq!((trade.gate.clone(), trade.summary.as_str()), (Gate::Free, "GGRC11 +1"), "recording a trade the user made changes only Coucou's record");
         let out = block_on(execute(&p, &env));
         assert!(!out.is_error && out.text == "wealth_decision answered");
         assert_eq!(runner.calls.lock().unwrap()[0].1["reasons"], "P/VP abaixo de 1", "the arguments go as the model sent them");

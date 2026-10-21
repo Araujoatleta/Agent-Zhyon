@@ -2,7 +2,7 @@
 
 *English: [ZHEUS_POWERS.md](ZHEUS_POWERS.md)*
 
-O Zheus — o Hermes que o Coucou roda, ou o chat do próprio Mochi — ganha 16 ferramentas novas. Com elas ele acompanha
+O Zheus — o Hermes que o Coucou roda, ou o chat do próprio Mochi — ganha 18 ferramentas novas. Com elas ele acompanha
 **a sua carteira** com os dados oficiais da B3, da CVM, da FundosNet e do Banco Central, e **a sua rotina**: o
 concurso, o inglês, a academia e o conteúdo do mês. É só conversar com ele.
 
@@ -34,9 +34,10 @@ Os exemplos abaixo são frases que você pode mandar como estão, na ilha, no iP
 - "Como estão meus FIIs?"
 - "O que precisa de mim nos meus fundos este mês?" (data-com, pagamentos, assembleias com prazo, ofertas, fatos
   relevantes, com o link do documento)
-- Se o Zheus disser que não sabe o CNPJ de um fundo (a CVM publica alguns fundos sem o ISIN das cotas; a ilha também
-  avisa), diga: "O CNPJ do BTCI11 é 09.552.812/0001-14" (ele aparece no relatório gerencial do fundo na FundosNet). O
-  Coucou confere os dígitos e o nome de pregão das cotas na B3 e passa a ler o fundo.
+- Se o Zheus disser que não sabe o CNPJ de um fundo (os informes da CVM trazem alguns fundos sem o ISIN das cotas, ou
+  com o do ticker antigo — o fundo do BTCI11 ainda informa o do FEXC11; a ilha também avisa), diga: "O CNPJ do BTCI11 é
+  09.552.812/0001-14" (ele aparece no relatório gerencial do fundo na FundosNet). O Coucou confere os dígitos e o nome
+  de pregão das cotas na B3 e passa a ler o fundo.
 
 **2. Detector de dividendo insustentável**
 - "Algum FII meu está pagando mais do que ganha?" (VP/cota caindo enquanto paga, retorno dos ativos negativo,
@@ -85,6 +86,26 @@ Os exemplos abaixo são frases que você pode mandar como estão, na ilha, no iP
 - "Monta o kit de conteúdo do mês." (gráficos quadrados em PNG em Documentos → Coucou → Zheus → AAAA-MM, e um roteiro
   de carrossel, Reels e stories com você; no modo privado, só porcentagens)
 
+**11. Seus aportes, na hora em que você faz**
+- "Hoje às 14h30 comprei 10 GGRC11 a R$ 9,20." (vários de uma vez, com as taxas quando você souber) — ele atualiza a
+  quantidade e o preço médio do jeito que a Receita calcula, e guarda a operação para o IR do mês.
+- "Vendi 20 GARE11 a 9,10." (ele diz quanto você ganhou ou perdeu) · "Mostra meus aportes deste ano." (mês a mês,
+  contra o aporte mensal que você definiu) · "Desfaz o último."
+- Uma planilha dos seus aportes (Data, Ativo, Quantidade, Preço, e uma coluna Tipo ou C/V se tiver vendas; .xlsx ou
+  .csv) entra do mesmo jeito e monta a carteira quando ela está vazia ("recalcula minhas posições pelos meus aportes"
+  nos outros casos).
+
+**12. Preço teto e oportunidades**
+- "Quais são os meus preços teto?" · "Qual o preço teto da TIMS3 pelo Graham?" · "Usa 10% para os meus FIIs." ·
+  "Meu preço teto para a VALE3 é R$ 70."
+- FIIs: Bazin (um ano de dividendos sobre o retorno que você quer; por padrão o CDI depois dos 15% de IR), Bazin
+  projetivo (no ritmo dos últimos três meses; o de papel ajustado pelo Focus) e P/VP. Ações: Bazin (6%), Bazin
+  projetivo, Graham (√(22,5 × LPA × VPA)) e Peter Lynch (LPA × (crescimento + DY)), com os balanços e o número de ações
+  da CVM.
+- Quando um fechamento fica abaixo de um teto vigiado (Bazin projetivo nos FIIs; Bazin projetivo e Graham nas ações; e
+  o seu), a ilha avisa sozinha — no máximo uma vez por semana por ativo, a não ser que caia mais 5 pontos — e ele
+  aparece no seu dia de manhã.
+
 **E o dia todo junto**
 - "Como é o meu dia?" Entre 7h e 11h, uma vez por dia, a ilha fala sozinha: "Bom dia! Hoje: …".
 
@@ -95,9 +116,8 @@ Os exemplos abaixo são frases que você pode mandar como estão, na ilha, no iP
 | B3 (COTAHIST) | o fechamento de cada ativo | quando a B3 publica o dia (à noite) |
 | CVM, Informe Mensal dos FIIs | VP/cota, DY, cotistas, segmento | uma vez por semana |
 | FundosNet | comunicados, fatos relevantes, assembleias, ofertas e os avisos de rendimentos | uma vez por dia |
-| CVM, DFP e ITR, e o cadastro (FCA) | os balanços das empresas | uma vez por mês |
+| CVM, DFP e ITR, e o cadastro (FCA) | os balanços e o número de ações das empresas | uma vez por mês |
 | Banco Central (SGS e Focus) | Selic, CDI, IPCA, dólar e as expectativas | uma vez por dia |
-| B3, cadastro de fundos listados | o CNPJ de um fundo que a CVM publica sem ISIN | só quando falta |
 
 Com os superpoderes ligados, o Coucou acorda a cada meia hora para ver o que venceu; se nada venceu, nada é lido. Uma
 pergunta ao Zheus espera no máximo cerca de 20 segundos pelo que estiver vencendo (e até 40 segundos por um ativo que
@@ -129,14 +149,19 @@ ChatGPT, esse texto vai para a OpenAI. Os seus números não são enviados a mai
 Em 21/10/2026, um workflow do GitHub Actions (`powers-live.yml`) leu as fontes reais:
 
 - **funcionando**: as cotações da B3 dos seis ativos, Selic, CDI, IPCA, dólar e o Focus do Banco Central, os
-  informes da CVM (VP/cota, DY e cotistas de 21 meses) do GGRC11, do GARE11 e do PORD11, os documentos e os avisos de
-  rendimentos da FundosNet, o cadastro de empresas da CVM e os trimestres de 2026 da TIM;
+  informes da CVM (VP/cota, DY e cotistas de 21 meses) do GGRC11, do GARE11, do PORD11 e do BTCI11, os documentos e os
+  avisos de rendimentos da FundosNet, o cadastro de empresas da CVM e os trimestres de 2026 da TIM; e a conversa
+  inteira, com o CNPJ do BTCI11: pedido, informado, conferido ("FII BTG CRI" na FundosNet e na B3) e lido;
 - **corrigido depois disso**: avisos de rendimentos publicados duas vezes contavam em dobro; o DY de quem ainda tinha
   poucos meses de avisos lidos saía baixo (agora vai no ritmo dos meses conhecidos); a CVM publicou a DFP 2025 da TIM
   com todos os valores zerados (agora é ignorada, e o Zheus usa os trimestres de 2026 no ritmo do ano); a data da
-  Selic aparecia no futuro;
-- **em verificação**: o BTCI11 vem sem ISIN nos informes da CVM, então o Coucou passa a buscar o CNPJ no cadastro de
-  fundos da B3. A FundosNet é lenta vista do exterior; do Brasil costuma responder bem.
+  Selic aparecia no futuro; o fundo do BTCI11 informa o ISIN do ticker antigo, FEXC11 (agora o Zheus pede o CNPJ);
+  desde 2025 a CVM registra os recebíveis dos fundos em CRI_CRA e LCI_LCA, e os fundos de papel saíam como tijolo
+  (agora o BTCI11, 82% em CRI, e o PORD11, 88%, saem como papel); o cadastro de fundos listados da B3 não responde mais
+  nada, então deixou de ser consultado;
+- **ainda não conferido com os arquivos reais**: o número de ações da "composição do capital" da CVM (as execuções do
+  GitHub Actions pararam de iniciar em 21/10, antes de chegar nele); sem ele, Graham, Lynch e o Bazin das ações dizem
+  que falta, e o Zheus pode passar os números. A FundosNet é lenta vista do exterior; do Brasil costuma responder bem.
 
 Ainda não testado: o Hermes chamando estas ferramentas numa sessão real no seu Windows (os testes cobrem o protocolo MCP
 e o Coucou), e as telas no Windows (vistas no Chromium daqui).

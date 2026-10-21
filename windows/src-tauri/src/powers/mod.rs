@@ -188,18 +188,20 @@ pub fn enabled(app: &AppHandle) -> bool {
     app.state::<Shared>().settings.lock().unwrap().powers_enabled
 }
 
-/// The shares whose statements are a month old (or never read): those held, and those of a thesis.
+/// The shares whose statements are due (refresh::company_due): those held, those of a thesis, and those the user set
+/// a ceiling price for (a unit such as TAEE11 when B3 quotes it as a share).
 fn companies_due(store: &Store, market: &Market, today: Date, failed: &[(String, Date)]) -> Vec<String> {
     let mut wanted = store.portfolio.tickers(Some(AssetClass::Acao));
-    for th in &store.theses {
-        if !wanted.contains(&th.ticker) {
-            wanted.push(th.ticker.clone());
+    let share = |t: &&String| market.quotes.get(*t).map_or(!t.ends_with("11"), |q| sources::b3::kind_of(q) == "acao");
+    for t in store.theses.iter().map(|th| &th.ticker).chain(store.ceilings.manual.keys().filter(share)) {
+        if !wanted.contains(t) {
+            wanted.push(t.clone());
         }
     }
     wanted
         .into_iter()
         .filter(|t| !failed.iter().any(|(f, d)| f == t && *d == today))
-        .filter(|t| market.companies.get(t).and_then(|c| c.checked).is_none_or(|d| d.until(today) >= 30))
+        .filter(|t| refresh::company_due(market.companies.get(t), today))
         .collect()
 }
 
@@ -323,7 +325,7 @@ async fn ensure_asset(app: &AppHandle, ticker: &str) {
                 let read = refresh::funds(&powers.http, std::slice::from_ref(&ticker), &market.fund_cnpjs, &store.fund_cnpjs, months.then_some(all.as_slice()), &refresh::known_documents(&market), today).await;
                 refresh::merge_funds(&mut held(&powers.market), read, today);
             }
-        } else if kind != "etf" && kind != "bdr" && market.companies.get(&ticker).and_then(|c| c.checked).is_none_or(|d| d.until(today) >= 30) {
+        } else if kind != "etf" && kind != "bdr" && refresh::company_due(market.companies.get(&ticker), today) {
             if let Ok((company, register)) = refresh::company(&powers.http, &ticker, &market.company_cnpjs, today).await {
                 let mut m = held(&powers.market);
                 if let Some(register) = register {
@@ -358,6 +360,7 @@ pub fn start(app: &AppHandle) {
             if tauri::async_runtime::spawn(async move {
                 refresh(&round, false).await;
                 brief(&round);
+                tell_opportunities(&round);
             })
             .await
             .is_err()
@@ -371,6 +374,49 @@ pub fn start(app: &AppHandle) {
     log::line("powers: reading the official data while on");
 }
 
+/// The opportunities found since they were last told (a week ago, or 5 points less far below): said on the island,
+/// three at most at once (the rest are in the ★ tab's day).
+fn tell_opportunities(app: &AppHandle) {
+    let today = today();
+    // Saved only when the record of what was told changed: most half hours, nothing is written.
+    let found = {
+        let powers = app.state::<Powers>();
+        let mut store = held(&powers.store);
+        let before = store.ceilings.told.clone();
+        let found = coucou_powers::ceiling::to_tell(&mut store, &held(&powers.market), today);
+        if store.ceilings.told != before {
+            save_store(&store);
+        }
+        found
+    };
+    for o in found.iter().take(3) {
+        crate::zheus_one::say(
+            app,
+            &tf("Opportunity: {ticker} is {pct}% below its ceiling ({method}: {ceiling}).", &[("ticker", &o.ticker), ("pct", &percent_text(o.below)), ("method", &method_name(o.method)), ("ceiling", &money(o.ceiling))]),
+        );
+    }
+    if !found.is_empty() {
+        log::line(format!("powers: {} opportunity(ies) told", found.len()));
+    }
+}
+
+/// A ceiling method's name, in the user's language.
+fn method_name(method: &str) -> String {
+    match method {
+        "bazin" => "Bazin".into(),
+        "bazin_projected" => t("projected Bazin"),
+        "graham" => "Graham".into(),
+        "lynch" => "Peter Lynch".into(),
+        "pvp" => "P/VP".into(),
+        _ => t("your own ceiling"),
+    }
+}
+
+/// "10,5" (the user's decimal separator), for a percentage the text puts its sign after.
+fn percent_text(v: f64) -> String {
+    coucou_powers::text::grouped(v, 1)
+}
+
 /// The morning's briefing on the island (and aloud when the user asked for it): once a day, between 7 and 11.
 fn brief(app: &AppHandle) {
     let now = crate::platform::local_time();
@@ -382,7 +428,8 @@ fn brief(app: &AppHandle) {
     if *held(&powers.briefed) == day_key {
         return;
     }
-    let lines = read(app, |s, m| engine::day_plan(s, m, today()).items.iter().map(line).collect::<Vec<_>>());
+    // Opportunities are told on their own (tell_opportunities), not said twice.
+    let lines = read(app, |s, m| engine::day_plan(s, m, today()).items.iter().filter(|i| i.code != "opportunity").map(line).collect::<Vec<_>>());
     *held(&powers.briefed) = day_key;
     if lines.is_empty() {
         return;
@@ -442,14 +489,14 @@ fn refused(text: String) -> HomeResult {
 
 /// The tools that read the official data: what is due is read first.
 fn reads_market(tool: &str) -> bool {
-    matches!(tool, "wealth_portfolio" | "wealth_fii" | "wealth_events" | "wealth_plan" | "wealth_audit" | "wealth_macro" | "wealth_committee" | "life_day")
+    matches!(tool, "wealth_portfolio" | "wealth_fii" | "wealth_events" | "wealth_plan" | "wealth_audit" | "wealth_macro" | "wealth_committee" | "wealth_ceiling" | "life_day")
 }
 
 /// An asset the call is about, when it names one.
 fn asked_asset(tool: &str, input: &Value) -> Option<String> {
     let named = engine::s(input, "ticker").and_then(|t| coucou_powers::text::ticker(&t));
     match tool {
-        "wealth_fii" | "wealth_company" => named,
+        "wealth_fii" | "wealth_company" | "wealth_ceiling" => named,
         "wealth_committee" => named.or_else(|| engine::s(input, "proposal").and_then(|p| coucou_powers::text::tickers_in(&p).into_iter().next())),
         _ => None,
     }
@@ -471,7 +518,7 @@ pub async fn call(app: &AppHandle, tool: &str, input: &Value) -> HomeResult {
         "wealth_portfolio" => answer(read(app, |s, m| engine::portfolio(s, m, today))),
         "wealth_update" => {
             let mode = engine::s(input, "mode");
-            let replaces = (engine::s(input, "text").is_some() && mode.as_deref() != Some("merge")) || mode.as_deref() == Some("replace");
+            let replaces = (engine::s(input, "text").is_some() && mode.as_deref() != Some("merge")) || mode.as_deref() == Some("replace") || engine::b(input, "rebuild_from_trades") == Some(true);
             if replaces {
                 read(app, |s, _| backup(s));
             }
@@ -501,6 +548,8 @@ pub async fn call(app: &AppHandle, tool: &str, input: &Value) -> HomeResult {
             Some(ticker) => answer(change(app, |s, m| engine::company_view(s, m, &ticker, input, today).0)),
             None => refused("wealth_company needs the share's ticker (\"TIMS3\").".into()),
         },
+        "wealth_trade" => change(app, |s, m| engine::trade_view(s, m, input, today)).map_or_else(refused, answer),
+        "wealth_ceiling" => change(app, |s, m| engine::ceiling_view(s, m, input, today)).map_or_else(refused, answer),
         "wealth_plan" => answer(read(app, |s, m| engine::plan(s, m, input, today))),
         "wealth_audit" => answer(read(app, |s, m| engine::audit_view(s, m, input, today))),
         "wealth_decision" => change(app, |s, m| engine::decision(s, m, input, today)).map_or_else(refused, answer),
@@ -685,6 +734,10 @@ pub fn line(item: &Item) -> String {
         "training" => tf("Training: {session}", &[("session", &v("session"))]),
         "training_light" => tf("Training: {session}, light", &[("session", &v("session"))]),
         "rest" => t("Training: rest or a walk today"),
+        "opportunity" => tf(
+            "{ticker}: {pct}% below its ceiling ({method})",
+            &[("ticker", &v("ticker")), ("pct", &percent_text(v("pct").parse().unwrap_or(0.0))), ("method", &method_name(&v("method")))],
+        ),
         "english" => match v("cards").parse::<u32>().unwrap_or(0) {
             0 => tf("English: {company}'s results", &[("company", &v("company"))]),
             n => tf("English: {company}'s results and {cards} cards", &[("company", &v("company")), ("cards", &n.to_string())]),
@@ -987,6 +1040,9 @@ mod tests {
         assert_eq!(line(&item("english", &[("company", "TIM"), ("cards", "4")])), "English: TIM's results and 4 cards");
         assert_eq!(line(&item("english", &[("company", "TIM"), ("cards", "0")])), "English: TIM's results");
         assert_eq!(line(&item("rest", &[])), "Training: rest or a walk today");
+        assert_eq!(line(&item("opportunity", &[("ticker", "GGRC11"), ("pct", "10.5"), ("method", "bazin_projected"), ("ceiling", "10.34")])), "GGRC11: 10,5% below its ceiling (projected Bazin)");
+        assert_eq!(method_name("graham"), "Graham");
+        assert_eq!(method_name("manual"), "your own ceiling");
         assert_eq!(line(&item("something new", &[])), "the title", "an unknown code says its title");
         let a = Alert { kind: "thesis".into(), ticker: "TIMS3".into(), count: 2, text: String::new(), urgent: false };
         assert_eq!(alert_line(&a), "TIMS3: 2 condition(s) of your thesis broke");
@@ -1049,6 +1105,8 @@ mod tests {
         assert_eq!(companies_due(&store, &market, today, &[]), vec!["TIMS3"]);
         assert!(companies_due(&store, &market, today, &[("TIMS3".into(), today)]).is_empty(), "failed today");
         market.companies.insert("TIMS3".into(), coucou_powers::model::CompanyData { ticker: "TIMS3".into(), checked: Some(today.add_days(-10)), ..Default::default() });
+        assert_eq!(companies_due(&store, &market, today, &[]).len(), 1, "read by an older Coucou, without its share count: once more");
+        market.companies.get_mut("TIMS3").unwrap().reader = refresh::COMPANY_READER;
         assert!(companies_due(&store, &market, today, &[]).is_empty());
         market.companies.get_mut("TIMS3").unwrap().checked = Some(today.add_days(-31));
         assert_eq!(companies_due(&store, &market, today, &[]).len(), 1);

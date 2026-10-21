@@ -11715,6 +11715,50 @@
    "pt-BR": "{ticker}: informe ao Zheus o CNPJ do fundo",
    "ru": "{ticker}: сообщите Zheus CNPJ фонда",
    "id": "{ticker}: beri tahu Zheus CNPJ dana ini"
+  },
+  "{ticker}: {pct}% below its ceiling ({method})": {
+   "zh-Hans": "{ticker}：比上限价低 {pct}%（{method}）",
+   "hi": "{ticker}: अपनी अधिकतम कीमत से {pct}% नीचे ({method})",
+   "es": "{ticker}: {pct}% por debajo de su precio techo ({method})",
+   "ar": "{ticker}: أقل من سعر السقف بنسبة {pct}% ({method})",
+   "fr": "{ticker} : {pct} % sous son prix plafond ({method})",
+   "bn": "{ticker}: সর্বোচ্চ দামের চেয়ে {pct}% নিচে ({method})",
+   "pt-BR": "{ticker}: {pct}% abaixo do preço teto ({method})",
+   "ru": "{ticker}: на {pct}% ниже предельной цены ({method})",
+   "id": "{ticker}: {pct}% di bawah harga plafonnya ({method})"
+  },
+  "Opportunity: {ticker} is {pct}% below its ceiling ({method}: {ceiling}).": {
+   "zh-Hans": "机会：{ticker} 比上限价低 {pct}%（{method}：{ceiling}）。",
+   "hi": "अवसर: {ticker} अपनी अधिकतम कीमत से {pct}% नीचे है ({method}: {ceiling})।",
+   "es": "Oportunidad: {ticker} está {pct}% por debajo de su precio techo ({method}: {ceiling}).",
+   "ar": "فرصة: {ticker} أقل من سعر السقف بنسبة {pct}% ({method}: {ceiling}).",
+   "fr": "Opportunité : {ticker} est {pct} % sous son prix plafond ({method} : {ceiling}).",
+   "bn": "সুযোগ: {ticker} সর্বোচ্চ দামের চেয়ে {pct}% নিচে ({method}: {ceiling})।",
+   "pt-BR": "Oportunidade: {ticker} está {pct}% abaixo do preço teto ({method}: {ceiling}).",
+   "ru": "Возможность: {ticker} на {pct}% ниже предельной цены ({method}: {ceiling}).",
+   "id": "Peluang: {ticker} {pct}% di bawah harga plafonnya ({method}: {ceiling})."
+  },
+  "projected Bazin": {
+   "zh-Hans": "预测巴津法",
+   "hi": "अनुमानित बाज़िन",
+   "es": "Bazin proyectado",
+   "ar": "بازين المتوقع",
+   "fr": "Bazin projeté",
+   "bn": "প্রক্ষেপিত বাজিন",
+   "pt-BR": "Bazin projetivo",
+   "ru": "прогнозный Базин",
+   "id": "Bazin proyeksi"
+  },
+  "your own ceiling": {
+   "zh-Hans": "你自己设定的上限价",
+   "hi": "आपकी अपनी अधिकतम कीमत",
+   "es": "tu propio precio techo",
+   "ar": "سعر السقف الذي حددته",
+   "fr": "votre propre prix plafond",
+   "bn": "আপনার নিজের সর্বোচ্চ দাম",
+   "pt-BR": "seu próprio preço teto",
+   "ru": "ваша собственная предельная цена",
+   "id": "harga plafon Anda sendiri"
   }
  }
 }

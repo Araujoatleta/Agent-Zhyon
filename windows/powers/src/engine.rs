@@ -12,7 +12,7 @@ use crate::import::{self, Imported};
 use crate::model::{AssetClass, Condition, Decision, EnglishProfile, ExerciseLog, GymProfile, Market, Position, SetLog, Store, StudyLog, Subject, Thesis, Wellness, Workout};
 use crate::portfolio::{self, Scenario};
 use crate::text::{brl, grouped, pct, ticker};
-use crate::{audit, company, content, day, english, gym, journal, srs, study};
+use crate::{audit, ceiling, company, content, day, english, gym, journal, srs, study, trades};
 
 // ── Reading arguments ─────────────────────────────────────────────────────────
 
@@ -221,6 +221,8 @@ pub fn update(store: &mut Store, args: &Value, file: Option<Imported>, today: Da
         _ => Fold::Merge,
     };
     let from_file = file.as_ref().is_some_and(|f| !f.positions.is_empty());
+    // A file of trades alone (a spreadsheet of contributions, B3's 'Negociação'): no position list in it.
+    let trades_only = file.as_ref().is_some_and(|f| f.positions.is_empty() && !f.trades.is_empty());
     let mut imported = file.unwrap_or_default();
     if let Some(text) = s(args, "text") {
         let typed = import::positions_from_text(&text);
@@ -269,6 +271,22 @@ pub fn update(store: &mut Store, args: &Value, file: Option<Imported>, today: Da
         store.events.sort_by_key(|e| e.date);
         notes.push(format!("History: {} new trades, {} new payouts and events.", store.trades.len() - t0, store.events.len() - e0));
         touched = true;
+    }
+    // The positions worked out from the trades: when a file of trades alone comes to an empty portfolio, or when the
+    // user asks for it (fixed income and the rest B3 does not trade stay).
+    let rebuild = b(args, "rebuild_from_trades") == Some(true);
+    if rebuild || (trades_only && store.portfolio.positions.is_empty()) {
+        let built = trades::positions_from(&store.trades);
+        if built.is_empty() {
+            notes.push("No position comes out of the trades recorded (everything bought was sold, or there is no trade).".into());
+        } else {
+            store.portfolio.positions.retain(|p| !p.class.quoted());
+            notes.push(format!("Positions worked out from {} trades: {} assets, each at its average price with its costs.", store.trades.len(), built.len()));
+            store.portfolio.positions.extend(built);
+            touched = true;
+        }
+    } else if trades_only {
+        notes.push("The file had trades only, so the positions were kept: wealth_audit compares them with the trades, and wealth_update with rebuild_from_trades: true works the positions out from the trades instead.".into());
     }
     for w in imported.warnings {
         notes.push(format!("Not read: {w}"));
@@ -476,6 +494,114 @@ pub fn economy(market: &Market, today: Date) -> String {
         out.push_str(&format!(" Real rate about {}.", pct(r, 1)));
     }
     out
+}
+
+// ── The user's trades, and ceiling prices ─────────────────────────────────────
+
+/// wealth_trade: record the trades the user tells (each moves its position and its average price), list them month
+/// by month, or undo the last one told.
+pub fn trade_view(store: &mut Store, market: &Market, args: &Value, today: Date) -> Result<String, String> {
+    if b(args, "undo_last") == Some(true) {
+        return trades::undo_last(store, today);
+    }
+    let told: Vec<trades::Told> = list(args, "trades")
+        .into_iter()
+        .filter_map(|t| {
+            let ticker = s(t, "ticker").and_then(|x| ticker(&x))?;
+            let side = s(t, "side").or_else(|| s(t, "kind")).map(|k| crate::text::plain(&k)).unwrap_or_default();
+            let kind = if side.starts_with("sell") || side.starts_with("vend") || side == "v" { crate::model::TradeKind::Sell } else { crate::model::TradeKind::Buy };
+            Some(trades::Told {
+                ticker,
+                kind,
+                quantity: f(t, "quantity").or_else(|| f(t, "qty")).unwrap_or(0.0),
+                price: f(t, "price"),
+                fees: f(t, "fees").unwrap_or(0.0),
+                date: date_arg(t, "date"),
+                time: s(t, "time").map(|x| trades::time_of(&x)).unwrap_or_default(),
+                class: s(t, "class").and_then(|c| AssetClass::parse(&c)),
+            })
+        })
+        .collect();
+    if told.is_empty() {
+        if b(args, "list") == Some(true) || list(args, "trades").is_empty() {
+            let months = f(args, "months").map(|m| m.clamp(1.0, 36.0) as usize).unwrap_or(6);
+            return Ok(trades::history(store, months, today));
+        }
+        return Err("No trade could be read: each one needs a B3 ticker, buy or sell, and the quantity.".into());
+    }
+    Ok(trades::record(store, market, &told, today)?.join("\n"))
+}
+
+/// wealth_ceiling: the ceiling prices of one asset or of all the watched ones, the opportunities among them, and the
+/// user's choices (the yields, the P/VP, the margin, the methods, their own ceilings).
+pub fn ceiling_view(store: &mut Store, market: &Market, args: &Value, today: Date) -> Result<String, String> {
+    let mut notes = Vec::new();
+    let c = &mut store.ceilings;
+    if let Some(y) = f(args, "stock_yield").filter(|y| *y > 0.0 && *y < 50.0) {
+        c.stock_yield = y;
+        notes.push(format!("Shares' Bazin yield: {}.", pct(y, 1)));
+    }
+    let fund_yield = f(args, "fund_yield");
+    if fund_yield == Some(0.0) || args["fund_yield"].as_str().is_some_and(|x| x.trim().is_empty()) {
+        c.fund_yield = None;
+        notes.push("Funds' yield: back to the CDI after the 15 % income tax.".into());
+    } else if let Some(y) = fund_yield.filter(|y| *y > 0.0 && *y < 50.0) {
+        c.fund_yield = Some(y);
+        notes.push(format!("Funds' yield: {}.", pct(y, 1)));
+    }
+    if let Some(x) = f(args, "max_pvp").filter(|x| *x > 0.0 && *x < 5.0) {
+        c.max_pvp = x;
+        notes.push(format!("Funds' most P/VP: {}.", grouped(x, 2)));
+    }
+    if let Some(m) = f(args, "margin").filter(|m| (0.0..50.0).contains(m)) {
+        c.margin = m;
+        notes.push(format!("An opportunity from {} below a ceiling.", pct(m, 1)));
+    }
+    if args["methods"].is_array() {
+        c.methods = list(args, "methods").into_iter().filter_map(|m| m.as_str()).map(|m| crate::text::plain(m).replace(' ', "_")).filter(|m| ceiling::METHODS.contains(&m.as_str())).collect();
+        notes.push(format!("Methods watched: {}.", if c.methods.is_empty() { "the usual ones".to_string() } else { c.methods.iter().map(|m| ceiling::label(m)).collect::<Vec<_>>().join(", ") }));
+    }
+    let asked = s(args, "ticker").and_then(|t| ticker(&t));
+    if let (Some(t), Some(v)) = (&asked, f(args, "ceiling")) {
+        if v > 0.0 {
+            c.manual.insert(t.clone(), v);
+            notes.push(format!("{t}: the user's own ceiling is {} (watched from now on).", brl(v)));
+        } else {
+            c.manual.remove(t);
+            notes.push(format!("{t}: the user's own ceiling is gone."));
+        }
+    }
+    let given = ceiling::Given { eps: f(args, "eps"), bvps: f(args, "bvps"), dps: f(args, "dps"), growth: f(args, "growth") };
+    let tickers = match &asked {
+        Some(t) => vec![t.clone()],
+        None => ceiling::watched_tickers(store),
+    };
+    if tickers.is_empty() {
+        return Err("The user holds no share or fund in Coucou to price: save the portfolio first (wealth_update), or name a ticker.".into());
+    }
+    let margin = store.ceilings.margin;
+    let mut out: Vec<String> = notes;
+    for t in &tickers {
+        let g = if asked.is_some() { given.clone() } else { ceiling::Given::default() };
+        out.push(ceiling::for_model(&ceiling::assess(store, market, t, &g, today), margin));
+    }
+    let found = ceiling::opportunities(store, market, today);
+    if found.is_empty() {
+        out.push("No watched asset is below its ceiling now.".into());
+    } else {
+        out.push(format!(
+            "Opportunities now (the close below a watched ceiling): {}.",
+            found.iter().map(|o| format!("{} {} below its {} ceiling ({})", o.ticker, pct(o.below, 1), ceiling::label(o.method), brl(o.ceiling))).collect::<Vec<_>>().join("; ")
+        ));
+    }
+    let (y, why) = ceiling::fund_yield(&store.ceilings, &market.economy);
+    out.push(format!(
+        "The assumptions: shares' Bazin at {}, funds' at {} ({why}), funds' P/VP up to {}. These are rules of thumb on the user's own choices, not a recommendation: tell them which method and figures each ceiling comes from.",
+        pct(store.ceilings.stock_yield, 1),
+        pct(y, 1),
+        grouped(store.ceilings.max_pvp, 2)
+    ));
+    Ok(out.join("\n\n"))
 }
 
 // ── The plan (digital twin), the audit, decisions and the committee ──────────
@@ -940,7 +1066,8 @@ pub fn day_plan(store: &Store, market: &Market, today: Date) -> day::DayPlan {
         let l = english::lesson(&store.english, &store.cards, today);
         (l.company.1.clone(), l.cards.len())
     });
-    day::plan(day::Inputs { today, events: &events, reviews, darf: darf_due(store, today), study: study_blocks, study_reviews, training, english })
+    let opportunities = ceiling::opportunities(store, market, today).into_iter().map(|o| (o.ticker, o.below, o.method.to_string(), o.ceiling)).collect();
+    day::plan(day::Inputs { today, events: &events, reviews, darf: darf_due(store, today), study: study_blocks, study_reviews, training, english, opportunities })
 }
 
 pub fn content_kit(store: &Store, args: &Value, today: Date) -> (Vec<content::File>, String) {
@@ -1153,6 +1280,55 @@ mod tests {
     }
 
     #[test]
+    fn trades_told_in_the_chat_and_ceilings_through_the_tools() {
+        let mut store = Store { portfolio: fixtures::portfolio(), ..Store::default() };
+        let mut market = fixtures::market();
+        market.economy.cdi = Some(13.65);
+        let note = trade_view(&mut store, &market, &json!({"trades": [{"ticker": "ggrc11", "side": "compra", "quantity": "50", "price": "9,00", "date": "21/10/2026", "time": "14h30"}]}), today()).unwrap();
+        assert!(note.contains("Bought 50 GGRC11 at R$ 9,00 on 21/10/2026 14:30"), "{note}");
+        assert_eq!(store.portfolio.position("GGRC11").unwrap().quantity, 200.0);
+        let sold = trade_view(&mut store, &market, &json!({"trades": [{"ticker": "GGRC11", "side": "venda", "quantity": 20, "price": 10}]}), today()).unwrap();
+        assert!(sold.contains("Sold 20 GGRC11"), "{sold}");
+        let history = trade_view(&mut store, &market, &json!({"list": true}), today()).unwrap();
+        assert!(history.starts_with("2026-10: R$ 450,00 put in, R$ 200,00 from sales"), "{history}");
+        assert!(trade_view(&mut store, &market, &json!({"undo_last": true}), today()).unwrap().contains("Undone: the sale"));
+        assert_eq!(store.portfolio.position("GGRC11").unwrap().quantity, 200.0);
+        assert!(trade_view(&mut store, &market, &json!({"trades": [{"side": "buy"}]}), today()).is_err(), "no ticker");
+        // Ceilings: the user's own, the yields, and an opportunity.
+        let text = ceiling_view(&mut store, &market, &json!({"ticker": "GGRC11", "ceiling": 12, "fund_yield": 10}), today()).unwrap();
+        assert!(text.contains("the user's own ceiling is R$ 12,00") && text.contains("Funds' yield: 10,0%"), "{text}");
+        assert!(text.contains("GGRC11 (a real-estate fund) — B3 close R$ 9,12") && text.contains("projected Bazin: ceiling R$ 10,56"), "{text}");
+        assert!(text.contains("Opportunities now") && text.contains("GGRC11"), "{text}");
+        assert_eq!(store.ceilings.manual["GGRC11"], 12.0);
+        assert_eq!(store.ceilings.fund_yield, Some(10.0));
+        ceiling_view(&mut store, &market, &json!({"fund_yield": 0}), today()).unwrap();
+        assert_eq!(store.ceilings.fund_yield, None, "0 goes back to the CDI's");
+        let all = ceiling_view(&mut store, &market, &json!({}), today()).unwrap();
+        assert!(all.contains("TIMS3 (a share)") && !all.contains("SPXB11"), "shares and funds held, not the ETF: {all}");
+        let day = day_plan(&store, &market, today());
+        assert!(day.items.iter().any(|i| i.code == "opportunity" && i.vars["ticker"] == "GGRC11"));
+    }
+
+    #[test]
+    fn a_contributions_file_builds_the_positions_of_an_empty_portfolio() {
+        let mut store = Store::default();
+        let file = crate::import::from_file("aportes.csv", "Data;Ativo;Quantidade;Preço\n10/09/2026;GGRC11;100;9,00\n21/10/2026;GGRC11;50;9,60\n".as_bytes()).unwrap();
+        let note = update(&mut store, &json!({}), Some(file.clone()), today()).unwrap();
+        assert!(note.contains("Positions worked out from 2 trades"), "{note}");
+        let g = store.portfolio.position("GGRC11").unwrap();
+        assert_eq!(g.quantity, 150.0);
+        assert!((g.average_price - 9.2).abs() < 1e-9);
+        // A portfolio already there is kept, unless the user asks to rebuild it.
+        let mut store = Store { portfolio: fixtures::portfolio(), ..Store::default() };
+        let note = update(&mut store, &json!({}), Some(file.clone()), today()).unwrap();
+        assert!(note.contains("the positions were kept"), "{note}");
+        assert_eq!(store.portfolio.position("GGRC11").unwrap().quantity, 150.0);
+        let note = update(&mut store, &json!({"rebuild_from_trades": true}), None, today()).unwrap();
+        assert!(note.contains("Positions worked out"), "{note}");
+        assert!(store.portfolio.position("TIMS3").is_none() && store.portfolio.position("Tesouro Selic 2031").is_some(), "the trades' assets, and fixed income kept");
+    }
+
+    #[test]
     fn decisions_committee_studies_cards_english_training_and_the_day() {
         let mut store = Store { portfolio: fixtures::portfolio(), ..Store::default() };
         let market = fixtures::market();
@@ -1205,7 +1381,7 @@ mod tests {
         let mut market = Market::default();
         let (text, changed) = company_view(&mut store, &market, "TIMS3", &json!({"thesis": "margem EBITDA acima de 45%; dívida caindo; gosto do CEO"}), today());
         assert!(changed && text.contains("could not be read") && text.contains("saved"));
-        market.companies.insert("TIMS3".into(), crate::model::CompanyData { ticker: "TIMS3".into(), cnpj: "1".into(), name: "TIM S.A.".into(), figures: crate::company::fixtures::figures(0.1), checked: Some(today()), problems: vec![] });
+        market.companies.insert("TIMS3".into(), crate::model::CompanyData { ticker: "TIMS3".into(), cnpj: "1".into(), name: "TIM S.A.".into(), figures: crate::company::fixtures::figures(0.1), checked: Some(today()), ..Default::default() });
         let (text, changed) = company_view(&mut store, &market, "TIMS3", &json!({"thesis": "margem EBITDA acima de 45%; dívida caindo; gosto do CEO"}), today());
         assert!(changed);
         assert!(text.contains("holds") && text.contains("Not measurable as written: gosto do CEO"), "{text}");

@@ -351,6 +351,10 @@ async fn live_company() {
     let thesis: Vec<_> = ["margem EBITDA acima de 40%", "dívida líquida/EBITDA abaixo de 2", "receita crescendo"].iter().filter_map(|s| company::parse_condition(s)).collect();
     let checks = company::check(&m, &thesis);
     println!("{}", company::for_model("TIMS3", &c.name, &m, &checks, &company::red_flags(&m)));
+    // The share count from the archives' "composição do capital", and the ceilings it gives.
+    println!("shares {:?} on {:?}; per share: {:?}", c.shares, c.shares_date.map(|d| d.br()), coucou_powers::ceiling::per_share(&c, Some(19.0)));
+    let a = coucou_powers::ceiling::assess_stock("TIMS3", Some(&c), Some(19.0), &Default::default(), &Default::default());
+    println!("{}", coucou_powers::ceiling::for_model(&a, 0.0));
     assert!(c.name.to_uppercase().contains("TIM"));
     let revenue = m.now.get("revenue").copied().expect("twelve months of revenue");
     assert!(revenue > 1e10 && revenue < 1e11, "TIM's yearly revenue {revenue}");
@@ -421,6 +425,8 @@ async fn live_zheus_end_to_end() {
         section(title);
         println!("{text}");
     }
+    section("wealth_ceiling");
+    println!("{}", engine::ceiling_view(&mut store, &market, &json!({}), today).unwrap_or_else(|e| e));
     let summary = engine::summary(&store, &market, today);
     section("island summary");
     println!("{}", serde_json::to_string_pretty(&summary).unwrap());

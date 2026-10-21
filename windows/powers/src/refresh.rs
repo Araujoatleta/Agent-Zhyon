@@ -11,6 +11,14 @@ use crate::sources::{self, b3, cvm_fii, fetch::Http, fnet};
 
 /// The dividend notices read for a fund at one reading, newest first.
 pub const PAYOUTS_PER_READING: usize = 8;
+/// What a company's reading gets: 1 added the share count (for ceiling prices).
+pub const COMPANY_READER: u32 = 1;
+
+/// A company's statements to read again: never read, a month old, or read by an older Coucou (without what this one
+/// reads, such as the share count).
+pub fn company_due(company: Option<&CompanyData>, today: Date) -> bool {
+    company.is_none_or(|c| c.reader < COMPANY_READER || c.checked.is_none_or(|d| d.until(today) >= 30))
+}
 
 /// What is due for a refresh.
 #[derive(Debug, Clone, Default, PartialEq)]
@@ -22,12 +30,18 @@ pub struct Due {
     pub economy: bool,
 }
 
-/// The tickers to quote: the portfolio's, and those of the decisions still under review.
+/// The tickers to quote: the portfolio's, those of the decisions still under review, and those the user set a ceiling
+/// price for.
 pub fn quoted(store: &Store) -> Vec<String> {
     let mut t = store.portfolio.tickers(None);
     for d in store.decisions.iter().filter(|d| d.status == "taken") {
         if crate::text::ticker(&d.ticker).is_some() && !t.contains(&d.ticker) {
             t.push(d.ticker.clone());
+        }
+    }
+    for m in store.ceilings.manual.keys() {
+        if !t.contains(m) {
+            t.push(m.clone());
         }
     }
     t
@@ -232,8 +246,8 @@ pub async fn company(http: &Http, ticker: &str, known: &BTreeMap<String, (String
             found
         }
     };
-    let (figures, problems) = sources::company_figures(http, &cnpj, &[today.y - 1, today.y - 2], &[today.y, today.y - 1]).await?;
-    Ok((CompanyData { ticker: ticker.to_string(), cnpj, name, figures, checked: Some(today), problems }, register))
+    let (figures, problems, shares) = sources::company_figures(http, &cnpj, &[today.y - 1, today.y - 2], &[today.y, today.y - 1]).await?;
+    Ok((CompanyData { ticker: ticker.to_string(), cnpj, name, figures, checked: Some(today), problems, shares: shares.map(|s| s.1), shares_date: shares.map(|s| s.0), reader: COMPANY_READER }, register))
 }
 
 /// Classes guessed at import (a ticker ending in 11) set from what the sources say: a fund in the CVM's reports is a

@@ -29,7 +29,7 @@ wait for the user's approval in Coucou. Call home_devices first when you do not 
 tools are Zheus' superpowers: the user's portfolio read against Brazil's official data (B3, the CVM, FundosNet, the \
 Banco Central), and their studies, English and training. They only read and keep the user's own records in Coucou: \
 they never buy, sell, pay, send or post anything. Call wealth_portfolio before talking about the user's investments, \
-and life_day for their day.";
+wealth_trade when they tell a buy or a sale they made, wealth_ceiling for ceiling prices, and life_day for their day.";
 
 pub fn tools() -> Value {
     serde_json::from_str(TOOLS).unwrap_or_else(|_| json!([]))
@@ -198,7 +198,7 @@ mod tests {
         let list = answer(&json!({"jsonrpc": "2.0", "id": "a", "method": "tools/list"}), &mut client, &|_| Relayed::Closed).unwrap();
         let names: Vec<&str> = list["result"]["tools"].as_array().unwrap().iter().map(|t| t["name"].as_str().unwrap()).collect();
         assert_eq!(&names[..5], ["home_devices", "home_control", "home_routine", "zheus_world", "zheus_mission"]);
-        assert_eq!(names.len(), 21, "and the sixteen superpowers");
+        assert_eq!(names.len(), 23, "and the eighteen superpowers");
         assert!(names[5..].iter().all(|n| n.starts_with("wealth_") || n.starts_with("life_")));
         assert!(list["result"]["tools"].as_array().unwrap().iter().all(|t| t["inputSchema"]["type"] == "object"));
         let other = answer(&json!({"jsonrpc": "2.0", "id": 3, "method": "resources/list"}), &mut client, &|_| Relayed::Closed).unwrap();

@@ -56,6 +56,8 @@ pub struct Inputs<'a> {
     pub training: Option<(String, String)>,
     /// The company of the English lesson, and cards due.
     pub english: Option<(String, usize)>,
+    /// Assets below a watched ceiling: (ticker, percent below, method, ceiling).
+    pub opportunities: Vec<(String, f64, String, f64)>,
 }
 
 pub fn plan(i: Inputs) -> DayPlan {
@@ -75,6 +77,16 @@ pub fn plan(i: Inputs) -> DayPlan {
             urgent: e.importance == Importance::High || (e.kind == "record" && today),
             code: e.kind.clone(),
             vars: vars(&[("ticker", e.ticker.clone()), ("when", when.into()), ("amount", e.amount.map(|a| format!("{a:.2}")).unwrap_or_default())]),
+        });
+    }
+    for (ticker, below, method, ceiling) in &i.opportunities {
+        items.push(Item {
+            area: "money".into(),
+            title: format!("{ticker}: {} below its ceiling ({}: {})", crate::text::pct(*below, 1), crate::ceiling::label(method), brl(*ceiling)),
+            detail: "The close under the ceiling price the user's method gives: a chance to buy for less, never an order.".into(),
+            urgent: false,
+            code: "opportunity".into(),
+            vars: vars(&[("ticker", ticker.clone()), ("pct", format!("{below:.1}")), ("method", method.clone()), ("ceiling", format!("{ceiling:.2}"))]),
         });
     }
     if let Some(amount) = i.darf.filter(|a| *a > 0.0) {
@@ -187,6 +199,7 @@ mod tests {
             study_reviews: vec!["Português".into()],
             training: Some(("Upper B".into(), "light".into())),
             english: Some(("Nvidia".into(), 4)),
+            opportunities: vec![("GGRC11".into(), 10.5, "bazin_projected".into(), 10.34)],
         });
         let titles: Vec<&str> = p.items.iter().map(|i| i.title.as_str()).collect();
         assert!(p.items[0].urgent);
@@ -202,8 +215,11 @@ mod tests {
         assert_eq!((darf.vars["amount"].as_str(), darf.vars["due"].as_str()), ("199.68", "2026-10-30"));
         assert!(p.items.iter().any(|i| i.code == "training_light" && i.vars["session"] == "Upper B"));
         assert!(p.items.iter().any(|i| i.code == "english" && i.vars["cards"] == "4"));
+        let o = p.items.iter().find(|i| i.code == "opportunity").unwrap();
+        assert_eq!(o.title, "GGRC11: 10,5% below its ceiling (projected Bazin: R$ 10,34)");
+        assert_eq!((o.vars["pct"].as_str(), o.vars["method"].as_str(), o.vars["ceiling"].as_str()), ("10.5", "bazin_projected", "10.34"));
         assert!(for_model(&p).contains("don't miss"));
-        let empty = plan(Inputs { today, events: &[], reviews: vec![], darf: None, study: vec![], study_reviews: vec![], training: None, english: None });
+        let empty = plan(Inputs { today, events: &[], reviews: vec![], darf: None, study: vec![], study_reviews: vec![], training: None, english: None, opportunities: vec![] });
         assert!(for_model(&empty).contains("Nothing planned"));
     }
 }

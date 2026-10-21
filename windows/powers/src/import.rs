@@ -262,7 +262,7 @@ fn movements(table: &Table, out: &mut Imported) {
         } else if kind.contains("subscricao") && kind.contains("exercido") && !kind.contains("nao exercido") {
             Some(event(EventKind::Subscription, qty, price))
         } else if kind.starts_with("transferencia liquidacao") && price > 0.0 && qty > 0.0 {
-            out.trades.push(Trade { date, ticker: t.clone(), kind: if credit { TradeKind::Buy } else { TradeKind::Sell }, quantity: qty, price, fees: 0.0, class: None });
+            out.trades.push(Trade { date, ticker: t.clone(), kind: if credit { TradeKind::Buy } else { TradeKind::Sell }, quantity: qty, price, ..Trade::default() });
             None
         } else {
             None
@@ -273,13 +273,17 @@ fn movements(table: &Table, out: &mut Imported) {
     }
 }
 
-/// B3's trades: each buy and sell with its price.
+/// The headers of a column saying buy or sell.
+const SIDE: &[&str] = &["tipo_de_movimentacao", "tipo", "operacao", "c_v", "compra_venda"];
+
+/// B3's trades, or a spreadsheet of the user's with a column saying buy or sell: each one with its price.
 fn trades(table: &Table, out: &mut Imported) {
     let c_date = table.find(&["data_do_negocio", "data"]);
-    let c_kind = table.find(&["tipo_de_movimentacao", "tipo", "operacao", "c_v"]);
-    let c_ticker = table.find(&["codigo_de_negociacao", "ticker", "ativo", "codigo"]);
-    let c_qty = table.find(&["quantidade", "qtd"]);
-    let c_price = table.find(&["preco", "preco_unitario"]);
+    let c_time = table.find(&["hora", "horario"]);
+    let c_kind = table.find(SIDE);
+    let c_ticker = table.find(&["codigo_de_negociacao", "ticker", "ativo", "codigo", "papel"]);
+    let c_qty = table.find(&["quantidade", "qtd", "qtde", "cotas"]);
+    let c_price = table.find(&["preco", "preco_unitario", "valor_unitario", "valor_da_cota"]);
     let c_fees = table.find(&["taxas", "custos", "corretagem"]);
     for row in &table.rows {
         let Some(date) = Date::parse(Table::cell(row, c_date)) else { continue };
@@ -293,7 +297,30 @@ fn trades(table: &Table, out: &mut Imported) {
             continue;
         };
         let (Some(q), Some(p)) = (num(Table::cell(row, c_qty)), num(Table::cell(row, c_price))) else { continue };
-        out.trades.push(Trade { date, ticker: t, kind, quantity: q.abs(), price: p, fees: num(Table::cell(row, c_fees)).unwrap_or(0.0), class: None });
+        let time = crate::trades::time_of(Table::cell(row, c_time));
+        out.trades.push(Trade { date, ticker: t, kind, quantity: q.abs(), price: p, fees: num(Table::cell(row, c_fees)).unwrap_or(0.0), time, ..Trade::default() });
+    }
+}
+
+/// A spreadsheet of the user's own contributions: a date, a ticker, a quantity and a price (or the total paid), with
+/// no column saying buy or sell — each row a buy.
+fn contributions(table: &Table, out: &mut Imported) {
+    let c_date = table.find(&["data_do_aporte", "data_da_compra", "data_do_negocio", "data"]);
+    let c_time = table.find(&["hora", "horario"]);
+    let c_ticker = table.find(&["codigo_de_negociacao", "ticker", "ativo", "codigo", "papel"]);
+    let c_qty = table.find(&["quantidade", "qtd", "qtde", "cotas"]);
+    let c_price = table.find(&["preco_unitario", "preco_pago", "preco_de_compra", "valor_unitario", "valor_da_cota", "preco"]);
+    let c_total = table.find(&["valor_total", "total_investido", "valor_investido", "total"]);
+    let c_fees = table.find(&["taxas", "custos", "corretagem"]);
+    for row in &table.rows {
+        let Some(date) = Date::parse(Table::cell(row, c_date)) else { continue };
+        let Some(t) = ticker(Table::cell(row, c_ticker)) else { continue };
+        let Some(q) = num(Table::cell(row, c_qty)).map(f64::abs).filter(|q| *q > 0.0) else { continue };
+        let fees = num(Table::cell(row, c_fees)).unwrap_or(0.0).max(0.0);
+        let price = num(Table::cell(row, c_price)).filter(|p| *p > 0.0).or_else(|| num(Table::cell(row, c_total)).map(|v| (v - fees) / q).filter(|p| *p > 0.0));
+        let Some(price) = price else { continue };
+        let time = crate::trades::time_of(Table::cell(row, c_time));
+        out.trades.push(Trade { date, ticker: t, kind: TradeKind::Buy, quantity: q, price, fees, time, ..Trade::default() });
     }
 }
 
@@ -307,12 +334,24 @@ pub fn from_sheets(sheets: Vec<(String, Vec<Vec<String>>)>) -> Imported {
             out.kinds.push("movimentação B3".into());
             continue;
         }
-        if let Some(t) = Table::from_rows(rows.clone(), &[&["data_do_negocio", "data"], &["tipo_de_movimentacao", "operacao", "c_v"], &["preco"]]) {
-            if t.find(&["codigo_de_negociacao", "ticker", "ativo", "codigo"]).is_some() {
+        // A sheet whose side column holds something else ("Tipo": FII, Ação) gives no trade, and is read on below.
+        if let Some(t) = Table::from_rows(rows.clone(), &[&["data_do_negocio", "data"], SIDE, &["preco", "valor_unitario", "valor_da_cota"]]) {
+            if t.find(&["codigo_de_negociacao", "ticker", "ativo", "codigo", "papel"]).is_some() {
                 let before = out.trades.len();
                 trades(&t, &mut out);
                 if out.trades.len() > before {
                     out.kinds.push("negociação B3".into());
+                    continue;
+                }
+            }
+        }
+        if let Some(t) = Table::from_rows(rows.clone(), &[&["data_do_aporte", "data_da_compra", "data"], &["preco", "valor_unitario", "valor_da_cota", "valor_total", "total_investido"]]) {
+            let no_side = t.find(SIDE).is_none();
+            if no_side && t.find(&["codigo_de_negociacao", "ticker", "ativo", "codigo", "papel"]).is_some() && t.find(&["quantidade", "qtd", "qtde", "cotas"]).is_some() {
+                let before = out.trades.len();
+                contributions(&t, &mut out);
+                if out.trades.len() > before {
+                    out.kinds.push("planilha de aportes".into());
                     continue;
                 }
             }
@@ -425,6 +464,33 @@ mod tests {
         assert_eq!((tesouro.average_price, tesouro.current_value), (45.0, Some(49.8)));
         assert_eq!(tesouro.subtype, "ipca");
         assert_eq!(got.positions.iter().find(|p| p.ticker == "TIMS3").unwrap().average_price, 0.0, "B3's position has no average price");
+    }
+
+    #[test]
+    fn a_spreadsheet_of_contributions_is_read_as_buys() {
+        let csv = "Data;Hora;Ativo;Quantidade;Preço;Taxas\n\
+                   10/09/2026;14h30;GGRC11;100;9,00;0,50\n\
+                   21/10/2026;10:05;GGRC11;50;9,60;\n\
+                   21/10/2026;;TIMS3;10;19,00;0\n";
+        let got = from_file("aportes.csv", csv.as_bytes()).unwrap();
+        assert_eq!(got.kinds, vec!["planilha de aportes"]);
+        assert!(got.positions.is_empty(), "a history, not a position list");
+        assert_eq!(got.trades.len(), 3);
+        let first = &got.trades[0];
+        assert_eq!((first.ticker.as_str(), first.kind, first.quantity, first.price, first.fees, first.time.as_str()), ("GGRC11", TradeKind::Buy, 100.0, 9.0, 0.5, "14:30"));
+        // A total paid instead of the price.
+        let totals = "Data do aporte;Ticker;Cotas;Valor total\n05/10/2026;PORD11;10;86,00\n";
+        let got = from_file("aportes.csv", totals.as_bytes()).unwrap();
+        assert!((got.trades[0].price - 8.6).abs() < 1e-9);
+        // With a column saying buy or sell: trades, not positions.
+        for side in ["Tipo", "C/V", "Operação", "Compra/Venda"] {
+            let (buy, sell) = if side == "C/V" { ("C", "V") } else { ("Compra", "Venda") };
+            let csv = format!("Data;Hora;Ativo;{side};Qtde;Preço unitário;Corretagem\n10/09/2026;14:30;GGRC11;{buy};100;9,00;0,50\n21/10/2026;;GGRC11;{sell};20;9,60;0\n");
+            let got = from_file("carteira.csv", csv.as_bytes()).unwrap();
+            assert!(got.positions.is_empty(), "{side}: {:?}", got.positions);
+            assert_eq!(got.trades.iter().map(|t| (t.kind, t.quantity)).collect::<Vec<_>>(), vec![(TradeKind::Buy, 100.0), (TradeKind::Sell, 20.0)], "{side}");
+            assert_eq!((got.trades[0].time.as_str(), got.trades[0].fees), ("14:30", 0.5), "{side}");
+        }
     }
 
     #[test]
