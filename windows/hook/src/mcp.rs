@@ -135,7 +135,7 @@ mod tests {
         assert!(answer(&json!({"jsonrpc": "2.0", "method": "notifications/initialized"}), &mut client, &|_| None).is_none());
         let list = answer(&json!({"jsonrpc": "2.0", "id": "a", "method": "tools/list"}), &mut client, &|_| None).unwrap();
         let names: Vec<&str> = list["result"]["tools"].as_array().unwrap().iter().map(|t| t["name"].as_str().unwrap()).collect();
-        assert_eq!(names, vec!["home_devices", "home_control", "home_routine"]);
+        assert_eq!(names, vec!["home_devices", "home_control", "home_routine", "zheus_world", "zheus_mission"]);
         assert!(list["result"]["tools"].as_array().unwrap().iter().all(|t| t["inputSchema"]["type"] == "object"));
         let other = answer(&json!({"jsonrpc": "2.0", "id": 3, "method": "resources/list"}), &mut client, &|_| None).unwrap();
         assert_eq!(other["error"]["code"], -32601);

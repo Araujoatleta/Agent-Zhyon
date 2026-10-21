@@ -3,6 +3,7 @@
 // integrations land here too in a later stage.
 
 import "./settings.css";
+import "../zheus.css";
 import { Bridge, onEvent, type HookPreview, type HookStatus, type ShortcutsReport } from "../core/bridge";
 import { CUSTOM_SERVER_KEY, providerDef, urlExposure } from "../core/providers";
 import {
@@ -21,6 +22,8 @@ import { phoneSection } from "./phone";
 import { handsSection } from "./hands";
 import { homeSection } from "./home";
 import { hermesSection } from "./hermes";
+import { zheusSection } from "./zheus";
+import { wireTvMode } from "./tv";
 import { colorDot } from "./colors";
 import { renderDiff, statusDot } from "./parts";
 import {
@@ -1304,6 +1307,7 @@ function focusSection(id: string) {
 
 async function main() {
   void onEvent<string>("settings-focus", focusSection);
+  wireTvMode(root);
   const boot = await Bridge.boot();
   if (boot) {
     settings = { ...settings, ...boot.settings };
@@ -1395,6 +1399,7 @@ async function render() {
     hermes.el,
     handsSection(toggle),
     homeSection(toggle, { on: settings.readAloud === true, set: (on) => { settings.readAloud = on; void save(); } }),
+    zheusSection(toggle, { get: () => settings.islandLook ?? "glass", set: (look) => { settings.islandLook = look; void save(); } }),
     activePillsSection(connected),
     integrationsSection(present),
     phoneSection(settings.phoneLink ?? false, toggle, settings),

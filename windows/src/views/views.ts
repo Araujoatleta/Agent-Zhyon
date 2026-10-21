@@ -21,6 +21,7 @@ import { lastTextStep } from "../core/diff";
 import { Bridge } from "../core/bridge";
 import { buildRecap } from "./recap";
 import { buildWardrobe } from "./wardrobe";
+import { buildZheus } from "./zheus";
 import { buildSpotifyCard, buildSpotifyPill, type SpotifyPillHost } from "./spotify";
 import { SPOTIFY_ID } from "../core/spotify";
 import type { Outfit, OutfitSelection } from "../mochi/wardrobe";
@@ -110,6 +111,8 @@ export function buildHeader(actions: ViewActions): ViewHost {
   const tabHome = h("button", { class: "tab", title: tl("Overview"), onclick: () => go("overview") }, svg(ICONS.house, 13));
   const tabChat = h("button", { class: "tab", title: tl("Ask"), onclick: () => go("prompt") }, svg(ICONS.bubble, 13));
   const tabDrop = h("button", { class: "tab", title: tl("Drop"), onclick: () => go("upload") }, svg(ICONS.plus, 13));
+  // Zheus One's tab, only while it is on (Settings → Zheus One).
+  const tabZheus = h("button", { class: "tab zheus-tab", title: tl("Zheus One"), onclick: () => go("zheus") }, svg(ICONS.sparkles, 13));
 
   const gearBtn = h("button", { title: tl("Settings"), onclick: () => go("settings") }, svg(ICONS.gear, 14));
   const soundBtn = h("button", { title: tl("Mute"), onclick: () => actions.toggleSound() }, svg(ICONS.speakerOn, 14));
@@ -127,7 +130,7 @@ export function buildHeader(actions: ViewActions): ViewHost {
   const el = h(
     "div",
     { id: "header" },
-    h("div", { class: "tabs" }, tabHome, tabChat, tabDrop),
+    h("div", { class: "tabs" }, tabHome, tabChat, tabZheus, tabDrop),
     h("div", { class: "header-actions" }, planPills, gearBtn, soundBtn),
   );
   const headerActions = el.lastElementChild as HTMLElement;
@@ -139,6 +142,8 @@ export function buildHeader(actions: ViewActions): ViewHost {
       tabHome.classList.toggle("on", v === "overview" || v === "empty");
       tabChat.classList.toggle("on", v === "prompt");
       tabDrop.classList.toggle("on", v === "upload");
+      tabZheus.hidden = State.settings.zheusEnabled !== true;
+      tabZheus.classList.toggle("on", v === "zheus");
       gearBtn.classList.toggle("on", v === "settings");
       clear(gearBtn);
       gearBtn.append(svg(v === "settings" ? ICONS.gearFill : ICONS.gear, 14));
@@ -821,6 +826,7 @@ export function buildViews(
   map.set("choose", buildChoose(actions));
   map.set("recap", buildRecap(actions));
   map.set("wardrobe", buildWardrobe(actions));
+  map.set("zheus", buildZheus(actions));
   // Not in the Windows v1: sending a file by email, window attach + web result.
   map.set("mail", buildPlaceholder(tl("Sending by email isn't in this version."), ""));
   map.set("searching", buildPlaceholder(tl("Claude is searching…"), ""));

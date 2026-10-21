@@ -17,6 +17,12 @@ pub enum Kind {
     Light,
     Plug,
     Switch,
+    /// A robot vacuum (Home Assistant's `vacuum`).
+    Vacuum,
+    /// An air conditioner or a thermostat (Home Assistant's `climate`).
+    Climate,
+    /// A temperature or humidity sensor: read, never acted on.
+    Sensor,
 }
 
 impl Kind {
@@ -33,6 +39,9 @@ impl Kind {
             Kind::Light => "light",
             Kind::Plug => "plug",
             Kind::Switch => "switch",
+            Kind::Vacuum => "vacuum",
+            Kind::Climate => "climate",
+            Kind::Sensor => "sensor",
         }
     }
 }
@@ -50,6 +59,15 @@ pub enum Capability {
     Channels,
     ChannelStep,
     Brightness,
+    /// A vacuum starts cleaning.
+    Clean,
+    /// A vacuum cleans the rooms it is told (Home Assistant 2026.3's `vacuum.clean_area`).
+    CleanArea,
+    Pause,
+    /// A vacuum goes back to its dock.
+    Dock,
+    /// A climate device is set to a temperature.
+    Temperature,
 }
 
 impl Capability {
@@ -64,6 +82,11 @@ impl Capability {
             Capability::Channels => "set_channel",
             Capability::ChannelStep => "channel_up/channel_down",
             Capability::Brightness => "set_brightness",
+            Capability::Clean => "clean",
+            Capability::CleanArea => "clean_area",
+            Capability::Pause => "pause",
+            Capability::Dock => "return_to_base",
+            Capability::Temperature => "set_temperature",
         }
     }
 }
@@ -89,6 +112,17 @@ pub struct DeviceState {
     pub brightness: Option<u8>,
     pub app: Option<String>,
     pub channel: Option<String>,
+    /// What a vacuum is doing ("cleaning", "docked", "returning", "paused", "idle", "error") or the mode a climate
+    /// device is in ("cool", "heat", "auto", "off"…), as the device says it.
+    pub status: Option<String>,
+    /// Percent.
+    pub battery: Option<u8>,
+    /// Tenths of a degree Celsius: the room's temperature, as a sensor or a climate device reads it.
+    pub temperature: Option<i16>,
+    /// Tenths of a degree Celsius: the temperature a climate device is set to reach.
+    pub target: Option<i16>,
+    /// Percent.
+    pub humidity: Option<u8>,
 }
 
 /// One device, as the house shows it: identity, place, what it can do, its state, and the user's rules for it.
@@ -140,13 +174,56 @@ pub enum Action {
     ChannelDown,
     /// Percent, 1 to 100.
     SetBrightness(u8),
+    /// A vacuum starts cleaning (the whole house, or as its own app says).
+    Clean,
+    /// A vacuum cleans these rooms only: Home Assistant areas, by name, matched by the driver.
+    CleanArea(Vec<String>),
+    Pause,
+    /// A vacuum goes back to its dock.
+    Dock,
+    /// Degrees Celsius, 10 to 32.
+    SetTemperature(u8),
 }
 
 /// The action names the model and the routines use.
 pub const ACTION_WORDS: &[&str] = &[
     "turn_on", "turn_off", "set_volume", "volume_up", "volume_down", "mute", "unmute", "open_app", "set_channel",
-    "channel_up", "channel_down", "set_brightness",
+    "channel_up", "channel_down", "set_brightness", "clean", "clean_area", "pause", "return_to_base", "set_temperature",
 ];
+
+/// At most this many rooms in one clean_area.
+pub const MAX_ROOMS: usize = 10;
+
+/// The rooms of a clean_area: a list, or one text with commas ("Quarto, Sala").
+fn rooms(value: Option<&Value>) -> Result<Vec<String>, String> {
+    let items: Vec<String> = match value {
+        Some(Value::Array(list)) => list.iter().filter_map(|v| v.as_str().map(str::to_string)).collect(),
+        Some(Value::String(s)) => s.split([',', ';', '+']).map(str::to_string).collect(),
+        _ => Vec::new(),
+    };
+    let rooms: Vec<String> = items.iter().map(|r| r.trim().to_string()).filter(|r| !r.is_empty()).collect();
+    if rooms.is_empty() {
+        return Err("clean_area needs the rooms in \"value\", like \"Quarto, Sala\".".into());
+    }
+    if rooms.len() > MAX_ROOMS || rooms.iter().any(|r| r.chars().count() > 60) {
+        return Err(format!("clean_area takes at most {MAX_ROOMS} rooms, each at most 60 characters."));
+    }
+    Ok(rooms)
+}
+
+/// A temperature in whole degrees Celsius, 10 to 32.
+fn degrees(value: Option<&Value>) -> Result<u8, String> {
+    let n = match value {
+        Some(Value::Number(n)) => n.as_f64(),
+        Some(Value::String(s)) => s.trim().trim_end_matches('C').trim_end_matches('°').trim().replace(',', ".").parse::<f64>().ok(),
+        _ => None,
+    }
+    .ok_or("set_temperature needs a temperature in °C from 10 to 32 in \"value\".")?;
+    if !(10.0..=32.0).contains(&n) {
+        return Err("set_temperature must be from 10 to 32 °C.".into());
+    }
+    Ok(n.round() as u8)
+}
 
 fn percent(value: Option<&Value>, what: &str, min: u8) -> Result<u8, String> {
     let n = match value {
@@ -190,6 +267,11 @@ impl Action {
             "channel_up" => Action::ChannelUp,
             "channel_down" => Action::ChannelDown,
             "set_brightness" => Action::SetBrightness(percent(value, "set_brightness", 1)?),
+            "clean" => Action::Clean,
+            "clean_area" => Action::CleanArea(rooms(value)?),
+            "pause" => Action::Pause,
+            "return_to_base" => Action::Dock,
+            "set_temperature" => Action::SetTemperature(degrees(value)?),
             other => return Err(format!("\"{other}\" is not an action. Use one of: {}.", ACTION_WORDS.join(", "))),
         })
     }
@@ -206,6 +288,11 @@ impl Action {
             Action::SetChannel(_) => Capability::Channels,
             Action::ChannelUp | Action::ChannelDown => Capability::ChannelStep,
             Action::SetBrightness(_) => Capability::Brightness,
+            Action::Clean => Capability::Clean,
+            Action::CleanArea(_) => Capability::CleanArea,
+            Action::Pause => Capability::Pause,
+            Action::Dock => Capability::Dock,
+            Action::SetTemperature(_) => Capability::Temperature,
         }
     }
 
@@ -224,6 +311,11 @@ impl Action {
             Action::ChannelUp => ("channel_up", None),
             Action::ChannelDown => ("channel_down", None),
             Action::SetBrightness(p) => ("set_brightness", Some(p.to_string())),
+            Action::Clean => ("clean", None),
+            Action::CleanArea(rooms) => ("clean_area", Some(rooms.join(", "))),
+            Action::Pause => ("pause", None),
+            Action::Dock => ("return_to_base", None),
+            Action::SetTemperature(t) => ("set_temperature", Some(t.to_string())),
         }
     }
 
@@ -242,6 +334,11 @@ impl Action {
             Action::ChannelUp => "go to the next channel".into(),
             Action::ChannelDown => "go to the previous channel".into(),
             Action::SetBrightness(p) => format!("set the brightness to {p}%"),
+            Action::Clean => "start cleaning".into(),
+            Action::CleanArea(rooms) => format!("clean {}", rooms.join(", ")),
+            Action::Pause => "pause".into(),
+            Action::Dock => "go back to its dock".into(),
+            Action::SetTemperature(t) => format!("set the temperature to {t} °C"),
         }
     }
 
@@ -260,7 +357,21 @@ impl Action {
             Action::ChannelUp => t("Next channel"),
             Action::ChannelDown => t("Previous channel"),
             Action::SetBrightness(p) => tf("Brightness {percent}%", &[("percent", &p.to_string())]),
+            Action::Clean => t("Start cleaning"),
+            Action::CleanArea(rooms) => tf("Clean {rooms}", &[("rooms", &rooms.join(", "))]),
+            Action::Pause => t("Pause"),
+            Action::Dock => t("Back to the dock"),
+            Action::SetTemperature(d) => tf("Set to {degrees} °C", &[("degrees", &d.to_string())]),
         }
+    }
+}
+
+/// Tenths of a degree as people read them: 235 → "23.5", 230 → "23".
+pub fn degrees_text(tenths: i16) -> String {
+    if tenths % 10 == 0 {
+        (tenths / 10).to_string()
+    } else {
+        format!("{:.1}", f64::from(tenths) / 10.0)
     }
 }
 
@@ -489,11 +600,24 @@ pub(crate) mod tests {
         assert!(Action::parse("open_app", None).is_err());
         assert!(Action::parse("open_app", Some(&json!("  "))).is_err());
         assert!(Action::parse("self_destruct", None).unwrap_err().contains("turn_on"));
+        assert_eq!(Action::parse("set_temperature", Some(&json!("23 °C"))).unwrap(), Action::SetTemperature(23));
+        assert_eq!(Action::parse("set_temperature", Some(&json!(22.6))).unwrap(), Action::SetTemperature(23));
+        assert!(Action::parse("set_temperature", Some(&json!(40))).unwrap_err().contains("10 to 32"));
+        assert_eq!(Action::parse("clean_area", Some(&json!("Quarto, Sala ;"))).unwrap(), Action::CleanArea(vec!["Quarto".into(), "Sala".into()]));
+        assert_eq!(Action::parse("clean_area", Some(&json!(["Cozinha"]))).unwrap(), Action::CleanArea(vec!["Cozinha".into()]));
+        assert!(Action::parse("clean_area", Some(&json!(" , "))).is_err());
+        assert!(Action::parse("clean_area", None).is_err());
+        assert_eq!(Action::parse("return_to_base", None).unwrap(), Action::Dock);
+        assert_eq!(Action::CleanArea(vec!["Quarto".into(), "Sala".into()]).word(), ("clean_area", Some("Quarto, Sala".into())));
+        assert_eq!(degrees_text(235), "23.5");
+        assert_eq!(degrees_text(230), "23");
+        assert_eq!(degrees_text(-15), "-1.5");
         // Every word round-trips.
         for word in ACTION_WORDS {
             let value = match *word {
                 "set_volume" | "set_brightness" => Some(json!(40)),
-                "open_app" | "set_channel" => Some(json!("x")),
+                "set_temperature" => Some(json!(22)),
+                "open_app" | "set_channel" | "clean_area" => Some(json!("x")),
                 _ => None,
             };
             let action = Action::parse(word, value.as_ref()).unwrap();

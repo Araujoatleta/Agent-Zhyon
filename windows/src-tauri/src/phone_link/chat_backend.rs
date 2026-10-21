@@ -48,27 +48,34 @@ impl ChatBackend for AppChat {
         let id = model_id.to_string();
         Box::pin(async move {
             let Some((provider, model)) = parse_model_id(&id) else { return Err(ChatFail::Internal) };
-            if provider == crate::hermes::PROVIDER {
-                return hermes_turn(&app, &chat, &settings, text, None, Some(deltas)).await;
-            }
-            if let Some(key) = key_name(provider) {
-                if secrets::get(key).is_none() {
-                    return Err(ChatFail::NoKey);
+            // Zheus One reads the user's own words first ("I'm on my way home", "yes"), as on the island.
+            let routed = crate::zheus_one::route(&app, &text).await;
+            let text = routed.text.clone();
+            let result = async {
+                if provider == crate::hermes::PROVIDER {
+                    return hermes_turn(&app, &chat, &settings, text, None, Some(deltas)).await;
+                }
+                if let Some(key) = key_name(provider) {
+                    if secrets::get(key).is_none() {
+                        return Err(ChatFail::NoKey);
+                    }
+                }
+                let result = chat::send_for_phone(&settings, &chat, provider, model, text, |so_far| {
+                    let _ = deltas.send(so_far);
+                })
+                .await;
+                match result {
+                    Ok(reply) => Ok(reply.text),
+                    Err(err) => {
+                        let kind = classify(is_local(provider), &err);
+                        // The kind only: the text may echo a key.
+                        log::line(format!("phone link: chat via {provider} failed ({kind:?})"));
+                        Err(kind)
+                    }
                 }
             }
-            let result = chat::send_for_phone(&settings, &chat, provider, model, text, |so_far| {
-                let _ = deltas.send(so_far);
-            })
             .await;
-            match result {
-                Ok(reply) => Ok(reply.text),
-                Err(err) => {
-                    let kind = classify(is_local(provider), &err);
-                    // The kind only: the text may echo a key.
-                    log::line(format!("phone link: chat via {provider} failed ({kind:?})"));
-                    Err(kind)
-                }
-            }
+            crate::zheus_one::answered(&app, &routed, result)
         })
     }
 
@@ -81,26 +88,32 @@ impl ChatBackend for AppChat {
         let (app, chat, id) = (self.app.clone(), self.chat.clone(), model_id.to_string());
         Box::pin(async move {
             let Some((provider, model)) = parse_model_id(&id) else { return Err(ChatFail::Internal) };
-            if provider == crate::hermes::PROVIDER {
-                return hermes_turn(&app, &chat, &settings, text, Some(steps), None).await;
-            }
-            if let Some(key) = key_name(provider) {
-                if secrets::get(key).is_none() {
-                    return Err(ChatFail::NoKey);
+            let routed = crate::zheus_one::route(&app, &text).await;
+            let text = routed.text.clone();
+            let result = async {
+                if provider == crate::hermes::PROVIDER {
+                    return hermes_turn(&app, &chat, &settings, text, Some(steps), None).await;
+                }
+                if let Some(key) = key_name(provider) {
+                    if secrets::get(key).is_none() {
+                        return Err(ChatFail::NoKey);
+                    }
+                }
+                match crate::agent::run_for_phone(&app, &chat, &settings, provider, model, text, steps).await {
+                    Ok(answer) => Ok(answer),
+                    Err(crate::agent::PhoneError::HandsOff) => Err(ChatFail::HandsOff),
+                    Err(crate::agent::PhoneError::Busy) => Err(ChatFail::Busy),
+                    Err(crate::agent::PhoneError::Canceled) => Err(ChatFail::Canceled),
+                    Err(crate::agent::PhoneError::Failed(err)) => {
+                        let kind = classify(is_local(provider), &err);
+                        // The kind only: the text may echo a key.
+                        log::line(format!("phone link: Mochi's hands via {provider} failed ({kind:?})"));
+                        Err(kind)
+                    }
                 }
             }
-            match crate::agent::run_for_phone(&app, &chat, &settings, provider, model, text, steps).await {
-                Ok(answer) => Ok(answer),
-                Err(crate::agent::PhoneError::HandsOff) => Err(ChatFail::HandsOff),
-                Err(crate::agent::PhoneError::Busy) => Err(ChatFail::Busy),
-                Err(crate::agent::PhoneError::Canceled) => Err(ChatFail::Canceled),
-                Err(crate::agent::PhoneError::Failed(err)) => {
-                    let kind = classify(is_local(provider), &err);
-                    // The kind only: the text may echo a key.
-                    log::line(format!("phone link: Mochi's hands via {provider} failed ({kind:?})"));
-                    Err(kind)
-                }
-            }
+            .await;
+            crate::zheus_one::answered(&app, &routed, result)
         })
     }
 }

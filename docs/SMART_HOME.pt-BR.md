@@ -11,7 +11,10 @@ que ele esperava que acontecesse.
 Três caminhos, todos só na sua rede local:
 
 - **Home Assistant**, pela API REST oficial, com um token de acesso de longa duração: media players (TVs, caixas de
-  som), luzes e interruptores (tomadas, relés).
+  som), luzes e interruptores (tomadas, relés), aspiradores robô (iniciar, pausar, voltar para a base, e cômodo por
+  cômodo com o `vacuum.clean_area` do Home Assistant 2026.3), ar-condicionado e termostatos (ligar, desligar, uma
+  temperatura) e sensores de temperatura e umidade, só para leitura. As pessoas dele (`person`) são lidas para saber
+  quem está em casa, para o [Zheus One](ZHEUS_ONE.pt-BR.md), nunca acionadas.
 - **TVs Samsung** (2016 em diante, Tizen), direto na TV: a API de controle remoto que os apps de celular da Samsung
   usam, nas portas 8001 e 8002. A TV pergunta uma vez na tela se pode permitir o Coucou.
 - **TVs Philips**, direto na TV, pelo JointSpace, a API que as TVs Philips respondem nas portas 1925 e 1926. As
@@ -131,8 +134,10 @@ próprio aparelho. Quando algo é ambíguo ou não é possível, o Mochi diz iss
 - **Nada que o modelo escreve é executado direto.** O Mochi tem três ferramentas: listar os aparelhos, controlar um,
   rodar uma rotina. Cada ação vira uma de um conjunto fixo (ligar/desligar, volume, mudo, abrir app, canal, brilho),
   é conferida contra o que aquele aparelho informou, e vira uma chamada de uma lista fixa: no Home Assistant, só
-  serviços de `media_player`, `light` e `switch` como `turn_on`, `volume_set` ou `select_source`. Scripts,
-  automações, comandos de shell, fechaduras, alarmes ou reinicializações não podem ser alcançados.
+  serviços de `media_player`, `light`, `switch`, `vacuum` (`start`, `clean_area`, `pause`, `return_to_base`) e
+  `climate` (`turn_on`, `turn_off`, `set_temperature`) como `turn_on`, `volume_set` ou `select_source`. Scripts,
+  automações, comandos de shell, o `send_command` cru do aspirador, fechaduras, alarmes ou reinicializações não podem
+  ser alcançados.
 - **Só os aparelhos que você marcou.** O Mochi nem vê os outros.
 - **Clique para o que importa.** Tomadas e interruptores sempre esperam um clique (Permitir na ilha, ou no celular com
   Face ID), assim como os aparelhos marcados com **Perguntar antes de agir**; **Perguntar antes de toda ação** faz
@@ -172,9 +177,11 @@ próprio aparelho. Quando algo é ambíguo ou não é possível, o Mochi diz iss
   2016 (outro protocolo) não é suportada.
 - **Apps** abrem nas Android TVs que listam os apps; **canais**, só nas TVs que listam os canais. O app ou o canal
   precisa estar na lista da própria TV.
-- **Home Assistant**: só media players, luzes e interruptores. Cômodos vindos das áreas precisam de um token de
-  administrador (a API de templates); senão, defina os cômodos no Coucou. Canais não são oferecidos pelo Home
-  Assistant.
+- **Home Assistant**: media players, luzes, interruptores, aspiradores robô, ar-condicionado e sensores de
+  temperatura e umidade. Cômodos vindos das áreas precisam de um token de administrador (a API de templates); senão,
+  defina os cômodos no Coucou. Canais não são oferecidos pelo Home Assistant. O aspirador limpa cômodo por cômodo só
+  com o Home Assistant 2026.3 ou mais novo e uma integração que suporte isso (ela informa `CLEAN_AREA`); a bateria
+  dele vem do próprio sensor de bateria. As temperaturas do ar-condicionado são lidas em °C.
 - **Outras marcas** (LG, Sony, TCL…) aparecem na busca mas não são controladas direto: adicione-as ao Home
   Assistant, que tem integrações para muitas delas, e elas aparecem como media players dele. Adicionar uma pelo
   endereço diz por onde ela responde, para um suporte futuro.

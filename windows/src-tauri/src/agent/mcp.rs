@@ -21,8 +21,8 @@ use crate::i18n::{t, tf};
 use crate::settings::{self, Settings};
 use crate::{log, Shared};
 
-/// The only tools other agents reach: the house's.
-pub const HOUSE_TOOLS: &[&str] = &["home_devices", "home_control", "home_routine"];
+/// The only tools other agents reach: the house's, and Zheus One's (which only read, or show a plan for the user's yes).
+pub const HOUSE_TOOLS: &[&str] = &["home_devices", "home_control", "home_routine", "zheus_world", "zheus_mission"];
 
 /// One approval at a time for the other agents: a second waits for the first card to be answered.
 static ASKING: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
@@ -134,6 +134,41 @@ pub async fn call(app: &AppHandle, payload: &Value) -> Value {
     reply(text, output.is_error)
 }
 
+/// One click asked for another part of Coucou (a step of Zheus One's plan on a device set to ask first): the same
+/// card as the agents', on the island and the paired phones. False when the user says no or does not answer, or when
+/// another card is already waiting.
+pub async fn ask_click(app: &AppHandle, tool: &str, summary: String, reason: String) -> bool {
+    let _turn = ASKING.lock().await;
+    let agent = app.state::<Agent>();
+    if agent.card().is_some() {
+        return false;
+    }
+    let request = tools::Request {
+        tool: tool.into(),
+        summary,
+        cwd: None,
+        before: None,
+        after: None,
+        new_file: false,
+        outside: false,
+        secret: false,
+        reason: Some(reason),
+    };
+    let home = crate::platform::home_dir();
+    let hands = LiveHands {
+        app: app.clone(),
+        run: 0,
+        origin: Origin::Island,
+        project: None,
+        folder: home.clone(),
+        home,
+        phone_steps: None,
+        lines: Mutex::new(Vec::new()),
+        wait: WAIT_PHONE,
+    };
+    hands.approve(request).await
+}
+
 // ── Settings → Hermes Agent → Mochi's home for Hermes ─────────────────────────
 
 #[derive(Serialize)]
@@ -201,5 +236,7 @@ mod tests {
         assert_eq!(control["required"], json!(["device", "action"]));
         assert!(listed[0]["inputSchema"]["properties"]["device"].is_object());
         assert_eq!(listed[2]["inputSchema"]["required"], json!(["routine"]));
+        assert_eq!(listed[4]["inputSchema"]["required"], json!(["mission"]));
+        assert_eq!(listed[4]["inputSchema"]["properties"]["mission"]["enum"], json!(["arrival", "situation"]));
     }
 }

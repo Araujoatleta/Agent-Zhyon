@@ -341,6 +341,17 @@ pub async fn run_island(app: &AppHandle, chat: &Chat, settings: &Settings, query
     }
 }
 
+/// A turn nobody typed: Zheus One's question to Hermes (the day's summary for an arrival, the morning summary). Its
+/// steps and approvals show on the island as any turn's; the answer comes back as text.
+pub async fn run_background(app: &AppHandle, chat: &Chat, settings: &Settings, query: String) -> Result<String, String> {
+    match turn(app, chat, settings, query, None, Origin::Island, None, |_: &str| {}).await {
+        Ok(text) => Ok(text),
+        Err(TurnError::Off(message) | TurnError::Failed(message)) => Err(message),
+        Err(TurnError::Busy) => Err(t("Mochi is already busy with another task. Stop it first.")),
+        Err(TurnError::Canceled) => Err(t("Stopped.")),
+    }
+}
+
 /// One turn of a phone's chat with Hermes: its steps to `steps` (a phone with Mochi's hands shows them), or the text
 /// so far to `deltas` (a phone without).
 pub async fn run_for_phone(

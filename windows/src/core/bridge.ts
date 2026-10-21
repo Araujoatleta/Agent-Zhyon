@@ -10,6 +10,7 @@ import type { RecapHistory, RecapPrefs } from "../recap/summary";
 import type { SpotifyState } from "./spotify";
 import type { HandsStatusReport } from "./hands";
 import type { DevicePrefs, Found, HomeDevice, HomeStatus, LogEntry, Routine, ServerInfo, TestResult, TvSummary } from "./home";
+import type { ArrivalPrefs, Goals, Plan, World, ZheusStatus } from "./zheus";
 
 export const IS_TAURI =
   typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -415,6 +416,24 @@ export const Bridge = {
   homeRoutineSave: (routine: Routine) => callOrThrow<Routine>("home_routine_save", { routine }),
   homeRoutineDelete: (id: string) => callOrThrow<void>("home_routine_delete", { id }),
   homeRoutineRun: (id: string) => callOrThrow<TestResult>("home_routine_run", { id }),
+  // ── Zheus One (src-tauri/src/zheus_one) ────────────────────────────────────
+  zheusStatus: () => call<ZheusStatus>("zheus_status"),
+  /** Settings only: Zheus One on or off. */
+  zheusSet: (enabled: boolean) => callOrThrow<ZheusStatus>("zheus_set", { enabled }),
+  /** Settings only: the arrival's preferences and the Autopilot's goals. */
+  zheusPrefsSet: (arrival: ArrivalPrefs, goals: Goals) => callOrThrow<ZheusStatus>("zheus_prefs_set", { arrival, goals }),
+  zheusWorld: (fresh = false) => callOrThrow<World>("zheus_world", { fresh }),
+  /** "Prepare my arrival": the plan, shown for approval (nothing runs yet). */
+  zheusPlan: (eta: number | null) => callOrThrow<Plan>("zheus_plan", { eta }),
+  zheusChoose: (choice: string) => callOrThrow<Plan>("zheus_choose", { choice }),
+  /** The user's click on Approve. */
+  zheusApprove: (id: string) => callOrThrow<Plan>("zheus_approve", { id }),
+  zheusCancel: () => callOrThrow<void>("zheus_cancel"),
+  zheusSuggestion: (key: string, accept: boolean) => callOrThrow<string[]>("zheus_suggestion", { key, accept }),
+  /** A click on a device's tile. */
+  zheusDevice: (id: string, action: string, value: string | null) =>
+    callOrThrow<{ ok: boolean; detail: string }>("zheus_device", { id, action, value }),
+  zheusTv: (open: boolean) => callOrThrow<void>("zheus_tv", { open }),
   homeTemplates: () => callOrThrow<Routine[]>("home_templates"),
   // ── Notifications with Coucou closed (src-tauri/src/phone_link/push.rs) ──
   phonePushStatus: () => call<PhonePushStatus>("phone_push_status"),

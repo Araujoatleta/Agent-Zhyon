@@ -1194,6 +1194,8 @@ export class Island {
 
   /** Applies settings coming from Rust at boot. */
   applySettings() {
+    // Liquid Glass unless the user picked the classic black island (Settings → Zheus One → Look).
+    document.documentElement.dataset.look = State.settings.islandLook === "classic" ? "classic" : "glass";
     Sound.setEnabled(State.settings.soundEnabled);
     Sound.setVolume(State.settings.soundVolume);
     this.fsm.homeToPetitDelay = State.settings.autoCloseInterval;

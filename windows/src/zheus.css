@@ -1,0 +1,551 @@
+/* Zheus One and the Liquid Glass look (views/zheus.ts, settings/zheus.ts, settings/tv.ts).
+
+   The island's glass is drawn here, not by the window: the island lives in a fixed, transparent 720×320 window, and a
+   blur of the desktop behind it would frost that whole rectangle rather than the island's shape. So the glass is
+   layers — a translucent tint, light along the rims, a soft field of color inside that the cards frost over with
+   backdrop-filter, and highlights on their edges. Nothing moves: it costs nothing while the island is hidden.
+   The classic black island is one setting away (Settings → Zheus One → Look). */
+
+/* ── The island, in glass ──────────────────────────────────────────────── */
+
+:root[data-look="glass"] #island {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 42%, rgba(255, 255, 255, 0.05) 100%),
+    rgba(18, 20, 28, 0.8);
+  box-shadow:
+    inset 0 -1px 0 rgba(255, 255, 255, 0.18),
+    inset 1px 0 0 rgba(255, 255, 255, 0.08),
+    inset -1px 0 0 rgba(255, 255, 255, 0.08),
+    0 14px 34px rgba(0, 0, 0, 0.3);
+}
+
+/* The field of color the glass refracts: three soft lights, still. */
+:root[data-look="glass"] #island-clip::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(520px 260px at 6% -12%, rgba(99, 102, 241, 0.3), rgba(99, 102, 241, 0) 70%),
+    radial-gradient(420px 240px at 102% -4%, rgba(34, 211, 238, 0.18), rgba(34, 211, 238, 0) 70%),
+    radial-gradient(560px 300px at 72% 125%, rgba(236, 72, 153, 0.14), rgba(236, 72, 153, 0) 70%);
+}
+
+:root[data-look="glass"] .card {
+  background: linear-gradient(155deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.035) 55%, rgba(255, 255, 255, 0.06));
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.18),
+    0 6px 18px rgba(0, 0, 0, 0.16);
+}
+
+/* Frosted only on screen: a hidden view's glass is never composited. */
+:root[data-look="glass"] .view.on .card {
+  -webkit-backdrop-filter: blur(16px) saturate(1.5);
+  backdrop-filter: blur(16px) saturate(1.5);
+}
+
+:root[data-look="glass"] .tab:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+:root[data-look="glass"] .tab.on {
+  background: rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+:root[data-look="glass"] .btn.secondary {
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+:root[data-look="glass"] .btn.secondary:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+:root[data-look="glass"] .btn.primary {
+  background: linear-gradient(180deg, #ffffff, #e6e9f0);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+/* The chat: a glass capsule to write in, glass bubbles, brighter answers. */
+:root[data-look="glass"] .chat-bar {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  padding: 6px 6px 6px 14px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.13), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+
+:root[data-look="glass"] .send-btn {
+  background: linear-gradient(180deg, #ffffff, #e2e6ee);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 3px 10px rgba(0, 0, 0, 0.3);
+}
+
+:root[data-look="glass"] .bubble {
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  border-radius: 14px;
+}
+
+:root[data-look="glass"] .reply,
+:root[data-look="glass"] .md-p {
+  color: #c9cdd6;
+}
+
+:root[data-look="glass"] .model-btn {
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+:root[data-look="glass"] .model-name {
+  color: #aab0bb;
+}
+
+:root[data-look="glass"] .chip {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+:root[data-look="glass"] .picker {
+  background: rgba(22, 24, 32, 0.72);
+  border-color: rgba(255, 255, 255, 0.12);
+  -webkit-backdrop-filter: blur(18px) saturate(1.5);
+  backdrop-filter: blur(18px) saturate(1.5);
+}
+
+:root[data-look="glass"] .hands-card {
+  background: linear-gradient(160deg, rgba(245, 165, 36, 0.14), rgba(245, 165, 36, 0.05));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+/* ── Glass pieces of Zheus One, in the island and the TV mode ──────────── */
+
+.zheus-glass,
+.zheus-tile,
+.zheus-plan {
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04) 60%, rgba(255, 255, 255, 0.07));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 6px 16px rgba(0, 0, 0, 0.18);
+}
+
+.view.on .zheus-tile,
+.view.on .zheus-plan,
+.zheus-tv .zheus-glass {
+  -webkit-backdrop-filter: blur(14px) saturate(1.5);
+  backdrop-filter: blur(14px) saturate(1.5);
+}
+
+.zheus-tab svg {
+  color: #c7d2fe;
+}
+
+/* ── The island's Zheus view ───────────────────────────────────────────── */
+
+.zheus-card {
+  overflow: hidden;
+}
+
+.zheus-body {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 14px 12px 84px;
+}
+
+.zheus-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 24px;
+}
+
+.zheus-presence {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font: 600 12.5px var(--font);
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.zheus-presence svg {
+  flex: 0 0 auto;
+  color: #a5b4fc;
+}
+
+.zheus-missions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.zheus-label {
+  font: 500 11px var(--font);
+  color: var(--dim);
+  margin-right: 2px;
+  white-space: nowrap;
+}
+
+.zheus-etas {
+  display: flex;
+  gap: 4px;
+}
+
+.zheus-chip,
+.zheus-mini,
+.zheus-choice {
+  border: 0;
+  border-radius: 999px;
+  color: var(--ink-2);
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  cursor: default;
+  white-space: nowrap;
+  transition: background 0.12s ease-out, transform 0.08s ease-out;
+}
+
+.zheus-chip {
+  font: 500 11px var(--font);
+  padding: 4px 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.zheus-chip:hover,
+.zheus-mini:hover,
+.zheus-choice:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.zheus-chip:active,
+.zheus-mini:active,
+.zheus-choice:active {
+  transform: scale(0.95);
+}
+
+.zheus-chip.tv {
+  background: rgba(56, 189, 248, 0.2);
+}
+
+.zheus-main {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+}
+
+.zheus-tiles {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.zheus-tile {
+  position: relative;
+  min-width: 0;
+  border-radius: 18px;
+  padding: 10px 10px 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.zheus-tile.on {
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.08) 60%, rgba(255, 255, 255, 0.12));
+}
+
+.zheus-tile-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  margin-bottom: 4px;
+  color: var(--ink-2);
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.zheus-tile.on .zheus-tile-icon {
+  color: #fff;
+  background: #2f81f7;
+  box-shadow: 0 0 14px rgba(47, 129, 247, 0.55);
+}
+
+.zheus-tile.vacuum.on .zheus-tile-icon {
+  background: #22c55e;
+  box-shadow: 0 0 14px rgba(34, 197, 94, 0.5);
+}
+
+.zheus-tile.light.on .zheus-tile-icon {
+  color: #1a1205;
+  background: #f5a524;
+  box-shadow: 0 0 14px rgba(245, 165, 36, 0.55);
+}
+
+.zheus-tile-title {
+  font: 600 12px var(--font);
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.zheus-tile-line {
+  font: 400 11px var(--font);
+  color: var(--dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.zheus-tile-actions {
+  margin-top: auto;
+  padding-top: 6px;
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.zheus-mini {
+  font: 500 10.5px var(--font);
+  padding: 3px 9px;
+}
+
+.zheus-mini.round {
+  width: 22px;
+  padding: 3px 0;
+  text-align: center;
+}
+
+.zheus-mini.yes {
+  color: #0b0c0e;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.zheus-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 10px;
+  padding-right: 24px;
+  font: 400 12px var(--font);
+  line-height: 1.45;
+  color: var(--dim);
+}
+
+/* A plan: its steps and times, what clashes, the ways around it. */
+.zheus-plan {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  border-radius: 18px;
+  padding: 9px 12px;
+}
+
+.zheus-plan-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.zheus-plan-title {
+  font: 600 12.5px var(--font);
+  color: var(--ink);
+}
+
+.zheus-plan-sub {
+  font: 400 11px var(--font);
+  color: var(--dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.zheus-steps {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+.zheus-step {
+  display: grid;
+  grid-template-columns: 40px 14px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+  font: 400 11.5px var(--font);
+  color: var(--ink-2);
+  min-height: 15px;
+}
+
+.zheus-when {
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.zheus-mark {
+  display: grid;
+  place-items: center;
+  color: var(--dim);
+}
+
+.zheus-step.done .zheus-mark {
+  color: var(--green);
+}
+
+.zheus-step.done .zheus-what {
+  color: var(--dim);
+}
+
+.zheus-step.failed .zheus-mark,
+.zheus-step.failed .zheus-why {
+  color: var(--red-text);
+}
+
+.zheus-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.zheus-plan.running .zheus-step.waiting .zheus-dot {
+  background: #60a5fa;
+  box-shadow: 0 0 6px rgba(96, 165, 250, 0.8);
+}
+
+.zheus-what {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.zheus-why {
+  max-width: 150px;
+  font-size: 10.5px;
+  color: var(--dim-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.zheus-conflict {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: 400 11px var(--font);
+  color: #fcd34d;
+}
+
+.zheus-conflict svg {
+  flex: 0 0 auto;
+}
+
+.zheus-conflict span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.zheus-choices {
+  display: flex;
+  gap: 5px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.zheus-choice {
+  flex: 0 1 auto;
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font: 500 10.5px var(--font);
+  padding: 4px 10px;
+}
+
+.zheus-choice.on {
+  color: #fff;
+  background: rgba(47, 129, 247, 0.88);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 0 12px rgba(47, 129, 247, 0.45);
+}
+
+.zheus-plan-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.zheus-plan-actions .btn {
+  padding: 5px 12px;
+}
+
+/* The foot: the Autopilot's suggestion, else what ties the house together. */
+.zheus-foot {
+  min-height: 22px;
+  display: flex;
+  align-items: center;
+}
+
+.zheus-foot:empty {
+  display: none;
+}
+
+.zheus-facts,
+.zheus-note {
+  font: 400 11px var(--font);
+  color: var(--dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.zheus-note {
+  color: var(--red-text);
+}
+
+.zheus-suggestion {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  padding: 3px 4px 3px 10px;
+  border-radius: 999px;
+  color: var(--ink-2);
+  background: rgba(99, 102, 241, 0.2);
+  box-shadow: inset 0 0 0 1px rgba(165, 180, 252, 0.26);
+}
+
+.zheus-suggestion svg {
+  flex: 0 0 auto;
+  color: #c7d2fe;
+}
+
+.zheus-suggestion-text {
+  flex: 1;
+  min-width: 0;
+  font: 400 11px var(--font);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

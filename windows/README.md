@@ -313,7 +313,8 @@ Settings window can turn it on.
 **Settings… → Mochi's home** lets the chat (and a paired phone's chat) use the
 devices of your house through Mochi's hands: "turn on the living room TV and
 open YouTube". Through **Home Assistant**'s REST API (media players, lights,
-switches) with a long-lived token, or straight to **Samsung TVs** (2016 and
+switches, robot vacuums, air conditioners, temperature and humidity sensors)
+with a long-lived token, or straight to **Samsung TVs** (2016 and
 later: they ask once on their screen whether to allow Coucou) and **Philips
 TVs** (JointSpace, Android TVs paired once with a PIN) on your network. A TV of
 another kind is not added: Coucou says what it does answer on. Off by default.
@@ -332,6 +333,24 @@ another kind is not added: Coucou says what it does answer on. Off by default.
 Setup, safety and limits (it is tested on simulated devices so far):
 [docs/SMART_HOME.md](../docs/SMART_HOME.md) (in Portuguese:
 [docs/SMART_HOME.pt-BR.md](../docs/SMART_HOME.pt-BR.md)).
+
+## Zheus One
+
+**Settings… → Zheus One** (off by default) makes your assistant one intelligence
+for the house and the day, on top of Mochi's home. "Zheus, I'm on my way home"
+— in the chat, on the phone or aloud — becomes one plan: the air conditioning
+on in time, the vacuum done before you arrive (only the rooms that fit when the
+way home is short), the lights after dark, the TV, the day's summary, and a
+welcome at your arrival. The plan is shown first, with what clashes and the ways
+around it, and runs only when you answer yes or click Approve; a device set to
+ask still asks. The island's **✦** tab shows the house as tiles; the
+**Autopilot** keeps standing goals (energy, a tidy house, your day, your
+business) that suggest or act within your limits, never spending, publishing,
+writing to people or touching the house's safety alone; and "show our
+situation" puts it all full screen on the TV. Settings → Zheus One also picks
+the island's look: **Liquid Glass** or **Classic**. Guide:
+[docs/ZHEUS_ONE.md](../docs/ZHEUS_ONE.md) (in Portuguese:
+[docs/ZHEUS_ONE.pt-BR.md](../docs/ZHEUS_ONE.pt-BR.md)).
 
 ## Hermes Agent
 

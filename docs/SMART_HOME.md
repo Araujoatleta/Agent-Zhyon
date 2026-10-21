@@ -10,7 +10,10 @@ asks the device again and tells you what it reports ("the TV is on, YouTube is o
 Three ways in, all on your local network only:
 
 - **Home Assistant**, through its official REST API, with a long-lived access token: media players (TVs, speakers),
-  lights and switches (plugs, relays).
+  lights and switches (plugs, relays), robot vacuums (start, pause, back to the dock, and room by room with Home
+  Assistant 2026.3's `vacuum.clean_area`), air conditioners and thermostats (on, off, a temperature), and temperature
+  and humidity sensors, read only. Its people (`person`) are read for who is home, for
+  [Zheus One](ZHEUS_ONE.md), never acted on.
 - **Samsung TVs** (2016 and later, Tizen), straight to the TV: the remote control API Samsung's phone apps use, on
   ports 8001 and 8002. The TV asks once on its screen whether to allow Coucou.
 - **Philips TVs**, straight to the TV over JointSpace, the API Philips TVs answer on ports 1925 and 1926. Android TVs
@@ -121,9 +124,10 @@ lists. When something is ambiguous or not possible, Mochi says so instead of gue
 
 - **Nothing the model writes is run as is.** Mochi has three tools: list the devices, control one, run a routine.
   Every action is parsed into a fixed set (turn on/off, volume, mute, open app, channel, brightness), checked against
-  what that device reported, and becomes one call of a fixed list: in Home Assistant only `media_player`, `light` and
-  `switch` services such as `turn_on`, `volume_set` or `select_source`. Scripts, automations, shell commands, locks,
-  alarms or restarts cannot be reached.
+  what that device reported, and becomes one call of a fixed list: in Home Assistant only `media_player`, `light`,
+  `switch`, `vacuum` (`start`, `clean_area`, `pause`, `return_to_base`) and `climate` (`turn_on`, `turn_off`,
+  `set_temperature`) services such as `turn_on`, `volume_set` or `select_source`. Scripts, automations, shell
+  commands, a vacuum's raw `send_command`, locks, alarms or restarts cannot be reached.
 - **Only the devices you ticked.** Mochi does not even see the others.
 - **Clicks for what matters.** Plugs and switches always wait for a click (Allow on the island, or on the phone
   behind Face ID), and so do the devices set to **Ask before acting**; **Ask before every action** makes every device
@@ -163,8 +167,11 @@ lists. When something is ambiguous or not possible, Mochi says so instead of gue
   A Samsung TV from before 2016 (another protocol) is not supported.
 - **Apps** can be opened on Android TVs that list them; **channels** only on TVs that list their channels. The app or
   channel must be in the TV's own list.
-- **Home Assistant**: media players, lights and switches only. Rooms from its areas need an administrator's token (the
-  template API); otherwise set rooms in Coucou. Channels are not offered through Home Assistant.
+- **Home Assistant**: media players, lights, switches, robot vacuums, climate devices and temperature and humidity
+  sensors. Rooms from its areas need an administrator's token (the template API); otherwise set rooms in Coucou.
+  Channels are not offered through Home Assistant. A vacuum cleans room by room only with Home Assistant 2026.3 or
+  later and an integration that supports it (it reports `CLEAN_AREA`); its battery comes from its own battery sensor.
+  Climate temperatures are taken in °C.
 - **Other brands** (LG, Sony, TCL…) are found by the search but not controlled directly: add them to Home Assistant,
   whose integrations know many of them, and they show up as its media players. Adding one by its address says what it
   answers on, for a later driver.

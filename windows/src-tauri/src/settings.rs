@@ -176,6 +176,15 @@ pub struct Settings {
     pub phone_assistant: bool,
     /// The paired phone may use Mochi's home (cap `home`). Off by default; owned by Rust like the other phone switches.
     pub phone_home: bool,
+    /// Zheus One (zheus_one/): missions, the World State, Foresight and the Autopilot, on top of Mochi's home. Off by
+    /// default; owned by Rust (zheus_one::zheus_set).
+    pub zheus_enabled: bool,
+    /// How Zheus prepares the user's arrival. Owned by Rust (zheus_one::zheus_prefs_set).
+    pub zheus_arrival: crate::zheus_one::plan::ArrivalPrefs,
+    /// The Autopilot's goals and their limits. Owned by Rust, like the arrival.
+    pub zheus_goals: crate::zheus_one::autopilot::Goals,
+    /// The island's look: "glass" (Liquid Glass, translucent and frosted) or "classic" (black). The island's own choice.
+    pub island_look: String,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -270,6 +279,10 @@ impl Default for Settings {
             hermes_speed: String::new(),
             phone_assistant: false,
             phone_home: false,
+            zheus_enabled: false,
+            zheus_arrival: crate::zheus_one::plan::ArrivalPrefs::default(),
+            zheus_goals: crate::zheus_one::autopilot::Goals::default(),
+            island_look: "glass".into(),
         }
     }
 }
@@ -588,7 +601,34 @@ mod tests {
   "hermesBrowserOff": true,
   "hermesSpeed": "fast",
   "phoneAssistant": true,
-  "phoneHome": true
+  "phoneHome": true,
+  "zheusEnabled": true,
+  "zheusArrival": {
+    "eta": 25,
+    "comfort": 22,
+    "acLead": 10,
+    "vacuum": true,
+    "rooms": [{ "room": "Quarto", "minutes": 15 }, { "room": "Sala", "minutes": 20 }],
+    "whole": 45,
+    "minBattery": 35,
+    "lights": ["ha:light.sala"],
+    "darkFrom": 1050,
+    "darkUntil": 390,
+    "tv": "philips:0a1b2c3d",
+    "tvApp": "Netflix",
+    "summary": false
+  },
+  "zheusGoals": {
+    "energy": "act",
+    "tidy": "suggest",
+    "agenda": "act",
+    "business": "suggest",
+    "tidyFrom": 600,
+    "tidyUntil": 960,
+    "agendaAt": 450,
+    "awayMinutes": 30
+  },
+  "islandLook": "classic"
 }"##;
 
     fn custom() -> Value {
@@ -1218,6 +1258,10 @@ mod tests {
                 "hermesSpeed",
                 "phoneAssistant",
                 "phoneHome",
+                "zheusEnabled",
+                "zheusArrival",
+                "zheusGoals",
+                "islandLook",
             ]
         );
         let _ = std::fs::remove_dir_all(&dir);

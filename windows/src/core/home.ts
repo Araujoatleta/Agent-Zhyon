@@ -3,9 +3,10 @@
 
 import { N_, t, tn } from "../i18n/i18n";
 
-export type Kind = "tv" | "speaker" | "light" | "plug" | "switch";
+export type Kind = "tv" | "speaker" | "light" | "plug" | "switch" | "vacuum" | "climate" | "sensor";
 export type Capability =
-  | "turnOn" | "turnOff" | "volumeSet" | "volumeStep" | "mute" | "apps" | "channels" | "channelStep" | "brightness";
+  | "turnOn" | "turnOff" | "volumeSet" | "volumeStep" | "mute" | "apps" | "channels" | "channelStep" | "brightness"
+  | "clean" | "cleanArea" | "pause" | "dock" | "temperature";
 
 /** What a device reports about itself right now (smart_home::model::DeviceState). */
 export interface DeviceState {
@@ -16,6 +17,13 @@ export interface DeviceState {
   brightness?: number | null;
   app?: string | null;
   channel?: string | null;
+  /** A vacuum's activity ("cleaning", "docked"…) or a climate device's mode ("cool", "off"…). */
+  status?: string | null;
+  battery?: number | null;
+  /** Tenths of °C: the room's temperature, and the one a climate device is set to. */
+  temperature?: number | null;
+  target?: number | null;
+  humidity?: number | null;
 }
 
 export interface Channel {
@@ -118,8 +126,8 @@ export interface TestResult {
   detail: string;
 }
 
-/** What a step's value is: a percent, an app's name, a channel, or nothing. */
-export type ValueKind = "percent" | "app" | "channel" | null;
+/** What a step's value is: a percent, an app's name, a channel, rooms, degrees, or nothing. */
+export type ValueKind = "percent" | "app" | "channel" | "rooms" | "degrees" | null;
 
 /** The actions, in the order Settings offers them, with the capability each needs (smart_home::model::Action). */
 export const ACTIONS: readonly { id: string; label: string; cap: Capability; value: ValueKind }[] = [
@@ -135,7 +143,30 @@ export const ACTIONS: readonly { id: string; label: string; cap: Capability; val
   { id: "channel_up", label: N_("Next channel"), cap: "channelStep", value: null },
   { id: "channel_down", label: N_("Previous channel"), cap: "channelStep", value: null },
   { id: "set_brightness", label: N_("Set the brightness"), cap: "brightness", value: "percent" },
+  { id: "clean", label: N_("Start cleaning"), cap: "clean", value: null },
+  { id: "clean_area", label: N_("Clean some rooms"), cap: "cleanArea", value: "rooms" },
+  { id: "pause", label: N_("Pause"), cap: "pause", value: null },
+  { id: "return_to_base", label: N_("Back to the dock"), cap: "dock", value: null },
+  { id: "set_temperature", label: N_("Set the temperature"), cap: "temperature", value: "degrees" },
 ];
+
+/** What a step's value field shows as an example. */
+export function valueHint(kind: ValueKind): string {
+  switch (kind) {
+    case "percent":
+      return "0–100";
+    case "app":
+      return "YouTube";
+    case "channel":
+      return "5";
+    case "rooms":
+      return "Quarto, Sala";
+    case "degrees":
+      return "10–32";
+    default:
+      return "";
+  }
+}
 
 /** The actions `device` reported it can do. */
 export function actionsFor(device: HomeDevice | undefined): typeof ACTIONS[number][] {
@@ -154,23 +185,72 @@ const KINDS: Record<Kind, string> = {
   light: N_("Light"),
   plug: N_("Plug"),
   switch: N_("Switch"),
+  vacuum: N_("Vacuum"),
+  climate: N_("Air conditioning"),
+  sensor: N_("Sensor"),
 };
+
+/** Tenths of a degree in the user's way of writing numbers: 235 → "23.5 °C" ("23,5 °C" in Portuguese). */
+export function degreesText(tenths: number, lang?: string): string {
+  const n = tenths / 10;
+  const text = Number.isInteger(n) ? String(n) : n.toFixed(1);
+  const comma = (lang ?? "").match(/^(pt|es|fr|ru|id)/) ? text.replace(".", ",") : text;
+  return `${comma} °C`;
+}
+
+/** A vacuum's or a climate device's status in words, as Rust's smart_home::status_words; null for "off". */
+export function statusWords(status: string | null | undefined): string | null {
+  switch (status) {
+    case "cleaning":
+      return t("Cleaning");
+    case "docked":
+      return t("On its dock");
+    case "returning":
+      return t("Going back to its dock");
+    case "paused":
+      return t("Paused");
+    case "idle":
+      return t("Idle");
+    case "error":
+      return t("Needs help");
+    case "cool":
+      return t("Cooling");
+    case "heat":
+      return t("Heating");
+    case "heat_cool":
+    case "auto":
+      return t("Automatic");
+    case "dry":
+      return t("Drying");
+    case "fan_only":
+      return t("Fan");
+    default:
+      return null;
+  }
+}
 
 export function kindLabel(kind: Kind): string {
   return KINDS[kind] ? t(KINDS[kind]) : kind;
 }
 
 /** The state in words: "On · Volume 20% · YouTube", "Not answering". */
-export function stateLine(s: DeviceState): string {
+export function stateLine(s: DeviceState, lang?: string): string {
   if (!s.online) return t("Not answering");
   const parts: string[] = [];
-  if (s.on === true) parts.push(t("On"));
-  if (s.on === false) parts.push(t("Off"));
+  // A vacuum's or an air conditioner's own status says more than on or off.
+  const status = statusWords(s.status);
+  if (!status && s.on === true) parts.push(t("On"));
+  if (!status && s.on === false) parts.push(t("Off"));
   if (s.volume != null) parts.push(t("Volume {percent}%", { percent: s.volume }));
   if (s.muted === true) parts.push(t("Muted"));
   if (s.brightness != null) parts.push(t("Brightness {percent}%", { percent: s.brightness }));
   if (s.app) parts.push(s.app);
   if (s.channel) parts.push(t("Channel {channel}", { channel: s.channel }));
+  if (status) parts.push(status);
+  if (s.battery != null) parts.push(t("Battery {percent}%", { percent: s.battery }));
+  if (s.temperature != null) parts.push(degreesText(s.temperature, lang));
+  if (s.target != null) parts.push(t("Set to {degrees} °C", { degrees: degreesText(s.target, lang).replace(" °C", "") }));
+  if (s.humidity != null) parts.push(t("Humidity {percent}%", { percent: s.humidity }));
   return parts.join(" · ");
 }
 
@@ -237,6 +317,11 @@ export function originLabel(origin: string): string {
       return "Hermes Agent";
     case "agent":
       return t("Another agent");
+    // Zheus One (src-tauri/src/zheus_one): a plan the user approved, and the Autopilot's goals.
+    case "zheus":
+      return "Zheus One";
+    case "autopilot":
+      return t("Autopilot");
     default:
       return origin;
   }

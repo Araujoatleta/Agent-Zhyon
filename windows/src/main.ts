@@ -1,6 +1,7 @@
 // Entry point: boot the bridge, wire the island, start the greeting.
 
 import "./style.css";
+import "./zheus.css";
 import { Bridge, IS_TAURI, onEvent } from "./core/bridge";
 import { Sound } from "./core/sound";
 import { State, type Settings } from "./core/state";
@@ -11,6 +12,7 @@ import { registerPhoneLink } from "./island/phone-link";
 import { registerIntegrationHandlers, refreshConfigured } from "./island/integrations";
 import { registerShortcutHandlers } from "./island/shortcuts";
 import { applySpotify, registerSpotifyHandlers } from "./island/spotify";
+import { registerZheus } from "./island/zheus";
 import { SPOTIFY_ID } from "./core/spotify";
 import { Recap } from "./recap/recap";
 import { onLanguageChange, resolveLanguage, setLanguage, systemLanguages } from "./i18n/i18n";
@@ -105,6 +107,7 @@ async function main() {
   registerIntegrationHandlers(island);
   registerShortcutHandlers(island, () => setPaused(false));
   registerSpotifyHandlers(island);
+  registerZheus(island);
   // Rust may have read Spotify before this page listened: ask once.
   if (State.settings.activeIntegrations.includes(SPOTIFY_ID)) {
     void Bridge.spotifyRefresh().then((s) => s && applySpotify(island, s));

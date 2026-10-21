@@ -68,6 +68,8 @@ pub struct HomeEnv {
     pub devices: Vec<Device>,
     pub routines: Vec<RoutineInfo>,
     pub runner: Arc<dyn HomeRunner>,
+    /// Zheus One is on (zheus_one/): its World State and missions come with the house's tools.
+    pub zheus: bool,
 }
 
 /// A routine as Mochi sees it.
@@ -97,10 +99,20 @@ pub trait HomeRunner: Send + Sync {
     /// One action, already checked against the device.
     fn control<'a>(&'a self, id: &'a str, action: &'a HomeAction) -> BoxFuture<'a, HomeResult>;
     fn routine<'a>(&'a self, id: &'a str) -> BoxFuture<'a, HomeResult>;
+    /// Zheus One's World State, for the model (zheus_world).
+    fn world<'a>(&'a self) -> BoxFuture<'a, HomeResult> {
+        Box::pin(async { HomeResult { ok: false, text: NO_ZHEUS.into(), detail: String::new() } })
+    }
+    /// A Zheus One mission: "arrival" (its plan shown for the user's yes) or "situation" (on the TV).
+    fn mission<'a>(&'a self, _mission: &'a str, _eta: Option<u32>) -> BoxFuture<'a, HomeResult> {
+        Box::pin(async { HomeResult { ok: false, text: NO_ZHEUS.into(), detail: String::new() } })
+    }
 }
 
 /// What the model is told when it calls a home tool while the home is off.
 const NO_HOME: &str = "Mochi's home is not available on this computer: it is off, or no device is ticked for Mochi in Settings → Mochi's home.";
+/// What the model is told when it calls a Zheus One tool while Zheus One is off.
+const NO_ZHEUS: &str = "Zheus One is off on this computer: the user turns it on in Coucou, Settings → Zheus One.";
 
 /// One tool as the model is told about it.
 #[derive(Debug, Clone)]
@@ -233,11 +245,11 @@ fn home_definitions(h: &HomeEnv) -> Vec<ToolDef> {
         ),
         def(
             "home_control",
-            "Do one action on one device of the user's home: turn it on or off, set or step the volume, mute, open an app, change the channel, set a light's brightness. Only actions the device reports in home_devices work. One action per call, in order: to turn on the TV and open an app, call turn_on, read its answer, then open_app. The answer says what the device reports afterwards: tell the user exactly that, and never say an action worked if the answer says otherwise. Plugs, switches and some devices wait for the user's approval.",
+            "Do one action on one device of the user's home: turn it on or off, set or step the volume, mute, open an app, change the channel, set a light's brightness, start, pause or dock the vacuum or send it to some rooms, set the air conditioning's temperature. Only actions the device reports in home_devices work. One action per call, in order: to turn on the TV and open an app, call turn_on, read its answer, then open_app. The answer says what the device reports afterwards: tell the user exactly that, and never say an action worked if the answer says otherwise. Plugs, switches and some devices wait for the user's approval.",
             json!({
                 "device": { "type": "string", "description": "The device's id from home_devices, or its name with its room, like \"TV da sala\"." },
                 "action": { "type": "string", "enum": ACTION_WORDS, "description": "What to do." },
-                "value": { "type": "string", "description": "set_volume and set_brightness: a percent from 0 to 100. open_app: the app's name. set_channel: the channel's number or name. Leave it out for the other actions." },
+                "value": { "type": "string", "description": "set_volume and set_brightness: a percent from 0 to 100. set_temperature: degrees Celsius from 10 to 32. open_app: the app's name. set_channel: the channel's number or name. clean_area: the rooms, comma separated, like \"Quarto, Sala\". Leave it out for the other actions." },
             }),
             &["device", "action"],
         ),
@@ -251,7 +263,31 @@ fn home_definitions(h: &HomeEnv) -> Vec<ToolDef> {
             &["routine"],
         ));
     }
+    if h.zheus {
+        tools.extend(zheus_definitions());
+    }
     tools
+}
+
+/// Zheus One's tools, offered while it is on. The same as coucou-hook's house_tools.json.
+fn zheus_definitions() -> Vec<ToolDef> {
+    vec![
+        def(
+            "zheus_world",
+            "Zheus One's World State: the user's home as one picture — each shared device and its state (the vacuum, the air conditioning, the lights, the TVs, the sensors), who is home, each room's temperature, and the facts that tie them together. Call it before planning anything in the house, or when the user asks how the house is.",
+            json!({}),
+            &[],
+        ),
+        def(
+            "zheus_mission",
+            "Start one of Zheus One's missions. \"arrival\": the user is on their way home; Coucou plans the whole house for their arrival (air conditioning on time, the vacuum done before they arrive, lights after dark, the day's summary), shows the plan with what clashes, and runs it only once the user says yes. \"situation\": the house, the plan and the decisions waiting go full screen on the user's TV. Never act on the devices yourself for a mission: Coucou runs it.",
+            json!({
+                "mission": { "type": "string", "enum": ["arrival", "situation"], "description": "Which mission." },
+                "eta_minutes": { "type": "integer", "description": "arrival: the minutes until the user is home, when they said it. Leave it out otherwise." },
+            }),
+            &["mission"],
+        ),
+    ]
 }
 
 /// A tool call as the model made it. `broken` is set when its arguments could not be read (invalid JSON).
@@ -287,6 +323,10 @@ pub enum HomeCall {
     Devices { device: Option<String> },
     Control { device: String, action: HomeAction },
     Routine { id: String },
+    /// Zheus One's World State.
+    World,
+    /// A Zheus One mission, with the minutes until the arrival when the user said them.
+    Mission { mission: String, eta: Option<u32> },
 }
 
 /// A checked call, its gate, and the one line that says what it does (the command, the path, the address).
@@ -540,6 +580,34 @@ pub fn prepare(call: &Call, env: &Env) -> Result<Prepared, String> {
             }
             (Action::Home(HomeCall::Routine { id: r.id.clone() }), Effect::Home { ask: r.asks }, None, r.name.clone())
         }
+        "zheus_world" => {
+            let h = env.house.as_ref().ok_or(NO_HOME)?;
+            if !h.zheus {
+                return Err(NO_ZHEUS.into());
+            }
+            (Action::Home(HomeCall::World), Effect::Info, None, String::new())
+        }
+        "zheus_mission" => {
+            let h = env.house.as_ref().ok_or(NO_HOME)?;
+            if !h.zheus {
+                return Err(NO_ZHEUS.into());
+            }
+            let mission = required(input, "mission")?.trim().to_ascii_lowercase();
+            if !matches!(mission.as_str(), "arrival" | "situation") {
+                return Err(format!("\"{mission}\" is not a mission. Use arrival or situation."));
+            }
+            let eta = match input.get("eta_minutes") {
+                None | Some(Value::Null) => None,
+                Some(v) => Some(
+                    v.as_u64()
+                        .or_else(|| v.as_str().and_then(|s| s.trim().parse().ok()))
+                        .filter(|m| (1..=240).contains(m))
+                        .ok_or("eta_minutes must be a number of minutes from 1 to 240.")? as u32,
+                ),
+            };
+            // Showing a plan acts on nothing: the user's yes runs it, in Coucou.
+            (Action::Home(HomeCall::Mission { mission: mission.clone(), eta }), Effect::Info, None, mission)
+        }
         other => return Err(format!("There is no tool named \"{other}\".")),
     };
     let (inside, secret) = path_for_gate.as_deref().map_or((true, false), place);
@@ -662,6 +730,8 @@ async fn home_execute(call: &HomeCall, env: &Env) -> Output {
         }
         HomeCall::Control { device, action } => h.runner.control(device, action).await,
         HomeCall::Routine { id } => h.runner.routine(id).await,
+        HomeCall::World => h.runner.world().await,
+        HomeCall::Mission { mission, eta } => h.runner.mission(mission, *eta).await,
     };
     Output {
         text: text::clip_middle(&result.text, MAX_RESULT),
@@ -1325,7 +1395,30 @@ pub(crate) mod tests {
             devices: house_devices(),
             routines: vec![RoutineInfo { id: "r-1".into(), name: "Boa noite".into(), asks: false, steps: vec!["TV: turn off".into()], problems: vec![] }],
             runner,
+            zheus: false,
         }
+    }
+
+    #[test]
+    fn zheus_ones_tools_come_only_while_it_is_on_and_only_propose() {
+        let s = Scratch::new("zheus");
+        let runner = Arc::new(FakeHouse { calls: Default::default() });
+        let mut env = s.env(Level::Ask);
+        env.house = Some(house(runner.clone()));
+        assert!(!definitions(&env).iter().any(|d| d.name.starts_with("zheus_")));
+        assert!(prepare(&call("zheus_world", json!({})), &env).unwrap_err().contains("Zheus One is off"));
+        env.house.as_mut().unwrap().zheus = true;
+        let names: Vec<&str> = definitions(&env).iter().map(|d| d.name).collect();
+        assert!(names.contains(&"zheus_world") && names.contains(&"zheus_mission"));
+        let p = prepare(&call("zheus_mission", json!({"mission":"Arrival","eta_minutes":"25"})), &env).unwrap();
+        assert_eq!(p.action, Action::Home(HomeCall::Mission { mission: "arrival".into(), eta: Some(25) }));
+        assert_eq!(p.gate, Gate::Free, "a plan shown acts on nothing");
+        assert!(prepare(&call("zheus_mission", json!({"mission":"party"})), &env).unwrap_err().contains("not a mission"));
+        assert!(prepare(&call("zheus_mission", json!({"mission":"arrival","eta_minutes":900})), &env).unwrap_err().contains("1 to 240"));
+        assert_eq!(prepare(&call("zheus_world", json!({})), &env).unwrap().gate, Gate::Free);
+        // The fake house has no Zheus: its answer says so, it is not invented.
+        let out = block_on(execute(&prepare(&call("zheus_world", json!({})), &env).unwrap(), &env));
+        assert!(out.is_error && out.text.contains("Zheus One is off"));
     }
 
     #[test]
