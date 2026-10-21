@@ -457,25 +457,380 @@ html[dir="rtl"] :is(.diff, .path, .keycap, input[type="password"], input[type="t
   color: var(--ink);
 }
 
-/* ── Zheus One (settings/zheus.ts) ─────────────────────────────────────── */
+/* ── Zheus One (settings/zheus.ts), in Liquid Glass like the island ──────────
+   Everything here is scoped to the section: the rest of Settings keeps its look. The section carries its own
+   field of soft color, and its cards frost over it with backdrop-filter. */
 
-.zheus-segmented {
-  display: inline-flex;
-  padding: 3px;
-  gap: 2px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+section.zheus-panel {
+  position: relative;
+  isolation: isolate;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background:
+    radial-gradient(70% 22% at 0% 0%, rgba(99, 102, 241, 0.36), rgba(99, 102, 241, 0) 70%),
+    radial-gradient(60% 20% at 100% 8%, rgba(34, 211, 238, 0.2), rgba(34, 211, 238, 0) 70%),
+    radial-gradient(75% 24% at 12% 46%, rgba(47, 129, 247, 0.2), rgba(47, 129, 247, 0) 70%),
+    radial-gradient(70% 22% at 100% 68%, rgba(236, 72, 153, 0.16), rgba(236, 72, 153, 0) 70%),
+    radial-gradient(80% 22% at 30% 100%, rgba(99, 102, 241, 0.24), rgba(99, 102, 241, 0) 70%),
+    linear-gradient(180deg, #13151f, #0c0d13);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 18px 40px rgba(0, 0, 0, 0.35);
 }
 
-.zheus-segmented button {
-  padding: 5px 12px;
-  background: transparent;
+.zheus-panel .hint {
+  color: #a6abb6;
+  line-height: 1.5;
 }
 
-.zheus-segmented button.on {
+/* The head: the spark, the name, what it is, and the switch. */
+.zheus-hero {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.zheus-hero-icon {
+  flex: 0 0 auto;
+  width: 46px;
+  height: 46px;
+  border-radius: 15px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: linear-gradient(145deg, #6366f1, #2f81f7 55%, #22d3ee);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 8px 20px rgba(79, 70, 229, 0.45);
+}
+
+.zheus-hero-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.zheus-hero-text h2 {
+  font: 650 17px var(--font);
+  letter-spacing: -0.01em;
+}
+
+/* The switches of the section: larger, blue when on, as on the iPhone. */
+.zheus-panel .switch {
+  width: 46px;
+  height: 28px;
+  flex-basis: 46px;
+  border-radius: 14px;
   background: rgba(255, 255, 255, 0.16);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  transition: background 0.18s;
+}
+
+.zheus-panel .switch.on {
+  background: #2f81f7;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14), 0 0 14px rgba(47, 129, 247, 0.45);
+}
+
+.zheus-panel .switch::after {
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.35);
+}
+
+.zheus-panel .switch.on::after {
+  transform: translateX(18px);
+}
+
+/* A card of glass. */
+.zheus-box {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px 16px;
+  border-radius: 18px;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.035) 55%, rgba(255, 255, 255, 0.06));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.11),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 8px 22px rgba(0, 0, 0, 0.22);
+  -webkit-backdrop-filter: blur(18px) saturate(1.6);
+  backdrop-filter: blur(18px) saturate(1.6);
+}
+
+.zheus-box-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.zheus-box-head h3 {
+  font: 600 13.5px var(--font);
+  letter-spacing: -0.005em;
+}
+
+.zheus-box-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #dbe4ff;
+  background: rgba(99, 102, 241, 0.32);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+.zheus-panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: opacity 0.2s;
+}
+
+/* Off, the settings stay there to prepare, a little quieter. */
+.zheus-panel-body.off {
+  opacity: 0.72;
+}
+
+/* The look: two small islands. */
+.zheus-looks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.zheus-panel button.zheus-look {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 8px 10px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.09);
+}
+
+.zheus-panel button.zheus-look:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.zheus-panel button.zheus-look.on {
+  background: rgba(47, 129, 247, 0.16);
+  box-shadow: inset 0 0 0 1.5px #2f81f7, 0 0 18px rgba(47, 129, 247, 0.25);
+}
+
+.zheus-look-preview {
+  height: 66px;
+  border-radius: 11px;
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.zheus-look.glass .zheus-look-preview {
+  background:
+    radial-gradient(80% 90% at 0% 0%, rgba(99, 102, 241, 0.65), rgba(99, 102, 241, 0) 70%),
+    radial-gradient(70% 80% at 100% 10%, rgba(34, 211, 238, 0.42), rgba(34, 211, 238, 0) 70%),
+    radial-gradient(80% 90% at 70% 120%, rgba(236, 72, 153, 0.42), rgba(236, 72, 153, 0) 70%),
+    #151826;
+}
+
+.zheus-look.classic .zheus-look-preview {
+  background: linear-gradient(180deg, #2a2c33, #17181c);
+}
+
+.zheus-look-island {
+  width: 72%;
+  height: 34px;
+  border-radius: 0 0 17px 17px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.zheus-look.glass .zheus-look-island {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04)), rgba(16, 18, 28, 0.6);
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.32), inset 0 0 0 1px rgba(255, 255, 255, 0.1), 0 6px 14px rgba(0, 0, 0, 0.3);
+}
+
+.zheus-look.classic .zheus-look-island {
+  background: #000;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.4);
+}
+
+.zheus-look-island i {
+  width: 18px;
+  height: 14px;
+  border-radius: 5px;
+}
+
+.zheus-look.glass .zheus-look-island i {
+  background: rgba(255, 255, 255, 0.2);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.zheus-look.glass .zheus-look-island i:first-child {
+  background: #2f81f7;
+  box-shadow: 0 0 8px rgba(47, 129, 247, 0.7);
+}
+
+.zheus-look.classic .zheus-look-island i {
+  background: #1d1e22;
+}
+
+.zheus-look.classic .zheus-look-island i:first-child {
+  background: #3a3c43;
+}
+
+.zheus-look-name {
+  font: 600 12px var(--font);
+  text-align: center;
+}
+
+/* Fields: small tiles of glass, two to a row. */
+.zheus-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.zheus-grid.three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 600px) {
+  .zheus-grid,
+  .zheus-grid.three {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.zheus-field {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
+}
+
+.zheus-field-label {
+  font: 500 11.5px var(--font);
+  color: #b3b8c2;
+}
+
+.zheus-field-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  flex-wrap: wrap;
+}
+
+.zheus-field-hint {
+  font: 400 11px var(--font);
+  color: var(--dim-2);
+}
+
+.zheus-until {
+  font-size: 12px;
+  color: var(--dim);
+}
+
+.zheus-panel input[type="number"],
+.zheus-panel input[type="text"],
+.zheus-panel input[type="time"],
+.zheus-panel select {
+  font: 400 12.5px var(--font);
+  color: var(--ink);
+  min-height: 30px;
+  padding: 5px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.28);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+.zheus-panel input:focus,
+.zheus-panel select:focus {
+  outline: none;
+  border-color: rgba(47, 129, 247, 0.85);
+  box-shadow: 0 0 0 3px rgba(47, 129, 247, 0.22);
+}
+
+.zheus-panel input[type="number"]::-webkit-inner-spin-button,
+.zheus-panel input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.zheus-panel input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.zheus-panel input[type="time"] {
+  width: auto;
+  min-width: 96px;
+}
+
+.zheus-panel input[type="time"]::-webkit-calendar-picker-indicator {
+  opacity: 0.55;
+}
+
+.zheus-panel select {
+  min-width: 0;
+  max-width: 100%;
+  flex: 1;
+}
+
+.zheus-panel .zheus-field input[type="text"] {
+  flex: 1;
+  min-width: 0;
+}
+
+.zheus-panel .zheus-field select {
+  flex: 1 1 120px;
+}
+
+.zheus-panel .zheus-field input.zheus-tv-app {
+  flex: 0 1 96px;
+}
+
+/* A number with its unit inside: "30 min". */
+.zheus-input {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.zheus-input input[type="number"] {
+  width: 96px;
+  padding-inline-end: 40px;
+  font-variant-numeric: tabular-nums;
+}
+
+.zheus-unit {
+  position: absolute;
+  inset-inline-end: 10px;
+  pointer-events: none;
+  font-size: 12px;
+  color: var(--dim);
+}
+
+/* The vacuum's rooms, in their order. */
+.zheus-sub {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.zheus-sub-title {
+  font: 600 12px var(--font);
 }
 
 .zheus-rooms {
@@ -484,18 +839,198 @@ html[dir="rtl"] :is(.diff, .path, .keycap, input[type="password"], input[type="t
   gap: 6px;
 }
 
+.zheus-rooms:empty {
+  display: none;
+}
+
+.zheus-room {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  padding-block: 6px;
+  padding-inline: 8px 6px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
+}
+
+.zheus-room-rank {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font: 600 11px var(--font);
+  color: #dcfce7;
+  background: rgba(34, 197, 94, 0.3);
+}
+
+.zheus-panel input.zheus-room-name {
+  width: 100%;
+}
+
+.zheus-panel button.zheus-remove {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 15px;
+  line-height: 1;
+  color: #ff8d97;
+  background: rgba(244, 80, 94, 0.14);
+}
+
+.zheus-panel button.zheus-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+
+.zheus-panel button.zheus-add:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+/* The lights of the arrival, as chips. */
 .zheus-checks {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 14px;
+  gap: 6px;
 }
 
 .zheus-check {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
+  padding-block: 6px;
+  padding-inline: 9px 12px;
+  border-radius: 999px;
   font-size: 12.5px;
   color: var(--dim);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.09);
+}
+
+.zheus-check input {
+  accent-color: #f5a524;
+}
+
+.zheus-check:has(input:checked) {
+  color: var(--ink);
+  background: rgba(245, 165, 36, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(245, 165, 36, 0.45);
+}
+
+/* The Autopilot's goals: a word on each, and Off · Suggest · Act. */
+.zheus-goals {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.zheus-goal {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 11px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
+}
+
+.zheus-goal-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.zheus-goal-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.zheus-goal-name {
+  font: 600 12.5px var(--font);
+}
+
+.zheus-goal-extra {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 9px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 12px;
+  color: #b3b8c2;
+}
+
+.zheus-seg {
+  flex: 0 0 auto;
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.28);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.zheus-panel .zheus-seg button {
+  padding: 5px 12px;
+  font-size: 12px;
+  color: var(--dim);
+  background: transparent;
+}
+
+.zheus-panel .zheus-seg button:hover:not(:disabled) {
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.zheus-panel .zheus-seg button.on {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+.zheus-panel .zheus-seg button.suggest.on {
+  background: rgba(99, 102, 241, 0.5);
+}
+
+.zheus-panel .zheus-seg button.act.on {
+  background: #2f81f7;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 0 12px rgba(47, 129, 247, 0.4);
+}
+
+@media (max-width: 600px) {
+  .zheus-goal-main {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* Save, in blue. */
+.zheus-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.zheus-panel button.primary {
+  padding: 8px 24px;
+  color: #fff;
+  background: linear-gradient(180deg, #3d8dff, #2b6fe3);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 6px 16px rgba(47, 129, 247, 0.35);
+}
+
+.zheus-panel button.primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #4c96ff, #3378ea);
 }
 
 /* ── Zheus One's TV mode (settings/tv.ts): the situation, full screen, in glass ── */

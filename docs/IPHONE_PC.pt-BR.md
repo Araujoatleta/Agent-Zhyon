@@ -77,8 +77,9 @@ sideload**, que o GitHub Actions compila para você:
 4. Com conta gratuita o app para de abrir depois de **7 dias**: é só instalar de novo pelo Sideloadly (ou deixar o
    AltStore renovar sozinho, com o AltServer aberto no PC e o iPhone no mesmo Wi-Fi).
 
-Essa versão não tem iCloud nem push da Apple (conta gratuita não tem): ela fala só com o PC. Os widgets ficam vazios e
-a Live Activity do Mac não se aplica; o resto funciona.
+Essa versão não tem iCloud nem push da Apple (conta gratuita não tem): ela fala só com o PC. Os widgets ficam vazios
+(precisam de um App Group) e o próprio iPhone liga a Live Activity do Mochi (veja *O Mochi na Ilha Dinâmica*, abaixo);
+o resto funciona.
 
 ### Parear
 
@@ -89,6 +90,27 @@ a Live Activity do Mac não se aplica; o resto funciona.
 2. O Coucou mostra o nome do PC: toque em **Pair**. Quando o iOS pedir, permita o acesso à **rede local**.
 3. As sessões do PC aparecem em **Agents**. O botão 🖥 no canto superior esquerdo abre o **chat com o Mochi do PC**;
    no menu ⋯ você escolhe o modelo e liga ou desliga os braços dele.
+
+### O Mochi na Ilha Dinâmica
+
+A Ilha Dinâmica e a Tela Bloqueada mostram o Mochi com os agentes do PC (Claude Code, Codex, Gemini CLI…): o que mais
+precisa de você, o passo em que está, há quanto tempo, e **Allow** e **Deny** quando ele espera o seu OK (toque e
+segure a ilha; o Allow pede Face ID). A resposta vai para o PC pelo link, como no app.
+
+1. Instale a versão sideload desta branch (uma versão antiga não tem a Ilha Dinâmica para o PC) e pareie (acima).
+2. Permita as Atividades ao Vivo do Coucou: **Ajustes → Coucou → Atividades ao Vivo** → ligar.
+3. Abra o Coucou enquanto um agente do PC está trabalhando ou esperando você: o Mochi entra na ilha e continua lá quando
+   você sai do app. Se nada estiver trabalhando, a ilha fica vazia.
+
+O que esperar, já que a versão sideload não tem o push da Apple:
+
+- Só o Coucou aberto na tela consegue ligar a atividade: um agente que começa com o Coucou fechado aparece na próxima
+  vez que você abrir o app.
+- O iOS pausa o Coucou uns 30 segundos depois que você sai dele. A ilha guarda o último estado e, uns 40 segundos
+  depois, diz **Open Coucou to see the latest** e esconde o Allow e o Deny. Abrir o Coucou atualiza tudo na hora.
+- Com o Coucou fechado, um pedido chega pelo **ntfy** (abaixo).
+- Quando nada mais está trabalhando nem esperando, o Mochi mostra o trabalho concluído e sai da ilha meio minuto
+  depois.
 
 ### Notificações com o Coucou fechado (ntfy)
 

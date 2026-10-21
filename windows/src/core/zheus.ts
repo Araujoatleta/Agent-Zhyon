@@ -183,8 +183,14 @@ export interface Tile {
   title: string;
   line: string;
   on: boolean;
+  /** What the tile's switch does: turns the device off when it is on, on when it is off (null: it can't now). */
+  toggle: TileAction | null;
+  /** The rest it offers: the temperature's − and +, the vacuum's pause. */
   actions: TileAction[];
 }
+
+/** The kinds the island has a tile for, in their order. */
+export const TILE_KINDS: Tile["kind"][] = ["vacuum", "climate", "light", "tv"];
 
 const has = (d: HomeDevice, cap: HomeDevice["caps"][number]) => d.caps.includes(cap);
 
@@ -197,49 +203,52 @@ export function tiles(world: World, lang?: string): Tile[] {
   if (vacuum) {
     const s = vacuum.state;
     const cleaning = s.status === "cleaning" || s.status === "returning";
+    let toggle: TileAction | null = null;
     const actions: TileAction[] = [];
     if (s.online && s.status === "cleaning") {
+      if (has(vacuum, "dock")) toggle = { action: "return_to_base", label: t("Dock"), targets: [vacuum.id] };
       if (has(vacuum, "pause")) actions.push({ action: "pause", label: t("Pause"), targets: [vacuum.id] });
-      if (has(vacuum, "dock")) actions.push({ action: "return_to_base", label: t("Dock"), targets: [vacuum.id] });
     } else if (s.online && has(vacuum, "clean") && s.status !== "returning") {
-      actions.push({ action: "clean", label: t("Clean"), targets: [vacuum.id] });
+      toggle = { action: "clean", label: t("Clean"), targets: [vacuum.id] };
     }
     const parts = [statusWords(s.status) ?? (s.online ? "" : t("Not answering")), s.battery != null ? `${s.battery}%` : ""].filter(Boolean);
-    out.push({ kind: "vacuum", title: vacuum.name, line: parts.join(" · "), on: cleaning, actions });
+    out.push({ kind: "vacuum", title: vacuum.name, line: parts.join(" · "), on: cleaning, toggle, actions });
   }
 
   const climates = live.filter((d) => d.kind === "climate");
   const climate = climates.find((d) => d.state.on === true) ?? climates[0];
   if (climate) {
     const s = climate.state;
+    let toggle: TileAction | null = null;
     const actions: TileAction[] = [];
     if (s.online && has(climate, "temperature") && s.target != null) {
       const target = Math.round(s.target / 10);
       if (target > 10) actions.push({ action: "set_temperature", value: String(target - 1), label: "−", targets: [climate.id] });
       if (target < 32) actions.push({ action: "set_temperature", value: String(target + 1), label: "+", targets: [climate.id] });
     }
-    if (s.online && s.on === true && has(climate, "turnOff")) actions.push({ action: "turn_off", label: t("Turn off"), targets: [climate.id] });
-    if (s.online && s.on !== true && has(climate, "turnOn")) actions.push({ action: "turn_on", label: t("Turn on"), targets: [climate.id] });
+    if (s.online && s.on === true && has(climate, "turnOff")) toggle = { action: "turn_off", label: t("Turn off"), targets: [climate.id] };
+    if (s.online && s.on !== true && has(climate, "turnOn")) toggle = { action: "turn_on", label: t("Turn on"), targets: [climate.id] };
     const parts: string[] = [];
     if (!s.online) parts.push(t("Not answering"));
     else if (s.on === true && s.target != null) parts.push(t("Set to {degrees} °C", { degrees: degreesText(s.target, lang).replace(" °C", "") }));
     else parts.push(statusWords(s.status) ?? (s.on === false ? t("Off") : ""));
     if (s.temperature != null) parts.push(t("Room {degrees}", { degrees: degreesText(s.temperature, lang) }));
-    out.push({ kind: "climate", title: climate.name, line: parts.filter(Boolean).join(" · "), on: s.on === true, actions });
+    out.push({ kind: "climate", title: climate.name, line: parts.filter(Boolean).join(" · "), on: s.on === true, toggle, actions });
   }
 
   const lights = live.filter((d) => d.kind === "light" && d.state.online);
   if (lights.length) {
     const on = lights.filter((d) => d.state.on === true);
-    const actions: TileAction[] = on.length
-      ? [{ action: "turn_off", label: t("Turn off"), targets: on.filter((d) => has(d, "turnOff")).map((d) => d.id) }]
-      : [{ action: "turn_on", label: t("Turn on"), targets: lights.filter((d) => has(d, "turnOn")).map((d) => d.id) }];
+    const toggle: TileAction = on.length
+      ? { action: "turn_off", label: t("Turn off"), targets: on.filter((d) => has(d, "turnOff")).map((d) => d.id) }
+      : { action: "turn_on", label: t("Turn on"), targets: lights.filter((d) => has(d, "turnOn")).map((d) => d.id) };
     out.push({
       kind: "light",
       title: lights.length === 1 ? lights[0].name : t("Lights"),
       line: lights.length === 1 ? stateLine(lights[0].state, lang) : t("{on} of {count} on", { on: on.length, count: lights.length }),
       on: on.length > 0,
-      actions: actions.filter((a) => a.targets.length > 0),
+      toggle: toggle.targets.length > 0 ? toggle : null,
+      actions: [],
     });
   }
 
@@ -247,10 +256,10 @@ export function tiles(world: World, lang?: string): Tile[] {
   const tv = tvs.find((d) => d.state.on === true) ?? tvs[0];
   if (tv) {
     const s = tv.state;
-    const actions: TileAction[] = [];
-    if (s.online && s.on === true && has(tv, "turnOff")) actions.push({ action: "turn_off", label: t("Turn off"), targets: [tv.id] });
-    if (s.on !== true && has(tv, "turnOn")) actions.push({ action: "turn_on", label: t("Turn on"), targets: [tv.id] });
-    out.push({ kind: "tv", title: tv.name, line: stateLine(s, lang) || t("Off"), on: s.on === true, actions });
+    let toggle: TileAction | null = null;
+    if (s.online && s.on === true && has(tv, "turnOff")) toggle = { action: "turn_off", label: t("Turn off"), targets: [tv.id] };
+    if (s.on !== true && has(tv, "turnOn")) toggle = { action: "turn_on", label: t("Turn on"), targets: [tv.id] };
+    out.push({ kind: "tv", title: tv.name, line: stateLine(s, lang) || t("Off"), on: s.on === true, toggle, actions: [] });
   }
   return out;
 }
@@ -264,12 +273,12 @@ export function stepStates(running: ZheusStatus["running"]): ("done" | "failed" 
   });
 }
 
-/** The labels of the Autopilot's modes. Business never acts alone, so it has no "act". */
-export function modeChoices(goal: keyof Pick<Goals, "energy" | "tidy" | "agenda" | "business">): { id: Mode; label: string }[] {
-  const all: { id: Mode; label: string }[] = [
-    { id: "off", label: t("Off") },
-    { id: "suggest", label: t("Suggest") },
-    { id: "act", label: t("Act within the limits") },
+/** The Autopilot's modes, a word each and a line on hover. Business never acts alone, so it has no "act". */
+export function modeChoices(goal: keyof Pick<Goals, "energy" | "tidy" | "agenda" | "business">): { id: Mode; label: string; title: string }[] {
+  const all: { id: Mode; label: string; title: string }[] = [
+    { id: "off", label: t("Off"), title: t("Off") },
+    { id: "suggest", label: t("Suggest"), title: t("Suggest") },
+    { id: "act", label: t("Act"), title: t("Act within the limits") },
   ];
   return goal === "business" ? all.slice(0, 2) : all;
 }

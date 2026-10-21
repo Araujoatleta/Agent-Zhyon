@@ -107,8 +107,30 @@ can install the **sideload build**, which GitHub Actions makes for you:
    it (AltServer running on the computer, same Wi-Fi).
 
 The sideload build is compiled with `SIDELOAD`: it has **no iCloud and no Apple push**, which a free account cannot
-have, so it talks only to a Windows or Linux computer. Its widgets stay empty (they need an App Group) and the Live
-Activity started by a Mac does not apply. Everything else on this page works.
+have, so it talks only to a Windows or Linux computer. Its widgets stay empty (they need an App Group), and the iPhone
+starts Mochi's Live Activity itself (next section). Everything else on this page works.
+
+## Mochi in the Dynamic Island
+
+The Dynamic Island and the Lock Screen show Mochi with the computer's agents (Claude Code, Codex, Gemini CLI…): the one
+that needs you most, its step, how long it has been at it, and **Allow** and **Deny** when it waits for your OK (touch
+and hold the island; Allow asks for Face ID). The answer goes to the computer through the link, as in the app.
+
+1. Install the sideload build of this branch (an older build has no Dynamic Island for a computer) and pair it
+   (above).
+2. Allow Live Activities for Coucou: **Settings → Coucou → Live Activities** → on.
+3. Open Coucou while an agent on the computer is working or waiting for you: Mochi comes into the island, and stays
+   there when you leave the app. Nothing working, nothing in the island.
+
+What to expect, since the sideload build has no Apple push:
+
+- Only Coucou on screen can start the activity: an agent that starts while Coucou is closed shows up the next time you
+  open it.
+- iOS suspends Coucou about half a minute after you leave it. The island keeps the last state, then, about 40 seconds
+  after you left, says **Open Coucou to see the latest** and hides Allow and Deny. Opening Coucou brings it up to date
+  at once.
+- While Coucou is closed, a request reaches you through **ntfy** (above).
+- When nothing is working or waiting any more, Mochi shows the work done and leaves the island half a minute later.
 
 ## Away from home, directly (no one's server)
 

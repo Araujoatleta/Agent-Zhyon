@@ -15,10 +15,11 @@ devices you share in Mochi's home, through the same checks and the same record. 
 
 1. Turn **Mochi's home** on and tick the devices Zheus may use (Settings → Mochi's home). The vacuum, the air
    conditioning and the sensors come from Home Assistant (2026.3 or later for cleaning room by room).
-2. Settings → **Zheus One**: turn it on, and set **Your arrival**: how long the way home usually takes, the
-   temperature for the air conditioning and how many minutes before you arrive it starts, whether the vacuum cleans
-   before you arrive, the rooms it cleans with the minutes each takes (in the order they matter), the lowest battery,
-   the lights for an arrival after dark, the TV and an app, and whether the day's summary is told at the arrival.
+2. Settings → **Zheus One** (in glass, like the island): turn it on, then set its cards. **Your arrival**: how long
+   the way home usually takes, the temperature for the air conditioning and how many minutes before you arrive it
+   starts, and whether the day's summary is told at the arrival. **Vacuum**: whether it cleans before you arrive, how
+   long the whole house takes, the lowest battery, and the rooms it cleans with the minutes each takes (in the order
+   they matter). **Lights and TV**: when it is dark, the lights for an arrival after dark, the TV and an app.
 3. A **✦** tab appears on the island: Zheus One's view.
 
 ## The arrival mission
@@ -53,17 +54,18 @@ Your message still goes to your assistant, with the plan added, so the rest of i
 ## The World State
 
 The ✦ view shows the house as glass tiles: the vacuum (cleaning, on its dock, its battery), the air conditioning (its
-temperature, the room's, − and +), the lights (how many are on) and the TV, each with a click to act; where you are
-(on your way, home, away); the facts that tie things together ("the TV is on where the vacuum is cleaning", "nobody is
-home, and these are on"); and the missions: **Prepare my arrival** in 15, 30, 45 or 60 minutes, and **Situation** for
-the TV. Who is home comes from Home Assistant's people (its companion app on your phone, your router), or from what you
-said ("I'm home").
+temperature, the room's, − and +), the lights (how many are on) and the TV, each with its switch (the vacuum's sends it
+cleaning, or back to its dock); a kind you have not shared yet keeps its place as an empty tile, which opens Settings;
+where you are (on your way, home, away); the facts that tie things together ("the TV is on where the vacuum is
+cleaning", "nobody is home, and these are on"); and the missions: **Arrival 15 · 30 · 45 · 60 min** (prepare my
+arrival in that many minutes) and **Situation** for the TV. Who is home comes from Home Assistant's people (its
+companion app on your phone, your router), or from what you said ("I'm home").
 
 ## The Autopilot
 
 Standing goals instead of repeated orders, in Settings → Zheus One → Autopilot. Each goal is **Off**, **Suggest** or
-**Act within the limits**; Zheus looks at the house every five minutes while one is on, and nothing runs while they are
-all off.
+**Act** (within the limits under it); Zheus looks at the house every five minutes while one is on, and nothing runs
+while they are all off.
 
 - **Less energy wasted**: what was left on (lights, TV, air conditioning — never a plug) while nobody has been home for
   the minutes you set.
@@ -86,10 +88,10 @@ minute while it is on screen, and nothing once it is closed.
 
 ## The look: Liquid Glass
 
-Settings → Zheus One → **Look of the island**: **Liquid Glass** (translucent, frosted, light along the rims, the cards
-frosted over a soft field of color) or **Classic** (the black island). The glass is drawn by the page, not the window
-(the island lives in a fixed, transparent window, and blurring the desktop would frost the whole rectangle), and
-nothing in it moves: it costs nothing while the island is hidden.
+Settings → Zheus One → **Look of the island**: **Liquid Glass** (light along the rims, the cards frosted over a soft
+field of color) or **Classic** (the black island). The glass is drawn by the page, not the window (the island lives
+in a fixed, transparent window, and blurring the desktop would frost the whole rectangle), so its tint is dark enough
+that the page behind the island never reads through. Nothing in it moves: it costs nothing while the island is hidden.
 
 ## For Hermes and other agents
 

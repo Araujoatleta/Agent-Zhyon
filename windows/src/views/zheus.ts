@@ -1,13 +1,16 @@
 // Zheus One in the island (src-tauri/src/zheus_one): the house as glass tiles — the vacuum, the air conditioning,
-// the lights, the TV — with a click for each; the missions ("Prepare my arrival" with the minutes of the way home,
-// "Our situation" on the TV); the Autopilot's suggestions; and a plan's Foresight — its steps and their times, what
-// clashes and the ways around it — waiting for Approve, then running step by step. Nothing here acts without a click.
+// the lights, the TV — each with its switch, and an empty place for a kind not shared yet; the missions ("Prepare my
+// arrival" with the minutes of the way home, "Our situation" on the TV); the Autopilot's suggestions; and a plan's
+// Foresight — its steps and their times, what clashes and the ways around it — waiting for Approve, then running step
+// by step. Nothing here acts without a click.
 
 import { Bridge } from "../core/bridge";
+import { kindLabel } from "../core/home";
 import { State } from "../core/state";
 import { Sound } from "../core/sound";
 import {
-  ETAS, clock, presenceLine, stepStates, tiles, when, type Plan, type Suggestion, type Tile, type World, type ZheusStatus,
+  ETAS, TILE_KINDS, clock, presenceLine, stepStates, tiles, when, type Plan, type Suggestion, type Tile, type TileAction,
+  type World, type ZheusStatus,
 } from "../core/zheus";
 import { language, t, tl } from "../i18n/i18n";
 import { h, svg } from "./dom";
@@ -75,25 +78,32 @@ export function buildZheus(actions: ViewActions): ViewHost {
 
   // ── The top: where the user is, and the missions ──
   function drawTop(status: ZheusStatus) {
-    const etas = h("div", { class: "zheus-etas" });
-    for (const m of ETAS) {
-      etas.append(
-        h("button", {
-          class: "zheus-chip",
-          text: `${m} min`,
-          title: t("Prepare my arrival in {minutes} min", { minutes: m }),
-          onclick: () => void run(() => Bridge.zheusPlan(m)),
-        }),
-      );
-    }
     const busy = !!(status.pending || status.running);
+    // "Prepare my arrival" as one capsule of glass: the way home's minutes, a click each.
+    const etas = busy
+      ? null
+      : h(
+          "div",
+          { class: "zheus-etas", title: t("Prepare my arrival") },
+          svg(ICONS.house, 11),
+          h("span", { class: "zheus-etas-label", text: t("Arrival") }),
+          ...ETAS.map((m) =>
+            h("button", {
+              class: "zheus-eta",
+              text: String(m),
+              title: t("Prepare my arrival in {minutes} min", { minutes: m }),
+              "aria-label": t("Prepare my arrival in {minutes} min", { minutes: m }),
+              onclick: () => void run(() => Bridge.zheusPlan(m)),
+            }),
+          ),
+          h("span", { class: "zheus-etas-unit", text: t("min") }),
+        );
     top.replaceChildren(
       h("div", { class: "zheus-presence" }, svg(ICONS.sparkles, 12), h("span", { text: world ? presenceLine(world) : t("The house") })),
       h(
         "div",
         { class: "zheus-missions" },
-        busy ? null : h("span", { class: "zheus-label", text: t("Prepare my arrival") }),
-        busy ? null : etas,
+        etas,
         h("button", {
           class: "zheus-chip tv",
           title: t("Our situation, full screen on the TV"),
@@ -104,28 +114,57 @@ export function buildZheus(actions: ViewActions): ViewHost {
   }
 
   // ── The tiles ──
+  function act(a: TileAction) {
+    void run(async () => {
+      for (const id of a.targets) {
+        const out = await Bridge.zheusDevice(id, a.action, a.value ?? null);
+        if (!out.ok) throw new Error(out.detail);
+      }
+      refreshSoon();
+    });
+  }
+
   function tileEl(tile: Tile): HTMLElement {
+    const toggle = tile.toggle;
     const buttons = tile.actions.map((a) =>
-      h("button", {
-        class: a.label === "−" || a.label === "+" ? "zheus-mini round" : "zheus-mini",
-        text: a.label,
-        onclick: () =>
-          void run(async () => {
-            for (const id of a.targets) {
-              const out = await Bridge.zheusDevice(id, a.action, a.value ?? null);
-              if (!out.ok) throw new Error(out.detail);
-            }
-            refreshSoon();
-          }),
-      }),
+      h("button", { class: a.label === "−" || a.label === "+" ? "zheus-mini round" : "zheus-mini", text: a.label, onclick: () => act(a) }),
     );
     return h(
       "div",
       { class: `zheus-tile ${tile.kind}${tile.on ? " on" : ""}` },
-      h("div", { class: "zheus-tile-icon" }, svg(TILE_ICONS[tile.kind], 15, { stroke: 1.7 })),
+      h(
+        "div",
+        { class: "zheus-tile-head" },
+        h("div", { class: "zheus-tile-icon" }, svg(TILE_ICONS[tile.kind], 15, { stroke: 1.7 })),
+        h("button", {
+          class: `zheus-switch${tile.on ? " on" : ""}`,
+          role: "switch",
+          "aria-checked": String(tile.on),
+          "aria-label": toggle ? `${tile.title}: ${toggle.label}` : tile.title,
+          title: toggle?.label,
+          disabled: !toggle,
+          onclick: () => toggle && act(toggle),
+        }),
+      ),
       h("div", { class: "zheus-tile-title", text: tile.title, title: tile.title }),
       h("div", { class: "zheus-tile-line", text: tile.line, title: tile.line }),
-      h("div", { class: "zheus-tile-actions" }, ...buttons),
+      buttons.length ? h("div", { class: "zheus-tile-actions" }, ...buttons) : null,
+    );
+  }
+
+  /** A kind of device not shared with Zheus yet: its place, which opens Settings. */
+  function ghostEl(kind: Tile["kind"]): HTMLElement {
+    return h(
+      "button",
+      { class: `zheus-tile ghost ${kind}`, title: t("Share it with Zheus in Settings → Mochi's home"), onclick: () => actions.openSettingsWindow() },
+      h(
+        "span",
+        { class: "zheus-tile-head" },
+        h("span", { class: "zheus-tile-icon" }, svg(TILE_ICONS[kind], 15, { stroke: 1.7 })),
+        h("span", { class: "zheus-ghost-plus" }, svg(ICONS.plus, 10)),
+      ),
+      h("span", { class: "zheus-tile-title", text: kind === "light" ? t("Lights") : kindLabel(kind) }),
+      h("span", { class: "zheus-tile-line", text: t("Not shared yet") }),
     );
   }
 
@@ -141,7 +180,8 @@ export function buildZheus(actions: ViewActions): ViewHost {
       );
       return;
     }
-    main.replaceChildren(h("div", { class: "zheus-tiles" }, ...list.map(tileEl)));
+    const shown = new Set(list.map((x) => x.kind));
+    main.replaceChildren(h("div", { class: "zheus-tiles" }, ...list.map(tileEl), ...TILE_KINDS.filter((k) => !shown.has(k)).map(ghostEl)));
   }
 
   // ── A plan: waiting for Approve, or running ──
