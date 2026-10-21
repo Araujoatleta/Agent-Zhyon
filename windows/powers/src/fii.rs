@@ -413,7 +413,8 @@ pub fn report_for_model(r: &FundReport) -> String {
             facts.push(format!("yield {} a year at the pace of the last {} months known", pct(x, 1), r.yield_months));
         }
     }
-    if let Some(x) = r.dy_month {
+    // Some funds leave the month's DY at zero in their report while they pay: then it says nothing.
+    if let Some(x) = r.dy_month.filter(|x| *x > 0.0) {
         facts.push(format!("DY reported for the month {}", pct(x, 2)));
     }
     if let Some(x) = r.holders {
