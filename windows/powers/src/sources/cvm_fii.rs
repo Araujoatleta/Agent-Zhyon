@@ -181,7 +181,8 @@ pub fn parse(general: Option<&str>, complement: Option<&str>, balance: Option<&s
         let real_estate = t.find(&["direitos_bens_imoveis"]);
         let buildings = columns(&["terrenos", "imoveis_renda_acabados", "imoveis_renda_construcao", "imoveis_venda_acabados", "imoveis_venda_construcao", "outros_direitos_reais"]);
         let companies = columns(&["acoes_sociedades_atividades_fii", "cotas_sociedades_atividades_fii"]);
-        let receivables = columns(&["cri", "lci", "letras_hipotecarias", "lig"]);
+        // Since 2025 the CVM writes CRI_CRA and LCI_LCA, and leaves the old CRI and LCI empty: both are read.
+        let receivables = columns(&["cri", "cri_cra", "lci", "lci_lca", "letras_hipotecarias", "lig"]);
         let funds = columns(&["fii"]);
         let invested = t.find(&["total_investido"]);
         for ((cnpj, date), row) in latest(&t) {
@@ -232,8 +233,8 @@ pub fn parse_zip(bytes: &[u8], wanted: &[String]) -> Result<Vec<FiiMonth>, Strin
 pub fn cnpj_by_root(months: &[FiiMonth]) -> HashMap<String, String> {
     let mut out = HashMap::new();
     for m in months {
-        if m.isin.len() >= 6 && m.isin.starts_with("BR") {
-            out.insert(m.isin[2..6].to_string(), m.cnpj.clone());
+        if let Some(root) = m.isin.strip_prefix("BR").and_then(|rest| rest.get(..4)) {
+            out.insert(root.to_string(), m.cnpj.clone());
         }
     }
     out
@@ -300,9 +301,9 @@ pub mod fixtures {
     }
 
     pub fn balance() -> String {
-        "CNPJ_Fundo_Classe;Data_Referencia;Versao;Total_Necessidades_Liquidez;Disponibilidades;Total_Investido;Direitos_Bens_Imoveis;Terrenos;Imoveis_Renda_Acabados;FII;CRI;LCI;Rendimentos_Distribuir;Total_Passivo\n\
-         11.111.111/0001-11;2026-09-01;1;450000;20000;9000000;8500000;500000;8000000;300000;200000;0;91000;300000\n\
-         22.222.222/0001-22;2026-09-01;1;600000;10000;17500000;0;0;0;1500000;15500000;500000;120000;400000\n"
+        "CNPJ_Fundo_Classe;Data_Referencia;Versao;Total_Necessidades_Liquidez;Disponibilidades;Total_Investido;Direitos_Bens_Imoveis;Terrenos;Imoveis_Renda_Acabados;FII;CRI;CRI_CRA;LCI;LCI_LCA;Rendimentos_Distribuir;Total_Passivo\n\
+         11.111.111/0001-11;2026-09-01;1;450000;20000;9000000;8500000;500000;8000000;300000;;200000;;0;91000;300000\n\
+         22.222.222/0001-22;2026-09-01;1;600000;10000;17500000;0;0;0;1500000;;15500000;;500000;120000;400000\n"
             .to_string()
     }
 }
@@ -343,6 +344,9 @@ mod tests {
         assert_eq!(sep.in_buildings, Some(8_500_000.0), "the total of the real estate, not added twice");
         assert_eq!(sep.in_receivables, Some(200_000.0));
         assert_eq!(subtype_from_assets(sep), Some("tijolo"));
+        let btci = months.iter().find(|m| m.cnpj == "22222222000122").unwrap();
+        assert_eq!(btci.in_receivables, Some(16_000_000.0), "CRI_CRA and LCI_LCA, as the CVM writes them now");
+        assert_eq!(subtype_from_assets(btci), Some("papel"));
         // As the CVM writes it since 2025: no mandate, the segment "Multicategoria"; a fund of CRI is still paper.
         let mut m = FiiMonth { segment: "Multicategoria".into(), invested: Some(100.0), in_receivables: Some(88.0), in_funds: Some(7.0), ..FiiMonth::default() };
         assert_eq!(subtype(&m), "papel");

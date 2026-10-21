@@ -9,9 +9,12 @@ license = "MIT"
 
 # Release profile shared by the app and the hook relay: the hook must start fast
 # (Claude Code spawns it on every event), so we optimise for size and speed.
+# Panics unwind: one in a background task (a reading, a watchdog) ends that
+# task, where "abort" closed the whole app without a word (src-tauri/src/crash.rs
+# writes each one down).
 [profile.release]
 opt-level = "s"
 lto = true
 codegen-units = 1
-panic = "abort"
+panic = "unwind"
 strip = true

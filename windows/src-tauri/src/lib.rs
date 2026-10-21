@@ -7,6 +7,7 @@ mod chat;
 mod claude;
 mod codex_plan;
 mod config_file;
+mod crash;
 mod desktop;
 mod files;
 mod first_run;
@@ -753,6 +754,7 @@ fn open_settings_window(app: AppHandle) {
 }
 
 pub fn run() {
+    crash::install();
     platform::prepare_environment();
     let loaded = settings::load();
     i18n::set_picked(&loaded.language);

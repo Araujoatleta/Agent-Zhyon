@@ -209,13 +209,13 @@ pub async fn refresh(app: &AppHandle, force: bool) -> RefreshState {
     let powers = app.state::<Powers>();
     let _turn = powers.turn.lock().await;
     let (today, evening) = (today(), evening());
-    let (store, market) = (powers.store.lock().unwrap().clone(), powers.market.lock().unwrap().clone());
+    let (store, market) = (held(&powers.store).clone(), held(&powers.market).clone());
     let due = refresh::due(&store, &market, today, evening, force);
-    let companies = companies_due(&store, &market, today, &powers.failed.lock().unwrap());
+    let companies = companies_due(&store, &market, today, &held(&powers.failed));
     if due.quotes.is_empty() && due.funds.is_empty() && !due.fund_months && !due.economy && companies.is_empty() {
-        return powers.state.lock().unwrap().clone();
+        return held(&powers.state).clone();
     }
-    powers.state.lock().unwrap().running = true;
+    held(&powers.state).running = true;
     changed(app);
     let mut problems = Vec::new();
     if !due.quotes.is_empty() {
@@ -227,7 +227,7 @@ pub async fn refresh(app: &AppHandle, force: bool) -> RefreshState {
                 if !quotes.is_empty() && !missing.is_empty() {
                     problems.push(format!("B3 has no quote for {}", missing.join(", ")));
                 }
-                refresh::merge_quotes(&mut powers.market.lock().unwrap(), day, quotes);
+                refresh::merge_quotes(&mut held(&powers.market), day, quotes);
             }
             Err(e) => problems.push(e),
         }
@@ -235,7 +235,7 @@ pub async fn refresh(app: &AppHandle, force: bool) -> RefreshState {
     if due.economy {
         match sources::economy(&powers.http).await {
             Ok(economy) => {
-                let mut m = powers.market.lock().unwrap();
+                let mut m = held(&powers.market);
                 m.economy = economy;
                 m.economy_read = Some(today);
             }
@@ -244,30 +244,30 @@ pub async fn refresh(app: &AppHandle, force: bool) -> RefreshState {
     }
     if due.fund_months || !due.funds.is_empty() {
         // The documents of the funds due; the CVM's months for all of them when those are due.
-        let held = store.portfolio.tickers(Some(AssetClass::Fii));
-        let read = refresh::funds(&powers.http, &due.funds, &market.fund_cnpjs, &store.fund_cnpjs, due.fund_months.then_some(held.as_slice()), &refresh::known_documents(&market), today).await;
+        let mine = store.portfolio.tickers(Some(AssetClass::Fii));
+        let read = refresh::funds(&powers.http, &due.funds, &market.fund_cnpjs, &store.fund_cnpjs, due.fund_months.then_some(mine.as_slice()), &refresh::known_documents(&market), today).await;
         problems.extend(read.errors.iter().cloned());
-        refresh::merge_funds(&mut powers.market.lock().unwrap(), read, today);
+        refresh::merge_funds(&mut held(&powers.market), read, today);
     }
     for ticker in companies {
-        let known = powers.market.lock().unwrap().company_cnpjs.clone();
+        let known = held(&powers.market).company_cnpjs.clone();
         match refresh::company(&powers.http, &ticker, &known, today).await {
             Ok((company, register)) => {
-                let mut m = powers.market.lock().unwrap();
+                let mut m = held(&powers.market);
                 if let Some(register) = register {
                     m.company_cnpjs.extend(register);
                 }
                 m.companies.insert(ticker, company);
             }
             Err(e) => {
-                powers.failed.lock().unwrap().push((ticker.clone(), today));
+                held(&powers.failed).push((ticker.clone(), today));
                 problems.push(format!("{ticker}: {e}"));
             }
         }
     }
     {
-        let mut store = powers.store.lock().unwrap();
-        let market = powers.market.lock().unwrap();
+        let mut store = held(&powers.store);
+        let market = held(&powers.market);
         let fixed = refresh::fix_classes(&mut store, &market);
         if !fixed.is_empty() {
             log::line(format!("powers: classes set from the sources for {}", fixed.join(", ")));
@@ -278,7 +278,7 @@ pub async fn refresh(app: &AppHandle, force: bool) -> RefreshState {
     }
     let state = RefreshState { running: false, at: Some(clock_now()), problems };
     log::line(format!("powers: sources read{}", if state.problems.is_empty() { String::new() } else { format!(", {} problem(s)", state.problems.len()) }));
-    *powers.state.lock().unwrap() = state.clone();
+    *held(&powers.state) = state.clone();
     changed(app);
     state
 }
@@ -301,19 +301,19 @@ async fn ensure_asset(app: &AppHandle, ticker: &str) {
         let powers = reading.state::<Powers>();
         let _turn = powers.turn.lock().await;
         let today = today();
-        let market = powers.market.lock().unwrap().clone();
+        let market = held(&powers.market).clone();
         if !market.quotes.contains_key(&ticker) {
             if let Ok((day, quotes)) = sources::quotes(&powers.http, today, evening(), std::slice::from_ref(&ticker), None).await {
-                refresh::merge_quotes(&mut powers.market.lock().unwrap(), day, quotes);
+                refresh::merge_quotes(&mut held(&powers.market), day, quotes);
             }
         }
-        let kind = powers.market.lock().unwrap().quotes.get(&ticker).map(|q| sources::b3::kind_of(q)).unwrap_or("");
+        let kind = held(&powers.market).quotes.get(&ticker).map(|q| sources::b3::kind_of(q)).unwrap_or("");
         let have = market.funds.get(&ticker);
         if ticker.ends_with("11") && kind != "etf" && kind != "acao" {
             // A fund: its months come from the CVM's yearly reports (read for the user's own funds too, as the files
             // are the same), its documents and dividends from FundosNet. Once a day, or at once under a CNPJ the user
             // just gave.
-            let store = powers.store.lock().unwrap().clone();
+            let store = held(&powers.store).clone();
             let given = refresh::cnpj_changed(&store, &market, &ticker);
             let read_today = !given && have.and_then(|f| f.checked) == Some(today);
             let months = given || (!read_today && have.is_none_or(|f| f.months.is_empty()));
@@ -321,18 +321,18 @@ async fn ensure_asset(app: &AppHandle, ticker: &str) {
                 let mut all = vec![ticker.clone()];
                 all.extend(store.portfolio.tickers(Some(AssetClass::Fii)).into_iter().filter(|t| *t != ticker));
                 let read = refresh::funds(&powers.http, std::slice::from_ref(&ticker), &market.fund_cnpjs, &store.fund_cnpjs, months.then_some(all.as_slice()), &refresh::known_documents(&market), today).await;
-                refresh::merge_funds(&mut powers.market.lock().unwrap(), read, today);
+                refresh::merge_funds(&mut held(&powers.market), read, today);
             }
         } else if kind != "etf" && kind != "bdr" && market.companies.get(&ticker).and_then(|c| c.checked).is_none_or(|d| d.until(today) >= 30) {
             if let Ok((company, register)) = refresh::company(&powers.http, &ticker, &market.company_cnpjs, today).await {
-                let mut m = powers.market.lock().unwrap();
+                let mut m = held(&powers.market);
                 if let Some(register) = register {
                     m.company_cnpjs.extend(register);
                 }
                 m.companies.insert(ticker.clone(), company);
             }
         }
-        save_market(&powers.market.lock().unwrap());
+        save_market(&held(&powers.market));
     });
     let _ = tokio::time::timeout(ASSET_BUDGET, job).await;
 }
@@ -352,8 +352,19 @@ pub fn start(app: &AppHandle) {
                 log::line("powers: resting");
                 return;
             }
-            refresh(&app, false).await;
-            brief(&app);
+            // Each round in a task of its own: one that stops on something unexpected (written down by crash.rs)
+            // ends that round only, and the next comes half an hour later as usual.
+            let round = app.clone();
+            if tauri::async_runtime::spawn(async move {
+                refresh(&round, false).await;
+                brief(&round);
+            })
+            .await
+            .is_err()
+            {
+                held(&app.state::<Powers>().state).running = false;
+                log::line("powers: a reading stopped on a panic; the next one is in half an hour");
+            }
             tokio::time::sleep(EVERY).await;
         }
     });
@@ -368,11 +379,11 @@ fn brief(app: &AppHandle) {
     }
     let day_key = today().to_string();
     let powers = app.state::<Powers>();
-    if *powers.briefed.lock().unwrap() == day_key {
+    if *held(&powers.briefed) == day_key {
         return;
     }
     let lines = read(app, |s, m| engine::day_plan(s, m, today()).items.iter().map(line).collect::<Vec<_>>());
-    *powers.briefed.lock().unwrap() = day_key;
+    *held(&powers.briefed) = day_key;
     if lines.is_empty() {
         return;
     }
@@ -381,18 +392,24 @@ fn brief(app: &AppHandle) {
 
 // ── The user's data, briefly held ─────────────────────────────────────────────
 
+/// One of the superpowers' locks, taken even if a panic elsewhere left it poisoned: what it holds is plain data, still
+/// whole, and a refused lock would only turn one stopped task into many.
+fn held<T>(lock: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
+    lock.lock().unwrap_or_else(std::sync::PoisonError::into_inner)
+}
+
 fn read<R>(app: &AppHandle, f: impl FnOnce(&Store, &Market) -> R) -> R {
     let powers = app.state::<Powers>();
-    let store = powers.store.lock().unwrap();
-    let market = powers.market.lock().unwrap();
+    let store = held(&powers.store);
+    let market = held(&powers.market);
     f(&store, &market)
 }
 
 /// A change to the user's data, saved at once.
 fn change<R>(app: &AppHandle, f: impl FnOnce(&mut Store, &Market) -> R) -> R {
     let powers = app.state::<Powers>();
-    let mut store = powers.store.lock().unwrap();
-    let market = powers.market.lock().unwrap();
+    let mut store = held(&powers.store);
+    let market = held(&powers.market);
     let out = f(&mut store, &market);
     save_store(&store);
     out
@@ -734,7 +751,7 @@ pub fn view(app: &AppHandle) -> View {
         summary,
         today: today_lines,
         alerts,
-        refresh: app.state::<Powers>().state.lock().unwrap().clone(),
+        refresh: held(&app.state::<Powers>().state).clone(),
         profile,
         hermes: hermes_state(app),
         command: settings::hook_exe_path().to_string_lossy().to_string(),
