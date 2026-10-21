@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::date::Date;
 use crate::table::Table;
-use crate::text::{decode, num};
+use crate::text::{cnpj_chars, decode, num};
 
 /// Where a year's reports are.
 pub fn url(year: i32) -> String {
@@ -47,10 +47,12 @@ pub struct FiiMonth {
     /// Cash and liquid assets, R$.
     pub cash: Option<f64>,
     pub total_assets: Option<f64>,
-}
-
-pub fn digits(s: &str) -> String {
-    s.chars().filter(|c| c.is_ascii_digit()).collect()
+    /// What it invests in, R$ (the assets table): buildings and land, and the companies that hold them; receivables
+    /// (CRI, LCI, mortgage bills); other funds' shares; and all it has invested.
+    pub in_buildings: Option<f64>,
+    pub in_receivables: Option<f64>,
+    pub in_funds: Option<f64>,
+    pub invested: Option<f64>,
 }
 
 /// A column of percentages, read as percents: multiplied by 100 when most of its values are fractions.
@@ -79,7 +81,7 @@ fn latest<'a>(t: &'a Table) -> HashMap<Key, &'a Vec<String>> {
     let (c, d, v) = versions(t);
     let mut out: HashMap<Key, (&Vec<String>, f64)> = HashMap::new();
     for row in &t.rows {
-        let cnpj = digits(Table::cell(row, c));
+        let cnpj = cnpj_chars(Table::cell(row, c));
         let Some(date) = Date::parse(Table::cell(row, d)) else { continue };
         if cnpj.is_empty() {
             continue;
@@ -174,13 +176,36 @@ pub fn parse(general: Option<&str>, complement: Option<&str>, balance: Option<&s
         let to_distribute = t.find(&["rendimentos_distribuir", "rendimentos_a_distribuir"]);
         let cash = t.find(&["disponibilidades"]);
         let liquid = t.find(&["total_necessidades_liquidez"]);
+        let columns = |names: &[&str]| -> Vec<usize> { names.iter().filter_map(|n| t.find(&[n])).collect() };
+        // "Direitos reais sobre bens imóveis" is the total of the lines below it: the larger of the two is kept.
+        let real_estate = t.find(&["direitos_bens_imoveis"]);
+        let buildings = columns(&["terrenos", "imoveis_renda_acabados", "imoveis_renda_construcao", "imoveis_venda_acabados", "imoveis_venda_construcao", "outros_direitos_reais"]);
+        let companies = columns(&["acoes_sociedades_atividades_fii", "cotas_sociedades_atividades_fii"]);
+        let receivables = columns(&["cri", "lci", "letras_hipotecarias", "lig"]);
+        let funds = columns(&["fii"]);
+        let invested = t.find(&["total_investido"]);
         for ((cnpj, date), row) in latest(&t) {
             if !keep(&cnpj) {
                 continue;
             }
+            let sum = |cols: &[usize]| -> Option<f64> {
+                let values: Vec<f64> = cols.iter().filter_map(|c| num(Table::cell(row, Some(*c)))).collect();
+                (!values.is_empty()).then(|| values.iter().sum())
+            };
             let m = months.entry((cnpj.clone(), date)).or_insert_with(|| FiiMonth { cnpj, date, ..FiiMonth::default() });
             m.to_distribute = num(Table::cell(row, to_distribute));
             m.cash = num(Table::cell(row, liquid)).or_else(|| num(Table::cell(row, cash)));
+            let land = match (num(Table::cell(row, real_estate)), sum(&buildings)) {
+                (Some(a), Some(b)) => Some(a.max(b)),
+                (a, b) => a.or(b),
+            };
+            m.in_buildings = match (land, sum(&companies)) {
+                (Some(a), Some(b)) => Some(a + b),
+                (a, b) => a.or(b),
+            };
+            m.in_receivables = sum(&receivables);
+            m.in_funds = sum(&funds);
+            m.invested = num(Table::cell(row, invested));
         }
     }
     let mut out: Vec<FiiMonth> = months.into_values().collect();
@@ -214,9 +239,33 @@ pub fn cnpj_by_root(months: &[FiiMonth]) -> HashMap<String, String> {
     out
 }
 
+/// "papel", "tijolo", "fof" or "hibrido" from what the fund holds, when its assets table says: 60 % or more of what
+/// it invests in receivables, in buildings or in other funds; a mix of them otherwise.
+pub fn subtype_from_assets(m: &FiiMonth) -> Option<&'static str> {
+    let (b, r, f) = (m.in_buildings.unwrap_or(0.0).max(0.0), m.in_receivables.unwrap_or(0.0).max(0.0), m.in_funds.unwrap_or(0.0).max(0.0));
+    let known = b + r + f;
+    let total = m.invested.unwrap_or(0.0).max(known);
+    // Most of what it invests must be one of the three, or the table does not tell.
+    if total <= 0.0 || known < total / 2.0 {
+        return None;
+    }
+    Some(if r >= 0.6 * total {
+        "papel"
+    } else if b >= 0.6 * total {
+        "tijolo"
+    } else if f >= 0.6 * total {
+        "fof"
+    } else {
+        "hibrido"
+    })
+}
+
 /// "papel" (receivables: CRI and other securities), "tijolo" (buildings), "fof" (funds of funds), "hibrido", or ""
-/// — from the fund's own mandate and segment.
+/// — from what the fund holds, or else its own mandate and segment (since 2025 most say only "Multicategoria").
 pub fn subtype(m: &FiiMonth) -> &'static str {
+    if let Some(kind) = subtype_from_assets(m) {
+        return kind;
+    }
     let seg = crate::text::plain(&m.segment);
     let man = crate::text::plain(&m.mandate);
     if seg.contains("titulo") || seg.contains("val mob") || seg.contains("recebiveis") || man.contains("titulos") {
@@ -255,8 +304,9 @@ pub mod fixtures {
     }
 
     pub fn balance() -> String {
-        "CNPJ_Fundo_Classe;Data_Referencia;Versao;Total_Necessidades_Liquidez;Disponibilidades;Rendimentos_Distribuir;Total_Passivo\n\
-         11.111.111/0001-11;2026-09-01;1;450000;20000;91000;300000\n"
+        "CNPJ_Fundo_Classe;Data_Referencia;Versao;Total_Necessidades_Liquidez;Disponibilidades;Total_Investido;Direitos_Bens_Imoveis;Terrenos;Imoveis_Renda_Acabados;FII;CRI;LCI;Rendimentos_Distribuir;Total_Passivo\n\
+         11.111.111/0001-11;2026-09-01;1;450000;20000;9000000;8500000;500000;8000000;300000;200000;0;91000;300000\n\
+         22.222.222/0001-22;2026-09-01;1;600000;10000;17500000;0;0;0;1500000;15500000;500000;120000;400000\n"
             .to_string()
     }
 }
@@ -288,6 +338,30 @@ mod tests {
         assert_eq!(roots["BTCI"], "22222222000122");
         let only = parse(Some(&fixtures::general()), Some(&fixtures::complement()), None, &["22222222000122".into()]);
         assert_eq!(only.len(), 1);
+    }
+
+    #[test]
+    fn the_kind_of_fund_comes_from_what_it_holds() {
+        let months = parse(Some(&fixtures::general()), None, Some(&fixtures::balance()), &[]);
+        let sep = months.iter().find(|m| m.cnpj == "11111111000111" && m.date.m == 9).unwrap();
+        assert_eq!(sep.in_buildings, Some(8_500_000.0), "the total of the real estate, not added twice");
+        assert_eq!(sep.in_receivables, Some(200_000.0));
+        assert_eq!(subtype_from_assets(sep), Some("tijolo"));
+        // As the CVM writes it since 2025: no mandate, the segment "Multicategoria"; a fund of CRI is still paper.
+        let mut m = FiiMonth { segment: "Multicategoria".into(), invested: Some(100.0), in_receivables: Some(88.0), in_funds: Some(7.0), ..FiiMonth::default() };
+        assert_eq!(subtype(&m), "papel");
+        m.in_receivables = Some(45.0);
+        m.in_buildings = Some(48.0);
+        assert_eq!(subtype(&m), "hibrido");
+        m = FiiMonth { segment: "Multicategoria".into(), invested: Some(100.0), in_funds: Some(92.0), ..FiiMonth::default() };
+        assert_eq!(subtype(&m), "fof");
+        // Without the assets table, or with most of it elsewhere (shares, FIDCs), the segment and mandate decide.
+        m = FiiMonth { segment: "Multicategoria".into(), ..FiiMonth::default() };
+        assert_eq!(subtype_from_assets(&m), None);
+        assert_eq!(subtype(&m), "tijolo");
+        m.invested = Some(100.0);
+        m.in_receivables = Some(30.0);
+        assert_eq!(subtype_from_assets(&m), None);
     }
 
     #[test]

@@ -129,7 +129,8 @@ pub fn report(fund: &FundData, price: Option<f64>, economy: &Macro, today: Date)
     let kind = info.map(|m| subtype(m).to_string()).unwrap_or_default();
     let mut r = FundReport {
         ticker: fund.ticker.clone(),
-        name: info.map(|m| m.name.clone()).unwrap_or_default(),
+        // A fund the CVM's reports do not list (read under the CNPJ the user gave): its name from FundosNet.
+        name: info.map(|m| m.name.clone()).filter(|n| !n.is_empty()).or_else(|| fund.documents.iter().map(|d| d.fund.clone()).find(|n| !n.is_empty())).unwrap_or_default(),
         cnpj: fund.cnpj.clone(),
         kind: kind.clone(),
         segment: info.map(|m| m.segment.clone()).unwrap_or_default(),
@@ -578,6 +579,8 @@ mod tests {
             info: String::new(),
             topic,
             structured: false,
+            fund: String::new(),
+            trading: String::new(),
         };
         f.documents = vec![
             doc(1, Topic::Assembly, "Assembleia", "10/11/2026", "2026-10-10"),

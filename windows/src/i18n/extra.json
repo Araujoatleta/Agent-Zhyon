@@ -11704,6 +11704,17 @@
    "pt-BR": "Nenhum ativo pôde ser lido: cada linha precisa do ticker e da quantidade, e do preço médio.",
    "ru": "Не удалось прочитать ни одной позиции: в каждой строке нужен тикер и количество, а также средняя цена.",
    "id": "Tidak ada posisi yang bisa dibaca: tiap baris butuh ticker dan jumlah, serta harga rata-rata."
+  },
+  "{ticker}: tell Zheus its fund's CNPJ": {
+   "zh-Hans": "{ticker}：请告诉 Zheus 这只基金的 CNPJ",
+   "hi": "{ticker}: Zheus को इस फ़ंड का CNPJ बताएँ",
+   "es": "{ticker}: dile a Zheus el CNPJ del fondo",
+   "ar": "{ticker}: أخبر Zheus برقم CNPJ الخاص بالصندوق",
+   "fr": "{ticker} : donnez à Zheus le CNPJ du fonds",
+   "bn": "{ticker}: Zheus-কে ফান্ডটির CNPJ জানান",
+   "pt-BR": "{ticker}: informe ao Zheus o CNPJ do fundo",
+   "ru": "{ticker}: сообщите Zheus CNPJ фонда",
+   "id": "{ticker}: beri tahu Zheus CNPJ dana ini"
   }
  }
 }

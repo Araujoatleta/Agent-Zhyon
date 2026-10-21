@@ -477,6 +477,9 @@ pub struct Store {
     pub workouts: Vec<Workout>,
     pub wellness: Vec<Wellness>,
     pub content: ContentPrefs,
+    /// Ticker roots to the CNPJ of their fund, as the user (or Zheus' brain) gave it: for the funds the CVM's reports
+    /// list without the ISIN of their shares. It wins over what Coucou learned.
+    pub fund_cnpjs: BTreeMap<String, String>,
 }
 
 /// A fund as Zheus read it.
@@ -520,7 +523,7 @@ pub struct Market {
     pub quotes: BTreeMap<String, Quote>,
     pub quotes_day: Option<Date>,
     pub funds: BTreeMap<String, FundData>,
-    /// Ticker roots to fund CNPJs (from the CVM's reports).
+    /// Ticker roots to fund CNPJs (from the CVM's reports, or B3's register of funds).
     pub fund_cnpjs: BTreeMap<String, String>,
     pub funds_read: Option<Date>,
     pub companies: BTreeMap<String, CompanyData>,

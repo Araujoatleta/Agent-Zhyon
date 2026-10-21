@@ -12,7 +12,6 @@ use crate::date::Date;
 use crate::table::Table;
 use crate::text::{num, plain};
 
-use super::cvm_fii::digits;
 
 /// "dfp" (yearly) or "itr" (quarterly).
 pub fn url(kind: &str, year: i32) -> String {
@@ -63,7 +62,7 @@ pub fn parse_accounts(text: &str, wanted: &[String]) -> Vec<Account> {
     let mut version: HashMap<(String, Date), f64> = HashMap::new();
     let mut kept = Vec::new();
     for row in &t.rows {
-        let cnpj = digits(Table::cell(row, c_cnpj));
+        let cnpj = crate::text::cnpj_chars(Table::cell(row, c_cnpj));
         if !wanted.is_empty() && !wanted.contains(&cnpj) {
             continue;
         }
@@ -193,7 +192,7 @@ pub fn tickers(text: &str) -> HashMap<String, (String, String)> {
     let c_name = t.find(&["nome_empresarial", "denom_social", "nome"]);
     let mut out = HashMap::new();
     for row in &t.rows {
-        let cnpj = digits(Table::cell(row, c_cnpj));
+        let cnpj = crate::text::cnpj_chars(Table::cell(row, c_cnpj));
         if cnpj.is_empty() {
             continue;
         }

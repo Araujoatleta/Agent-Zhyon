@@ -169,15 +169,19 @@ pub fn kit(store: &Store, end: Date) -> (Vec<File>, String) {
     let months = monthly(&store.snapshots, end);
     if let (Some(first), Some(last)) = (months.first(), months.last()) {
         let base = first.value.max(1e-9);
-        let points: Vec<(String, f64)> = months.iter().map(|s| (month_label(s.date), if private { s.value / base * 100.0 } else { s.value })).collect();
-        let growth = (last.value / base - 1.0) * 100.0;
-        let subtitle = if private { format!("Índice (início = 100) · {} no período", pct(growth, 1)) } else { format!("{} no período", pct(growth, 1)) };
-        files.push(File {
-            name: "1-patrimonio.svg".into(),
-            svg: line_chart(&format!("Minha carteira até {label}"), &subtitle, &points, |v| if private { grouped(v, 1) } else { brl(v) }),
-            about: "The portfolio's growth, month by month.".into(),
-        });
-        facts.push(format!("Portfolio growth since {}: {}{}", month_label(first.date), pct(growth, 1), if private { String::new() } else { format!(" ({} → {})", brl(first.value), brl(last.value)) }));
+        if months.len() >= 2 {
+            let points: Vec<(String, f64)> = months.iter().map(|s| (month_label(s.date), if private { s.value / base * 100.0 } else { s.value })).collect();
+            let growth = (last.value / base - 1.0) * 100.0;
+            let subtitle = if private { format!("Índice (início = 100) · {} no período", pct(growth, 1)) } else { format!("{} no período", pct(growth, 1)) };
+            files.push(File {
+                name: "1-patrimonio.svg".into(),
+                svg: line_chart(&format!("Minha carteira até {label}"), &subtitle, &points, |v| if private { grouped(v, 1) } else { brl(v) }),
+                about: "The portfolio's growth, month by month.".into(),
+            });
+            facts.push(format!("Portfolio growth since {}: {}{}", month_label(first.date), pct(growth, 1), if private { String::new() } else { format!(" ({} → {})", brl(first.value), brl(last.value)) }));
+        } else {
+            facts.push("This is the first month Coucou follows the portfolio: its growth shows from next month's kit (do not make one up).".into());
+        }
         let incomes: Vec<(String, f64)> = months.iter().filter(|s| s.income > 0.0).map(|s| (month_label(s.date), s.income)).collect();
         if incomes.len() >= 2 {
             let base = incomes[0].1.max(1e-9);
@@ -302,5 +306,10 @@ mod tests {
         let (files, _) = kit(&store, end);
         assert!(files[0].svg.contains("R$ 6.489,60"));
         assert!(kit(&Store::default(), end).1.contains("Not enough"));
+        // The first month followed: no growth to show yet, the allocation is.
+        store.snapshots.drain(..3);
+        let (files, brief) = kit(&store, end);
+        assert_eq!(files[0].name, "3-alocacao.svg");
+        assert!(brief.contains("first month") && !brief.contains("Portfolio growth"), "{brief}");
     }
 }

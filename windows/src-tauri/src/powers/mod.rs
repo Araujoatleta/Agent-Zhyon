@@ -244,7 +244,7 @@ pub async fn refresh(app: &AppHandle, force: bool) -> RefreshState {
     }
     if due.fund_months || !due.funds.is_empty() {
         let tickers = if due.fund_months { store.portfolio.tickers(Some(AssetClass::Fii)) } else { due.funds.clone() };
-        let read = refresh::funds(&powers.http, &tickers, &market.fund_cnpjs, due.fund_months, &refresh::known_documents(&market), today).await;
+        let read = refresh::funds(&powers.http, &tickers, &market.fund_cnpjs, &store.fund_cnpjs, due.fund_months, &refresh::known_documents(&market), today).await;
         problems.extend(read.errors.iter().cloned());
         refresh::merge_funds(&mut powers.market.lock().unwrap(), read, today);
     }
@@ -310,15 +310,18 @@ async fn ensure_asset(app: &AppHandle, ticker: &str) {
         let have = market.funds.get(&ticker);
         if ticker.ends_with("11") && kind != "etf" && kind != "acao" {
             // A fund: its months come from the CVM's yearly reports (read for the user's own funds too, as the files
-            // are the same), its documents and dividends from FundosNet.
-            let months = have.is_none_or(|f| f.months.is_empty());
-            if months || have.and_then(|f| f.checked) != Some(today) {
-                let store = powers.store.lock().unwrap().clone();
+            // are the same), its documents and dividends from FundosNet. Once a day, or at once under a CNPJ the user
+            // just gave.
+            let store = powers.store.lock().unwrap().clone();
+            let given = refresh::cnpj_changed(&store, &market, &ticker);
+            let read_today = !given && have.and_then(|f| f.checked) == Some(today);
+            let months = given || (!read_today && have.is_none_or(|f| f.months.is_empty()));
+            if months || !read_today {
                 let mut tickers = vec![ticker.clone()];
                 if months {
                     tickers.extend(store.portfolio.tickers(Some(AssetClass::Fii)).into_iter().filter(|t| *t != ticker));
                 }
-                let read = refresh::funds(&powers.http, &tickers, &market.fund_cnpjs, months, &refresh::known_documents(&market), today).await;
+                let read = refresh::funds(&powers.http, &tickers, &market.fund_cnpjs, &store.fund_cnpjs, months, &refresh::known_documents(&market), today).await;
                 refresh::merge_funds(&mut powers.market.lock().unwrap(), read, today);
             }
         } else if kind != "etf" && kind != "bdr" && market.companies.get(&ticker).and_then(|c| c.checked).is_none_or(|d| d.until(today) >= 30) {
@@ -460,7 +463,12 @@ pub async fn call(app: &AppHandle, tool: &str, input: &Value) -> HomeResult {
                 Ok(note) => {
                     // The new tickers' quotes and funds, so the portfolio below is priced.
                     fresh(app, READ_BUDGET).await;
-                    answer(format!("{note}\n\nThe portfolio now:\n{}", read(app, |s, m| engine::portfolio(s, m, today))))
+                    let mut text = format!("{note}\n\nThe portfolio now:\n{}", read(app, |s, m| engine::portfolio(s, m, today)));
+                    // A fund whose CNPJ was just given: what was read under it, its name first, for the user to check.
+                    for t in input["fund_cnpjs"].as_object().into_iter().flat_map(|o| o.keys()).filter_map(|k| coucou_powers::text::ticker(k)) {
+                        text.push_str(&format!("\n\n{}", read(app, |s, m| engine::funds(s, m, Some(&t), today))));
+                    }
+                    answer(text)
                 }
                 Err(e) => refused(e),
             }
@@ -672,6 +680,7 @@ pub fn line(item: &Item) -> String {
 fn alert_line(a: &Alert) -> String {
     match a.kind.as_str() {
         "fund" => tf("{ticker}: its dividend is at risk", &[("ticker", &a.ticker)]),
+        "cnpj" => tf("{ticker}: tell Zheus its fund's CNPJ", &[("ticker", &a.ticker)]),
         _ => tf("{ticker}: {count} condition(s) of your thesis broke", &[("ticker", &a.ticker), ("count", &a.count.to_string())]),
     }
 }
@@ -965,6 +974,8 @@ mod tests {
         assert_eq!(line(&item("something new", &[])), "the title", "an unknown code says its title");
         let a = Alert { kind: "thesis".into(), ticker: "TIMS3".into(), count: 2, text: String::new(), urgent: false };
         assert_eq!(alert_line(&a), "TIMS3: 2 condition(s) of your thesis broke");
+        let a = Alert { kind: "cnpj".into(), ticker: "BTCI11".into(), count: 0, text: String::new(), urgent: false };
+        assert_eq!(alert_line(&a), "BTCI11: tell Zheus its fund's CNPJ");
     }
 
     #[test]

@@ -185,6 +185,41 @@ pub fn clip(s: &str, max: usize) -> String {
     format!("{}…", cut.trim_end_matches([',', ';', '.', ' ']))
 }
 
+/// A CNPJ as its 14 characters, without dots, slash and dash: digits, and since July 2026 letters too in the first
+/// twelve (the alphanumeric CNPJ).
+pub fn cnpj_chars(s: &str) -> String {
+    s.chars().filter(char::is_ascii_alphanumeric).map(|c| c.to_ascii_uppercase()).collect()
+}
+
+/// A CNPJ the user or the brain typed, checked by its two check digits (a character counts its ASCII code minus 48,
+/// as the Receita defines it for the alphanumeric CNPJ; for digits, the old rule).
+pub fn cnpj(s: &str) -> Result<String, String> {
+    let c = cnpj_chars(s);
+    let wrong = || format!("\"{}\" is not a valid CNPJ (14 characters, like 00.000.000/0000-00, with their check digits).", s.trim());
+    if c.len() != 14 || !c[12..].bytes().all(|b| b.is_ascii_digit()) || c.bytes().all(|b| b == c.as_bytes()[0]) {
+        return Err(wrong());
+    }
+    let check = |part: &[u8]| -> u8 {
+        let sum: u32 = part.iter().rev().enumerate().map(|(i, b)| (*b as u32 - 48) * (i as u32 % 8 + 2)).sum();
+        let r = sum % 11;
+        if r < 2 { b'0' } else { b'0' + (11 - r) as u8 }
+    };
+    let b = c.as_bytes();
+    if check(&b[..12]) == b[12] && check(&b[..13]) == b[13] {
+        Ok(c)
+    } else {
+        Err(wrong())
+    }
+}
+
+/// "09552812000114" as "09.552.812/0001-14".
+pub fn cnpj_format(c: &str) -> String {
+    if c.len() != 14 || !c.is_ascii() {
+        return c.to_string();
+    }
+    format!("{}.{}.{}/{}-{}", &c[..2], &c[2..5], &c[5..8], &c[8..12], &c[12..])
+}
+
 /// `data` in base64 (standard alphabet, padded): what some sites take in their addresses.
 pub fn base64(data: &[u8]) -> String {
     const T: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -249,6 +284,20 @@ mod tests {
         assert_eq!(base64(b"{\"typeFund\":7}"), "eyJ0eXBlRnVuZCI6N30=");
         assert_eq!(base64(b"Ma"), "TWE=");
         assert_eq!(base64(b""), "");
+    }
+
+    #[test]
+    fn a_cnpj_is_checked_by_its_digits() {
+        assert_eq!(cnpj("26.614.291/0001-00").as_deref(), Ok("26614291000100"));
+        assert_eq!(cnpj(" 26614291000100 ").as_deref(), Ok("26614291000100"));
+        assert!(cnpj("26.614.291/0001-01").is_err(), "a check digit off");
+        assert!(cnpj("2661429100010").is_err(), "13 digits");
+        assert!(cnpj("00.000.000/0000-00").is_err(), "all the same");
+        // The Receita's own example of an alphanumeric CNPJ (from July 2026).
+        assert_eq!(cnpj("12.abc.345/01de-35").as_deref(), Ok("12ABC34501DE35"));
+        assert!(cnpj("12.ABC.345/01DE-36").is_err());
+        assert_eq!(cnpj_format("26614291000100"), "26.614.291/0001-00");
+        assert_eq!(cnpj_chars("12.ABC.345/01DE-35"), "12ABC34501DE35");
     }
 
     #[test]

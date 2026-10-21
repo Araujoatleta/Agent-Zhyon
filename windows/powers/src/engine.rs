@@ -66,20 +66,57 @@ pub fn portfolio(store: &Store, market: &Market, today: Date) -> String {
     if !unpriced.is_empty() {
         out.push_str(&format!("\nNo B3 quote yet for {}: valued at cost.", unpriced.join(", ")));
     }
+    let nameless = without_cnpj(store, market);
     let unread: Vec<&str> = v
         .holdings
         .iter()
-        .filter(|h| h.class == AssetClass::Fii && market.funds.get(&h.ticker).is_none_or(|f| !f.payouts.iter().any(|x| !x.amortization)))
+        .filter(|h| h.class == AssetClass::Fii && !nameless.contains(&h.ticker) && market.funds.get(&h.ticker).is_none_or(|f| !f.payouts.iter().any(|x| !x.amortization)))
         .map(|h| h.ticker.as_str())
         .collect();
     if !unread.is_empty() {
-        out.push_str(&format!("\nDividends not read yet for {} (FundosNet has not answered yet, or the fund was not found): the passive income above leaves them out.", unread.join(", ")));
+        out.push_str(&format!("\nDividends not read yet for {} (FundosNet has not answered yet): the passive income above leaves them out.", unread.join(", ")));
+    }
+    if !nameless.is_empty() {
+        out.push_str(&format!("\n{}", ask_cnpj(&nameless)));
     }
     let guessed: Vec<&str> = p.positions.iter().filter(|x| x.note.contains("guessed")).map(|x| x.ticker.as_str()).collect();
     if !guessed.is_empty() {
         out.push_str(&format!("\nClass guessed (ends in 11): {} — ask the user whether each is a FII, an ETF or a unit.", guessed.join(", ")));
     }
     out
+}
+
+/// The funds held whose CNPJ no source gave and the user has not given either, once the CVM's reports were read: the
+/// CVM lists some funds without the ISIN of their shares, the only link between a ticker and its fund there.
+pub fn without_cnpj(store: &Store, market: &Market) -> Vec<String> {
+    if market.funds_read.is_none() {
+        return Vec::new();
+    }
+    store.portfolio.tickers(Some(AssetClass::Fii)).into_iter().filter(|t| crate::refresh::cnpj_of(store, market, t).is_none()).collect()
+}
+
+/// A CNPJ the user gave, against the name B3 trades the ticker under: FundosNet's documents name the fund's shares
+/// the way B3's quotes do ("FII BTG CRI"), so another fund's CNPJ shows.
+fn given_check(store: &Store, market: &Market, t: &str) -> Option<String> {
+    let squash = |s: &str| crate::text::plain(s).split_whitespace().collect::<Vec<_>>().join(" ");
+    let given = store.fund_cnpjs.get(crate::text::ticker_root(t))?;
+    let fund = market.funds.get(t).filter(|f| &f.cnpj == given)?;
+    let b3 = market.quotes.get(t).map(|q| q.name.trim().to_string()).filter(|n| !n.is_empty())?;
+    let theirs = fund.documents.iter().map(|d| d.trading.trim().to_string()).find(|n| !n.is_empty())?;
+    let cnpj = crate::text::cnpj_format(given);
+    Some(if fund.documents.iter().any(|d| squash(&d.trading) == squash(&b3)) {
+        format!("The CNPJ the user gave ({cnpj}) is {t}'s: FundosNet names that fund's shares \"{theirs}\", as B3 does.")
+    } else {
+        format!("Check the CNPJ the user gave for {t} ({cnpj}): FundosNet names that fund's shares \"{theirs}\", while B3 trades {t} as \"{b3}\". It may be another fund's: ask the user.")
+    })
+}
+
+fn ask_cnpj(tickers: &[String]) -> String {
+    let example = tickers.first().map(String::as_str).unwrap_or("BTCI11");
+    format!(
+        "Coucou does not know the CNPJ of {}'s fund: the CVM's reports list it without the ISIN of its shares. Ask the user for it, or look it up (the fund's monthly report on FundosNet shows it), and save it with wealth_update {{\"fund_cnpjs\": {{\"{example}\": \"00.000.000/0000-00\"}}}}; until then its reports and dividends are left out.",
+        tickers.join(", ")
+    )
 }
 
 fn position_from(v: &Value) -> Option<Position> {
@@ -258,6 +295,31 @@ pub fn update(store: &mut Store, args: &Value, file: Option<Imported>, today: Da
         notes.push(format!("Targets set ({} in all{}).", pct(sum, 0), if (sum - 100.0).abs() > 0.5 { "; read as proportions" } else { "" }));
         touched = true;
     }
+    // A fund's CNPJ, for the funds the CVM lists without the ISIN of their shares; an empty one forgets it.
+    let mut cnpjs = false;
+    for (k, v) in args["fund_cnpjs"].as_object().into_iter().flatten() {
+        let Some(t) = ticker(k) else {
+            notes.push(format!("\"{k}\" is not a ticker (like BTCI11)."));
+            continue;
+        };
+        let root = crate::text::ticker_root(&t).to_string();
+        match v.as_str().map(str::trim).filter(|c| !c.is_empty()) {
+            None => {
+                if store.fund_cnpjs.remove(&root).is_some() {
+                    notes.push(format!("{t}: the CNPJ given before is forgotten; Coucou goes back to what the CVM says."));
+                    cnpjs = true;
+                }
+            }
+            Some(typed) => match crate::text::cnpj(typed) {
+                Ok(c) => {
+                    notes.push(format!("{t}: its fund's CNPJ is {}; Coucou reads the fund under it.", crate::text::cnpj_format(&c)));
+                    store.fund_cnpjs.insert(root, c);
+                    cnpjs = true;
+                }
+                Err(e) => notes.push(format!("{t}: {e}")),
+            },
+        }
+    }
     for (key, label) in [("income_goal", "Passive income goal"), ("monthly_contribution", "Monthly contribution"), ("cash", "Cash at the broker")] {
         if let Some(x) = f(args, key) {
             match key {
@@ -269,11 +331,13 @@ pub fn update(store: &mut Store, args: &Value, file: Option<Imported>, today: Da
             touched = true;
         }
     }
-    if !touched {
-        return Err("Nothing to change: give positions, a text, a file, targets, income_goal, monthly_contribution, cash or remove.".into());
+    if !touched && !cnpjs {
+        return Err(if notes.is_empty() { "Nothing to change: give positions, a text, a file, targets, income_goal, monthly_contribution, cash, remove or fund_cnpjs.".into() } else { notes.join(" ") });
     }
-    store.portfolio.updated = Some(today);
-    store.portfolio.source = s(args, "source").unwrap_or_else(|| if s(args, "text").is_some() { "text".into() } else { "chat".into() });
+    if touched {
+        store.portfolio.updated = Some(today);
+        store.portfolio.source = s(args, "source").unwrap_or_else(|| if s(args, "text").is_some() { "text".into() } else { "chat".into() });
+    }
     Ok(notes.join(" "))
 }
 
@@ -287,10 +351,18 @@ pub fn funds(store: &Store, market: &Market, only: Option<&str>, today: Date) ->
     if wanted.is_empty() {
         return "The user holds no real-estate fund (FII) in Coucou.".into();
     }
+    let nameless = without_cnpj(store, market);
     let mut out = Vec::new();
     for t in wanted {
         match market.funds.get(&t) {
-            Some(fund) => out.push(fii::report_for_model(&fii::report(fund, market.price(&t), &market.economy, today))),
+            Some(fund) => {
+                let mut text = fii::report_for_model(&fii::report(fund, market.price(&t), &market.economy, today));
+                if let Some(check) = given_check(store, market, &t) {
+                    text.push_str(&format!("\n{check}"));
+                }
+                out.push(text);
+            }
+            None if nameless.contains(&t) => out.push(ask_cnpj(std::slice::from_ref(&t))),
             None => out.push(format!("{t}: not read yet from the CVM and FundosNet (they may be unreachable now, or the fund is not a FII).")),
         }
     }
@@ -889,7 +961,8 @@ pub struct ClassLine {
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Alert {
-    /// "fund" (a fund's dividends or value at risk) or "thesis" (conditions of the user's thesis that broke).
+    /// "fund" (a fund's dividends or value at risk), "thesis" (conditions of the user's thesis that broke) or "cnpj" (a
+    /// fund Coucou needs the CNPJ of).
     pub kind: String,
     pub ticker: String,
     /// How many conditions broke (thesis).
@@ -930,6 +1003,9 @@ pub fn summary(store: &Store, market: &Market, today: Date) -> Summary {
                 alerts.push(Alert { kind: "fund".into(), ticker: t.clone(), count: r.signals.len(), text: r.signals.join(" "), urgent: true });
             }
         }
+    }
+    for t in without_cnpj(store, market) {
+        alerts.push(Alert { kind: "cnpj".into(), ticker: t, count: 0, text: "Coucou needs this fund's CNPJ: the CVM lists it without the ISIN of its shares.".into(), urgent: false });
     }
     for th in &store.theses {
         if let Some(c) = market.companies.get(&th.ticker) {
@@ -1021,6 +1097,58 @@ mod tests {
         let fiis = store.portfolio.tickers(Some(AssetClass::Fii));
         assert_eq!(fiis, vec!["GGRC11"]);
         assert!(store.portfolio.position("TIMS3").is_some() && store.portfolio.position("Tesouro Selic 2031").is_some());
+    }
+
+    #[test]
+    fn a_fund_without_its_cnpj_is_asked_for_and_given() {
+        let mut store = Store { portfolio: fixtures::portfolio(), ..Store::default() };
+        let mut market = fixtures::market();
+        market.funds.remove("BTCI11");
+        for root in ["GGRC", "GARE", "PORD"] {
+            market.fund_cnpjs.insert(root.into(), "1".into());
+        }
+        assert!(without_cnpj(&store, &market).is_empty(), "the CVM's reports not read yet: nothing to ask");
+        market.funds_read = Some(today());
+        assert_eq!(without_cnpj(&store, &market), vec!["BTCI11"]);
+        let text = funds(&store, &market, Some("BTCI11"), today());
+        assert!(text.contains("CNPJ of BTCI11's fund") && text.contains("fund_cnpjs"), "{text}");
+        let p = portfolio(&store, &market, today());
+        assert!(p.contains("CNPJ of BTCI11's fund") && !p.contains("not read yet for BTCI11"), "{p}");
+        let s = summary(&store, &market, today());
+        assert!(s.alerts.iter().any(|a| a.kind == "cnpj" && a.ticker == "BTCI11" && !a.urgent));
+        // A wrong check digit is refused, and nothing else changes.
+        let wrong = update(&mut store, &json!({"fund_cnpjs": {"BTCI11": "09.552.812/0001-15"}}), None, today()).unwrap_err();
+        assert!(wrong.contains("not a valid CNPJ"), "{wrong}");
+        assert!(store.fund_cnpjs.is_empty() && store.portfolio.updated.is_none());
+        let note = update(&mut store, &json!({"fund_cnpjs": {"btci11": "09.552.812/0001-14"}}), None, today()).unwrap();
+        assert!(note.contains("09.552.812/0001-14"), "{note}");
+        assert_eq!(store.fund_cnpjs["BTCI"], "09552812000114");
+        assert!(store.portfolio.updated.is_none(), "a CNPJ is not a change of the portfolio");
+        assert!(without_cnpj(&store, &market).is_empty());
+        // Read under it: its name from FundosNet, checked against the name B3 trades it under.
+        let doc = |trading: &str| crate::sources::fnet::Document {
+            id: 1,
+            category: "Relatórios".into(),
+            kind: "Relatório Gerencial".into(),
+            species: String::new(),
+            reference: "09/2026".into(),
+            delivered: Some(today()),
+            info: String::new(),
+            topic: crate::sources::fnet::Topic::Report,
+            structured: false,
+            fund: "BTG PACTUAL CRÉDITO IMOBILIÁRIO FII".into(),
+            trading: trading.into(),
+        };
+        market.quotes.get_mut("BTCI11").unwrap().name = "FII BTG CRI".into();
+        market.funds.insert("BTCI11".into(), crate::model::FundData { ticker: "BTCI11".into(), cnpj: "09552812000114".into(), documents: vec![doc("FII BTG  CRI")], ..Default::default() });
+        let text = funds(&store, &market, Some("BTCI11"), today());
+        assert!(text.starts_with("BTCI11 — BTG PACTUAL CRÉDITO IMOBILIÁRIO FII") && text.contains("is BTCI11's"), "{text}");
+        market.funds.get_mut("BTCI11").unwrap().documents = vec![doc("FII OUTRO")];
+        let text = funds(&store, &market, Some("BTCI11"), today());
+        assert!(text.contains("It may be another fund's"), "{text}");
+        update(&mut store, &json!({"fund_cnpjs": {"BTCI11": ""}}), None, today()).unwrap();
+        assert!(store.fund_cnpjs.is_empty(), "an empty one forgets it");
+        assert!(!funds(&store, &market, Some("BTCI11"), today()).contains("CNPJ the user gave"));
     }
 
     #[test]

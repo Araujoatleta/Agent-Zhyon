@@ -121,7 +121,7 @@
   {
     "name": "wealth_update",
     "title": "Zheus: save the portfolio",
-    "description": "Save the user's portfolio, or its settings, in Coucou: a table or text the user pasted (from Investidor10 or their broker, or lines like \"150 GGRC11 a 9,20\": it replaces the list unless mode is merge), positions (merged by ticker), the targets per class, the passive income goal, the monthly contribution, the cash at the broker, tickers to remove. Only what the user said or pasted: never invent a position. Coucou keeps a copy of the list it replaces. This only changes Coucou's record: nothing is bought or sold. The answer shows the portfolio as it is now.",
+    "description": "Save the user's portfolio, or its settings, in Coucou: a table or text the user pasted (from Investidor10 or their broker, or lines like \"150 GGRC11 a 9,20\": it replaces the list unless mode is merge), positions (merged by ticker), the targets per class, the passive income goal, the monthly contribution, the cash at the broker, tickers to remove, the CNPJ of a fund Coucou asks for. Only what the user said or pasted: never invent a position. Coucou keeps a copy of the list it replaces. This only changes Coucou's record: nothing is bought or sold. The answer shows the portfolio as it is now.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -204,6 +204,13 @@
             "type": "string"
           },
           "description": "Tickers to remove."
+        },
+        "fund_cnpjs": {
+          "type": "object",
+          "description": "A fund's CNPJ by its ticker, like {\"XXXX11\": \"00.000.000/0000-00\"}, when Coucou says it does not know it (the CVM lists some funds without the ISIN of their shares). Only one the user gave or that you read in the fund's own documents; an empty one forgets it.",
+          "additionalProperties": {
+            "type": "string"
+          }
         }
       }
     }
