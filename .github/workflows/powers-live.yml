@@ -2,12 +2,10 @@ name: Zheus superpowers (official data)
 
 # Reads B3's quotes, the CVM's open data, FundosNet and the Banco Central for
 # real, to check that Coucou's readers still understand what they publish.
-# Read-only: no secret, no token, nothing uploaded or published.
+# Read-only: no secret, no token, nothing uploaded or published. By hand only (Actions → Zheus superpowers (official
+# data) → Run workflow), after a change to a reader: the unit tests run with the other checks, and each run costs the
+# account's minutes.
 on:
-  push:
-    paths:
-      - 'windows/powers/**'
-      - '.github/workflows/powers-live.yml'
   workflow_dispatch:
     inputs:
       only:
