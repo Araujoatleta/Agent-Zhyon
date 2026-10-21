@@ -87,7 +87,8 @@ pub fn portfolio(store: &Store, market: &Market, today: Date) -> String {
 }
 
 /// The funds held whose CNPJ no source gave and the user has not given either, once the CVM's reports were read: the
-/// CVM lists some funds without the ISIN of their shares, the only link between a ticker and its fund there.
+/// ISIN of a fund's shares is the only link from a ticker to its fund there, and some funds give none, or still their
+/// old ticker's (BTCI11's fund reports FEXC11's).
 pub fn without_cnpj(store: &Store, market: &Market) -> Vec<String> {
     if market.funds_read.is_none() {
         return Vec::new();
@@ -114,7 +115,7 @@ fn given_check(store: &Store, market: &Market, t: &str) -> Option<String> {
 fn ask_cnpj(tickers: &[String]) -> String {
     let example = tickers.first().map(String::as_str).unwrap_or("BTCI11");
     format!(
-        "Coucou does not know the CNPJ of {}'s fund: the CVM's reports list it without the ISIN of its shares. Ask the user for it, or look it up (the fund's monthly report on FundosNet shows it), and save it with wealth_update {{\"fund_cnpjs\": {{\"{example}\": \"00.000.000/0000-00\"}}}}; until then its reports and dividends are left out.",
+        "Coucou does not know the CNPJ of {}'s fund: the CVM's reports do not link the ticker to its fund (the ISIN they give for its shares is missing, or still an old ticker's). Ask the user for it, or look it up (the fund's monthly report on FundosNet shows it), and save it with wealth_update {{\"fund_cnpjs\": {{\"{example}\": \"00.000.000/0000-00\"}}}}; until then its reports and dividends are left out.",
         tickers.join(", ")
     )
 }
@@ -1005,7 +1006,7 @@ pub fn summary(store: &Store, market: &Market, today: Date) -> Summary {
         }
     }
     for t in without_cnpj(store, market) {
-        alerts.push(Alert { kind: "cnpj".into(), ticker: t, count: 0, text: "Coucou needs this fund's CNPJ: the CVM lists it without the ISIN of its shares.".into(), urgent: false });
+        alerts.push(Alert { kind: "cnpj".into(), ticker: t, count: 0, text: "Coucou needs this fund's CNPJ: the CVM's reports do not link its ticker to it.".into(), urgent: false });
     }
     for th in &store.theses {
         if let Some(c) = market.companies.get(&th.ticker) {

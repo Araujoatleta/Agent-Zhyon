@@ -239,25 +239,21 @@ pub fn cnpj_by_root(months: &[FiiMonth]) -> HashMap<String, String> {
     out
 }
 
-/// "papel", "tijolo", "fof" or "hibrido" from what the fund holds, when its assets table says: 60 % or more of what
-/// it invests in receivables, in buildings or in other funds; a mix of them otherwise.
+/// "papel" or "tijolo" from what the fund holds, when its assets table says: 60 % or more of what it invests in
+/// receivables, or in buildings and the companies that hold them. Other funds' shares say nothing on their own: a
+/// brick fund may hold its buildings through funds of its own (GARE11 does), so the segment decides then.
 pub fn subtype_from_assets(m: &FiiMonth) -> Option<&'static str> {
     let (b, r, f) = (m.in_buildings.unwrap_or(0.0).max(0.0), m.in_receivables.unwrap_or(0.0).max(0.0), m.in_funds.unwrap_or(0.0).max(0.0));
-    let known = b + r + f;
-    let total = m.invested.unwrap_or(0.0).max(known);
-    // Most of what it invests must be one of the three, or the table does not tell.
-    if total <= 0.0 || known < total / 2.0 {
-        return None;
-    }
-    Some(if r >= 0.6 * total {
-        "papel"
+    let total = m.invested.unwrap_or(0.0).max(b + r + f);
+    if total <= 0.0 {
+        None
+    } else if r >= 0.6 * total {
+        Some("papel")
     } else if b >= 0.6 * total {
-        "tijolo"
-    } else if f >= 0.6 * total {
-        "fof"
+        Some("tijolo")
     } else {
-        "hibrido"
-    })
+        None
+    }
 }
 
 /// "papel" (receivables: CRI and other securities), "tijolo" (buildings), "fof" (funds of funds), "hibrido", or ""
@@ -350,18 +346,17 @@ mod tests {
         // As the CVM writes it since 2025: no mandate, the segment "Multicategoria"; a fund of CRI is still paper.
         let mut m = FiiMonth { segment: "Multicategoria".into(), invested: Some(100.0), in_receivables: Some(88.0), in_funds: Some(7.0), ..FiiMonth::default() };
         assert_eq!(subtype(&m), "papel");
+        // Half and half, or mostly other funds' shares (a brick fund may hold its buildings through its own funds):
+        // the segment and mandate decide, as without the assets table.
         m.in_receivables = Some(45.0);
         m.in_buildings = Some(48.0);
-        assert_eq!(subtype(&m), "hibrido");
-        m = FiiMonth { segment: "Multicategoria".into(), invested: Some(100.0), in_funds: Some(92.0), ..FiiMonth::default() };
-        assert_eq!(subtype(&m), "fof");
-        // Without the assets table, or with most of it elsewhere (shares, FIDCs), the segment and mandate decide.
+        assert_eq!(subtype_from_assets(&m), None);
+        m = FiiMonth { segment: "Multicategoria".into(), invested: Some(100.0), in_buildings: Some(18.0), in_funds: Some(71.0), ..FiiMonth::default() };
+        assert_eq!(subtype_from_assets(&m), None);
+        assert_eq!(subtype(&m), "tijolo");
         m = FiiMonth { segment: "Multicategoria".into(), ..FiiMonth::default() };
         assert_eq!(subtype_from_assets(&m), None);
         assert_eq!(subtype(&m), "tijolo");
-        m.invested = Some(100.0);
-        m.in_receivables = Some(30.0);
-        assert_eq!(subtype_from_assets(&m), None);
     }
 
     #[test]

@@ -523,7 +523,7 @@ pub struct Market {
     pub quotes: BTreeMap<String, Quote>,
     pub quotes_day: Option<Date>,
     pub funds: BTreeMap<String, FundData>,
-    /// Ticker roots to fund CNPJs (from the CVM's reports, or B3's register of funds).
+    /// Ticker roots to fund CNPJs (from the ISINs in the CVM's reports).
     pub fund_cnpjs: BTreeMap<String, String>,
     pub funds_read: Option<Date>,
     pub companies: BTreeMap<String, CompanyData>,

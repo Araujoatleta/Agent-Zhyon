@@ -106,15 +106,6 @@ pub async fn funds(http: &Http, tickers: &[String], roots: &BTreeMap<String, Str
             Err(e) => out.errors.push(e),
         }
     }
-    // A fund whose shares the CVM's reports leave without an ISIN: its CNPJ from B3's register of listed funds.
-    for t in &concerned {
-        let root = crate::text::ticker_root(t);
-        if !out.roots.contains_key(root) && !given.contains_key(root) {
-            if let Some(cnpj) = http.text(&b3::fund_search_url(root)).await.ok().and_then(|body| b3::cnpj_in_search(&body, root)) {
-                out.roots.insert(root.to_string(), cnpj);
-            }
-        }
-    }
     for t in &concerned {
         let root = crate::text::ticker_root(t);
         match given.get(root).or_else(|| out.roots.get(root)) {
@@ -123,7 +114,7 @@ pub async fn funds(http: &Http, tickers: &[String], roots: &BTreeMap<String, Str
             }
             None => {
                 out.unknown.push(t.clone());
-                out.errors.push(format!("{t}: its CNPJ is not in the CVM's reports nor in B3's register of funds"));
+                out.errors.push(format!("{t}: the CVM's reports do not link this ticker to a fund (the ISIN they give is missing, or an old ticker's): its CNPJ is needed"));
             }
         }
     }

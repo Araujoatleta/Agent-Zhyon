@@ -114,42 +114,6 @@ pub fn kind_of(q: &Quote) -> &'static str {
     }
 }
 
-/// B3's register of listed funds (what its site searches), for a fund whose shares the CVM's reports leave without
-/// an ISIN: the funds whose code or name matches `root` ("BTCI").
-pub fn fund_search_url(root: &str) -> String {
-    let query = format!("{{\"typeFund\":7,\"pageNumber\":1,\"pageSize\":20,\"keyword\":\"{root}\"}}");
-    format!("https://sistemaswebb3-listados.b3.com.br/fundsProxy/fundsCall/GetListedFundsSIG/{}", crate::text::base64(query.as_bytes()))
-}
-
-/// The CNPJ of the fund coded `root` in B3's answer: the entry whose code ("acronym", or any field) is the root, and
-/// its field named like a CNPJ (a valid one, as text or as a number).
-pub fn cnpj_in_search(body: &str, root: &str) -> Option<String> {
-    let v: serde_json::Value = serde_json::from_str(body).ok()?;
-    fn walk(v: &serde_json::Value, root: &str) -> Option<String> {
-        match v {
-            serde_json::Value::Object(map) => {
-                let coded = map.iter().any(|(k, x)| {
-                    let k = k.to_ascii_lowercase();
-                    (k.contains("acronym") || k.contains("codigo") || k.contains("code") || k.contains("sigla")) && x.as_str().is_some_and(|s| s.trim().eq_ignore_ascii_case(root))
-                });
-                if coded {
-                    let cnpj = map.iter().filter(|(k, _)| k.to_ascii_lowercase().contains("cnpj")).find_map(|(_, x)| {
-                        let typed = x.as_str().map(str::to_string).or_else(|| x.as_u64().map(|n| format!("{n:014}")))?;
-                        crate::text::cnpj(&typed).ok()
-                    });
-                    if cnpj.is_some() {
-                        return cnpj;
-                    }
-                }
-                map.values().find_map(|x| walk(x, root))
-            }
-            serde_json::Value::Array(list) => list.iter().find_map(|x| walk(x, root)),
-            _ => None,
-        }
-    }
-    walk(&v, root)
-}
-
 /// A COTAHIST line, for tests and fixtures: the fields that matter, the rest blank or zero.
 pub fn line(day: Date, ticker: &str, bdi: &str, kind: &str, isin: &str, close: f64, market: u16) -> String {
     let mut l = vec![b' '; 245];
@@ -184,15 +148,6 @@ pub fn line(day: Date, ticker: &str, bdi: &str, kind: &str, isin: &str, close: f
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn a_funds_cnpj_from_b3s_register() {
-        assert!(fund_search_url("BTCI").ends_with(&crate::text::base64(br#"{"typeFund":7,"pageNumber":1,"pageSize":20,"keyword":"BTCI"}"#)));
-        let body = r#"{"page":{"pageNumber":1,"pageSize":20,"totalRecords":2,"totalPages":1},"results":[{"id":1,"typeName":"FII","acronym":"BTCR","fundName":"OUTRO","cnpj":"11.111.111/0001-11"},{"id":2,"typeName":"FII","acronym":"BTCI","fundName":"BTG PACTUAL CREDITO IMOBILIARIO","cnpj":"09.552.812/0001-14"}]}"#;
-        assert_eq!(cnpj_in_search(body, "BTCI").as_deref(), Some("09552812000114"));
-        assert_eq!(cnpj_in_search(body, "XXXX"), None);
-        assert_eq!(cnpj_in_search("not json", "BTCI"), None);
-    }
 
     #[test]
     fn the_days_quotes_are_read_by_position() {

@@ -283,7 +283,7 @@ mod tests {
     #[test]
     fn a_structured_notice_gives_its_dividend_and_amortization() {
         let xml = fixtures::payout_xml();
-        let encoded = crate::text::base64(xml.as_bytes());
+        let encoded = base64_encode(xml.as_bytes());
         let decoded = String::from_utf8(unwrap_download(format!("\"{encoded}\"").as_bytes())).unwrap();
         assert_eq!(decoded, xml);
         let payouts = parse_payouts(&decoded, 901);
@@ -299,4 +299,20 @@ mod tests {
         assert_eq!(unwrap_download(b"<xml/>"), b"<xml/>");
     }
 
+    fn base64_encode(data: &[u8]) -> String {
+        const T: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+        let mut out = String::new();
+        for chunk in data.chunks(3) {
+            let b = [chunk[0], *chunk.get(1).unwrap_or(&0), *chunk.get(2).unwrap_or(&0)];
+            let n = (b[0] as u32) << 16 | (b[1] as u32) << 8 | b[2] as u32;
+            for i in 0..4 {
+                if i <= chunk.len() {
+                    out.push(T[(n >> (18 - 6 * i) & 63) as usize] as char);
+                } else {
+                    out.push('=');
+                }
+            }
+        }
+        out
+    }
 }

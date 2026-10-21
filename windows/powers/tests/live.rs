@@ -78,55 +78,6 @@ async fn live_raw_b3() {
 
 #[tokio::test]
 #[ignore]
-async fn live_raw_b3_funds() {
-    let http = Http::new();
-    for root in ["BTCI", "GGRC"] {
-        section(&format!("B3's register of listed funds: {root}"));
-        match http.text(&b3::fund_search_url(root)).await {
-            Ok(body) => {
-                println!("{}", coucou_powers::text::clip(&body, 2000));
-                println!("CNPJ found: {:?}", b3::cnpj_in_search(&body, root));
-            }
-            Err(e) => println!("error: {e}"),
-        }
-    }
-    // Other ways of asking the same register, to see which one B3 answers today.
-    let base = "https://sistemaswebb3-listados.b3.com.br/fundsProxy/fundsCall";
-    for (call, query) in [
-        ("GetListedFundsSIG", r#"{"language":"pt-br","typeFund":7,"pageNumber":1,"pageSize":20,"keyword":"BTCI"}"#),
-        ("GetListedFundsSIG", r#"{"typeFund":7,"pageNumber":1,"pageSize":20}"#),
-        ("GetListedFundsSIG", r#"{"language":"pt-br","typeFund":7,"pageNumber":1,"pageSize":20,"keyword":"BTG"}"#),
-        ("GetListedFundsSIG", r#"{"typeFund":"FII","pageNumber":1,"pageSize":20,"keyword":"BTCI"}"#),
-        ("GetDetailFundSIG", r#"{"typeFund":7,"identifierFund":"BTCI"}"#),
-        ("GetDetailFundSIG", r#"{"language":"pt-br","typeFund":7,"identifierFund":"BTCI"}"#),
-        ("GetDetailFundSIG", r#"{"typeFund":7,"cnpj":"0","identifierFund":"BTCI"}"#),
-        ("GetListFundDownload", r#"{"typeFund":7,"pageNumber":1,"pageSize":20}"#),
-    ] {
-        section(&format!("B3 {call} {query}"));
-        match http.text(&format!("{base}/{call}/{}", coucou_powers::text::base64(query.as_bytes()))).await {
-            Ok(body) => {
-                println!("{}", coucou_powers::text::clip(&body, 1500));
-                println!("CNPJ found: {:?}", b3::cnpj_in_search(&body, "BTCI"));
-            }
-            Err(e) => println!("error: {e}"),
-        }
-    }
-    // FundosNet's own search of funds, if it has one under these names.
-    for url in [
-        format!("{}/listarFundos?term=BTCI", fnet::BASE),
-        format!("{}/listarFundos?term=BTG%20PACTUAL%20CR&page=1&paginaCertificados=false&tipoFundo=1", fnet::BASE),
-        format!("{}/buscarFundos?term=BTCI", fnet::BASE),
-    ] {
-        section(&format!("FundosNet {url}"));
-        match http.text(&url).await {
-            Ok(body) => println!("{}", coucou_powers::text::clip(&body, 800)),
-            Err(e) => println!("error: {e}"),
-        }
-    }
-}
-
-#[tokio::test]
-#[ignore]
 async fn live_raw_cvm_fii() {
     let http = Http::new();
     let year = today().y;
@@ -159,10 +110,18 @@ async fn live_raw_cvm_fii() {
         let text = coucou_powers::text::decode(&archive.read(e).expect("entry"));
         println!("{} rows of {cnpj} in {}: {}", text.lines().filter(|l| l.contains(cnpj)).count(), e.name, rows_with(&text, cnpj, 2));
     }
-    let mut btg: Vec<String> = general.lines().filter_map(|l| l.split(';').nth(5)).filter(|n| n.to_uppercase().contains("BTG")).map(str::to_string).collect();
-    btg.sort();
-    btg.dedup();
-    println!("{} names with BTG: {}", btg.len(), coucou_powers::text::clip(&btg.join(" | "), 2500));
+    // What each fund holds, column by column: the assets table's names as the CVM writes them now.
+    if let Some(e) = archive.entries.iter().find(|e| e.name.contains("ativo_passivo")) {
+        let text = coucou_powers::text::decode(&archive.read(e).expect("entry"));
+        let header: Vec<&str> = text.lines().next().unwrap_or("").split(';').collect();
+        println!("\n{} columns in {}: {}", header.len(), e.name, header.iter().enumerate().map(|(i, h)| format!("{i} {h}")).collect::<Vec<_>>().join(" | "));
+        for (fund, cnpj) in [("BTCI11", "09.552.812"), ("PORD11", "17.156.502"), ("GGRC11", "26.614.291"), ("GARE11", "37.295.919")] {
+            if let Some(row) = text.lines().filter(|l| l.starts_with(cnpj)).last() {
+                let cells: Vec<String> = row.split(';').zip(&header).filter(|(v, _)| !v.trim().is_empty() && v.trim() != "0").map(|(v, h)| format!("{h}={v}")).collect();
+                println!("{fund}: {}", cells.join("; "));
+            }
+        }
+    }
 }
 
 #[tokio::test]
