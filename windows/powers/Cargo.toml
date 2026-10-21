@@ -1,0 +1,18 @@
+[package]
+name = "coucou-powers"
+description = "Zheus' superpowers without a window: the user's portfolio, the official data it reads (B3, CVM, FundosNet, Banco Central), and the analyses, plans and records of studies, English, training and content"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# Inflating the official ZIP files (B3's daily quotes, the CVM's open data) and XLSX exports. Already in the lock
+# file (through png), so nothing new is downloaded. MIT OR Apache-2.0.
+flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
+regex = "1"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["rt", "macros"] }

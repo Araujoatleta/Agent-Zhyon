@@ -1,0 +1,61 @@
+name: Zheus superpowers (official data)
+
+# Reads B3's quotes, the CVM's open data, FundosNet and the Banco Central for
+# real, to check that Coucou's readers still understand what they publish.
+# Read-only: no secret, no token, nothing uploaded or published.
+on:
+  push:
+    paths:
+      - 'windows/powers/**'
+      - '.github/workflows/powers-live.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: windows
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Cache cargo
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            windows/target
+          key: powers-live-cargo-${{ hashFiles('windows/Cargo.lock') }}
+          restore-keys: powers-live-cargo-
+
+      - name: Unit tests (locked)
+        run: cargo test --locked -p coucou-powers
+
+      # Each source in its own step, so one site being down does not hide the
+      # others. The first lines of every file go to the log.
+      - name: What the sources send
+        run: cargo test --locked -p coucou-powers --test live -- --ignored --nocapture --test-threads=1 live_raw_
+        continue-on-error: true
+
+      - name: Quotes and the economy
+        run: cargo test --locked -p coucou-powers --test live -- --ignored --nocapture --test-threads=1 live_quotes live_economy
+        continue-on-error: true
+
+      - name: Real-estate funds
+        run: cargo test --locked -p coucou-powers --test live -- --ignored --nocapture --exact live_funds
+        continue-on-error: true
+
+      - name: A company's statements
+        run: cargo test --locked -p coucou-powers --test live -- --ignored --nocapture --exact live_company
+        continue-on-error: true
+
+      - name: Everything together
+        run: cargo test --locked -p coucou-powers --test live -- --ignored --nocapture --exact live_zheus_end_to_end
