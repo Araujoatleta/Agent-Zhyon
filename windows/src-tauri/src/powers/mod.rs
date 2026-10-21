@@ -243,8 +243,9 @@ pub async fn refresh(app: &AppHandle, force: bool) -> RefreshState {
         }
     }
     if due.fund_months || !due.funds.is_empty() {
-        let tickers = if due.fund_months { store.portfolio.tickers(Some(AssetClass::Fii)) } else { due.funds.clone() };
-        let read = refresh::funds(&powers.http, &tickers, &market.fund_cnpjs, &store.fund_cnpjs, due.fund_months, &refresh::known_documents(&market), today).await;
+        // The documents of the funds due; the CVM's months for all of them when those are due.
+        let held = store.portfolio.tickers(Some(AssetClass::Fii));
+        let read = refresh::funds(&powers.http, &due.funds, &market.fund_cnpjs, &store.fund_cnpjs, due.fund_months.then_some(held.as_slice()), &refresh::known_documents(&market), today).await;
         problems.extend(read.errors.iter().cloned());
         refresh::merge_funds(&mut powers.market.lock().unwrap(), read, today);
     }
@@ -317,11 +318,9 @@ async fn ensure_asset(app: &AppHandle, ticker: &str) {
             let read_today = !given && have.and_then(|f| f.checked) == Some(today);
             let months = given || (!read_today && have.is_none_or(|f| f.months.is_empty()));
             if months || !read_today {
-                let mut tickers = vec![ticker.clone()];
-                if months {
-                    tickers.extend(store.portfolio.tickers(Some(AssetClass::Fii)).into_iter().filter(|t| *t != ticker));
-                }
-                let read = refresh::funds(&powers.http, &tickers, &market.fund_cnpjs, &store.fund_cnpjs, months, &refresh::known_documents(&market), today).await;
+                let mut all = vec![ticker.clone()];
+                all.extend(store.portfolio.tickers(Some(AssetClass::Fii)).into_iter().filter(|t| *t != ticker));
+                let read = refresh::funds(&powers.http, std::slice::from_ref(&ticker), &market.fund_cnpjs, &store.fund_cnpjs, months.then_some(all.as_slice()), &refresh::known_documents(&market), today).await;
                 refresh::merge_funds(&mut powers.market.lock().unwrap(), read, today);
             }
         } else if kind != "etf" && kind != "bdr" && market.companies.get(&ticker).and_then(|c| c.checked).is_none_or(|d| d.until(today) >= 30) {

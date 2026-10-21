@@ -82,13 +82,19 @@ pub struct Funds {
     pub errors: Vec<String>,
 }
 
-/// Reads the funds of `tickers`: their monthly reports when `months` (all funds read, to learn each ticker's CNPJ),
-/// their latest documents, and the dividends of the structured notices not read yet (`known_documents`). A CNPJ the
-/// user gave (`given`, by ticker root) wins over what the sources say.
-pub async fn funds(http: &Http, tickers: &[String], roots: &BTreeMap<String, String>, given: &BTreeMap<String, String>, months: bool, known_documents: &HashMap<String, Vec<u64>>, today: Date) -> Funds {
+/// Reads the latest documents of the funds of `tickers`, and the dividends of their structured notices not read yet
+/// (`known_documents`); and, when `months` names funds, the CVM's monthly reports (all funds read, to learn each
+/// ticker's CNPJ), kept for those. A CNPJ the user gave (`given`, by ticker root) wins over what the sources say.
+pub async fn funds(http: &Http, tickers: &[String], roots: &BTreeMap<String, String>, given: &BTreeMap<String, String>, months: Option<&[String]>, known_documents: &HashMap<String, Vec<u64>>, today: Date) -> Funds {
     let mut out = Funds { roots: roots.clone(), ..Funds::default() };
     let mut all = Vec::new();
-    if months {
+    let mut concerned: Vec<String> = tickers.to_vec();
+    for t in months.unwrap_or_default() {
+        if !concerned.contains(t) {
+            concerned.push(t.clone());
+        }
+    }
+    if months.is_some() {
         match sources::fii_months(http, &[today.y, today.y - 1], &[]).await {
             Ok(read) => {
                 for (root, cnpj) in cvm_fii::cnpj_by_root(&read) {
@@ -101,7 +107,7 @@ pub async fn funds(http: &Http, tickers: &[String], roots: &BTreeMap<String, Str
         }
     }
     // A fund whose shares the CVM's reports leave without an ISIN: its CNPJ from B3's register of listed funds.
-    for t in tickers {
+    for t in &concerned {
         let root = crate::text::ticker_root(t);
         if !out.roots.contains_key(root) && !given.contains_key(root) {
             if let Some(cnpj) = http.text(&b3::fund_search_url(root)).await.ok().and_then(|body| b3::cnpj_in_search(&body, root)) {
@@ -109,7 +115,7 @@ pub async fn funds(http: &Http, tickers: &[String], roots: &BTreeMap<String, Str
             }
         }
     }
-    for t in tickers {
+    for t in &concerned {
         let root = crate::text::ticker_root(t);
         match given.get(root).or_else(|| out.roots.get(root)) {
             Some(cnpj) => {
@@ -122,10 +128,12 @@ pub async fn funds(http: &Http, tickers: &[String], roots: &BTreeMap<String, Str
         }
     }
     if out.months_read {
-        for (t, cnpj) in &out.cnpjs {
-            let mut mine: Vec<cvm_fii::FiiMonth> = all.iter().filter(|m| &m.cnpj == cnpj).cloned().collect();
-            mine.sort_by_key(|m| m.date);
-            out.months.insert(t.clone(), mine);
+        for t in months.unwrap_or_default() {
+            if let Some(cnpj) = out.cnpjs.get(t) {
+                let mut mine: Vec<cvm_fii::FiiMonth> = all.iter().filter(|m| &m.cnpj == cnpj).cloned().collect();
+                mine.sort_by_key(|m| m.date);
+                out.months.insert(t.clone(), mine);
+            }
         }
     }
     let reading: Vec<(String, String)> = tickers.iter().filter_map(|t| out.cnpjs.get(t).map(|c| (t.clone(), c.clone()))).collect();

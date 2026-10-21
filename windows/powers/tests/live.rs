@@ -316,7 +316,7 @@ async fn live_funds() {
     let http = Http::new();
     let today = today();
     let tickers: Vec<String> = FUNDS.iter().map(|t| t.to_string()).collect();
-    let read = refresh::funds(&http, &tickers, &BTreeMap::new(), &given(), true, &HashMap::new(), today).await;
+    let read = refresh::funds(&http, &tickers, &BTreeMap::new(), &given(), Some(&tickers), &HashMap::new(), today).await;
     section("Funds read");
     println!("errors: {:?}", read.errors);
     println!("{} ticker roots known", read.roots.len());
@@ -414,7 +414,8 @@ async fn live_zheus_end_to_end() {
     println!("{due:?}");
     let (day, quotes) = sources::quotes(&http, today, false, &due.quotes, None).await.expect("quotes");
     refresh::merge_quotes(&mut market, day, quotes);
-    let read = refresh::funds(&http, &due.funds, &market.fund_cnpjs, &store.fund_cnpjs, due.fund_months, &refresh::known_documents(&market), today).await;
+    let held = store.portfolio.tickers(Some(AssetClass::Fii));
+    let read = refresh::funds(&http, &due.funds, &market.fund_cnpjs, &store.fund_cnpjs, due.fund_months.then_some(held.as_slice()), &refresh::known_documents(&market), today).await;
     println!("fund errors: {:?}", read.errors);
     refresh::merge_funds(&mut market, read, today);
     market.economy = sources::economy(&http).await.expect("economy");
@@ -429,8 +430,7 @@ async fn live_zheus_end_to_end() {
         println!("{}", engine::update(&mut store, &json!({"fund_cnpjs": given}), None, today).expect("the CNPJ"));
         let due = refresh::due(&store, &market, today, false, false);
         println!("{due:?}");
-        let tickers = if due.fund_months { store.portfolio.tickers(Some(AssetClass::Fii)) } else { due.funds.clone() };
-        let read = refresh::funds(&http, &tickers, &market.fund_cnpjs, &store.fund_cnpjs, due.fund_months, &refresh::known_documents(&market), today).await;
+        let read = refresh::funds(&http, &due.funds, &market.fund_cnpjs, &store.fund_cnpjs, due.fund_months.then_some(held.as_slice()), &refresh::known_documents(&market), today).await;
         println!("fund errors: {:?}", read.errors);
         refresh::merge_funds(&mut market, read, today);
         assert!(!refresh::due(&store, &market, today, false, false).fund_months, "read under it: not due again");
