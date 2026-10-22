@@ -4,6 +4,7 @@ mod agent;
 mod agent_hooks;
 mod agents;
 mod chat;
+mod chat_history;
 mod claude;
 mod codex_plan;
 mod config_file;
@@ -611,9 +612,33 @@ fn local_set_key(url: String, key: String) -> Result<(), String> {
     local_chat::set_custom_key(&url, &key)
 }
 
-#[tauri::command]
-fn chat_reset(chat: State<Chat>) {
+// The kept conversations (chat_history.rs). Off the main thread: their file is read, sealed and written here.
+
+/// "New chat" (+, a dropped file, the shortcut): the conversation on the island is kept among the others.
+#[tauri::command(async)]
+fn chat_reset(chat: State<Chat>) -> chat_history::ShelfView {
     chat.reset();
+    chat.view()
+}
+
+/// The conversation the island goes on with (after a restart too) and the kept ones.
+#[tauri::command(async)]
+fn chat_shelf(chat: State<Chat>) -> chat_history::ShelfView {
+    chat.view()
+}
+
+/// Back to a kept conversation.
+#[tauri::command(async)]
+fn chat_open(chat: State<Chat>, id: String) -> Result<chat_history::ShelfView, String> {
+    chat.open(&id)?;
+    Ok(chat.view())
+}
+
+/// Erases a kept conversation for good ("Reset" on the one on the island, or × in the list).
+#[tauri::command(async)]
+fn chat_forget(chat: State<Chat>, id: String) -> chat_history::ShelfView {
+    chat.forget(&id);
+    chat.view()
 }
 
 /// Copies a dropped file into the inbox and reports its name back.
@@ -798,7 +823,7 @@ pub fn run() {
             gate: gate.clone(),
         })
         .manage(Pending::default())
-        .manage(Chat::default())
+        .manage(Chat::kept(chat_history::Shelf::island()))
         .manage(agent::Agent::default())
         .manage(smart_home::Home::default())
         .manage(hermes_setup::Zheus::default())
@@ -846,6 +871,9 @@ pub fn run() {
             agent::mcp::home_mcp_status,
             agent::mcp::home_mcp_set,
             chat_reset,
+            chat_shelf,
+            chat_open,
+            chat_forget,
             ingest_file,
             secret_present,
             secret_set,

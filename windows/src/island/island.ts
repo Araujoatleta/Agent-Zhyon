@@ -24,6 +24,7 @@ import { buildHeader, buildViews, type ViewActions, type ViewHost } from "../vie
 import { h } from "../views/dom";
 import { markGlass } from "../core/liquid";
 import { Backdrop } from "./backdrop";
+import { newChat } from "../core/chats";
 import { IslandStateMachine } from "./fsm";
 import { refreshHookPills } from "./integrations";
 import { DesktopLink } from "./desktop";
@@ -174,6 +175,7 @@ export class Island {
   private build() {
     const actions: ViewActions = {
       setView: (v) => this.setView(v),
+      newChat: () => this.newChat(),
       cancelDrop: () => this.discardDrop(),
       collapse: () => this.collapse(),
       foldApproval: () => this.foldApproval(),
@@ -546,6 +548,19 @@ export class Island {
     this.views.get(State.view)?.command?.(command);
   }
 
+  /**
+   * "New chat" (+ in the chat, Ctrl+K): an empty chat, the conversation before kept in the list (core/chats.ts).
+   * Not while an answer is on its way: it would land in the new chat.
+   */
+  newChat() {
+    void newChat().then((done) => {
+      if (!done) return;
+      Sound.play("blip");
+      if (State.view === "prompt") this.animateGeometry(true);
+      else this.setView("prompt");
+    });
+  }
+
   // ── File drop ───────────────────────────────────────────────────────────────
 
   private onDragDrop(e: { type: string; paths?: string[] }) {
@@ -670,6 +685,10 @@ export class Island {
     let { w, h } = islandSize(State.mode, State.view, State.chatHistory.length);
     if (State.mode === "expanded" && State.view === "question" && State.pendingApproval?.questions) {
       h = QUESTION_PICKER_H;
+    }
+    // The list of kept conversations gets the chat's whole height.
+    if (State.mode === "expanded" && State.view === "prompt" && State.chatShelfOpen) {
+      h = Math.max(h, chatPromptHeight(Number.MAX_SAFE_INTEGER));
     }
     // In glass, the open island is rounder: a drop hanging from the top of the screen.
     const open = State.settings.islandLook === "classic" ? EXPANDED_CORNER : GLASS_EXPANDED_CORNER;

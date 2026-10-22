@@ -260,12 +260,26 @@
   color: #c4ccd4;
 }
 
-:root[data-look="glass"] .picker {
+:root[data-look="glass"] .picker,
+:root[data-look="glass"] .shelf {
   background: rgba(4, 14, 18, 0.78);
   border-color: rgba(255, 255, 255, 0.12);
   border-radius: 22px;
   -webkit-backdrop-filter: blur(18px) saturate(1.5);
   backdrop-filter: blur(18px) saturate(1.5);
+}
+
+:root[data-look="glass"] .shelf-new,
+:root[data-look="glass"] .shelf-reset:not(.armed) {
+  background:
+    radial-gradient(120% 140% at 30% 0%, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 55%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04));
+  border-color: transparent;
+  box-shadow: inset 0 1px 0.5px rgba(255, 255, 255, 0.4), inset 0 -1px 0.5px rgba(255, 255, 255, 0.1);
+}
+
+:root[data-look="glass"] .shelf-chat {
+  border-radius: 14px;
 }
 
 :root[data-look="glass"] .hands-card {

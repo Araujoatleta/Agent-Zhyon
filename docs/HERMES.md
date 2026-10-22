@@ -226,6 +226,20 @@ Then start the gateway: `hermes gateway` (or `hermes gateway install` to have it
 
 Each tool Hermes uses shows in the chat ("Hermes spotify_playback · play…"), and **Stop** stops Hermes.
 
+### Your conversations are kept
+
+Turn the computer off in the middle of a conversation and, the next time, the chat is where you left it: its messages
+are back on the island and Hermes goes on in the same session, so it remembers what you were talking about (Hermes
+keeps its sessions itself; another provider is sent the conversation again, its last 120 messages at most).
+
+- **+** in the chat (or `Ctrl+K`) starts a new chat. The one before is kept.
+- The **Conversations** button, left of the model's name, lists the kept ones, latest first: click one to go back to
+  it, **×** twice to erase it, **Reset this conversation** twice to erase the one on screen and start over.
+
+Up to 50 conversations are kept, only on this computer, in `%LOCALAPPDATA%\Coucou\chats.bin` (`~/.local/share/coucou`
+on Linux), sealed with a key of their own kept in Windows Credential Manager (the Secret Service on Linux): the file
+alone reads as nothing. The phone keeps its own conversation.
+
 ## 5. Give Hermes its powers (in Hermes)
 
 These are set up in Hermes, once; Coucou never sees your Google or Spotify credentials.

@@ -1714,12 +1714,14 @@ fn every_secret_the_phone_link_stores_is_in_the_keystores_key_list() {
     ] {
         assert!(crate::secrets::INTERNAL_KEYS.contains(&key), "{key} is not in secrets::INTERNAL_KEYS");
     }
-    // And nothing in the list is a stray: each one is used by the phone link, by Mochi's home, or for Hermes.
+    // And nothing in the list is a stray: each one is used by the phone link, by Mochi's home, for Hermes, or for the
+    // island's kept conversations.
     let others = [
         crate::smart_home::config::HA_TOKEN_KEY,
         crate::smart_home::config::PHILIPS_KEY,
         crate::smart_home::config::ANDROID_KEY,
         crate::hermes::KEY,
+        crate::chat_history::KEY,
     ];
     assert!(others.iter().all(|k| crate::secrets::INTERNAL_KEYS.contains(k)));
     assert_eq!(crate::secrets::INTERNAL_KEYS.len(), 8 + others.len());

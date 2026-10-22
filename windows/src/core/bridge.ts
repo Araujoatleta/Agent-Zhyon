@@ -26,6 +26,29 @@ async function call<T>(cmd: string, args?: Record<string, unknown>): Promise<T |
   }
 }
 
+/** One line of a kept conversation, as the island shows it (src-tauri/src/chat_history.rs). */
+export interface ChatLine {
+  role: "user" | "assistant";
+  content: string;
+}
+
+/** A kept conversation in the island's list. */
+export interface ChatSummary {
+  id: string;
+  title: string;
+  /** Unix seconds. */
+  updated: number;
+  /** How many questions it holds. */
+  turns: number;
+}
+
+/** The conversation on the island (null before its first answer, and its words) and the kept ones, latest first. */
+export interface ChatShelf {
+  current: string | null;
+  messages: ChatLine[];
+  chats: ChatSummary[];
+}
+
 export interface BootInfo {
   settings: Settings;
   /** Logical screen rect of the monitor the island lives on. */
@@ -474,7 +497,14 @@ export const Bridge = {
   phoneRemoteSet: (enabled: boolean) => callOrThrow<PhoneRemoteStatus>("phone_remote_set", { enabled }),
   /** Asks the router again now. */
   phoneRemoteCheck: () => callOrThrow<PhoneRemoteStatus>("phone_remote_check"),
-  chatReset: () => call<void>("chat_reset"),
+  /** "New chat" (+ in the chat, Ctrl+K, a dropped file): the conversation on the island is kept among the others. */
+  chatReset: () => call<ChatShelf>("chat_reset"),
+  /** The conversation the island goes on with (after a restart too) and the kept ones (chat_history.rs). */
+  chatShelf: () => call<ChatShelf>("chat_shelf"),
+  /** Back to a kept conversation; fails, with the reason, when it is no longer kept. */
+  chatOpen: (id: string) => callOrThrow<ChatShelf>("chat_open", { id }),
+  /** Erases a kept conversation for good; erasing the one on the island starts a new one. */
+  chatForget: (id: string) => call<ChatShelf>("chat_forget", { id }),
   /**
    * The models a provider offers, for the picker in the chat view. Rust asks
    * the provider only when it has a key (or a server address).

@@ -95,7 +95,7 @@ You can also [build it yourself](#build-it-yourself).
 | In the open island: `Ctrl+→` `Ctrl+←`, `Ctrl+1`–`Ctrl+9` | Switch pills |
 | In the open island: `Ctrl+↓` `Ctrl+↑`, `Ctrl+O` | Walk the open GitHub list, open the highlighted row |
 | In the open island: `Ctrl+E` | Opens the latest edit's diff, or closes the diff |
-| In the open island: `Ctrl+Enter`, `Ctrl+K` | Send, start a new chat |
+| In the open island: `Ctrl+Enter`, `Ctrl+K` | Send, start a new chat (the one before is kept: **Conversations** in the chat) |
 | In the open island: `Ctrl+,`, `Ctrl+P` | Settings, keep the island open |
 
 ### Keyboard shortcuts

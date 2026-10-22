@@ -14,6 +14,7 @@ import { registerHands } from "./island/hands";
 import { registerPhoneLink } from "./island/phone-link";
 import { registerIntegrationHandlers, refreshConfigured } from "./island/integrations";
 import { registerShortcutHandlers } from "./island/shortcuts";
+import { resumeChat } from "./core/chats";
 import { applySpotify, registerSpotifyHandlers } from "./island/spotify";
 import { registerZheus } from "./island/zheus";
 import { registerPowers } from "./island/powers";
@@ -47,6 +48,8 @@ async function main() {
   // Rust shows the tray and its errors in the same language as the webview.
   void Bridge.setSystemLanguages(systemLanguages());
   island.applySettings();
+  // The chat goes on with the conversation it was in, after a restart too (core/chats.ts).
+  void resumeChat();
   State.loadIntegrationTasks();
   if (boot && !boot.cursorPoll) island.followPageCursor();
   await island.desktop.init();

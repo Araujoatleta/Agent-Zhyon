@@ -1324,6 +1324,114 @@ input[type="range"]::-webkit-slider-thumb {
   cursor: default;
 }
 
+/* ── Kept conversations (views/chat.ts buildShelf): in the log's place, like the picker ── */
+
+.shelf {
+  display: none;
+  flex: 1 1 auto;
+  min-height: 0;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 12px;
+  background: #16171b;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.chat-body.shelving .shelf {
+  display: flex;
+}
+
+.chat-body.shelving .chat-log,
+.chat-body.shelving .chip-row {
+  display: none;
+}
+
+.shelf-head {
+  display: flex;
+  gap: 6px;
+}
+
+.shelf-new,
+.shelf-reset {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.06);
+  font: 400 11.5px var(--font);
+  color: #c8cdd4;
+  cursor: default;
+}
+
+.shelf-new:hover:not(:disabled),
+.shelf-reset:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.shelf-new:disabled,
+.shelf-reset:disabled {
+  opacity: 0.45;
+}
+
+.shelf-reset {
+  margin-left: auto;
+}
+
+.shelf-reset.armed {
+  color: #fecaca;
+  border-color: rgba(248, 113, 113, 0.5);
+  background: rgba(248, 113, 113, 0.16);
+}
+
+.shelf-chat {
+  --accent: #5eead4;
+}
+
+.shelf-chat.armed {
+  color: #fecaca;
+  background: rgba(248, 113, 113, 0.12);
+}
+
+.shelf-when {
+  flex: 0 0 auto;
+  font: 400 10.5px var(--font);
+  color: #7b8089;
+}
+
+.shelf-erase {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #7b8089;
+  opacity: 0;
+  cursor: default;
+}
+
+.shelf-chat:hover .shelf-erase,
+.shelf-erase.armed {
+  opacity: 1;
+}
+
+.shelf-erase:hover,
+.shelf-erase.armed {
+  color: #fecaca;
+  background: rgba(248, 113, 113, 0.18);
+}
+
+.shelf-btn.on {
+  color: #99f6e4;
+  background: rgba(45, 212, 191, 0.16);
+}
+
 .chat-bar {
   display: flex;
   align-items: center;
@@ -1368,7 +1476,8 @@ input[type="range"]::-webkit-slider-thumb {
 
 /* ── Mochi's hands in the chat (views/chat.ts) ───────────────────────────── */
 
-.hands-btn {
+.hands-btn,
+.shelf-btn {
   display: inline-grid;
   place-items: center;
   width: 22px;
@@ -1382,7 +1491,8 @@ input[type="range"]::-webkit-slider-thumb {
   cursor: default;
 }
 
-.hands-btn:hover:not(:disabled) {
+.hands-btn:hover:not(:disabled),
+.shelf-btn:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.1);
 }
 
@@ -1391,7 +1501,8 @@ input[type="range"]::-webkit-slider-thumb {
   background: rgba(99, 102, 241, 0.18);
 }
 
-.hands-btn:disabled {
+.hands-btn:disabled,
+.shelf-btn:disabled {
   opacity: 0.6;
 }
 

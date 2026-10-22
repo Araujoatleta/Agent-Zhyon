@@ -9,7 +9,8 @@
 import { h, svg, clear } from "./dom";
 import { ICONS } from "./icons";
 import { renderMarkdown } from "./markdown";
-import { Bridge, onEvent, type ChatContext, type ModelInfo } from "../core/bridge";
+import { Bridge, onEvent, type ChatContext, type ChatSummary, type ModelInfo } from "../core/bridge";
+import { canSwitch, newChat, openChat, forgetChat, refreshShelf, resetChat } from "../core/chats";
 import {
   changePreview, requestTitle, requestWarning, stepDetail, stepVerb, type HandsRequest, type HandsStep,
 } from "../core/hands";
@@ -20,9 +21,16 @@ import { Sound } from "../core/sound";
 import { State, type ChatMessage } from "../core/state";
 import { speak, stopSpeaking } from "../core/voice";
 import type { ViewHost } from "./views";
-import { N_, t, tl, tn } from "../i18n/i18n";
+import { N_, dayMonth, t, tl, tn } from "../i18n/i18n";
 
 const STRINGS = {
+  conversations: N_("Conversations"),
+  newChat: N_("New chat"),
+  resetChat: N_("Reset this conversation"),
+  tapAgain: N_("Tap again to erase it"),
+  erase: N_("Erase"),
+  noChats: N_("No kept conversations yet."),
+  yesterday: N_("Yesterday"),
   placeholderFirst: N_("Ask me anything…"),
   placeholderNext: N_("Continue…"),
   send: N_("Send"),
@@ -303,6 +311,144 @@ function buildPicker(onChange: () => void): Picker {
   };
 }
 
+// ── Kept conversations (core/chats.ts) ────────────────────────────────────────
+
+interface ShelfPanel {
+  el: HTMLElement;
+  open(): void;
+  close(): void;
+  readonly isOpen: boolean;
+}
+
+/** When a conversation was last written in: the time today, "Yesterday", else the day. */
+function when(updated: number, now = new Date()): string {
+  const d = new Date(updated * 1000);
+  const day = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const days = Math.round((day(now) - day(d)) / 86_400_000);
+  if (days === 0) return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  if (days === 1) return t(STRINGS.yesterday);
+  return dayMonth(d.getMonth(), d.getDate());
+}
+
+/**
+ * The conversations the chat keeps (it takes the log's place, like the model picker): a new one, resetting the one
+ * on screen, and the list to go back to one or erase it. Erasing asks for a second click.
+ */
+function buildShelf(onChange: () => void): ShelfPanel {
+  const fresh = h("button", { class: "shelf-new" }, svg(ICONS.plus, 10, { stroke: 2 }), h("span", { text: tl(STRINGS.newChat) }));
+  const resetLabel = h("span", { text: t(STRINGS.resetChat) });
+  const reset = h("button", { class: "shelf-reset" }, resetLabel);
+  const list = h("div", { class: "picker-list shelf-list" });
+  const el = h("div", { class: "shelf" }, h("div", { class: "shelf-head" }, fresh, reset), h("div", { class: "picker-rule" }), list);
+
+  let isOpen = false;
+  /** The one a first click on its × (or on Reset: "current") asked to erase, until it is clicked again. */
+  let arming: string | null = null;
+  let armTimer: number | null = null;
+
+  function arm(what: string | null) {
+    arming = what;
+    if (armTimer != null) window.clearTimeout(armTimer);
+    armTimer = what == null ? null : window.setTimeout(() => arm(null), 4000);
+    draw();
+  }
+
+  function row(c: ChatSummary): HTMLElement {
+    const on = c.id === State.chatShelf?.current;
+    const armed = arming === c.id;
+    const erase = h(
+      "button",
+      { class: armed ? "shelf-erase armed" : "shelf-erase", title: tl(armed ? STRINGS.tapAgain : STRINGS.erase) },
+      svg(ICONS.xmark, 8),
+    );
+    erase.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (!canSwitch()) return;
+      if (arming !== c.id) {
+        arm(c.id);
+        return;
+      }
+      arm(null);
+      Sound.play("pop");
+      void forgetChat(c.id).then(draw);
+    });
+    const line = h(
+      "div",
+      { class: `picker-model shelf-chat${on ? " on" : ""}${armed ? " armed" : ""}`, title: c.title },
+      h("span", { class: "picker-model-name", text: armed ? t(STRINGS.tapAgain) : c.title || "…" }),
+      h("span", { class: "shelf-when", text: when(c.updated) }),
+      erase,
+    );
+    line.addEventListener("click", () => {
+      if (!canSwitch()) return;
+      if (on) {
+        close();
+        return;
+      }
+      Sound.play("blip");
+      openChat(c.id)
+        .then(close)
+        .catch((err) => {
+          State.noteMessage = String(err).replace(/^Error:\s*/, "");
+          State.view = "note";
+          State.notify();
+        });
+    });
+    return line;
+  }
+
+  function draw() {
+    const chats = State.chatShelf?.chats ?? [];
+    clear(list);
+    if (chats.length === 0) list.append(h("div", { class: "picker-status", text: t(STRINGS.noChats) }));
+    for (const c of chats) list.append(row(c));
+    reset.classList.toggle("armed", arming === "current");
+    resetLabel.textContent = t(arming === "current" ? STRINGS.tapAgain : STRINGS.resetChat);
+    const empty = State.chatHistory.length === 0;
+    reset.disabled = empty || !canSwitch();
+    fresh.disabled = !canSwitch();
+  }
+
+  fresh.addEventListener("click", () => {
+    Sound.play("blip");
+    void newChat().then((done) => done && close());
+  });
+  reset.addEventListener("click", () => {
+    if (!canSwitch()) return;
+    if (arming !== "current") {
+      arm("current");
+      return;
+    }
+    arm(null);
+    Sound.play("pop");
+    void resetChat().then(close);
+  });
+
+  function open() {
+    isOpen = true;
+    arm(null);
+    el.classList.add("on");
+    onChange();
+    void refreshShelf().then(() => isOpen && draw());
+  }
+
+  function close() {
+    isOpen = false;
+    arm(null);
+    el.classList.remove("on");
+    onChange();
+  }
+
+  return {
+    el,
+    open,
+    close,
+    get isOpen() {
+      return isOpen;
+    },
+  };
+}
+
 // ── View ──────────────────────────────────────────────────────────────────────
 
 export function buildPrompt(onHeightChange: () => void): ViewHost {
@@ -330,14 +476,23 @@ export function buildPrompt(onHeightChange: () => void): ViewHost {
   );
   // Mochi's hands in this chat, when they are on in Settings: on (the default) or off for plain chat.
   const handsBtn = h("button", { class: "hands-btn" }, svg(ICONS.hand, 11, { stroke: 1.7 }));
-  const modelRow = h("div", { class: "model-row" }, handsBtn, modelBtn);
+  // The kept conversations: back to an old one, a new one, or this one reset (core/chats.ts).
+  const shelfBtn = h("button", { class: "shelf-btn", title: tl(STRINGS.conversations) }, svg(ICONS.stack, 11));
+  const modelRow = h("div", { class: "model-row" }, shelfBtn, handsBtn, modelBtn);
 
   const body = h("div", { class: "chat-body" });
   const picker = buildPicker(() => {
     body.classList.toggle("picking", picker.isOpen);
     drawModelButton();
   });
-  body.append(chipRow, log, picker.el, modelRow, bar);
+  const shelf = buildShelf(() => {
+    State.chatShelfOpen = shelf.isOpen;
+    body.classList.toggle("shelving", shelf.isOpen);
+    shelfBtn.classList.toggle("on", shelf.isOpen);
+    renderedKey = ""; // the log comes back with the conversation now on the island
+    onHeightChange();
+  });
+  body.append(chipRow, log, picker.el, shelf.el, modelRow, bar);
 
   const el = h("div", { class: "view" }, h("div", { class: "card wash chat-card" }, body));
   (el.querySelector(".card") as HTMLElement).style.setProperty("--wash", "rgba(99,102,241,0.5)");
@@ -362,6 +517,7 @@ export function buildPrompt(onHeightChange: () => void): ViewHost {
     handsBtn.hidden = State.settings.agentEnabled !== true || State.settings.chatProvider === "hermes";
     handsBtn.classList.toggle("on", handsActive());
     handsBtn.disabled = sending;
+    shelfBtn.disabled = sending;
     handsBtn.title = t(handsActive() ? STRINGS.handsOn : STRINGS.handsOff);
     // While a turn with hands runs, the send button is its stop button.
     const stopping = sending && withHands;
@@ -380,8 +536,16 @@ export function buildPrompt(onHeightChange: () => void): ViewHost {
 
   modelBtn.addEventListener("click", () => {
     if (sending) return;
+    if (shelf.isOpen) shelf.close();
     if (picker.isOpen) picker.close();
     else picker.open();
+  });
+
+  shelfBtn.addEventListener("click", () => {
+    if (sending) return;
+    if (picker.isOpen) picker.close();
+    if (shelf.isOpen) shelf.close();
+    else shelf.open();
   });
 
   void onEvent<string>("chat-delta", (text) => {
@@ -401,7 +565,9 @@ export function buildPrompt(onHeightChange: () => void): ViewHost {
     if (picker.isOpen) picker.close();
     stopSpeaking(); // a new question: the last answer stops being read
     input.value = "";
+    if (shelf.isOpen) shelf.close();
     sending = true;
+    State.chatSending = true;
     // A turn with Hermes works like one with hands: its steps show, and the send button stops it.
     withHands = handsActive() || State.settings.chatProvider === "hermes";
     drawModelButton();
@@ -430,6 +596,7 @@ export function buildPrompt(onHeightChange: () => void): ViewHost {
       Sound.play("error");
     } finally {
       sending = false;
+      State.chatSending = false;
       withHands = false;
       live = null;
       renderedKey = ""; // the finished answer replaces the streamed one
@@ -473,7 +640,9 @@ export function buildPrompt(onHeightChange: () => void): ViewHost {
       // Redrawn when a message comes, a step of Mochi's hands changes, or an action starts or stops waiting.
       const thinking = sending && (State.stateOverride === "thinking" || State.stateOverride === "working");
       const steps = State.chatHistory.map((m) => (m.action ? `${m.action.index}${m.action.status}` : "")).join(",");
-      const key = `${State.chatHistory.length}|${thinking}|${steps}|${State.handsRequest?.id ?? ""}`;
+      // The first and last ids tell one conversation from another of the same length (core/chats.ts).
+      const ends = `${State.chatHistory[0]?.id ?? ""}~${State.chatHistory.at(-1)?.id ?? ""}`;
+      const key = `${State.chatHistory.length}|${ends}|${thinking}|${steps}|${State.handsRequest?.id ?? ""}`;
       if (key !== renderedKey && !live) {
         renderedKey = key;
         clear(log);
@@ -483,8 +652,9 @@ export function buildPrompt(onHeightChange: () => void): ViewHost {
         log.scrollTop = log.scrollHeight;
       }
 
-      // Leaving the chat folds the picker away.
+      // Leaving the chat folds the picker and the conversations away.
       if (State.view !== "prompt" && picker.isOpen) picker.close();
+      if (State.view !== "prompt" && shelf.isOpen) shelf.close();
       drawModelButton();
 
       input.placeholder = t(State.chatHistory.length === 0 ? STRINGS.placeholderFirst : STRINGS.placeholderNext);

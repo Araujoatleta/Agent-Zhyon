@@ -26,11 +26,13 @@ import { buildPowers } from "./powers";
 import { buildSpotifyCard, buildSpotifyPill, type SpotifyPillHost } from "./spotify";
 import { SPOTIFY_ID } from "../core/spotify";
 import type { Outfit, OutfitSelection } from "../mochi/wardrobe";
-import { language, t, tl, type Msg } from "../i18n/i18n";
+import { N_, language, t, tl, type Msg } from "../i18n/i18n";
 import type { ViewCommand } from "../island/shortcuts";
 
 export interface ViewActions {
   setView(v: IslandViewName): void;
+  /** + in the chat: a new chat, the conversation before kept in the list (core/chats.ts). */
+  newChat(): void;
   /** "Cancel" on a dropped file: forgets it and goes back home. */
   cancelDrop(): void;
   collapse(): void;
@@ -108,10 +110,19 @@ function stack(padLeft: number, padRight: number, ...children: Node[]): HTMLElem
 
 // ── Header ────────────────────────────────────────────────────────────────────
 
+/** What + is: in the chat, a new chat; elsewhere, where a file is dropped. */
+const PLUS_IN_CHAT = N_("New chat");
+const PLUS_ELSEWHERE = N_("Drop");
+
 export function buildHeader(actions: ViewActions): ViewHost {
   const tabHome = h("button", { class: "tab", title: tl("Overview"), onclick: () => go("overview") }, svg(ICONS.house, 13));
   const tabChat = h("button", { class: "tab", title: tl("Ask"), onclick: () => go("prompt") }, svg(ICONS.bubble, 13));
-  const tabDrop = h("button", { class: "tab", title: tl("Drop"), onclick: () => go("upload") }, svg(ICONS.plus, 13));
+  // In the chat, + starts a new chat (the one before stays in its list); elsewhere it is where a file is dropped.
+  const tabDrop = h(
+    "button",
+    { class: "tab", onclick: () => (State.view === "prompt" ? actions.newChat() : go("upload")) },
+    svg(ICONS.plus, 13),
+  );
   // Zheus One's tab, only while it is on (Settings → Zheus One).
   const tabZheus = h("button", { class: "tab zheus-tab", title: tl("Zheus One"), onclick: () => go("zheus") }, svg(ICONS.sparkles, 13));
   // Zheus' superpowers' tab, only while they are on (Settings → Zheus' superpowers).
@@ -145,6 +156,7 @@ export function buildHeader(actions: ViewActions): ViewHost {
       tabHome.classList.toggle("on", v === "overview" || v === "empty");
       tabChat.classList.toggle("on", v === "prompt");
       tabDrop.classList.toggle("on", v === "upload");
+      tabDrop.title = t(v === "prompt" ? PLUS_IN_CHAT : PLUS_ELSEWHERE);
       tabZheus.hidden = State.settings.zheusEnabled !== true;
       tabZheus.classList.toggle("on", v === "zheus");
       tabPowers.hidden = State.settings.powersEnabled !== true;

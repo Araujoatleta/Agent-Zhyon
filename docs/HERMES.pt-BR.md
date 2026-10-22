@@ -235,6 +235,21 @@ Windows). Ele fica em `http://127.0.0.1:8642`, só neste computador.
 
 Cada ferramenta que o Hermes usa aparece no chat ("Hermes spotify_playback · play…"), e **Parar** para o Hermes.
 
+### As conversas ficam salvas
+
+Desligue o computador no meio de uma conversa e, da próxima vez, o chat está onde você parou: as mensagens voltam à
+ilha e o Hermes continua na mesma sessão, então lembra do assunto (o próprio Hermes guarda as sessões dele; para outro
+provedor, a conversa é enviada de novo, no máximo as últimas 120 mensagens).
+
+- O **+** no chat (ou `Ctrl+K`) começa um chat novo. O anterior fica salvo.
+- O botão **Conversas**, à esquerda do nome do modelo, lista as salvas, da mais recente para a mais antiga: clique em
+  uma para voltar ao assunto, no **×** duas vezes para apagá-la, e em **Zerar esta conversa** duas vezes para apagar a
+  que está na tela e começar do zero.
+
+Ficam salvas até 50 conversas, só neste computador, em `%LOCALAPPDATA%\Coucou\chats.bin` (`~/.local/share/coucou`
+no Linux), lacradas com uma chave própria guardada no Gerenciador de Credenciais do Windows (no Secret Service no
+Linux): o arquivo sozinho não pode ser lido. O celular guarda a conversa dele.
+
 ## 5. Dê os poderes ao Hermes (no Hermes)
 
 Isto se configura no Hermes, uma vez só; o Coucou nunca vê suas senhas do Google ou do Spotify.
