@@ -85,8 +85,10 @@ test("auto dresses for the season, any other choice is worn as is", () => {
 });
 
 test("the stored values are the Mac's, in the wardrobe's order", () => {
+  // AXYON's own outfits come first; the Mac's follow, with the Mac's raw values.
   assert.deepEqual([...OUTFIT_SELECTIONS], [
-    "auto", "none", "partyHat", "beanie", "crown", "sunglasses", "roundGlasses",
+    "auto", "none", "headset", "cyberVisor", "astronaut", "halo", "cape", "cap", "gradCap", "bowtie",
+    "partyHat", "beanie", "crown", "sunglasses", "roundGlasses",
     "bow", "scarf", "witchHat", "pumpkin", "santaHat", "bunnyEars",
   ]);
   for (const sel of OUTFIT_SELECTIONS) assert.ok(OUTFIT_LABELS[sel], `${sel} has a label`);
@@ -97,7 +99,7 @@ test("a stored preference is read back as it was saved", () => {
 });
 
 test("removed, unknown or missing preferences mean auto", () => {
-  for (const raw of ["topHat", "cap", "heartsHeadband", "strawHat", "totallyUnknown", "", "Beanie"]) {
+  for (const raw of ["topHat", "heartsHeadband", "strawHat", "totallyUnknown", "", "Beanie", "Cap"]) {
     assert.equal(parseOutfit(raw), "auto", JSON.stringify(raw));
   }
   for (const raw of [undefined, null, 42, true, {}, ["beanie"]]) {

@@ -6337,16 +6337,16 @@
    "ru": "громкость через UPnP",
    "id": "volume lewat UPnP"
   },
-  "Look at the TV: it asks whether to allow Coucou. Choose Allow.": {
-   "zh-Hans": "请看电视：它会询问是否允许 Coucou。请选择“允许”。",
-   "hi": "टीवी पर देखें: वह पूछ रहा है कि Coucou को अनुमति दें या नहीं। अनुमति दें चुनें।",
-   "es": "Mira la TV: pregunta si permitir a Coucou. Elige Permitir.",
-   "ar": "انظر إلى التلفاز: إنه يسأل هل يسمح لـ Coucou. اختر السماح.",
-   "fr": "Regardez la TV : elle demande s'il faut autoriser Coucou. Choisissez Autoriser.",
-   "bn": "টিভির দিকে তাকান: এটি জিজ্ঞেস করছে Coucou-কে অনুমতি দেবে কি না। অনুমতি দিন বেছে নিন।",
-   "pt-BR": "Olhe a TV: ela pergunta se pode permitir o Coucou. Escolha Permitir.",
-   "ru": "Посмотрите на телевизор: он спрашивает, разрешить ли Coucou. Выберите «Разрешить».",
-   "id": "Lihat TV: TV menanyakan apakah Coucou diizinkan. Pilih Izinkan."
+  "Look at the TV: it asks whether to allow {name}. Choose Allow.": {
+   "zh-Hans": "请看电视：它会询问是否允许 {name}。请选择“允许”。",
+   "hi": "टीवी पर देखें: वह पूछ रहा है कि {name} को अनुमति दें या नहीं। अनुमति दें चुनें।",
+   "es": "Mira la TV: pregunta si permitir a {name}. Elige Permitir.",
+   "ar": "انظر إلى التلفاز: إنه يسأل هل يسمح لـ {name}. اختر السماح.",
+   "fr": "Regardez la TV : elle demande s'il faut autoriser {name}. Choisissez Autoriser.",
+   "bn": "টিভির দিকে তাকান: এটি জিজ্ঞেস করছে {name}-কে অনুমতি দেবে কি না। অনুমতি দিন বেছে নিন।",
+   "pt-BR": "Olhe a TV: ela pergunta se pode permitir o {name}. Escolha Permitir.",
+   "ru": "Посмотрите на телевизор: он спрашивает, разрешить ли {name}. Выберите «Разрешить».",
+   "id": "Lihat TV: TV menanyakan apakah {name} diizinkan. Pilih Izinkan."
   },
   "Needs pairing: press Pair, then choose Allow on the TV.": {
    "zh-Hans": "需要配对：点击“配对”，然后在电视上选择“允许”。",
@@ -11858,6 +11858,94 @@
    "pt-BR": "Ontem",
    "ru": "Вчера",
    "id": "Kemarin"
+  },
+  "Headset": {
+   "zh-Hans": "耳机",
+   "hi": "हेडसेट",
+   "es": "Auriculares",
+   "ar": "سماعة رأس",
+   "fr": "Casque audio",
+   "bn": "হেডসেট",
+   "pt-BR": "Headset",
+   "ru": "Гарнитура",
+   "id": "Headset"
+  },
+  "Cyber visor": {
+   "zh-Hans": "赛博护目镜",
+   "hi": "साइबर वाइज़र",
+   "es": "Visor cibernético",
+   "ar": "قناع سايبر",
+   "fr": "Visière cyber",
+   "bn": "সাইবার ভাইজর",
+   "pt-BR": "Visor cyber",
+   "ru": "Кибервизор",
+   "id": "Visor siber"
+  },
+  "Astronaut helmet": {
+   "zh-Hans": "宇航员头盔",
+   "hi": "अंतरिक्ष यात्री हेलमेट",
+   "es": "Casco de astronauta",
+   "ar": "خوذة رائد فضاء",
+   "fr": "Casque d'astronaute",
+   "bn": "নভোচারীর হেলমেট",
+   "pt-BR": "Capacete de astronauta",
+   "ru": "Шлем астронавта",
+   "id": "Helm astronaut"
+  },
+  "Halo": {
+   "zh-Hans": "光环",
+   "hi": "प्रभामंडल",
+   "es": "Aureola",
+   "ar": "هالة",
+   "fr": "Auréole",
+   "bn": "জ্যোতির্বলয়",
+   "pt-BR": "Auréola",
+   "ru": "Нимб",
+   "id": "Lingkaran cahaya"
+  },
+  "Cape": {
+   "zh-Hans": "斗篷",
+   "hi": "केप",
+   "es": "Capa",
+   "ar": "عباءة",
+   "fr": "Cape",
+   "bn": "কেপ",
+   "pt-BR": "Capa",
+   "ru": "Плащ",
+   "id": "Jubah"
+  },
+  "Cap": {
+   "zh-Hans": "鸭舌帽",
+   "hi": "कैप",
+   "es": "Gorra",
+   "ar": "قبعة بحافة",
+   "fr": "Casquette",
+   "bn": "ক্যাপ",
+   "pt-BR": "Boné",
+   "ru": "Кепка",
+   "id": "Topi pet"
+  },
+  "Graduation cap": {
+   "zh-Hans": "学位帽",
+   "hi": "दीक्षांत टोपी",
+   "es": "Birrete",
+   "ar": "قبعة التخرج",
+   "fr": "Toque de diplômé",
+   "bn": "স্নাতক টুপি",
+   "pt-BR": "Capelo",
+   "ru": "Академическая шапочка",
+   "id": "Topi wisuda"
+  },
+  "Bow tie": {
+   "zh-Hans": "领结",
+   "hi": "बो टाई",
+   "es": "Pajarita",
+   "ar": "ربطة عنق فراشة",
+   "fr": "Nœud papillon",
+   "bn": "বো টাই",
+   "pt-BR": "Gravata-borboleta",
+   "ru": "Галстук-бабочка",
+   "id": "Dasi kupu-kupu"
   }
  }
 }

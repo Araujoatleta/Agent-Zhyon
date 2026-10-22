@@ -160,10 +160,12 @@ pub struct ApprovalIn {
     pub command: String,
 }
 
-/// The values the island stores for Mochi's wardrobe ("auto" follows the seasons on the phone's own calendar).
-/// Same raw values as the Mac and the PC; anything else is not sent.
-pub const OUTFIT_CHOICES: [&str; 13] = [
-    "auto", "none", "partyHat", "beanie", "crown", "sunglasses", "roundGlasses",
+/// The values the island stores for the wardrobe ("auto" follows the seasons on the phone's own calendar): AXYON's own
+/// outfits, then the Mac's raw values (a phone that does not know an outfit dresses for the season). Anything else is
+/// not sent.
+pub const OUTFIT_CHOICES: [&str; 21] = [
+    "auto", "none", "headset", "cyberVisor", "astronaut", "halo", "cape", "cap", "gradCap", "bowtie",
+    "partyHat", "beanie", "crown", "sunglasses", "roundGlasses",
     "bow", "scarf", "witchHat", "pumpkin", "santaHat", "bunnyEars",
 ];
 
@@ -1854,7 +1856,7 @@ mod tests {
     #[test]
     fn only_the_known_wardrobe_values_are_sent() {
         let (hub, _) = hub();
-        let (tx, mut rx) = mpsc::channel(16);
+        let (tx, mut rx) = mpsc::channel(OUTFIT_CHOICES.len() + 8);
         hub.subscribe_with(tx, 1_000, Caps { prefs: true, ..Caps::default() });
         drain(&mut rx);
         for bad in ["", "topHat", "Beanie", "beanie ", "../../etc", "auto\nauto"] {

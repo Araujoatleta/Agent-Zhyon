@@ -169,7 +169,7 @@ impl assistant::AssistantBackend for TauriAssistant {
         // Hermes is never installed from the phone: the setup would install one that is not there, so this is checked
         // again right before it starts (assistant.rs checked the status already).
         if !hermes_setup::installed() {
-            return Err("Hermes is not installed".into());
+            return Err("AXYON Core is not installed".into());
         }
         log::line(format!("phone link: the phone gave the assistant the brain {brain}"));
         // Mochi's home for Hermes stays as Settings has it; a ChatGPT sign-in shows its code on the phone, which opens
@@ -472,7 +472,7 @@ impl PhoneLink {
         let waiting = approval.as_ref().map(|a| a.request_id.clone());
         self.hub.publish_agent(session, approval, server::now_ms());
         if let Some(id) = waiting {
-            self.push_later(&id, Some("Mochi".into()), false);
+            self.push_later(&id, Some("AXYON".into()), false);
         }
     }
 

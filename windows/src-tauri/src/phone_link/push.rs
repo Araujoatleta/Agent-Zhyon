@@ -160,7 +160,7 @@ pub fn words(who: Option<&str>, question: bool) -> String {
 pub fn body(topic: &str, message: &str) -> Value {
     json!({
         "topic": topic,
-        "title": "Coucou",
+        "title": "AXYON",
         "message": message,
         "priority": 4,
         "click": CLICK,
@@ -290,7 +290,7 @@ mod tests {
         assert_eq!(words(Some("Claude Code"), true), "Claude Code has a question for you");
         let b = body("coucou-abc", "Mochi is waiting for your OK");
         assert_eq!(b["topic"], "coucou-abc");
-        assert_eq!(b["title"], "Coucou");
+        assert_eq!(b["title"], "AXYON");
         assert_eq!(b["click"], CLICK);
         assert_eq!(b.as_object().unwrap().len(), 5, "nothing else goes out: {b}");
     }

@@ -431,7 +431,7 @@ fn for_model(plan: &Plan) -> String {
         .collect();
     let mut out = format!(
         "Zheus One prepared the user's arrival home (in about {} min, around {}) and is showing them the plan; nothing \
-runs until they answer yes or approve it in Coucou. The plan: {}.",
+runs until they answer yes or approve it in AXYON. The plan: {}.",
         plan.eta,
         clock(plan.arrive_at),
         if steps.is_empty() { "nothing to do in the house".to_string() } else { steps.join("; ") }
@@ -439,7 +439,7 @@ runs until they answer yes or approve it in Coucou. The plan: {}.",
     if !plan.conflicts.is_empty() {
         out.push_str(&format!(" What clashes: {}", plan.conflicts.join(" ")));
     }
-    out.push_str(" Do not act on these devices yourself for it: Coucou runs the plan once approved.");
+    out.push_str(" Do not act on these devices yourself for it: AXYON runs the plan once approved.");
     out
 }
 

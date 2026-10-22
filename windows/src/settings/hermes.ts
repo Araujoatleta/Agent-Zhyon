@@ -145,7 +145,7 @@ export function diagnosisReport(d: HermesDiagnosis): string {
   const yes = t("yes");
   const no = t("no");
   return [
-    `Coucou · Hermes — ${d.address}`,
+    `AXYON · AXYON Core — ${d.address}`,
     `${t("Installed")}: ${d.installed ? yes : no}`,
     `${t("Run by Coucou")}: ${d.managed ? yes : no}`,
     `${t("API")}: ${healthApiText(d.health)}`,

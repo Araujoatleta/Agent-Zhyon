@@ -32,7 +32,7 @@ export const PROVIDERS: readonly ProviderDef[] = [
   { id: "lmstudio", name: "LM Studio", accent: "#A3E635", key: null, urlField: "lmstudioUrl", defaultModel: "", prefer: null },
   { id: "custom", name: N_("Custom server"), accent: "#C0C4CC", key: null, urlField: "customUrl", defaultModel: "", prefer: null },
   // Hermes Agent (Settings → Hermes Agent): it works with its own tools; its "model" is the name it answers as.
-  { id: "hermes", name: "Hermes", accent: "#F2C14E", key: null, urlField: "hermesUrl", defaultModel: "hermes-agent", prefer: null },
+  { id: "hermes", name: "AXYON Core", accent: "#F2C14E", key: null, urlField: "hermesUrl", defaultModel: "hermes-agent", prefer: null },
 ];
 
 /** Credential store entry of the custom server's optional key. */

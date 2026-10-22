@@ -69,7 +69,7 @@ const VERBS: Record<string, string> = {
 
 export function stepVerb(tool: string): string {
   // Hermes Agent's own tools: its name, then the tool and what it was given (agent/hermes.rs).
-  if (tool === "hermes") return "Hermes";
+  if (tool === "hermes") return "AXYON Core";
   const verb = VERBS[tool];
   return verb ? t(verb) : tool;
 }

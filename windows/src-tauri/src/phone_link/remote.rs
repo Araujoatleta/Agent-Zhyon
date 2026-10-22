@@ -38,7 +38,7 @@ const LEASE: u32 = 3600;
 pub const RENEW: Duration = Duration::from_secs(10 * 60);
 /// Ports tried on the router when the first is taken by another device.
 const PORT_TRIES: u16 = 10;
-const DESCRIPTION: &str = "Coucou phone link";
+const DESCRIPTION: &str = "AXYON phone link";
 
 // ── What the check found ──────────────────────────────────────────────────────
 

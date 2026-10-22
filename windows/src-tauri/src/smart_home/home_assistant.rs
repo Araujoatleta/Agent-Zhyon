@@ -172,7 +172,7 @@ impl HomeAssistant {
     /// One service call of the fixed list.
     pub async fn call(&self, domain: &str, service: &str, data: &Value) -> Result<(), String> {
         if !allowed(domain, service) {
-            return Err(format!("{domain}.{service} is not a service Mochi may call."));
+            return Err(format!("{domain}.{service} is not a service AXYON may call."));
         }
         self.send(reqwest::Method::POST, &format!("/api/services/{domain}/{service}"), Some(data)).await.map(|_| ())
     }
@@ -444,7 +444,7 @@ pub fn service(device: &Device, action: &Action) -> Result<(String, &'static str
         _ => return Err(format!("{} cannot {} through Home Assistant.", device.name, action.describe())),
     };
     if !allowed(&domain, service) {
-        return Err(format!("{domain}.{service} is not a service Mochi may call."));
+        return Err(format!("{domain}.{service} is not a service AXYON may call."));
     }
     Ok((domain, service, data))
 }

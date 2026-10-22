@@ -195,7 +195,8 @@ export function homeSection(makeToggle: Toggle, voice?: VoiceChoice): HTMLElemen
     pair.addEventListener("click", () =>
       void busy(pair, result, async () => {
         // A Samsung TV asks on its screen (for up to half a minute): say so while it waits.
-        if (tv.brand === "samsung") result.append(notice(t("Look at the TV: it asks whether to allow Coucou. Choose Allow."), true));
+        // The name Samsung TVs know this computer by (smart_home/samsung.rs): kept, so the TVs already paired stay paired.
+        if (tv.brand === "samsung") result.append(notice(t("Look at the TV: it asks whether to allow {name}. Choose Allow.", { name: "Coucou" }), true));
         if (tv.brand === "android") result.append(notice(t("Look at the device: it asks whether to allow USB debugging from this computer. Tick \"Always allow from this computer\", then choose Allow."), true));
         const paired = await Bridge.homeTvPair(tv.id);
         if (paired) {

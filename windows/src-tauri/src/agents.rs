@@ -286,7 +286,7 @@ impl Agent {
             Agent::Muse => "Muse Code",
             Agent::OpenCode => "OpenCode",
             Agent::Amp => "Amp",
-            Agent::Hermes => "Hermes Agent",
+            Agent::Hermes => "AXYON Core",
         }
     }
 
@@ -612,7 +612,7 @@ const CODEX_EVENTS: &[(&str, u64)] = &[
     ("SessionEnd", 3),
 ];
 
-const CODEX_WAITING: &str = "Waiting for your answer in the island (Coucou)";
+const CODEX_WAITING: &str = "Waiting for your answer in the island (AXYON)";
 
 fn codex_install(root: &Value, command: &str) -> Result<Value, String> {
     let events = CODEX_EVENTS.iter().map(|(event, timeout)| {
@@ -905,7 +905,7 @@ def register(ctx):
         # Observer only: Hermes asks and decides; the island just says so.
         _fire({'hook_event_name': 'PreToolUse',
                'session_id': kwargs.get('session_key', '') or _current_session_id,
-               'tool_name': '⏳ Approval pending in Hermes',
+               'tool_name': '⏳ Approval pending in AXYON Core',
                'tool_input': {'command': kwargs.get('command', ''),
                               'description': kwargs.get('description', '')}})
 
@@ -1231,7 +1231,7 @@ mod tests {
         std::fs::write(&file, "export const Mine = async () => ({});\n").unwrap();
         for install in [true, false] {
             let err = config_file::preview(&Agent::OpenCode.edits(&home, &linux(), install)).unwrap_err();
-            assert!(err.contains("wasn't written by Coucou"), "{err}");
+            assert!(err.contains("wasn't written by AXYON"), "{err}");
         }
         assert_eq!(std::fs::read_to_string(&file).unwrap(), "export const Mine = async () => ({});\n");
         let _ = std::fs::remove_dir_all(home);

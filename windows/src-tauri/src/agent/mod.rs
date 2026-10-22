@@ -241,7 +241,7 @@ fn alias(tool: &str) -> &'static str {
         "open_url" => "Open",
         "system_info" => "Info",
         "home_devices" | "home_control" | "home_routine" => "Home",
-        hermes::TOOL => "Hermes",
+        hermes::TOOL => "AXYON Core",
         _ => "Tool",
     }
 }
@@ -348,7 +348,7 @@ impl LiveHands {
         let lines = self.lines.lock().unwrap().clone();
         SessionIn {
             pill_id: PILL_ID.into(),
-            agent: "Mochi".into(),
+            agent: "AXYON".into(),
             state: state.into(),
             status_text: lines.last().cloned().unwrap_or_default(),
             step_index: lines.len().saturating_sub(1) as u32,
@@ -517,8 +517,8 @@ impl Transport for Brain {
 /// Mochi's instructions when he has hands.
 fn system_prompt(env: &Env, origin: Origin) -> String {
     let opening = match crate::identity::first_name() {
-        Some(name) => format!("You are Mochi, {name}'s personal AI assistant living at the top of their screen."),
-        None => "You are Mochi, a personal AI assistant living at the top of the user's screen.".to_string(),
+        Some(name) => format!("You are AXYON, {name}'s personal AI assistant living at the top of their screen."),
+        None => "You are AXYON, a personal AI assistant living at the top of the user's screen.".to_string(),
     };
     let web = if env.web_search { "web search, " } else { "" };
     let level = match env.level {
@@ -532,7 +532,7 @@ fn system_prompt(env: &Env, origin: Origin) -> String {
         ""
     };
     let powers = if env.powers.is_some() {
-        "\n- You also have Zheus' superpowers: the wealth_ tools for the user's investments (their portfolio, real-estate funds, companies and their thesis, the road to their targets, taxes, a committee before a decision, their decision journal), read against Brazil's official data, and the life_ tools for their studies for a public exam, spaced-repetition cards, English, training and their day. Use them whenever the user talks about these. They only read and keep the user's records in Coucou: they never buy, sell, pay or post anything, and you never present their math as a recommendation to buy a given asset."
+        "\n- You also have Zheus' superpowers: the wealth_ tools for the user's investments (their portfolio, real-estate funds, companies and their thesis, the road to their targets, taxes, a committee before a decision, their decision journal), read against Brazil's official data, and the life_ tools for their studies for a public exam, spaced-repetition cards, English, training and their day. Use them whenever the user talks about these. They only read and keep the user's records in AXYON: they never buy, sell, pay or post anything, and you never present their math as a recommendation to buy a given asset."
     } else {
         ""
     };

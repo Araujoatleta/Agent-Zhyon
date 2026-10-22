@@ -93,7 +93,7 @@ export const PILL_CATALOG: readonly PillDefinition[] = [
     subtitle: N_("Agent"), source: "agent", support: "yes", connect: hooks },
   { id: "agent_amp", name: "Amp", color: "#F59E0B", category: "agent",
     subtitle: N_("Agent"), source: "agent", support: "yes", connect: hooks },
-  { id: "agent_hermes", name: "Hermes", color: "#C084FC", category: "agent",
+  { id: "agent_hermes", name: "AXYON Core", color: "#C084FC", category: "agent",
     subtitle: N_("Agent"), source: "agent", support: "yes", connect: hooks },
   // Claude Code sessions run from the Claude desktop app: the relay tags them
   // from CLAUDE_CODE_ENTRYPOINT, so there is nothing to install. The app has no
@@ -179,7 +179,7 @@ export function sessionSubtitle(id: string): string {
     case "integration_claude": return "Claude Code";
     case "agent_cursor": return "Cursor";
     case "agent_codex": return "Codex";
-    case "agent_hermes": return "Hermes";
+    case "agent_hermes": return "AXYON Core";
     case "agent_claude-desktop": return "Claude Desktop";
     default: return N_("Agent");
   }

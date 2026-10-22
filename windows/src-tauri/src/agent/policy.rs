@@ -76,7 +76,7 @@ pub fn gate(level: Level, effect: Effect, inside: bool, secret: bool) -> Gate {
         Effect::Read if mine => Gate::Free,
         Effect::Read => Gate::Ask,
         Effect::Write | Effect::Command | Effect::Home { .. } if level == Level::ReadOnly => {
-            Gate::Refuse("Mochi's hands are set to read only on this computer: nothing can be changed and no command can run. Tell the user what you would do instead.")
+            Gate::Refuse("AXYON's hands are set to read only on this computer: nothing can be changed and no command can run. Tell the user what you would do instead.")
         }
         Effect::Home { ask: true } => Gate::Ask,
         Effect::Home { ask: false } => Gate::Free,

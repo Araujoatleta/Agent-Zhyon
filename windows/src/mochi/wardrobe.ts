@@ -1,14 +1,14 @@
-// Mochi's wardrobe — the pure logic, port of NotchBuddy/Sources/CoucouKit/MochiWardrobe.swift.
-// What Mochi wears is picked in the wardrobe view (right-click on Mochi, or the
-// tray menu) and stored in the preferences as `mochiOutfit`. The drawing lives
-// in ./outfits.ts.
+// AXYON's wardrobe — the pure logic, port of NotchBuddy/Sources/CoucouKit/MochiWardrobe.swift, with AXYON's own
+// outfits added. What AXYON wears is picked in the wardrobe view (right-click on AXYON, or the tray menu) and stored
+// in the preferences as `mochiOutfit` (the setting keeps its name). The drawing lives in ./outfits.ts.
 
 import { N_, labels, t } from "../i18n/i18n";
 
 /** Every outfit, plus "auto" (dress for the season) and "none". Order of the wardrobe. */
 export const OUTFIT_SELECTIONS = [
-  "auto", "none", "partyHat", "beanie", "crown", "sunglasses", "roundGlasses",
-  "bow", "scarf", "witchHat", "pumpkin", "santaHat", "bunnyEars",
+  "auto", "none", "headset", "cyberVisor", "astronaut", "halo", "cape", "cap", "gradCap", "bowtie",
+  "partyHat", "beanie", "crown", "sunglasses", "roundGlasses", "bow", "scarf", "witchHat", "pumpkin", "santaHat",
+  "bunnyEars",
 ] as const;
 
 /** What can be stored in the preferences. The raw values are the Mac's, keep them stable. */
@@ -36,6 +36,14 @@ export const OUTFIT_KEYS: Record<OutfitSelection, string> = {
   pumpkin: N_("Pumpkin"),
   santaHat: N_("Santa hat"),
   bunnyEars: N_("Bunny ears"),
+  headset: N_("Headset"),
+  cyberVisor: N_("Cyber visor"),
+  astronaut: N_("Astronaut helmet"),
+  halo: N_("Halo"),
+  cape: N_("Cape"),
+  cap: N_("Cap"),
+  gradCap: N_("Graduation cap"),
+  bowtie: N_("Bow tie"),
 };
 
 /** In the current language: every read goes through `t()`. */

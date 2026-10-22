@@ -35,7 +35,7 @@ const texts = (block) => [block, ...block.walk()].map((e) => e.textContent ?? ""
 
 const blocks = [
   { name: "assistant", make: assistantBlock, status: "phone_assistant_status", set: "phone_assistant_set_enabled", label: "Let the phone change the assistant (name, tone, brain, skills)" },
-  { name: "home", make: homeBlock, status: "phone_home_status", set: "phone_home_set_enabled", label: "Let the phone use Mochi's home" },
+  { name: "home", make: homeBlock, status: "phone_home_status", set: "phone_home_set_enabled", label: "Let the phone use AXYON's home" },
 ];
 
 for (const b of blocks) {
@@ -75,7 +75,7 @@ test("the hints say what the phone may do and what never leaves the computer", (
   assert.match(assistant, /Face ID/);
   assert.match(assistant, /never installed from the phone/);
   const home = texts(homeBlock(toggle)).join(" ");
-  assert.match(home, /needs Mochi's home on/);
+  assert.match(home, /needs AXYON's home on/);
   assert.match(home, /Face ID/);
   assert.match(home, /never leave this computer/);
 });

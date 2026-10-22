@@ -125,7 +125,7 @@ pub fn reason(code: &str) -> &'static str {
     match code {
         "off" => "Changing the assistant from the phone is turned off on the computer.",
         "invalid" => "The computer cannot take this change.",
-        "not_installed" => "Coucou does not install and run Hermes on the computer yet: set it up there first.",
+        "not_installed" => "AXYON does not install and run AXYON Core on the computer yet: set it up there first.",
         "not_ready" => "The computer has no key or server address for that brain yet.",
         "busy" => "The computer is still busy with the assistant. Try again in a moment.",
         "rate" => "Too many changes. Try again in a few minutes.",

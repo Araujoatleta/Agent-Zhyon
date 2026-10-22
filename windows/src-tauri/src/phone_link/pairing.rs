@@ -168,7 +168,7 @@ pub fn computer_name() -> String {
         .filter(|n| !n.trim().is_empty())
         .or_else(|| std::fs::read_to_string("/etc/hostname").ok().map(|n| n.trim().to_string()))
         .filter(|n| !n.is_empty())
-        .unwrap_or_else(|| "Coucou".to_string());
+        .unwrap_or_else(|| "AXYON".to_string());
     name.chars().take(48).collect()
 }
 

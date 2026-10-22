@@ -1525,7 +1525,7 @@ function layout(pages: Page[]): HTMLElement[] {
     { class: "rail", "data-glass": "panel", "data-glass-bend": "16" },
     h("div", { class: "brand" },
       h("span", { class: "brand-drop", "data-glass": "drop", "aria-hidden": "true" }),
-      h("div", { class: "brand-name" }, h("b", { text: "Coucou" }), h("small", { text: version })),
+      h("div", { class: "brand-name" }, h("b", { text: "AXYON" }), h("small", { text: version })),
     ),
     list,
     h("div", { class: "rail-foot", text: t("No telemetry. Network requests only go to the services you configure yourself.") }),

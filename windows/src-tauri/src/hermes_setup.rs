@@ -354,9 +354,11 @@ const MAX_NAME: usize = 40;
 pub const MAX_PERSONA_TEXT: usize = 1500;
 /// The tones offered (Settings, the installer's page, the phone), in that order; "" is the first.
 pub const PERSONAS: &[&str] = &["friendly", "direct", "professional", "playful", "butler", "custom"];
-/// The line that marks a SOUL.md as Coucou's own: one without it is the user's, and is copied aside before Coucou
+/// The line that marks a SOUL.md as AXYON's own: one without it is the user's, and is copied aside before AXYON
 /// writes over it.
-pub const SOUL_MARK: &str = "Set up in Coucou (Settings → Hermes Agent)";
+pub const SOUL_MARK: &str = "Set up in AXYON (Settings → AXYON Core)";
+/// The marks of earlier builds: a SOUL.md one of them wrote is ours too, rewritten without a copy.
+const OLD_SOUL_MARKS: &[&str] = &["Set up in Coucou (Settings → Hermes Agent)"];
 
 /// How each preset tone tells Hermes to speak. Words Hermes' injection scan looks for in SOUL.md ("now", "pretend",
 /// "name yourself", HTML comments) are kept out (tools/threat_patterns.py).
@@ -413,7 +415,7 @@ pub fn soul_text(name: &str, persona: &str, persona_text: &str) -> String {
     let style = persona_style(persona, persona_text).lines().map(str::trim_end).collect::<Vec<_>>().join("\n  ");
     format!(
         "# Personality\n\
-You are {name}, the user's personal assistant. You run on their computer through Hermes Agent and Coucou (Mochi, in the notch, shows your work).\n\
+You are {name}, the user's personal assistant. You run on their computer through AXYON: AXYON Core is your engine, and AXYON, the small character in the notch, shows your work.\n\
 \n\
 ## Style\n\
 - {style}\n\
@@ -422,7 +424,7 @@ You are {name}, the user's personal assistant. You run on their computer through
 ## What to avoid\n\
 - Filler, restating the request, and claiming you did something you did not do.\n\
 \n\
-{SOUL_MARK}; Coucou rewrites this file when the assistant's name or tone changes there.\n"
+{SOUL_MARK}; AXYON rewrites this file when the assistant's name or tone changes there.\n"
     )
 }
 
@@ -462,7 +464,8 @@ pub fn write_soul(home: &Path, text: &str, stamp: &str) -> std::io::Result<Optio
             if old_text == text {
                 return Ok(None);
             }
-            if !old_text.lines().any(|l| l.trim_start_matches('\u{feff}').starts_with(SOUL_MARK)) {
+            let ours = |l: &str| std::iter::once(SOUL_MARK).chain(OLD_SOUL_MARKS.iter().copied()).any(|m| l.starts_with(m));
+            if !old_text.lines().any(|l| ours(l.trim_start_matches('\u{feff}'))) {
                 backup = Some(backup_soul(home, &old, stamp)?);
             }
         }
@@ -3001,7 +3004,7 @@ mod tests {
         let soul = soul_text("Zheus", "friendly", "");
         assert_eq!(
             soul,
-            "# Personality\nYou are Zheus, the user's personal assistant. You run on their computer through Hermes Agent and Coucou (Mochi, in the notch, shows your work).\n\n## Style\n- Warm and friendly, like a helpful friend: short, clear answers, a light touch of humour when it fits.\n- Answer in the language the user writes in.\n\n## What to avoid\n- Filler, restating the request, and claiming you did something you did not do.\n\nSet up in Coucou (Settings → Hermes Agent); Coucou rewrites this file when the assistant's name or tone changes there.\n"
+            "# Personality\nYou are Zheus, the user's personal assistant. You run on their computer through AXYON: AXYON Core is your engine, and AXYON, the small character in the notch, shows your work.\n\n## Style\n- Warm and friendly, like a helpful friend: short, clear answers, a light touch of humour when it fits.\n- Answer in the language the user writes in.\n\n## What to avoid\n- Filler, restating the request, and claiming you did something you did not do.\n\nSet up in AXYON (Settings → AXYON Core); AXYON rewrites this file when the assistant's name or tone changes there.\n"
         );
         assert!(soul_text("", "", "").starts_with("# Personality\nYou are Zheus,"), "no name: Zheus, no tone: friendly");
         assert_eq!(soul_text("Ana", "unknown-tone", ""), soul_text("Ana", "friendly", ""));
@@ -3051,6 +3054,11 @@ mod tests {
         let second = soul_text("Athena", "butler", "");
         assert_eq!(write_soul(&dir, &second, "20261014-101600").unwrap(), None);
         assert_eq!(write_soul(&dir, &second, "20261014-101601").unwrap(), None);
+        assert_eq!(names(&dir), ["SOUL.md"]);
+        // One an earlier build wrote, under its old mark: ours too, written over with no copy.
+        let earlier = "# Personality\nYou are Zheus.\n\nSet up in Coucou (Settings → Hermes Agent); Coucou rewrites this file when the assistant's name or tone changes there.\n";
+        std::fs::write(dir.join("SOUL.md"), earlier).unwrap();
+        assert_eq!(write_soul(&dir, &second, "20261014-101650").unwrap(), None);
         assert_eq!(names(&dir), ["SOUL.md"]);
         // The user's own (Hermes' default, or theirs): copied aside first, byte for byte, once per overwrite.
         let theirs = "\u{feff}You are Hermes Agent, built by Nous Research.\n";
