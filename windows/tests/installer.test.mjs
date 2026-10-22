@@ -90,7 +90,7 @@ function texts() {
 
 // ── The template copy ─────────────────────────────────────────────────────────
 
-test("the template copy is Tauri's 2.12.0 template plus Coucou's two changes, and the CLI is pinned to it", () => {
+test("the template copy is Tauri's 2.12.0 template plus Coucou's six changes, and the CLI is pinned to it", () => {
   const pkg = JSON.parse(read("package.json"));
   const lock = JSON.parse(read("package-lock.json"));
   assert.equal(pkg.devDependencies["@tauri-apps/cli"], CLI, "exactly, not a range: the template copy belongs to it");
@@ -101,7 +101,7 @@ test("the template copy is Tauri's 2.12.0 template plus Coucou's two changes, an
   // Without its header and without each "; Coucou:" line and the line after it, the copy is the template itself.
   const lines = TEMPLATE.slice(TEMPLATE.indexOf("Unicode true")).split("\n");
   const upstream = lines.filter((line, i) => !line.startsWith("; Coucou:") && !lines[i - 1]?.startsWith("; Coucou:"));
-  assert.equal(lines.length - upstream.length, 4, "two changes of one line each, each with its comment");
+  assert.equal(lines.length - upstream.length, 12, "six changes of one line each, each with its comment");
   assert.equal(createHash("sha256").update(upstream.join("\n")).digest("hex"), UPSTREAM_SHA256);
 });
 
@@ -125,6 +125,23 @@ test("the template includes the hooks and declares the page right after the inst
   assert.ok(order.every((at, i) => at > 0 && (i === 0 || at > order[i - 1])), `pages out of order: ${order}`);
   // With Tauri's own template, hooks.nsh declares the page itself (it then comes first).
   assert.match(HOOKS, /!ifndef COUCOU_PAGE_IN_TEMPLATE\n\s*Page custom CoucouPageCreate CoucouPageLeave\n!endif/);
+});
+
+test("the app is AXYON, and an update still finds and replaces the one installed as Coucou", () => {
+  const conf = JSON.parse(read("src-tauri/tauri.conf.json"));
+  assert.equal(conf.productName, "AXYON");
+  assert.equal(conf.identifier, "fr.louisraille.coucou", "the keystore, the settings and the single instance hang on it");
+  // Tauri's default upgrade code is derived from the product name: the one derived from Coucou, kept.
+  assert.equal(conf.bundle.windows.wix.upgradeCode, "664695e2-338f-541b-8d41-6266d176533c");
+  assert.deepEqual(conf.bundle.linux.deb.replaces, ["coucou"]);
+  // The uninstall entry and the key that remembers the folder keep Coucou's names; what shows is AXYON.
+  assert.match(TEMPLATE, /\n!undef UNINSTKEY\n; Coucou:.*\n!define UNINSTKEY "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Coucou"\n/);
+  assert.match(TEMPLATE, /\n!undef MANUPRODUCTKEY\n; Coucou:.*\n!define MANUPRODUCTKEY "\$\{MANUKEY\}\\Coucou"\n/);
+  assert.match(TEMPLATE, /WriteRegStr SHCTX "\$\{UNINSTKEY\}" "DisplayName" "\$\{PRODUCTNAME\}"/);
+  // Coucou's shortcuts become AXYON's; "start with Windows" keeps its entry (lib.rs), removed with the app only.
+  assert.match(HOOKS, /!insertmacro CoucouOldShortcut "\$SMPROGRAMS"\n\s*!insertmacro CoucouOldShortcut "\$DESKTOP"/);
+  assert.match(HOOKS, /\$\{If\} \$UpdateMode <> 1\n\s*DeleteRegValue HKCU "Software\\Microsoft\\Windows\\CurrentVersion\\Run" "Coucou"/);
+  assert.match(read("src-tauri/src/lib.rs"), /tauri_plugin_autostart::Builder::new\(\)\.app_name\("Coucou"\)/);
 });
 
 test("tauri.conf.json builds the setup.exe from the copy, with the hooks, in English, French and Portuguese", () => {

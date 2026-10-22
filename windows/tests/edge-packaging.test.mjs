@@ -52,13 +52,13 @@ test("checksum manifest generation and verification detect tampering", async () 
   const { writeChecksumManifest, verifyChecksumManifest } = await import("../scripts/pack.mjs");
   const dir = mkdtempSync(join(tmpdir(), "coucou-pack-"));
   try {
-    const first = join(dir, "Coucou.exe");
+    const first = join(dir, "AXYON.exe");
     const second = join(dir, "coucou-edge-worker.exe");
     writeFileSync(first, "app");
     writeFileSync(second, "worker");
     const manifest = writeChecksumManifest([first, second], dir);
     assert.equal(verifyChecksumManifest(manifest).length, 2);
-    assert.match(readFileSync(manifest, "utf8"), /^[0-9a-f]{64}  Coucou\.exe\n[0-9a-f]{64}  coucou-edge-worker\.exe\n$/);
+    assert.match(readFileSync(manifest, "utf8"), /^[0-9a-f]{64}  AXYON\.exe\n[0-9a-f]{64}  coucou-edge-worker\.exe\n$/);
     writeFileSync(second, "tampered");
     assert.throws(() => verifyChecksumManifest(manifest), /checksum mismatch.*coucou-edge-worker\.exe/i);
   } finally {

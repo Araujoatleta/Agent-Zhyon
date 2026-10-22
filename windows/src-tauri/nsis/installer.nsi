@@ -1,11 +1,13 @@
 ; Coucou's copy of Tauri's NSIS installer template: crates/tauri-bundler/src/bundle/windows/nsis/installer.nsi at
 ; the tag @tauri-apps/cli-v2.12.0 of github.com/tauri-apps/tauri (tauri-bundler 2.10.0), used through
-; bundle > windows > nsis > template in tauri.conf.json. Two changes, each marked "Coucou:":
+; bundle > windows > nsis > template in tauri.conf.json. Six changes, each marked "Coucou:":
 ;   - COUCOU_PAGE_IN_TEMPLATE is defined before the hooks are included, so nsis/hooks.nsh leaves the page to this file;
-;   - the "Your assistant" page (nsis/hooks.nsh) is declared right after the install-folder page.
+;   - the "Your assistant" page (nsis/hooks.nsh) is declared right after the install-folder page;
+;   - UNINSTKEY and MANUPRODUCTKEY are undefined and defined again (four lines) under the name the app had before it
+;     was AXYON, Coucou, so an update finds the installed app and replaces it in place.
 ; This is why package.json pins @tauri-apps/cli to exactly 2.12.0: on every bump, diff this file against the new
-; version's template, carry the two changes over to it and update this header. tests/installer.test.mjs checks that
-; this file minus the header and the two changes (each "; Coucou:" line and the line after it) is still that template.
+; version's template, carry the six changes over to it and update this header. tests/installer.test.mjs checks that
+; this file minus the header and the six changes (each "; Coucou:" line and the line after it) is still that template.
 Unicode true
 ManifestDPIAware true
 ; Add in `dpiAwareness` `PerMonitorV2` to manifest for Windows 10 1607+ (note this should not affect lower versions since they should be able to ignore this and pick up `dpiAware` `true` set by `ManifestDPIAware true`)
@@ -77,6 +79,14 @@ ${StrLoc}
 !define UNINSTKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCTNAME}"
 !define MANUKEY "Software\${MANUFACTURER}"
 !define MANUPRODUCTKEY "${MANUKEY}\${PRODUCTNAME}"
+; Coucou: the app was Coucou before it was AXYON; its uninstall entry keeps that key (it shows as AXYON)
+!undef UNINSTKEY
+; Coucou: so an update finds the installed app, its version and its folder, and replaces it there
+!define UNINSTKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\Coucou"
+; Coucou: the key that remembers the install folder and the language keeps its earlier name too
+!undef MANUPRODUCTKEY
+; Coucou: (MANUKEY is unchanged: the manufacturer did not change)
+!define MANUPRODUCTKEY "${MANUKEY}\Coucou"
 !define UNINSTALLERSIGNCOMMAND "{{uninstaller_sign_cmd}}"
 !define ESTIMATEDSIZE "{{estimated_size}}"
 !define STARTMENUFOLDER "{{start_menu_folder}}"

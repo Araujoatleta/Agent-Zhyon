@@ -65,17 +65,17 @@ jobs:
 
       - uses: actions/upload-artifact@v7
         with:
-          name: Coucou-Windows-msi-unsigned
+          name: AXYON-Windows-msi-unsigned
           path: |
-            windows/release/Coucou-Windows-${{ steps.pack.outputs.version }}.msi
+            windows/release/AXYON-Windows-${{ steps.pack.outputs.version }}.msi
             windows/release/SHA256SUMS.txt
           retention-days: 7
 
       - uses: actions/upload-artifact@v7
         with:
-          name: Coucou-Windows-setup-unsigned
+          name: AXYON-Windows-setup-unsigned
           path: |
-            windows/release/Coucou-Windows-${{ steps.pack.outputs.version }}-setup.exe
+            windows/release/AXYON-Windows-${{ steps.pack.outputs.version }}-setup.exe
             windows/release/SHA256SUMS.txt
           retention-days: 7
 
@@ -83,10 +83,10 @@ jobs:
       # in portable mode; pair/configure it before enabling logon startup.
       - uses: actions/upload-artifact@v7
         with:
-          name: Coucou-Windows-portable-unsigned
+          name: AXYON-Windows-portable-unsigned
           path: |
-            windows/release/Coucou-Windows-${{ steps.pack.outputs.version }}-portable/Coucou.exe
-            windows/release/Coucou-Windows-${{ steps.pack.outputs.version }}-portable/coucou-hook.exe
-            windows/release/Coucou-Windows-${{ steps.pack.outputs.version }}-portable/coucou-edge-worker.exe
+            windows/release/AXYON-Windows-${{ steps.pack.outputs.version }}-portable/AXYON.exe
+            windows/release/AXYON-Windows-${{ steps.pack.outputs.version }}-portable/coucou-hook.exe
+            windows/release/AXYON-Windows-${{ steps.pack.outputs.version }}-portable/coucou-edge-worker.exe
             windows/release/SHA256SUMS.txt
           retention-days: 7
