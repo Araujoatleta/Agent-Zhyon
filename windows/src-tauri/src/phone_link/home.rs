@@ -168,7 +168,7 @@ pub fn check(picture: &HomePicture, job: &Job, on: bool) -> Result<Go, &'static 
 /// The fixed message of each refusal (a failure carries the device's own answer instead).
 pub fn reason(code: &str) -> &'static str {
     match code {
-        "off" => "Mochi's home from the phone is turned off on the computer.",
+        "off" => "AXYON's home from the phone is turned off on the computer.",
         "invalid" => "The computer cannot take this action.",
         "unknown" => "This device or routine is not one the phone may use any more.",
         "confirm" => "This asks first: confirm it on the phone.",

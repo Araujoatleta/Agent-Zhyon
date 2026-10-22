@@ -76,15 +76,17 @@ tools: their browser is hidden from the user. Each click, key or text may wait f
         String::new()
     };
     format!(
-        "The user is talking to you through Coucou, the app where Mochi, a small character, lives at the top of their \
-screen. Coucou shows them each tool you use, and asks them itself about the actions you need approved. Your answer \
+        "The user is talking to you through AXYON, the app whose small character lives at the top of their screen. \
+AXYON shows them each tool you use, and asks them itself about the actions you need approved. Your answer \
 appears in a small chat window and may be read aloud: answer in the user's language, briefly, in plain sentences, \
 with light Markdown at most.{place}{hands}{called}{tone}"
     )
 }
 
-/// One step line: the tool and what it was given.
+/// One step line: the tool and what it was given. The tools of AXYON's own MCP server (`coucou` in Hermes' config) go
+/// by their own name, without the server's.
 fn summary(tool: &str, preview: &str) -> String {
+    let tool = ["mcp__coucou__", "mcp_coucou_"].iter().find_map(|prefix| tool.strip_prefix(prefix)).unwrap_or(tool);
     let preview = text::one_line(preview, 160);
     if preview.is_empty() {
         tool.to_string()
@@ -272,7 +274,7 @@ async fn turn(
         app: app.clone(),
         run: run_id,
         origin,
-        project: Some("Hermes".into()),
+        project: Some("AXYON Core".into()),
         folder: PathBuf::new(),
         home: crate::platform::home_dir(),
         phone_steps,
@@ -522,7 +524,7 @@ mod tests {
 
     #[test]
     fn hermes_is_told_where_the_message_comes_from() {
-        assert!(instructions(Origin::Island, "", "", false).contains("Coucou") && !instructions(Origin::Island, "", "", false).contains("phone"));
+        assert!(instructions(Origin::Island, "", "", false).contains("AXYON") && !instructions(Origin::Island, "", "", false).contains("phone"));
         assert!(instructions(Origin::Phone, "", "", false).contains("phone"));
         assert!(!instructions(Origin::Island, "", "", false).contains("Your name"));
         assert!(instructions(Origin::Phone, "Zheus", "", false).contains("Your name is Zheus"), "the name the user gave");
@@ -546,6 +548,8 @@ mod tests {
         assert_eq!(OPEN, "xdg-open \"<link>\"");
         assert_eq!(summary("memory", ""), "memory");
         assert_eq!(summary("terminal", "ls\n-la"), "terminal · ls -la");
+        assert_eq!(summary("mcp_coucou_home_control", "tv off"), "home_control · tv off", "AXYON's own tools by their name");
+        assert_eq!(summary("mcp__coucou__wealth_portfolio", ""), "wealth_portfolio");
         let ask = Ask { request_id: None, command: String::new(), description: "send an email".into() };
         assert_eq!((request_of(&ask).summary.as_str(), request_of(&ask).reason), ("send an email", None));
     }

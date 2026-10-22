@@ -108,7 +108,7 @@ test("a TV is paired with the PIN it shows, and nothing is sent before the click
   await flush();
   await flush();
   assert.deepEqual(sent("home_tv_pin").at(-1), { id: "philips:aa", pin: "1234" });
-  assert.ok(byText(section, "DIV", "Paired. Mochi can now use this TV."));
+  assert.ok(byText(section, "DIV", "Paired. AXYON can now use this TV."));
 });
 
 test("a device is tested from Settings with the action and value picked", async () => {
@@ -188,7 +188,7 @@ test("the voice block keeps the choice, reads a sentence to try, and says how to
   await flush();
   assert.ok(byText(section, "H3", "Voice"));
   assert.ok(byText(section, "DIV", "Voice: Microsoft Zira"));
-  const row = all(section).find((e) => e.tagName === "DIV" && e.className === "row" && e.children.some((c) => c.textContent === "Read Mochi's answers aloud"));
+  const row = all(section).find((e) => e.tagName === "DIV" && e.className === "row" && e.children.some((c) => c.textContent === "Read AXYON's answers aloud"));
   row.children[1].fire("click");
   assert.deepEqual(chosen, [true]);
   byText(section, "BUTTON", "Try").fire("click");
@@ -253,6 +253,7 @@ test("a Samsung TV found on the network is added, then paired by choosing Allow 
   answers.home_tv_pair = () => new Promise((resolve) => (allow = resolve));
   byText(section, "BUTTON", "Pair").fire("click");
   await flush();
+  // The name the TV knows this computer by stays the earlier one (smart_home/samsung.rs): paired TVs stay paired.
   assert.ok(byText(section, "DIV", "Look at the TV: it asks whether to allow Coucou. Choose Allow."));
   answers.home_status = status({ tvs: [samsung({ paired: true })] });
   allow(samsung({ paired: true }));
@@ -260,13 +261,13 @@ test("a Samsung TV found on the network is added, then paired by choosing Allow 
   await flush();
   await flush();
   assert.deepEqual(sent("home_tv_pair").at(-1), { id: "samsung:0e0f1a1b" });
-  assert.ok(byText(section, "DIV", "Paired. Mochi can now use this TV."));
+  assert.ok(byText(section, "DIV", "Paired. AXYON can now use this TV."));
   assert.equal(all(section).find((e) => e.tagName === "INPUT" && e.getAttribute("placeholder") === "PIN"), undefined, "no PIN for a Samsung TV");
   assert.equal(sent("home_tv_pin").length, pinsBefore);
 });
 
 test("a TV that is neither Samsung nor Philips is not added, and what it answers on is said", async () => {
-  const why = "This TV answers neither as a Samsung nor as a Philips TV. It does answer on: ADB (Android) (5555). Send this line to whoever helps you with Coucou: it tells how this TV could be controlled.";
+  const why = "This TV answers neither as a Samsung nor as a Philips TV. It does answer on: ADB (Android) (5555). Send this line to whoever helps you with AXYON: it tells how this TV could be controlled.";
   answers = { home_status: status({ tvs: [] }), home_tv_add: new Error(why) };
   const section = homeSection(toggle);
   await flush();
@@ -326,6 +327,6 @@ test("an Android projector found on the network is tried over ADB, then allowed 
   await flush();
   await flush();
   assert.deepEqual(sent("home_tv_pair").at(-1), { id: "android:5a6b7c8d" });
-  assert.ok(byText(section, "DIV", "Paired. Mochi can now use this TV."));
+  assert.ok(byText(section, "DIV", "Paired. AXYON can now use this TV."));
   assert.equal(all(section).find((e) => e.tagName === "INPUT" && e.getAttribute("placeholder") === "PIN"), undefined, "no PIN for an Android device");
 });

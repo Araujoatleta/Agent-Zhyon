@@ -107,7 +107,7 @@ pub fn reason(code: &str) -> &'static str {
         "auth" => "The provider refused the computer's key.",
         "provider" => "The provider returned an error.",
         "canceled" => "Canceled.",
-        "hands_off" => "Mochi's hands are off on the computer.",
+        "hands_off" => "AXYON's hands are off on the computer.",
         _ => "Something went wrong on the computer.",
     }
 }

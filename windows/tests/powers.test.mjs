@@ -81,7 +81,7 @@ const profile = (fields = {}) => ({
   gymSplit: "upper_lower",
   gymGoal: "hipertrofia",
   privateContent: true,
-  contentFolder: "C:\\Users\\Ana\\Documents\\Coucou\\Zheus",
+  contentFolder: "C:\\Users\\Ana\\Documents\\AXYON\\Zheus",
   ...fields,
 });
 
@@ -96,7 +96,7 @@ const view = (fields = {}) => ({
   refresh: { running: false, at: "07:30", problems: [] },
   profile: profile(),
   hermes: "ready",
-  command: "C:\\Users\\Ana\\AppData\\Local\\Coucou\\bin\\coucou-hook.exe",
+  command: "C:\\Users\\Ana\\AppData\\Local\\AXYON\\bin\\coucou-hook.exe",
   ...fields,
 });
 
@@ -240,7 +240,7 @@ test("the switch turns the superpowers on, and the forms come with what Rust kee
   assert.deepEqual(sent("powers_set").at(-1), { on: true });
   assert.ok(byText(section, "H3", "Portfolio") && byText(section, "H3", "Public exam") && byText(section, "H3", "English") && byText(section, "H3", "Training"));
   assert.ok(byText(section, "SPAN", "6 positions · updated 21/10/2026 · R$ 6.523,70"));
-  assert.ok(all(section).some((e) => e.className === "notice ok" && e.textContent.startsWith("Zheus (Hermes) has the superpowers")));
+  assert.ok(all(section).some((e) => e.className === "notice ok" && e.textContent.startsWith("Zheus (AXYON Core) has the superpowers")));
 });
 
 test("the portfolio's targets and amounts are saved through the brain's own tool", async () => {
@@ -325,7 +325,7 @@ test("studies, English, training and the content's privacy are saved with their 
   assert.deepEqual(sent("powers_save").at(-1), { tool: "content_private", input: false });
 });
 
-test("a Hermes Coucou does not run gets the lines to add, with coucou-hook's own path", async () => {
+test("a AXYON Core AXYON does not run gets the lines to add, with coucou-hook's own path", async () => {
   answers = { powers_status: view({ hermes: "" }) };
   const section = powersSection(toggle);
   await flush();
@@ -336,7 +336,7 @@ test("a Hermes Coucou does not run gets the lines to add, with coucou-hook's own
 // ── The content kit's PNG copies ─────────────────────────────────────────────
 
 test("each chart of a kit is drawn and saved beside its SVG; one that cannot be drawn keeps its SVG", async () => {
-  const kit = { folder: "C:\\Users\\Ana\\Documents\\Coucou\\Zheus\\2026-10", files: [{ name: "1-patrimonio.svg", svg: "<svg/>" }, { name: "3-alocacao.svg", svg: "bad" }] };
+  const kit = { folder: "C:\\Users\\Ana\\Documents\\AXYON\\Zheus\\2026-10", files: [{ name: "1-patrimonio.svg", svg: "<svg/>" }, { name: "3-alocacao.svg", svg: "bad" }] };
   const before = sent("powers_save_png").length;
   const saved = await savePngs(kit, async (svg) => {
     if (svg === "bad") throw new Error("no");

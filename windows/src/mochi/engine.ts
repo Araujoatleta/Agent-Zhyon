@@ -1,13 +1,17 @@
-// Mochi — direct port of NotchBuddy/Sources/App/BotEngine.swift to Canvas 2D.
-// Same constants, same tweens, same easings, same particles. The only intentional
-// difference is the `happy`/`wink` eye arc, which follows the prototype
-// (design/prototype/notch-buddy.html, the visual source of truth) — the Swift
-// arc angles produce a different shape.
+// AXYON — the character, on the engine ported from NotchBuddy/Sources/App/BotEngine.swift to Canvas 2D: same
+// constants, same tweens, same easings, same particles, every state and emote of the original. What AXYON looks like
+// (a pearl shell, a dark face screen with eyes of light, an antenna, ear pods, its mark) is ./axyon.ts; the mini bots
+// of the agents keep the original look. The `happy`/`wink` eye arc follows the prototype
+// (design/prototype/notch-buddy.html) — the Swift arc angles produce a different shape.
 
 import { Ease, lerp, type EaseFn } from "../core/anim";
 import { Sound } from "../core/sound";
 import type { BotEmoteName, BotStateName } from "../core/layout";
-import { PUMPKIN_BODY, drawOutfitBehind, drawOutfitFront, makeHead } from "./outfits";
+import { PUMPKIN_BODY, coversTop, drawOutfitBehind, drawOutfitFront, makeHead } from "./outfits";
+import {
+  LED, drawAntenna, drawMark, drawPods, glow, markFrame, noGlow, paintScreen, paintShell, pearl, rgba as ledRgba,
+  screenPath,
+} from "./axyon";
 import type { Outfit } from "./wardrobe";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -39,7 +43,7 @@ interface Tween {
 type PropKey =
   | "yaw" | "pitch" | "roll" | "tilt" | "open" | "sx" | "sy"
   | "oy" | "ox" | "tint" | "morph" | "hands" | "blush" | "es" | "badgeS"
-  | "outfitPresence";
+  | "outfitPresence" | "scan" | "glitch" | "flash" | "ping";
 
 interface BotStateCfg {
   color: RGB;
@@ -56,7 +60,7 @@ interface BotStateCfg {
 }
 
 interface Particle {
-  type: "heart" | "star" | "spark" | "sweat" | "z";
+  type: "heart" | "star" | "spark" | "sweat" | "z" | "bit";
   x: number; y: number; vx: number; vy: number;
   age: number; life: number; rot: number; size: number;
 }
@@ -204,6 +208,13 @@ export class BotEngine {
   sx = 1; sy = 1; oy = 0; ox = 0;
   tint = 0; morph = 0; hands = 0; blush = 0; es = 1; badgeS = 0;
 
+  // AXYON's own (axyon.ts): a line of light sweeping down the screen (0…1), a glitch (1 → 0), a flash of the screen
+  // (1 → 0) and a ring leaving the antenna's tip (0…1). Each one a tween: nothing runs between them.
+  scan = 0; glitch = 0; flash = 0; ping = 0;
+  /** The light of the eyes, antenna and mark, following the state's (ledT). */
+  led: RGB = LED.idle;
+  ledT: RGB = LED.idle;
+
   // Outfit (the main Mochi only — minis never wear one). `outfit` is what is
   // drawn; it changes only once the previous one has left.
   outfit: Outfit = "none";
@@ -278,6 +289,7 @@ export class BotEngine {
     this.state = next;
     this.cfg = BOT_STATES[next];
     this.colT = this.cfg.color;
+    this.ledT = LED[next] ?? LED.idle;
     if (!this.locks.has("tint")) this.tint = this.cfg.tint;
     if (!this.locks.has("tilt")) this.tgTilt = this.cfg.tilt;
     this.setBadge(this.cfg.badge);
@@ -285,22 +297,36 @@ export class BotEngine {
     switch (next) {
       case "finished":
         this.doRoll(950, 1);
-        setTimeout(() => this.emit("spark", 5), 500);
+        setTimeout(() => {
+          this.emit("spark", 5);
+          this.emit("bit", 4);
+          this.anim("flash", [[1, 90, Ease.out], [0, 520, Ease.inOut]]);
+        }, 500);
         break;
       case "error":
         this.anim("ox", [
           [0.08, 50, Ease.out], [-0.08, 70, Ease.inOut],
           [0.05, 70, Ease.inOut], [0, 90, Ease.out],
         ]);
+        this.glitch = 1;
+        this.anim("glitch", [[0.85, 120, Ease.lin], [1, 60, Ease.lin], [0, 380, Ease.out]]);
         break;
       case "approval":
         this.anim("oy", [[-0.2, 150, Ease.out], [0, 300, Ease.back]]);
+        this.pingOnce();
         break;
       case "dizzy":
         this.doRoll(1300, 2);
         break;
       case "question":
         this.blink();
+        this.pingOnce();
+        break;
+      case "working":
+      case "thinking":
+      case "searching":
+        this.blink();
+        this.sweep();
         break;
       case "ratelimit":
         this.emit("sweat", 1);
@@ -383,6 +409,9 @@ export class BotEngine {
     this.eyeOverride = "happy";
     this.eyeOverrideUntil = t + 2.0;
     this.anim("oy", [[-0.06, 220, Ease.out], [0.0, 220, Ease.back]]);
+    // AXYON wakes its screen up and its antenna springs.
+    this.anim("flash", [[1, 120, Ease.out], [0, 600, Ease.inOut]]);
+    this.physVy -= 0.6;
 
     setTimeout(() => {
       if (this.greetToken !== tok) return;
@@ -404,6 +433,20 @@ export class BotEngine {
       this.eyeOverride = "happy";
       this.eyeOverrideUntil = now() + 0.3;
     }, 1750);
+  }
+
+  /** A line of light down the face screen (AXYON). */
+  sweep() {
+    if (this.isMini || this.locks.has("scan")) return;
+    this.scan = 0;
+    this.anim("scan", [[1, 900, Ease.inOut]], () => { this.scan = 0; });
+  }
+
+  /** A ring of light leaving the antenna's tip (AXYON). */
+  pingOnce() {
+    if (this.isMini) return;
+    this.ping = 0;
+    this.anim("ping", [[1, 720, Ease.out]], () => { this.ping = 0; });
   }
 
   interruptGreet() {
@@ -479,6 +522,7 @@ export class BotEngine {
   }
 
   emit(type: Particle["type"], count: number) {
+    if (type === "bit" && this.isMini) return;
     for (let i = 0; i < count; i++) {
       const isZ = type === "z";
       this.particles.push({
@@ -555,6 +599,9 @@ export class BotEngine {
       Math.abs(this.col[0] - this.colT[0]) > 0.003 ||
       Math.abs(this.col[1] - this.colT[1]) > 0.003 ||
       Math.abs(this.col[2] - this.colT[2]) > 0.003 ||
+      Math.abs(this.led[0] - this.ledT[0]) > 0.003 ||
+      Math.abs(this.led[1] - this.ledT[1]) > 0.003 ||
+      Math.abs(this.led[2] - this.ledT[2]) > 0.003 ||
       (this.outfit !== "none" && (Math.abs(this.physVx) > 0.01 || Math.abs(this.physVy) > 0.01))
     );
   }
@@ -654,11 +701,16 @@ export class BotEngine {
     if (!this.locks.has("es")) this.es += (this.tgEs - this.es) * kGen;
 
     this.col = mix3(this.col, this.colT, 1 - Math.pow(0.002, dt));
+    this.led = mix3(this.led, this.ledT, 1 - Math.pow(0.002, dt));
+    // Searching, the screen sweeps on and on; it runs anyway, as the head scans.
+    if (this.cfg.scans && !this.locks.has("scan")) this.sweep();
 
     if (n > this.nextBlink) {
       if (this.state !== "sleeping" && this.state !== "dizzy") {
         this.blink();
         if (Math.random() < 0.22) setTimeout(() => this.blink(), 230);
+        // Now and then, with a blink, a line of light down AXYON's screen: the frames it costs are the blink's.
+        else if (Math.random() < 0.3) this.sweep();
       }
       this.nextBlink = n + 2.2 + Math.random() * 3.2;
     }
@@ -798,24 +850,31 @@ export class BotEngine {
     const outfitState = { presence: this.outfitPresence, morph: this.morph };
     if (head) drawOutfitBehind(x, this.outfit, head, outfitState);
 
+    // AXYON's antenna and ear pods, behind the body: its edge hides where they join it.
+    if (!this.isMini) this.drawGear(x, R, rx, ry);
+
     const body = this.bodyPath(rx, ry, R);
-    this.drawBody(x, body, R, rx, ry);
-
-    const blushVal = Math.max(this.blush, this.tint * 0.5) * (1 - this.morph);
-    if (blushVal > 0.01) {
-      x.save();
-      x.clip(body);
-      const yOffset = Math.sin(this.yaw) * rx * 0.8;
-      x.fillStyle = `rgba(255,120,150,${0.5 * blushVal})`;
-      for (const sd of [-1, 1]) {
-        x.beginPath();
-        x.ellipse(sd * rx * 0.55 + yOffset, ry * 0.2, R * 0.17, R * 0.1, 0, 0, Math.PI * 2);
-        x.fill();
+    if (this.isMini) {
+      this.drawBody(x, body, R, rx, ry);
+      // The mini bots keep their cheeks; AXYON's blush is light on its screen (drawFace).
+      const blushVal = Math.max(this.blush, this.tint * 0.5) * (1 - this.morph);
+      if (blushVal > 0.01) {
+        x.save();
+        x.clip(body);
+        const yOffset = Math.sin(this.yaw) * rx * 0.8;
+        x.fillStyle = `rgba(255,120,150,${0.5 * blushVal})`;
+        for (const sd of [-1, 1]) {
+          x.beginPath();
+          x.ellipse(sd * rx * 0.55 + yOffset, ry * 0.2, R * 0.17, R * 0.1, 0, 0, Math.PI * 2);
+          x.fill();
+        }
+        x.restore();
       }
-      x.restore();
+      this.drawEyes(x, body, R, rx, ry);
+    } else {
+      this.drawShell(x, body, R, rx, ry);
+      this.drawFace(x, body, R, rx, ry);
     }
-
-    this.drawEyes(x, body, R, rx, ry);
     if (this.morph > 0.05) this.drawMouth(x, body, R);
 
     if (head) drawOutfitFront(x, this.outfit, head, outfitState);
@@ -910,6 +969,152 @@ export class BotEngine {
     hl.addColorStop(1, "rgba(255,255,255,0)");
     x.fillStyle = hl;
     x.fill(body);
+    x.restore();
+  }
+
+  // ── AXYON ──────────────────────────────────────────────────────────────────
+
+  /** How bright AXYON's lights are now: dim asleep, pulsing while it works, blinking for a request, flickering. */
+  private ledLevel(): number {
+    const t = now();
+    switch (this.state) {
+      case "sleeping":
+        return 0.35 + 0.12 * Math.sin(t * 1.8);
+      case "working":
+      case "thinking":
+      case "searching":
+        return 0.78 + 0.22 * Math.sin(t * 6);
+      case "approval":
+        return Math.sin(t * 7) > 0 ? 1 : 0.6;
+      case "error":
+        return this.glitch > 0.05 && Math.sin(t * 61) < 0 ? 0.3 : 0.9;
+      default:
+        return Math.min(1, 0.88 + this.flash * 0.12);
+    }
+  }
+
+  /** The antenna and the ear pods, behind the body. A hat over the top hides the antenna. */
+  private drawGear(x: CanvasRenderingContext2D, R: number, rx: number, ry: number) {
+    const covered = coversTop(this.outfit) ? Math.min(1, this.outfitPresence * 1.4) : 0;
+    const lit = this.ledLevel();
+    drawPods(x, R, rx, ry, this.yaw, this.led, lit);
+    drawAntenna(x, R, ry, this.physDx, this.physDy, this.led, lit, this.ping, (1 - covered) * (1 - this.morph));
+  }
+
+  /** The pearl shell — or, while a pill of another colour is in front, a shell of that colour. */
+  private drawShell(x: CanvasRenderingContext2D, body: Path2D, R: number, rx: number, ry: number) {
+    const pumpkin = this.pumpkinAlpha;
+    if (this.bodyColor) {
+      x.fillStyle = rgba(this.bodyColor, 1);
+      x.fill(body);
+    } else {
+      x.fillStyle = pearl(x, rx * 0.7, -ry * 0.85, -rx * 0.8, ry * 0.9);
+      x.fill(body);
+    }
+    if (pumpkin > 0.001) {
+      x.save();
+      const pg = x.createLinearGradient(rx * 0.7, -ry * 0.85, -rx * 0.8, ry * 0.9);
+      pg.addColorStop(0, PUMPKIN_BODY[0]);
+      pg.addColorStop(1, PUMPKIN_BODY[1]);
+      x.globalAlpha = pumpkin;
+      x.fillStyle = pg;
+      x.fill(body);
+      x.restore();
+    }
+    // The state's colour rises from below, lighter than on the original: the lights say it too.
+    const effectiveTint = this.tint * (1 - this.morph);
+    if (effectiveTint > 0.01) {
+      const tg = x.createLinearGradient(0, ry, 0, -ry * 0.2);
+      tg.addColorStop(0, rgba(this.col, 0.5 * effectiveTint));
+      tg.addColorStop(1, rgba(this.col, 0));
+      x.fillStyle = tg;
+      x.fill(body);
+    }
+    paintShell(x, body, rx, ry, R, false);
+  }
+
+  /**
+   * AXYON's face: the dark glass screen on the front of the head, the eyes of light in it (every shape the engine
+   * knows), the blush, the sweep and glitch, and the mark below. It turns, rolls and morphs with the eyes.
+   */
+  private drawFace(x: CanvasRenderingContext2D, body: Path2D, R: number, rx: number, ry: number) {
+    let shape: EyeShape = this.eyeOverride ?? this.cfg.eye;
+    if (this.isDancing && this.dancingLevel > 0.15 && (this.state === "idle" || this.state === "finished")) {
+      shape = "happy";
+    }
+    if (this.morph > 0.5) {
+      if (this.isChewing) shape = "happy";
+      else if (this.slotHTarget > 0.05 || this.slotH > 0.1) shape = "cup";
+    }
+
+    const lat = EYE_P + this.pitch + (this.rigidRoll ? 0 : this.roll);
+    const dy = this.morph > 0 ? ry * 0.14 * this.morph : 0;
+    const screen = screenPath(rx, ry, this.yaw, lat, dy, 1 - 0.14 * this.morph);
+    const lit = this.ledLevel();
+    const eyeColor = mix3(this.led, [1, 1, 1], 0.38);
+    const eyeCss = ledRgba(eyeColor, Math.max(0.35, lit));
+
+    x.save();
+    x.clip(body);
+    paintScreen(x, screen, R, this.led, 1, this.scan, this.flash);
+
+    x.save();
+    x.clip(screen.path);
+    // A glitch tears the eyes sideways for a moment, and splits their light.
+    const t = now();
+    const tear = this.glitch > 0.02 ? Math.sin(t * 97) * R * 0.09 * this.glitch : 0;
+    const passes: [number, string, number][] = this.glitch > 0.02
+      ? [[tear * 1.6, `rgba(255,70,110,${0.55 * this.glitch})`, 0], [-tear * 1.6, `rgba(70,220,255,${0.55 * this.glitch})`, 0], [tear, eyeCss, 1]]
+      : [[0, eyeCss, 1]];
+    for (const sd of [-1, 1]) {
+      const eyeYaw = sd * EYE_SP + this.yaw;
+      let eyePitch = lat;
+      eyePitch = (((eyePitch + Math.PI) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+      const cp = Math.cos(eyePitch);
+      if (Math.cos(eyeYaw) * cp <= 0.04) continue;
+
+      const ex = Math.sin(eyeYaw) * cp * rx;
+      const ey = -Math.sin(eyePitch) * ry + dy;
+      const fx = lerp(Math.max(0.18, Math.cos(eyeYaw)), 1, this.morph * 0.7);
+      const fy = lerp(Math.max(0.18, cp), 1, this.morph * 0.7);
+      // AXYON's eyes are a little bigger than the original's: they are lights on a dark screen.
+      const ew = R * EYE_W * this.es * 1.12;
+      const eh = R * EYE_H * this.es * 1.12;
+
+      for (const [shift, css, glowing] of passes) {
+        x.save();
+        x.translate(ex + shift, ey);
+        x.scale(fx, fy);
+        x.fillStyle = css;
+        x.strokeStyle = css;
+        if (glowing && R > 6) glow(x, this.led, R * 0.32 * lit, 0.9 * lit);
+        this.drawEyeShape(x, shape, ew, eh, sd, css);
+        noGlow(x);
+        x.restore();
+      }
+
+      if (this.blush > 0.01 && this.morph < 0.5) {
+        x.save();
+        x.translate(ex, ey + eh * 0.95);
+        x.scale(fx, fy);
+        glow(x, [1, 0.45, 0.65], R * 0.25, 0.8 * this.blush);
+        x.fillStyle = `rgba(255,120,170,${0.6 * this.blush})`;
+        x.beginPath();
+        x.ellipse(sd * ew * 0.15, 0, ew * 0.62, ew * 0.2, 0, 0, Math.PI * 2);
+        x.fill();
+        noGlow(x);
+        x.restore();
+      }
+    }
+    x.restore();
+
+    if (this.morph < 0.3 && R > 9) {
+      const m = markFrame(rx, ry, this.yaw, lat, dy);
+      if (m.facing > 0.2) {
+        const show = (1 - this.morph / 0.3) * Math.min(1, (m.facing - 0.2) * 3);
+        drawMark(x, m.x, m.y, R * 0.09, m.fx, m.fy, this.led, show * (0.6 + 0.4 * Math.max(lit, this.flash)));
+      }
+    }
     x.restore();
   }
 
@@ -1154,13 +1359,14 @@ export class BotEngine {
       x.save();
       x.translate(worldX, worldY);
       if (handRot !== 0) x.rotate(handRot);
-      const g = x.createLinearGradient(hew * 0.7, -heh * 0.85, -hew * 0.8, heh * 0.9);
+      let g: CanvasGradient;
       if (this.bodyColor) {
+        g = x.createLinearGradient(hew * 0.7, -heh * 0.85, -hew * 0.8, heh * 0.9);
         g.addColorStop(0, rgba(mix3(this.bodyColor, [1, 1, 1], 0.35)));
         g.addColorStop(1, rgba(this.bodyColor));
       } else {
-        g.addColorStop(0, rgba(BASE_TOP));
-        g.addColorStop(1, rgba(BASE_BOTTOM));
+        // AXYON's hands are pearl, like its shell.
+        g = pearl(x, hew * 0.7, -heh * 0.85, -hew * 0.8, heh * 0.9);
       }
       x.beginPath();
       x.ellipse(0, 0, hew, heh, 0, 0, Math.PI * 2);
@@ -1278,6 +1484,14 @@ export class BotEngine {
           x.quadraticCurveTo(sz * 0.8, sz * 0.2, 0, sz * 0.6);
           x.quadraticCurveTo(-sz * 0.8, sz * 0.2, 0, -sz);
           x.fill();
+          break;
+        case "bit":
+          // AXYON's bits of light: little squares in its colour.
+          x.rotate(p.rot * 0.25 + p.age);
+          glow(x, this.led, sz * 1.4, 0.9);
+          x.fillStyle = ledRgba(mix3(this.led, [1, 1, 1], 0.3));
+          x.fillRect(-sz * 0.32, -sz * 0.32, sz * 0.64, sz * 0.64);
+          noGlow(x);
           break;
         case "z":
           x.fillStyle = "rgb(209,219,235)";

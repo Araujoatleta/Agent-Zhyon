@@ -454,7 +454,7 @@ pub mod tests {
             path: path.to_path_buf(),
             edit: json_edit("test.json".into(), |v| {
                 if v.get("hooks").is_some_and(|h| !h.is_object()) {
-                    return Err("\"hooks\" has an unexpected type — Coucou has not touched it.".into());
+                    return Err("\"hooks\" has an unexpected type — AXYON has not touched it.".into());
                 }
                 let mut next = v.clone();
                 next["ours"] = json!(true);

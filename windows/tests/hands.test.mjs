@@ -44,7 +44,7 @@ const request = (fields) => ({
 
 // ── The words ────────────────────────────────────────────────────────────────
 
-test("a step row says what Mochi did, with its count in words", () => {
+test("a step row says what AXYON did, with its count in words", () => {
   assert.equal(stepVerb("run_command"), "Runs");
   assert.equal(stepVerb("read_file"), "Reads");
   assert.equal(stepVerb("system_info"), "Looks at this computer");
@@ -61,19 +61,19 @@ test("a step row says what Mochi did, with its count in words", () => {
   assert.equal(stepDetail(step({})), "");
 });
 
-test("a card says what Mochi wants to do, and why a look needs a click", () => {
-  assert.equal(requestTitle(request({})), "Mochi wants to run a command");
-  assert.equal(requestTitle(request({ tool: "write_file", after: "hi\n", newFile: true })), "Mochi wants to create a file");
+test("a card says what AXYON wants to do, and why a look needs a click", () => {
+  assert.equal(requestTitle(request({})), "AXYON wants to run a command");
+  assert.equal(requestTitle(request({ tool: "write_file", after: "hi\n", newFile: true })), "AXYON wants to create a file");
   // Too large to show, still a new file.
-  assert.equal(requestTitle(request({ tool: "write_file", newFile: true })), "Mochi wants to create a file");
-  assert.equal(requestTitle(request({ tool: "write_file", before: "old\n", after: "new\n" })), "Mochi wants to replace a file");
-  assert.equal(requestTitle(request({ tool: "edit_file" })), "Mochi wants to edit a file");
-  assert.equal(requestTitle(request({ tool: "fetch_url" })), "Mochi wants to fetch a web page");
-  assert.equal(requestTitle(request({ tool: "open_url" })), "Mochi wants to open a web page");
-  assert.equal(requestTitle(request({ tool: "read_file", secret: true })), "Mochi wants to read a file that may hold secrets");
-  assert.equal(requestTitle(request({ tool: "list_directory", outside: true })), "Mochi wants to look outside his folder");
+  assert.equal(requestTitle(request({ tool: "write_file", newFile: true })), "AXYON wants to create a file");
+  assert.equal(requestTitle(request({ tool: "write_file", before: "old\n", after: "new\n" })), "AXYON wants to replace a file");
+  assert.equal(requestTitle(request({ tool: "edit_file" })), "AXYON wants to edit a file");
+  assert.equal(requestTitle(request({ tool: "fetch_url" })), "AXYON wants to fetch a web page");
+  assert.equal(requestTitle(request({ tool: "open_url" })), "AXYON wants to open a web page");
+  assert.equal(requestTitle(request({ tool: "read_file", secret: true })), "AXYON wants to read a file that may hold secrets");
+  assert.equal(requestTitle(request({ tool: "list_directory", outside: true })), "AXYON wants to look outside his folder");
   assert.equal(requestWarning(request({ secret: true, outside: true })), "This file looks like it holds keys or passwords.");
-  assert.equal(requestWarning(request({ outside: true })), "Outside the folder Mochi works in.");
+  assert.equal(requestWarning(request({ outside: true })), "Outside the folder AXYON works in.");
   assert.equal(requestWarning(request({})), null);
 });
 
@@ -183,7 +183,7 @@ test("the steps of a turn are rows in the chat, and a command's output opens on 
 test("an action waiting for a click is a card: Allow and Deny answer it, never a click too soon", () => {
   State.handsRequest = request({ tool: "edit_file", summary: "notes.txt", before: "a\nb\n", after: "a\nc\n", origin: "phone", cwd: undefined });
   view.sync();
-  assert.equal($(".hands-card-title").textContent, "Mochi wants to edit a file");
+  assert.equal($(".hands-card-title").textContent, "AXYON wants to edit a file");
   assert.ok(view.el.find(".hands-note").some((n) => n.textContent === "Asked from your phone"));
   assert.ok($(".hands-diff"));
   const [deny, allow] = $(".hands-card").querySelector(".actions").children;
@@ -200,7 +200,7 @@ test("a command's card shows the folder it runs in and warns about a path outsid
   State.handsRequest = request({ cwd: "C:\\Users\\me\\work", outside: true });
   view.sync();
   assert.ok(view.el.find(".hands-note").some((n) => n.textContent === "in C:\\Users\\me\\work"));
-  assert.equal($(".hands-warn").textContent, "Outside the folder Mochi works in.");
+  assert.equal($(".hands-warn").textContent, "Outside the folder AXYON works in.");
   assert.equal($(".hands-diff"), null);
 });
 
@@ -252,7 +252,7 @@ test("an action waiting for a click opens the chat and keeps it open until it is
   assert.deepEqual(island.did.at(-1), ["dropPin"]);
 });
 
-test("a Claude Code card on screen keeps its place; Mochi's waits behind it", () => {
+test("a Claude Code card on screen keeps its place; AXYON's waits behind it", () => {
   State.pendingApproval = { requestId: "cc-1" };
   emit("agent-approval", request({}));
   assert.ok(State.handsRequest);

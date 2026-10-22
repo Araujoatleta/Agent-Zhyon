@@ -314,7 +314,7 @@ export function originLabel(origin: string): string {
       return t("Settings");
     // Other agents, through coucou-hook --mcp (agent/mcp.rs).
     case "hermes":
-      return "Hermes Agent";
+      return "AXYON Core";
     case "agent":
       return t("Another agent");
     // Zheus One (src-tauri/src/zheus_one): a plan the user approved, and the Autopilot's goals.

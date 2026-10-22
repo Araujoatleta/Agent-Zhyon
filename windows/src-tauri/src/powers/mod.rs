@@ -565,7 +565,7 @@ pub async fn call(app: &AppHandle, tool: &str, input: &Value) -> HomeResult {
         .map_or_else(refused, answer),
         "life_day" => answer(read(app, |s, m| day::for_model(&engine::day_plan(s, m, today)))),
         "life_content" => match make_kit(app, engine::s(input, "month").as_deref()) {
-            Ok((folder, brief)) => answer(format!("{brief}\nSaved in {} (PNG copies are added there by Coucou in a moment).", folder.display())),
+            Ok((folder, brief)) => answer(format!("{brief}\nSaved in {} (PNG copies are added there by AXYON in a moment).", folder.display())),
             Err(e) => refused(e),
         },
         other => refused(format!("There is no superpower named \"{other}\".")),

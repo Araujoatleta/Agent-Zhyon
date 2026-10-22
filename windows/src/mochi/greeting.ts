@@ -1,11 +1,12 @@
-// The launch "coucou" (greeting v2) — port of GreetingCanvasView.swift.
-// Mochi drops into the island, bounces, slides to the side and waves hello with
+// The launch greeting (greeting v2) — port of GreetingCanvasView.swift.
+// AXYON drops into the island, bounces, slides to the side and waves hello with
 // a quick little hand, then comes back and settles in the compact island.
 // Everything is laid out in the same 640×150 reference space as on macOS.
 
 import { closeCurve } from "../core/anim";
 import { Sound } from "../core/sound";
 import { COMPACT_W, NOTCH_H, NOTCH_W } from "../core/layout";
+import { LED, drawAntenna, drawPods, glow, mixRGB, noGlow, paintScreen, paintShell, pearl, rgba, screenPath } from "./axyon";
 
 // ── Timing (GT in the Swift file) ─────────────────────────────────────────────
 
@@ -382,18 +383,6 @@ function mochiPath(hw: number, hh: number): Path2D {
   return p;
 }
 
-/** White body gradient. A canvas gradient pads past its ends, so the corners are never left unpainted. */
-function whiteFill(
-  x: CanvasRenderingContext2D, path: Path2D,
-  x0: number, y0: number, x1: number, y1: number,
-) {
-  const g = x.createLinearGradient(x0, y0, x1, y1);
-  g.addColorStop(0, "rgb(251,251,252)");
-  g.addColorStop(1, "rgb(231,233,236)");
-  x.fillStyle = g;
-  x.fill(path);
-}
-
 function drawHandL(x: CanvasRenderingContext2D, hw: number, hh: number, p: Pose) {
   if (p.handL <= 0.01) return;
   const { x: hx, y: hy, r } = handLPos(hw, hh, p);
@@ -401,7 +390,8 @@ function drawHandL(x: CanvasRenderingContext2D, hw: number, hh: number, p: Pose)
   x.translate(hx, hy);
   const circ = new Path2D();
   circ.ellipse(0, 0, r, r, 0, 0, Math.PI * 2);
-  whiteFill(x, circ, r, -r, -r, r);
+  x.fillStyle = pearl(x, r, -r, -r, r);
+  x.fill(circ);
   x.strokeStyle = "rgba(0,0,0,0.08)";
   x.lineWidth = 0.8;
   x.stroke(circ);
@@ -415,10 +405,7 @@ function drawHandR(x: CanvasRenderingContext2D, hw: number, hh: number, p: Pose)
   x.translate(h.x, h.y);
   x.rotate(h.ang);
   rr(x, -h.L / 2, -h.T / 2, h.L, h.T, h.T / 2);
-  const g = x.createLinearGradient(h.L / 2, -h.T / 2, -h.L / 2, h.T / 2);
-  g.addColorStop(0, "rgb(251,251,252)");
-  g.addColorStop(1, "rgb(231,233,236)");
-  x.fillStyle = g;
+  x.fillStyle = pearl(x, h.L / 2, -h.T / 2, -h.L / 2, h.T / 2);
   x.fill();
   x.strokeStyle = "rgba(0,0,0,0.08)";
   x.lineWidth = 0.8;
@@ -453,29 +440,39 @@ function drawMochi(x: CanvasRenderingContext2D, p: Pose) {
   x.rotate(p.tilt);
   x.scale(p.sx, p.sy);
 
+  // AXYON (axyon.ts): pods and antenna behind the body, the pearl shell, the face screen with eyes of light.
+  const R = hh / 0.88;
+  drawPods(x, R, hw, hh, p.lookX * 0.4, LED.idle);
+  drawAntenna(x, R, hh, -p.tilt * 2.2, (p.sy - 1) * 3, LED.idle, 1);
+
   drawHandL(x, hw, hh, p);
   drawHandR(x, hw, hh, p);
 
   const body = mochiPath(hw, hh);
-  whiteFill(x, body, hw * 0.6, -hh, -hw * 0.6, hh);
+  paintShell(x, body, hw, hh, R);
 
   if (p.tint > 0) {
     const g = x.createLinearGradient(0, hh, 0, -hh * 0.1);
-    g.addColorStop(0, `rgba(127,180,234,${p.tint})`);
+    g.addColorStop(0, `rgba(127,180,234,${p.tint * 0.7})`);
     g.addColorStop(1, "rgba(127,180,234,0)");
     x.fillStyle = g;
     x.fill(body);
   }
 
-  // Eyes
+  // Eyes, on the screen
   x.save();
   x.clip(body);
-  x.fillStyle = "#16171A";
-  x.strokeStyle = "#16171A";
   const er = p.hb * 0.06;
   const sp = p.hb * 0.19;
   const lx = p.lookX * hw * 0.42;
   const ly = p.lookY * hh * 0.28 + hh * 0.12 + p.eyeRoll * hh * 1.25;
+  const lon = Math.asin(Math.max(-0.95, Math.min(0.95, lx / hw)));
+  const lat = -Math.asin(Math.max(-0.95, Math.min(0.95, ly / hh)));
+  paintScreen(x, screenPath(hw, hh, lon, lat), R, LED.idle, 1);
+  const eye = rgba(mixRGB(LED.idle, [1, 1, 1], 0.38));
+  x.fillStyle = eye;
+  x.strokeStyle = eye;
+  glow(x, LED.idle, R * 0.3);
   for (const sd of [-1, 1]) {
     x.save();
     x.translate(sd * sp + lx, ly);
@@ -499,6 +496,7 @@ function drawMochi(x: CanvasRenderingContext2D, p: Pose) {
     }
     x.restore();
   }
+  noGlow(x);
   x.restore();
 
   // Activity badge

@@ -122,6 +122,40 @@ export function applyDocumentLanguage() {
   if (root.dataset) root.dataset.dir = isRtl() ? "rtl" : "ltr";
 }
 
+// ── The names shown ───────────────────────────────────────────────────────────
+// The app is AXYON, and so is its character; the assistant's engine is AXYON Core. The tables (and the Mac's catalog
+// strings.json comes from) keep the names they were written with — Coucou, Mochi, Hermes — as keys and in their
+// translations: what is shown is rewritten here, before any value is filled in, so a name the user typed (a file, an
+// assistant they called Mochi) is never touched. Lowercase ones are commands and paths (hermes gateway, ~/.hermes)
+// and stay. src-tauri/src/i18n.rs does the same for what Rust shows.
+
+const BRAND: [RegExp, string][] = [
+  [/\bHermes Agent\b/g, "AXYON Core"],
+  [/\bHermes'(?=\s)/g, "AXYON Core's"],
+  [/\bHermes\b/g, "AXYON Core"],
+  [/\bCoucou\b/g, "AXYON"],
+  [/كوكو/g, "AXYON"],
+  [/\bMochi\b/g, "AXYON"],
+];
+
+/** French drops the vowel before one: "de AXYON" → "d'AXYON". */
+const FRENCH_ELISION: [RegExp, string][] = [
+  [/\b([Dd])e AXYON\b/g, "$1'AXYON"],
+  [/\b([Qq])ue AXYON\b/g, "$1u'AXYON"],
+  [/\b([Ll])e AXYON\b/g, "$1'AXYON"],
+];
+
+const OLD_NAMES = /Hermes|Coucou|Mochi|كوكو/;
+
+/** `text` with the names the interface shows (see above). */
+export function brand(text: string, lang: Language = current): string {
+  if (!OLD_NAMES.test(text)) return text;
+  let out = text;
+  for (const [re, to] of BRAND) out = out.replace(re, to);
+  if (lang === "fr") for (const [re, to] of FRENCH_ELISION) out = out.replace(re, to);
+  return out;
+}
+
 function interpolate(text: string, vars?: Vars): string {
   if (!vars) return text;
   return text.replace(/\{(\w+)\}/g, (m, name: string) => (name in vars ? String(vars[name]) : m));
@@ -155,7 +189,7 @@ export function t(key: string, vars?: Vars): string {
   if (typeof found === "string") text = found;
   else if (found) text = pickPlural(found, current, Number(vars?.count ?? 0)) ?? key;
   else text = key;
-  return interpolate(text, vars);
+  return interpolate(brand(text), vars);
 }
 
 /**
@@ -168,16 +202,16 @@ export function tn(one: string, other: string, count: number, vars?: Vars): stri
   const found = lookup(other);
   if (found && typeof found !== "string") {
     const text = pickPlural(found, current, count);
-    if (text) return interpolate(text, all);
+    if (text) return interpolate(brand(text), all);
   }
-  if (typeof found === "string") return interpolate(found, all);
+  if (typeof found === "string") return interpolate(brand(found), all);
   // English, or a language without this string: the English forms.
   const englishForms = TABLE[other]?.en;
   if (englishForms && typeof englishForms !== "string") {
     const text = pickPlural(englishForms, "en", count);
-    if (text) return interpolate(text, all);
+    if (text) return interpolate(brand(text, "en"), all);
   }
-  return interpolate(count === 1 ? one : other, all);
+  return interpolate(brand(count === 1 ? one : other), all);
 }
 
 /**

@@ -460,7 +460,7 @@ pub fn find<'a>(devices: &'a [Device], query: &str) -> Result<&'a Device, String
     match best.len() {
         1 => Ok(best[0]),
         0 => Err(format!(
-            "No device is called \"{query}\". The devices Mochi may use: {}.",
+            "No device is called \"{query}\". The devices AXYON may use: {}.",
             list_names(devices.iter())
         )),
         _ => Err(format!("\"{query}\" could be {}. Use the device's id.", list_names(best.into_iter()))),
@@ -529,7 +529,7 @@ pub fn resolve_channel(device: &Device, wanted: &str) -> Result<Channel, String>
 pub fn check(device: &Device, action: &Action) -> Result<(), String> {
     if !device.exposed {
         return Err(format!(
-            "{} is not one of the devices the user lets Mochi use (Settings → Mochi's home).",
+            "{} is not one of the devices the user lets AXYON use (Settings → AXYON's home).",
             device.name
         ));
     }

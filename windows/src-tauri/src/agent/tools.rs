@@ -143,12 +143,12 @@ pub const POWER_TOOLS: &[&str] = &[
 ];
 
 /// What the model is told when it calls a superpower while they are off.
-pub const NO_POWERS: &str = "Zheus' superpowers are off on this computer: the user turns them on in Coucou, Settings → Zheus' superpowers.";
+pub const NO_POWERS: &str = "Zheus' superpowers are off on this computer: the user turns them on in AXYON, Settings → Zheus' superpowers.";
 
 /// What the model is told when it calls a home tool while the home is off.
-const NO_HOME: &str = "Mochi's home is not available on this computer: it is off, or no device is ticked for Mochi in Settings → Mochi's home.";
+const NO_HOME: &str = "AXYON's home is not available on this computer: it is off, or no device is ticked for AXYON in Settings → AXYON's home.";
 /// What the model is told when it calls a Zheus One tool while Zheus One is off.
-const NO_ZHEUS: &str = "Zheus One is off on this computer: the user turns it on in Coucou, Settings → Zheus One.";
+const NO_ZHEUS: &str = "Zheus One is off on this computer: the user turns it on in AXYON, Settings → Zheus One.";
 
 /// One tool as the model is told about it.
 #[derive(Debug, Clone)]
@@ -291,7 +291,7 @@ fn home_definitions(h: &HomeEnv) -> Vec<ToolDef> {
     let mut tools = vec![
         def(
             "home_devices",
-            "List the devices of the user's home that Mochi may use: each one's id, name, room, kind, whether it answers, its state right now, the actions it reported it can do, and its apps and channels. Call it when you do not know a device's id or what it can do, or to check a device's state.",
+            "List the devices of the user's home that AXYON may use: each one's id, name, room, kind, whether it answers, its state right now, the actions it reported it can do, and its apps and channels. Call it when you do not know a device's id or what it can do, or to check a device's state.",
             json!({ "device": { "type": "string", "description": "Optional: one device (id or name) to see in full, with all its apps and channels." } }),
             &[],
         ),
@@ -332,7 +332,7 @@ fn zheus_definitions() -> Vec<ToolDef> {
         ),
         def(
             "zheus_mission",
-            "Start one of Zheus One's missions. \"arrival\": the user is on their way home; Coucou plans the whole house for their arrival (air conditioning on time, the vacuum done before they arrive, lights after dark, the day's summary), shows the plan with what clashes, and runs it only once the user says yes. \"situation\": the house, the plan and the decisions waiting go full screen on the user's TV. Never act on the devices yourself for a mission: Coucou runs it.",
+            "Start one of Zheus One's missions. \"arrival\": the user is on their way home; AXYON plans the whole house for their arrival (air conditioning on time, the vacuum done before they arrive, lights after dark, the day's summary), shows the plan with what clashes, and runs it only once the user says yes. \"situation\": the house, the plan and the decisions waiting go full screen on the user's TV. Never act on the devices yourself for a mission: AXYON runs it.",
             json!({
                 "mission": { "type": "string", "enum": ["arrival", "situation"], "description": "Which mission." },
                 "eta_minutes": { "type": "integer", "description": "arrival: the minutes until the user is home, when they said it. Leave it out otherwise." },
@@ -627,7 +627,7 @@ pub fn prepare(call: &Call, env: &Env) -> Result<Prepared, String> {
             let r = find_routine(&h.routines, required(input, "routine")?)?;
             if !r.problems.is_empty() {
                 return Err(format!(
-                    "The routine \"{}\" cannot run as it is ({}). Tell the user to fix it in Settings → Mochi's home.",
+                    "The routine \"{}\" cannot run as it is ({}). Tell the user to fix it in Settings → AXYON's home.",
                     r.name,
                     r.problems.join("; ")
                 ));
@@ -710,10 +710,10 @@ fn find_routine<'a>(routines: &'a [RoutineInfo], query: &str) -> Result<&'a Rout
 fn home_list(devices: &[Device], one: Option<&str>) -> String {
     let shown: Vec<&Device> = devices.iter().filter(|d| one.is_none_or(|id| d.id == id)).collect();
     if shown.is_empty() {
-        return "No device: the user has not ticked any for Mochi in Settings → Mochi's home.".into();
+        return "No device: the user has not ticked any for AXYON in Settings → AXYON's home.".into();
     }
     let (max_apps, max_channels) = if one.is_some() { (300, 600) } else { (30, 25) };
-    let mut out = format!("Devices Mochi may use ({}):\n", shown.len());
+    let mut out = format!("Devices AXYON may use ({}):\n", shown.len());
     for d in shown {
         let room = if d.room.is_empty() { String::new() } else { format!(" in {}", d.room) };
         let model = d.model.as_deref().map(|m| format!(", model {m}")).unwrap_or_default();

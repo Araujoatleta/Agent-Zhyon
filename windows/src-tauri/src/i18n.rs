@@ -208,7 +208,57 @@ pub fn tf(key: &str, vars: &[(&str, &str)]) -> String {
         Some(Value::Object(forms)) => pick_plural(forms, "other").unwrap_or_else(|| key.to_string()),
         _ => key.to_string(),
     };
-    interpolate(&text, vars)
+    interpolate(&brand(&text, lang), vars)
+}
+
+// ── The names shown ───────────────────────────────────────────────────────────
+// Same as brand() in src/i18n/i18n.ts: the app and its character are AXYON, the assistant's engine AXYON Core. The
+// tables keep the names they were written with (Coucou, Mochi, Hermes); what is shown is rewritten before any value
+// is filled in, so nothing the user typed is touched, and lowercase names (commands, paths) stay.
+
+fn brand_rules() -> &'static [(regex::Regex, &'static str)] {
+    static RULES: OnceLock<Vec<(regex::Regex, &'static str)>> = OnceLock::new();
+    RULES.get_or_init(|| {
+        [
+            (r"\bHermes Agent\b", "AXYON Core"),
+            (r"\bHermes'(\s)", "AXYON Core's${1}"),
+            (r"\bHermes\b", "AXYON Core"),
+            (r"\bCoucou\b", "AXYON"),
+            ("كوكو", "AXYON"),
+            (r"\bMochi\b", "AXYON"),
+        ]
+        .into_iter()
+        .map(|(re, to)| (regex::Regex::new(re).expect("a brand rule"), to))
+        .collect()
+    })
+}
+
+/// French drops the vowel before a vowel: "de AXYON" → "d'AXYON".
+fn french_elision() -> &'static [(regex::Regex, &'static str)] {
+    static RULES: OnceLock<Vec<(regex::Regex, &'static str)>> = OnceLock::new();
+    RULES.get_or_init(|| {
+        [(r"\b([Dd])e AXYON\b", "${1}'AXYON"), (r"\b([Qq])ue AXYON\b", "${1}u'AXYON"), (r"\b([Ll])e AXYON\b", "${1}'AXYON")]
+            .into_iter()
+            .map(|(re, to)| (regex::Regex::new(re).expect("an elision rule"), to))
+            .collect()
+    })
+}
+
+/// `text` with the names the interface shows, in `lang`.
+pub fn brand(text: &str, lang: &str) -> String {
+    if !["Hermes", "Coucou", "Mochi", "كوكو"].iter().any(|n| text.contains(n)) {
+        return text.to_string();
+    }
+    let mut out = text.to_string();
+    for (re, to) in brand_rules() {
+        out = re.replace_all(&out, *to).into_owned();
+    }
+    if lang == "fr" {
+        for (re, to) in french_elision() {
+            out = re.replace_all(&out, *to).into_owned();
+        }
+    }
+    out
 }
 
 /// A count with its words: `tn("{count} file", "{count} files", n, &[])`.
@@ -224,7 +274,7 @@ pub fn tn(one: &str, other: &str, count: u64, vars: &[(&str, &str)]) -> String {
         _ => None,
     };
     let text = text.unwrap_or_else(|| if count == 1 { one.to_string() } else { other.to_string() });
-    interpolate(&text, &all)
+    interpolate(&brand(&text, lang), &all)
 }
 
 #[cfg(test)]
@@ -235,6 +285,19 @@ pub(crate) fn set_for_test(lang: &str) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_names_shown_are_axyon_and_axyon_core() {
+        assert_eq!(brand("Coucou runs Hermes for you", "en"), "AXYON runs AXYON Core for you");
+        assert_eq!(brand("Sign-in stays in Hermes' own files", "en"), "Sign-in stays in AXYON Core's own files");
+        assert_eq!(brand("Mochi's home", "en"), "AXYON's home");
+        assert_eq!(brand("Hermes Agent", "en"), "AXYON Core");
+        assert_eq!(brand("La maison de Mochi, que Coucou garde", "fr"), "La maison d'AXYON, qu'AXYON garde");
+        assert_eq!(brand("Casa do Mochi: o Coucou liga o Hermes", "pt-BR"), "Casa do AXYON: o AXYON liga o AXYON Core");
+        // Commands and paths keep their names; so does a word that only contains one.
+        assert_eq!(brand("run hermes gateway in ~/.hermes", "en"), "run hermes gateway in ~/.hermes");
+        assert_eq!(brand("Mochinho", "pt-BR"), "Mochinho");
+    }
 
     #[test]
     fn resolves_like_the_webview() {
@@ -253,8 +316,8 @@ mod tests {
         set_for_test("fr");
         // From the Mac's catalog.
         assert_eq!(t("Allow"), "Autoriser");
-        // From extra.json.
-        assert_eq!(t("Open Coucou"), "Ouvrir Coucou");
+        // From extra.json, with the name the interface shows.
+        assert_eq!(t("Open Coucou"), "Ouvrir AXYON");
         assert_eq!(t("A string nobody translated"), "A string nobody translated");
         assert_eq!(tf("Open {name}", &[("name", "Vercel")]), "Ouvrir Vercel");
         set_for_test("en");

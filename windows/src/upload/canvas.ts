@@ -8,6 +8,7 @@
 import { State } from "../core/state";
 import { SCRIPT_FONTS } from "../core/fonts";
 import { N_, isRtl, t } from "../i18n/i18n";
+import { LED, drawAntenna, drawPods, glow, mixRGB, noGlow, paintScreen, paintShell, rgba, screenPath } from "../mochi/axyon";
 import {
   USC, eIn, eInOut, eOut, lerp, progressAt,
   type UploadEyeShape, type UploadFrame,
@@ -32,22 +33,34 @@ function rr(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: n
 
 /** Superellipse body — port of usBodyPath(m, R). */
 function bodyPath(ctx: CanvasRenderingContext2D, m: number, R: number): { rx: number; ry: number } {
+  const { rx, ry, points } = bodyPoints(m, R);
+  ctx.beginPath();
+  points.forEach(([px, py], i) => (i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py)));
+  ctx.closePath();
+  return { rx, ry };
+}
+
+/** The same outline as a Path2D, for AXYON's shell (mochi/axyon.ts). */
+function bodyPath2D(m: number, R: number): Path2D {
+  const p = new Path2D();
+  bodyPoints(m, R).points.forEach(([px, py], i) => (i === 0 ? p.moveTo(px, py) : p.lineTo(px, py)));
+  p.closePath();
+  return p;
+}
+
+function bodyPoints(m: number, R: number): { rx: number; ry: number; points: [number, number][] } {
   const mc = Math.max(0, Math.min(m, 1));
   const n = 2.15 + (5.5 - 2.15) * mc;
   const rx = R * (1.04 - 0.04 * mc);
   const ry = R * (0.97 - 0.03 * mc);
-  ctx.beginPath();
+  const points: [number, number][] = [];
   for (let i = 0; i <= 96; i++) {
     const a = (i / 96) * Math.PI * 2;
     const ca = Math.cos(a);
     const sa = Math.sin(a);
-    const px = rx * Math.sign(ca) * Math.pow(Math.abs(ca), 2 / n);
-    const py = ry * Math.sign(sa) * Math.pow(Math.abs(sa), 2 / n);
-    if (i === 0) ctx.moveTo(px, py);
-    else ctx.lineTo(px, py);
+    points.push([rx * Math.sign(ca) * Math.pow(Math.abs(ca), 2 / n), ry * Math.sign(sa) * Math.pow(Math.abs(sa), 2 / n)]);
   }
-  ctx.closePath();
-  return { rx, ry };
+  return { rx, ry, points };
 }
 
 function text(
@@ -357,7 +370,7 @@ export class UploadCanvas {
     ctx.restore();
   }
 
-  // ── Mochi ─────────────────────────────────────────────────────────────────
+  // ── AXYON ─────────────────────────────────────────────────────────────────
 
   private drawMochi(ctx: CanvasRenderingContext2D, f: UploadFrame) {
     const R = f.d / 2 / 1.04;
@@ -368,22 +381,12 @@ export class UploadCanvas {
     ctx.rotate(f.tilt);
     ctx.scale(f.sx, f.sy);
 
-    const { rx, ry } = bodyPath(ctx, f.morph, R);
-
-    // Body.
-    const bg = ctx.createLinearGradient(rx * 0.7, -ry * 0.9, -rx * 0.8, ry * 0.9);
-    bg.addColorStop(0, "#EDEDEF");
-    bg.addColorStop(1, "#C4C5CA");
-    ctx.fillStyle = bg;
-    ctx.fill();
-
-    // Edge shadow.
-    const sg = ctx.createRadialGradient(0, 0, R * 0.2, 0, 0, R * 1.3);
-    sg.addColorStop(0, "rgba(0,0,0,0)");
-    sg.addColorStop(0.62, "rgba(0,0,0,0)");
-    sg.addColorStop(1, "rgba(0,0,0,0.12)");
-    ctx.fillStyle = sg;
-    ctx.fill();
+    // AXYON (mochi/axyon.ts): its pods and antenna behind, the pearl shell, and its face screen below.
+    const { rx, ry } = bodyPoints(f.morph, R);
+    const shell = bodyPath2D(f.morph, R);
+    drawPods(ctx, R, rx, ry, f.lookX * 0.35, LED.idle);
+    drawAntenna(ctx, R, ry, -f.tilt * 2, 0, LED.idle, 1, 0, 1 - mc);
+    paintShell(ctx, shell, rx, ry, R);
 
     // The body path is reused as a clip for everything drawn inside it.
     ctx.save();
@@ -426,17 +429,23 @@ export class UploadCanvas {
       }
     }
 
-    // Eyes.
+    // Eyes: lights on AXYON's dark screen.
     const ew = R * 0.25;
     const eh = R * (0.62 - 0.16 * mc);
     const ey = R * (0.02 + 0.28 * mc);
     const sp = R * 0.3;
     const lx = f.lookX * R * (0.34 - 0.08 * mc);
     const ly = f.lookY * R * (0.16 - 0.09 * mc);
+    const lon = Math.asin(Math.max(-0.95, Math.min(0.95, lx / rx)));
+    const lat = -Math.asin(Math.max(-0.95, Math.min(0.95, (ey + ly) / ry)));
+    paintScreen(ctx, screenPath(rx, ry, lon, lat, 0, 1.18), R, LED.idle, 1);
+    const eye = rgba(mixRGB(LED.idle, [1, 1, 1], 0.38));
     for (const sd of [-1, 1]) {
       ctx.save();
       ctx.translate(sd * sp + lx, ey + ly);
-      drawEye(ctx, f.eye, ew, eh);
+      glow(ctx, LED.idle, R * 0.3);
+      drawEye(ctx, f.eye, ew, eh, eye);
+      noGlow(ctx);
       ctx.restore();
     }
 
@@ -522,10 +531,10 @@ export class UploadCanvas {
 
 const INK = "#0E0F12";
 
-function drawEye(ctx: CanvasRenderingContext2D, shape: UploadEyeShape, w: number, h: number) {
+function drawEye(ctx: CanvasRenderingContext2D, shape: UploadEyeShape, w: number, h: number, ink = INK) {
   switch (shape) {
     case "pill":
-      ctx.fillStyle = INK;
+      ctx.fillStyle = ink;
       rr(ctx, -w / 2, -h / 2, w, h, w / 2);
       ctx.fill();
       break;
@@ -539,7 +548,7 @@ function drawEye(ctx: CanvasRenderingContext2D, shape: UploadEyeShape, w: number
       ctx.lineTo(w / 2, hh / 2 - w / 2);
       ctx.arc(0, hh / 2 - w / 2, w / 2, 0, Math.PI, false);
       ctx.closePath();
-      ctx.fillStyle = INK;
+      ctx.fillStyle = ink;
       ctx.fill();
       break;
     }
@@ -547,7 +556,7 @@ function drawEye(ctx: CanvasRenderingContext2D, shape: UploadEyeShape, w: number
     case "content":
       ctx.beginPath();
       ctx.arc(0, -h * 0.12, w * 0.85, Math.PI * 0.15, Math.PI * 0.85, false);
-      ctx.strokeStyle = INK;
+      ctx.strokeStyle = ink;
       ctx.lineWidth = w * 0.5;
       ctx.lineCap = "round";
       ctx.stroke();

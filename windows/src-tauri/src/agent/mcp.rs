@@ -44,7 +44,7 @@ pub fn origin_of(client: &str) -> &'static str {
 
 fn who(origin: &str) -> String {
     if origin == "hermes" {
-        "Hermes Agent".to_string()
+        "AXYON Core".to_string()
     } else {
         t("another agent")
     }
@@ -80,7 +80,7 @@ pub async fn call(app: &AppHandle, payload: &Value) -> Value {
         return reply(tools::NO_POWERS, true);
     }
     if !power && !settings.home_mcp {
-        return reply("The user has not shared Mochi's home with other agents. They can do it in Coucou: Settings → Hermes Agent → Mochi's home for Hermes.", true);
+        return reply("The user has not shared AXYON's home with other agents. They can do it in AXYON: Settings → AXYON Core → AXYON's home for AXYON Core.", true);
     }
     let client = payload["client"].as_str().unwrap_or("");
     let origin = origin_of(client);
@@ -108,7 +108,7 @@ pub async fn call(app: &AppHandle, payload: &Value) -> Value {
             let _turn = ASKING.lock().await;
             let agent = app.state::<Agent>();
             if agent.card().is_some() {
-                return reply("Another action is waiting for the user's click in Coucou. Try again in a moment.", true);
+                return reply("Another action is waiting for the user's click in AXYON. Try again in a moment.", true);
             }
             let mut request = prepared.request();
             request.reason = Some(tf("Asked by {agent}", &[("agent", &who(origin))]));

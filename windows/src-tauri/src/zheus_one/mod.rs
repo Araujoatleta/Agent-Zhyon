@@ -420,7 +420,7 @@ pub async fn route(app: &AppHandle, message: &str) -> Routed {
     let mut routed = route_zheus(app, message).await;
     let notes = crate::powers::notes(app, message);
     if !notes.is_empty() {
-        routed.text = format!("{}\n\n(Coucou — Zheus' superpowers: {})", routed.text, notes.join(" "));
+        routed.text = format!("{}\n\n(AXYON — Zheus' superpowers: {})", routed.text, notes.join(" "));
     }
     routed
 }
@@ -439,7 +439,7 @@ async fn route_zheus(app: &AppHandle, message: &str) -> Routed {
         (waiting, running)
     };
     let Some(what) = intent::intent(message, waiting || running) else { return unchanged };
-    let with = |note: String, fallback: Option<String>| Routed { text: format!("{message}\n\n(Coucou — Zheus One: {note})"), fallback, briefing: false };
+    let with = |note: String, fallback: Option<String>| Routed { text: format!("{message}\n\n(AXYON — Zheus One: {note})"), fallback, briefing: false };
     match what {
         Intent::Arrival { eta } if s.home_enabled => {
             let plan = propose(app, eta).await;
@@ -459,7 +459,7 @@ async fn route_zheus(app: &AppHandle, message: &str) -> Routed {
                 Ok(plan) => {
                     let done = tf("Plan started: {steps} steps until {time}.", &[("steps", &plan.steps.len().to_string()), ("time", &clock(plan.arrive_at))]);
                     with(
-                        "The user approved Zheus One's arrival plan, and Coucou is running it now. Do not act on these devices yourself; answer in one or two short sentences.".into(),
+                        "The user approved Zheus One's arrival plan, and AXYON is running it now. Do not act on these devices yourself; answer in one or two short sentences.".into(),
                         Some(done),
                     )
                 }
@@ -475,7 +475,7 @@ async fn route_zheus(app: &AppHandle, message: &str) -> Routed {
             open_tv(app);
             Routed {
                 text: format!(
-                    "{message}\n\n(Coucou — Zheus One: the user's situation is on their TV now. {} Give them a short spoken overview: the house first, then their projects, campaigns and the decisions waiting, with your tools if you have them. Read only.)",
+                    "{message}\n\n(AXYON — Zheus One: the user's situation is on their TV now. {} Give them a short spoken overview: the house first, then their projects, campaigns and the decisions waiting, with your tools if you have them. Read only.)",
                     world.for_model()
                 ),
                 fallback: Some(world.facts.join("\n")).filter(|f| !f.is_empty()),
@@ -511,7 +511,7 @@ pub fn answered<E>(app: &AppHandle, routed: &Routed, result: Result<String, E>) 
 pub async fn mission_for_agent(app: &AppHandle, mission: &str, eta: Option<u32>) -> HomeResult {
     let s = current(app);
     if !s.zheus_enabled {
-        return HomeResult { ok: false, text: "Zheus One is off: the user turns it on in Coucou, Settings → Zheus One.".into(), detail: String::new() };
+        return HomeResult { ok: false, text: "Zheus One is off: the user turns it on in AXYON, Settings → Zheus One.".into(), detail: String::new() };
     }
     match mission {
         "arrival" => {

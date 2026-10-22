@@ -67,19 +67,19 @@ const host = (settings) => ({ settings: () => settings, useInChat: async () => {
 /** The brain picker: the select whose options are brains (the tone has its own). */
 const brainSelect = (root) => all(root).find((e) => e.tagName === "SELECT" && e.children.some((o) => o.getAttribute("value") === "google" || o.getAttribute("value") === "chatgpt"));
 
-test("the plan says what will be downloaded, where it goes, what key Hermes gets, what it writes and installs, and where it listens", () => {
+test("the plan says what will be downloaded, where it goes, what key AXYON Core gets, what it writes and installs, and where it listens", () => {
   const lines = zheusPlan(status(), BRAINS[0], true);
   assert.equal(lines.length, 5);
   assert.ok(lines[0].includes("6e7b83a2f1") && lines[0].includes("SHA-256"));
   assert.ok(lines[1].includes("C:\\Users\\Ana\\AppData\\Local\\hermes"));
   assert.ok(lines[2].includes("Anthropic") && lines[2].includes("never in a file"));
   assert.ok(lines[3].includes("SOUL.md") && lines[3].includes("backed up") && lines[3].includes("Zheus"), "the personality file, and its backup");
-  assert.ok(lines[4].includes("http://127.0.0.1:8642") && lines[4].includes("Mochi's home"));
-  assert.ok(!zheusPlan(status(), BRAINS[0], false).at(-1).includes("Mochi's home"), "the house only when it is ticked");
+  assert.ok(lines[4].includes("http://127.0.0.1:8642") && lines[4].includes("AXYON's home"));
+  assert.ok(!zheusPlan(status(), BRAINS[0], false).at(-1).includes("AXYON's home"), "the house only when it is ticked");
   assert.ok(zheusPlan(status(), { id: "ollama", name: "Ollama", ready: true, model: "" }, false)[2].includes("Ollama on this computer"), "a local server has no key");
   // ChatGPT: a sign-in with a code on OpenAI's page, no key.
   const chatgpt = zheusPlan(status(), CHATGPT, false, [], "Athena");
-  assert.ok(chatgpt[2].includes("ChatGPT") && chatgpt[2].includes("Plus or Pro") && chatgpt[2].includes("code") && !chatgpt[2].includes("key that Coucou"));
+  assert.ok(chatgpt[2].includes("ChatGPT") && chatgpt[2].includes("Plus or Pro") && chatgpt[2].includes("code") && !chatgpt[2].includes("key that AXYON"));
   assert.ok(chatgpt[3].includes("Athena"));
   // The skill packs ticked, by name and with the command that installs them.
   const skills = zheusPlan(status(), BRAINS[0], true, ["search", "news"]);
@@ -95,7 +95,7 @@ test("the gateway's state and the installation's progress are said in plain word
   assert.equal(new Set(lines).size, states.length);
   assert.ok(lines[4].includes("port in use"));
   assert.equal(progressText({ running: true, step: "Create Python environment", done: 2, total: 9, last: "", error: null, finished: false }), "Step 3 of 9: Create Python environment");
-  assert.equal(progressText({ running: true, step: "Downloading Hermes' installer…", done: 0, total: 0, last: "", error: null, finished: false }), "Downloading Hermes' installer…");
+  assert.equal(progressText({ running: true, step: "Downloading AXYON Core's installer…", done: 0, total: 0, last: "", error: null, finished: false }), "Downloading AXYON Core's installer…");
 });
 
 test("nothing is installed before the click, and the click sends the brain picked and the house", async () => {
@@ -114,14 +114,14 @@ test("nothing is installed before the click, and the click sends the brain picke
   assert.deepEqual(options.filter((o) => o.disabled).map((o) => o.getAttribute("value")), ["openai", "ollama"], "no key, no choice");
   assert.equal(select.value, "anthropic", "the first one ready");
   assert.ok(all(section.el).some((e) => e.tagName === "LI" && e.textContent.includes("SHA-256")), "the plan is on screen");
-  byText(section.el, "BUTTON", "Install Hermes").fire("click");
+  byText(section.el, "BUTTON", "Install AXYON Core").fire("click");
   await flush();
   assert.deepEqual(sent("hermes_setup_start").at(-1), { brain: "anthropic", house: true, configure: true });
   assert.ok(all(section.el).some((e) => e.textContent === "Step 1 of 9: System prerequisites"), "progress follows");
   assert.ok(byText(section.el, "BUTTON", "Stop"));
 });
 
-test("a Hermes already on the computer is run as it is unless asked, and a running one can be turned off", async () => {
+test("a AXYON Core already on the computer is run as it is unless asked, and a running one can be turned off", async () => {
   answers = {
     home_mcp_status: { on: false, command: "x", homeOn: true },
     hermes_setup_status: status({ installed: true }),
@@ -134,18 +134,18 @@ test("a Hermes already on the computer is run as it is unless asked, and a runni
   const select = brainSelect(section.el);
   select.value = "google";
   select.fire("change");
-  byText(section.el, "BUTTON", "Let Coucou run Hermes").fire("click");
+  byText(section.el, "BUTTON", "Let AXYON run AXYON Core").fire("click");
   await flush();
   assert.deepEqual(sent("hermes_setup_start").at(-1), { brain: "google", house: true, configure: false }, "its own settings are left alone");
-  assert.ok(all(section.el).some((e) => e.textContent?.startsWith("Starting Hermes…")));
-  assert.ok(all(section.el).some((e) => e.textContent === "Its brain: Google Gemini, with the key Coucou keeps."));
+  assert.ok(all(section.el).some((e) => e.textContent?.startsWith("Starting AXYON Core…")));
+  assert.ok(all(section.el).some((e) => e.textContent === "Its brain: Google Gemini, with the key AXYON keeps."));
   const sw = all(section.el).find((e) => e.tagName === "BUTTON" && String(e.className).includes("switch"));
   sw.fire("click");
   await flush();
   assert.deepEqual(sent("hermes_gateway_set").at(-1), { on: false });
 });
 
-test("a Hermes already on the computer is offered skill packs only when Coucou sets it up too", async () => {
+test("a AXYON Core already on the computer is offered skill packs only when AXYON sets it up too", async () => {
   answers = { home_mcp_status: { on: false, command: "x", homeOn: true }, hermes_setup_status: status({ installed: true }) };
   const section = hermesSection(host({ ...DEFAULT_SETTINGS }));
   await flush();
@@ -157,15 +157,15 @@ test("a Hermes already on the computer is offered skill packs only when Coucou s
   assert.equal(packs().length, 1, "set up again: the packs ticked are installed, as the plan then says");
 });
 
-test("without any key or server Coucou says what Hermes needs first", async () => {
+test("without any key or server AXYON says what AXYON Core needs first", async () => {
   answers = { home_mcp_status: { on: false, command: "x", homeOn: true }, hermes_setup_status: status({ brains: BRAINS.map((b) => ({ ...b, ready: false })) }) };
   const section = hermesSection(host({ ...DEFAULT_SETTINGS }));
   await flush();
   assert.ok(all(section.el).some((e) => e.textContent?.startsWith("Add an AI key first")));
-  assert.ok(!byText(section.el, "BUTTON", "Install Hermes"));
+  assert.ok(!byText(section.el, "BUTTON", "Install AXYON Core"));
 });
 
-test("Rust installs only the pinned installer and never hands Hermes a key on a command line or in a file", () => {
+test("Rust installs only the pinned installer and never hands AXYON Core a key on a command line or in a file", () => {
   const rs = readFileSync(new URL("../src-tauri/src/hermes_setup.rs", import.meta.url), "utf8");
   assert.match(rs, /pub const COMMIT: &str = "[0-9a-f]{40}";/);
   assert.match(rs, /raw\.githubusercontent\.com\/NousResearch\/hermes-agent\/\{COMMIT\}/);
@@ -204,7 +204,7 @@ test("the assistant's name and tone are saved together, and a tone of one's own 
   byText(section.el, "BUTTON", "Save").fire("click");
   await flush();
   assert.deepEqual(sent("hermes_assistant_set").at(-1), { name: "Athena", persona: "custom", personaText: "Fale como um capitão de navio.\nSempre breve." });
-  assert.ok(all(section.el).some((e) => e.textContent === "Saved: Hermes gets it when Coucou sets it up."));
+  assert.ok(all(section.el).some((e) => e.textContent === "Saved: AXYON Core gets it when AXYON sets it up."));
   assert.equal(name.value, "Athena");
   // Refused by Rust (two lines, say): the reason shows, nothing else changes.
   answers.hermes_assistant_set = new Error("The name must be one line of at most 40 characters.");
@@ -228,7 +228,7 @@ test("a setup with ChatGPT shows its sign-in code large, and Cancel stops the si
   assert.equal(select.children[0].textContent, "ChatGPT (your subscription)");
   assert.ok(all(section.el).some((e) => e.textContent?.startsWith("Needs ChatGPT Plus or Pro.")), "the plan it needs");
   assert.ok(all(section.el).some((e) => e.tagName === "LI" && e.textContent.includes("Sign in with your ChatGPT account")), "the plan says it");
-  byText(section.el, "BUTTON", "Install Hermes").fire("click");
+  byText(section.el, "BUTTON", "Install AXYON Core").fire("click");
   await flush();
   assert.deepEqual(sent("hermes_setup_start").at(-1), { brain: "chatgpt", house: true, configure: true });
   assert.ok(all(section.el).some((e) => e.textContent === "Sign in with ChatGPT: open the page and type the code WXYZ-9876"));
@@ -243,7 +243,7 @@ test("a setup with ChatGPT shows its sign-in code large, and Cancel stops the si
   assert.ok(byText(section.el, "DIV", "Stopped."));
 });
 
-test("a Hermes Coucou runs on ChatGPT signs in and out with a click, one sign-in at a time", async () => {
+test("a AXYON Core AXYON runs on ChatGPT signs in and out with a click, one sign-in at a time", async () => {
   const managed = (login) => status({ installed: true, managed: true, brain: "chatgpt", brains: [CHATGPT, ...BRAINS], gateway: { state: "running" }, login });
   answers = {
     home_mcp_status: { on: false, command: "x", homeOn: true },
@@ -276,7 +276,7 @@ test("a Hermes Coucou runs on ChatGPT signs in and out with a click, one sign-in
   assert.ok(reasons[4].includes("rate limited"));
 });
 
-test("a brain can be changed on a Hermes Coucou runs, after the plan of what changes", async () => {
+test("a brain can be changed on a AXYON Core AXYON runs, after the plan of what changes", async () => {
   answers = {
     home_mcp_status: { on: false, command: "x", homeOn: true },
     hermes_setup_status: status({ installed: true, managed: true, brain: "anthropic", brains: [CHATGPT, ...BRAINS], house: true, gateway: { state: "running" } }),
@@ -336,7 +336,7 @@ test("on ChatGPT the model is picked from the subscription's list or typed, and 
   assert.deepEqual(sent("hermes_computer_use_set").at(-1), { on: true });
   // How quick it is: Hermes' own until another is picked, then given with each message.
   const speedSelect = () => all(section.el).find((e) => e.tagName === "SELECT" && e.children.some((o) => o.getAttribute("value") === "fast"));
-  assert.equal(speedSelect().value, "", "Hermes' own");
+  assert.equal(speedSelect().value, "", "AXYON Core's own");
   assert.deepEqual(speedSelect().children.map((o) => o.getAttribute("value")), ["fast", "", "deep"]);
   speedSelect().value = "fast";
   speedSelect().fire("change");
@@ -350,7 +350,7 @@ test("on ChatGPT the model is picked from the subscription's list or typed, and 
   assert.ok(!byText(other.el, "BUTTON", "Use this model"));
 });
 
-test("skill packs are ticked before the setup, or installed at once in a Hermes Coucou runs", async () => {
+test("skill packs are ticked before the setup, or installed at once in a AXYON Core AXYON runs", async () => {
   answers = {
     home_mcp_status: { on: false, command: "x", homeOn: true },
     hermes_setup_status: status(),
@@ -358,7 +358,7 @@ test("skill packs are ticked before the setup, or installed at once in a Hermes 
   };
   let section = hermesSection(host({ ...DEFAULT_SETTINGS }));
   await flush();
-  assert.ok(all(section.el).some((e) => e.textContent?.startsWith("Already included with Hermes:")));
+  assert.ok(all(section.el).some((e) => e.textContent?.startsWith("Already included with AXYON Core:")));
   const tick = (label) => all(section.el).find((e) => e.tagName === "LABEL" && e.textContent === label).children[0];
   assert.equal(tick("Free web search (DuckDuckGo)").checked, false);
   tick("News and feeds (RSS)").checked = true;
@@ -371,7 +371,7 @@ test("skill packs are ticked before the setup, or installed at once in a Hermes 
   answers.hermes_setup_status = status({ installed: true, managed: true, brain: "google", skills: ["search", "news"], gateway: { state: "running" } });
   section = hermesSection(host({ ...DEFAULT_SETTINGS }));
   await flush();
-  assert.ok(all(section.el).some((e) => e.textContent?.startsWith("Skill packs: one you tick is installed in Hermes at once")));
+  assert.ok(all(section.el).some((e) => e.textContent?.startsWith("Skill packs: one you tick is installed in AXYON Core at once")));
   assert.equal(tick("Free web search (DuckDuckGo)").checked, true);
   tick("Free web search (DuckDuckGo)").checked = false;
   tick("Free web search (DuckDuckGo)").fire("change");
@@ -387,13 +387,13 @@ test("Rust signs in, installs skills and writes SOUL.md with fixed commands, and
   assert.match(rs, /&\["skills", "install", identifier, "--yes"\]/);
   assert.match(rs, /&\["skills", "uninstall", name, "--yes"\]/);
   assert.match(rs, /url\.host_str\(\) == Some\("auth\.openai\.com"\)/, "only OpenAI's own page is opened or shown");
-  assert.ok(!/auth\.json"/.test(rs.slice(0, rs.indexOf("#[cfg(test)]"))), "Hermes' sign-in file is never read");
+  assert.ok(!/auth\.json"/.test(rs.slice(0, rs.indexOf("#[cfg(test)]"))), "AXYON Core's sign-in file is never read");
   const first = readFileSync(new URL("../src-tauri/src/first_run.rs", import.meta.url), "utf8");
   assert.match(first, /remove_file\(&path\)/, "setup.json is deleted once read");
-  assert.ok(!/secrets::/.test(first), "the installer's page never hands Coucou a key through the file");
+  assert.ok(!/secrets::/.test(first), "the installer's page never hands AXYON a key through the file");
 });
 
-test("Settings comes to Hermes Agent after the installer's page, and Rust keeps the assistant's settings its own", () => {
+test("Settings comes to AXYON Core after the installer's page, and Rust keeps the assistant's settings its own", () => {
   const main = readFileSync(new URL("../src/settings/main.ts", import.meta.url), "utf8");
   assert.match(main, /onEvent<string>\("settings-focus", focusSection\)/, "the event first_run.rs sends");
   assert.match(main, /if \(boot\?\.focus\) focusSection\(boot\.focus\)/, "or the boot's, when the page was not up yet");
@@ -425,19 +425,19 @@ test("the diagnosis panel checks the integration, repairs the key, and gives a r
   await flush();
   assert.equal(sent("hermes_diagnose").length, 1);
   // A wrong key: the auth line says so and Repair + Let only Coucou run it + Copy are offered.
-  assert.ok(all(section.el).some((e) => e.textContent === "The key is wrong or missing. Repair it below, or paste the API_SERVER_KEY of Hermes' .env."));
+  assert.ok(all(section.el).some((e) => e.textContent === "The key is wrong or missing. Repair it below, or paste the API_SERVER_KEY of AXYON Core's .env."));
   assert.ok(byText(section.el, "BUTTON", "Repair the key"));
-  assert.ok(byText(section.el, "BUTTON", "Let only Coucou run Hermes"));
+  assert.ok(byText(section.el, "BUTTON", "Let only AXYON run AXYON Core"));
   byText(section.el, "BUTTON", "Repair the key").fire("click");
   await flush();
   await flush();
   assert.equal(sent("hermes_repair_key").length, 1);
-  assert.ok(all(section.el).some((e) => e.textContent === "The key is valid: Hermes answers as zheus."), "after repair the key is valid");
-  assert.equal(all(section.el).find((e) => e.tagName === "BUTTON" && e.textContent === "Let only Coucou run Hermes"), undefined, "no service fight any more");
+  assert.ok(all(section.el).some((e) => e.textContent === "The key is valid: AXYON Core answers as zheus."), "after repair the key is valid");
+  assert.equal(all(section.el).find((e) => e.tagName === "BUTTON" && e.textContent === "Let only AXYON run AXYON Core"), undefined, "no service fight any more");
 
   // The health lines read right, and the report carries no key.
   assert.equal(healthApiText({ state: "down" }), "The API does not answer: the gateway is off, or nothing listens on the port yet.");
-  assert.equal(healthAuthText({ state: "ready", model: "zheus" }), "The key is valid: Hermes answers as zheus.");
+  assert.equal(healthAuthText({ state: "ready", model: "zheus" }), "The key is valid: AXYON Core answers as zheus.");
   const report = diagnosisReport({ installed: true, managed: true, health: { state: "ready", model: "zheus" }, hasKey: true, ownService: false, address: "http://127.0.0.1:8642" });
   assert.ok(report.includes("127.0.0.1:8642") && !/key=|API_SERVER_KEY=\S/.test(report), "the report has the address but no secret");
 });

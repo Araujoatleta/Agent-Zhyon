@@ -137,8 +137,9 @@ the name and tone to Hermes' personality file, `SOUL.md` in Hermes' folder (*"Yo
 assistant…"*), and also tells Hermes the tone with each message, so the change applies from your next message.
 
 A `SOUL.md` that Coucou did not write (Hermes' default one, or yours) is **copied first** to
-`SOUL.backup-YYYYMMDD-HHMMSS.md`, beside it. Coucou's own ends with the line *"Set up in Coucou (Settings → Hermes
-Agent)…"*, and Coucou writes it again whenever the name or tone changes there. If you edit it yourself, remove that line:
+`SOUL.backup-YYYYMMDD-HHMMSS.md`, beside it. Coucou's own ends with the line *"Set up in AXYON (Settings → AXYON
+Core)…"* (or, written before the app became AXYON, *"Set up in Coucou (Settings → Hermes Agent)…"*), and Coucou writes it
+again whenever the name or tone changes there. If you edit it yourself, remove that line:
 Coucou then copies your version aside before it writes the next one. What you type as a tone stays on this computer, in
 Coucou's settings and Hermes' `SOUL.md`, and never goes in Coucou's log.
 

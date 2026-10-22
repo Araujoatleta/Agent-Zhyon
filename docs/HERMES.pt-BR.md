@@ -143,8 +143,9 @@ Hermes (*"You are Zheus, the user's personal assistant…"*), e também lembra o
 vale a partir da sua próxima mensagem.
 
 Um `SOUL.md` que não foi o Coucou que escreveu (o padrão do Hermes, ou o seu) é **copiado antes** para
-`SOUL.backup-AAAAMMDD-HHMMSS.md`, ao lado dele. O do Coucou termina com a linha *"Set up in Coucou (Settings → Hermes
-Agent)…"*, e o Coucou escreve de novo sempre que o nome ou o tom mudam ali. Se você editar o arquivo, apague essa linha:
+`SOUL.backup-AAAAMMDD-HHMMSS.md`, ao lado dele. O do Coucou termina com a linha *"Set up in AXYON (Settings → AXYON
+Core)…"* (ou, se foi escrito antes de o app virar AXYON, *"Set up in Coucou (Settings → Hermes Agent)…"*), e o Coucou
+escreve de novo sempre que o nome ou o tom mudam ali. Se você editar o arquivo, apague essa linha:
 assim o Coucou copia a sua versão antes de escrever a próxima. O que você digita como tom fica neste computador, nas
 configurações do Coucou e no `SOUL.md` do Hermes, e nunca vai para o log do Coucou.
 

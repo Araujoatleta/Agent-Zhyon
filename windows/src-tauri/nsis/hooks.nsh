@@ -37,7 +37,7 @@
 
 ; The skill packs, in the page's reading order: index, id, ticked by default (1) or not (0), and the checkbox's label.
 !macro CoucouSkills EACH
-  !insertmacro ${EACH} 0 "home"   1 "Mochi's home (TVs, lights…)"  "La maison de Mochi (TV, lumières…)"  "Casa do Mochi (TVs, luzes…)"
+  !insertmacro ${EACH} 0 "home"   1 "AXYON's home (TVs, lights…)"  "La maison d'AXYON (TV, lumières…)"  "Casa do AXYON (TVs, luzes…)"
   !insertmacro ${EACH} 1 "news"   0 "News and feeds (RSS)"         "Actualités et flux (RSS)"            "Notícias e feeds (RSS)"
   !insertmacro ${EACH} 2 "search" 1 "Free web search (DuckDuckGo)" "Recherche web gratuite (DuckDuckGo)" "Busca na web grátis (DuckDuckGo)"
 !macroend
@@ -184,7 +184,7 @@ Function CoucouPageCreate
   ${EndIf}
 
   !insertmacro CoucouText $0 "Your assistant" "Votre assistant" "Seu assistente"
-  !insertmacro CoucouText $1 "Hermes Agent, free and open source by Nous Research, is the assistant that answers you in Mochi's chat, here and on your phone." "Hermes Agent, libre et gratuit, par Nous Research, est l'assistant qui vous répond dans le chat de Mochi, ici et sur votre téléphone." "O Hermes Agent, gratuito e de código aberto, da Nous Research, é o assistente que responde no chat do Mochi, aqui e no celular."
+  !insertmacro CoucouText $1 "AXYON Core, free and open source by Nous Research, is the assistant that answers you in AXYON's chat, here and on your phone." "AXYON Core, libre et gratuit, par Nous Research, est l'assistant qui vous répond dans le chat d'AXYON, ici et sur votre téléphone." "O AXYON Core, gratuito e de código aberto, da Nous Research, é o assistente que responde no chat do AXYON, aqui e no celular."
   !insertmacro MUI_HEADER_TEXT $0 $1
 
   nsDialogs::Create 1018
@@ -242,7 +242,7 @@ Function CoucouPageCreate
   Pop $CoucouHwSkillsLabel
   !insertmacro CoucouSkills CoucouSkillAdd
 
-  !insertmacro CoucouText $0 "Let my iPhone change the assistant and use Mochi's home" "Laisser mon iPhone modifier l'assistant et utiliser la maison de Mochi" "Deixar meu iPhone alterar o assistente e usar a Casa do Mochi"
+  !insertmacro CoucouText $0 "Let my iPhone change the assistant and use AXYON's home" "Laisser mon iPhone modifier l'assistant et utiliser la maison d'AXYON" "Deixar meu iPhone alterar o assistente e usar a Casa do AXYON"
   ${NSD_CreateCheckBox} 0 95u 300u 10u $0
   Pop $CoucouHwPhone
   ${If} $CoucouPhone = 1
@@ -250,7 +250,7 @@ Function CoucouPageCreate
   ${EndIf}
 
   ; What Coucou will do, said before the click.
-  !insertmacro CoucouText $0 "When Coucou first starts it will: download Hermes Agent's official installer (a fixed version, checked by SHA-256), install Hermes and its Python in your user folder, set the brain, write the personality to Hermes' SOUL.md (an existing one is backed up), and install the ticked skills." "Au premier lancement, Coucou va : télécharger l'installeur officiel de Hermes Agent (une version fixe, vérifiée par SHA-256), installer Hermes et son Python dans votre dossier utilisateur, régler le cerveau, écrire la personnalité dans le SOUL.md de Hermes (l'ancien est sauvegardé) et installer les compétences cochées." "Na primeira vez que o Coucou abrir, ele vai: baixar o instalador oficial do Hermes Agent (uma versão fixa, conferida por SHA-256), instalar o Hermes e o Python dele na sua pasta de usuário, definir o cérebro, escrever a personalidade no SOUL.md do Hermes (o anterior ganha um backup) e instalar as skills marcadas."
+  !insertmacro CoucouText $0 "When AXYON first starts it will: download AXYON Core's official installer from Nous Research (a fixed version, checked by SHA-256), install AXYON Core and its Python in your user folder, set the brain, write the personality to its SOUL.md (an existing one is backed up), and install the ticked skills." "Au premier lancement, AXYON va : télécharger l'installeur officiel d'AXYON Core chez Nous Research (une version fixe, vérifiée par SHA-256), installer AXYON Core et son Python dans votre dossier utilisateur, régler le cerveau, écrire la personnalité dans son SOUL.md (l'ancien est sauvegardé) et installer les compétences cochées." "Na primeira vez que o AXYON abrir, ele vai: baixar o instalador oficial do AXYON Core, da Nous Research (uma versão fixa, conferida por SHA-256), instalar o AXYON Core e o Python dele na sua pasta de usuário, definir o cérebro, escrever a personalidade no SOUL.md dele (o anterior ganha um backup) e instalar as skills marcadas."
   ${NSD_CreateLabel} 0 108u 300u 32u $0
   Pop $CoucouHwPlan
 
@@ -294,11 +294,11 @@ Function CoucouPageUpdate
   EnableWindow $CoucouHwKey $2
 
   ${If} $CoucouBrain == "chatgpt"
-    !insertmacro CoucouText $3 "After installing, Coucou opens OpenAI's page and shows a code: sign in with your ChatGPT Plus or Pro account. No key needed." "Après l'installation, Coucou ouvre la page d'OpenAI et affiche un code : connectez-vous avec votre compte ChatGPT Plus ou Pro. Sans clé." "Depois de instalar, o Coucou abre a página da OpenAI e mostra um código: entre com sua conta ChatGPT Plus ou Pro. Sem chave."
+    !insertmacro CoucouText $3 "After installing, AXYON opens OpenAI's page and shows a code: sign in with your ChatGPT Plus or Pro account. No key needed." "Après l'installation, AXYON ouvre la page d'OpenAI et affiche un code : connectez-vous avec votre compte ChatGPT Plus ou Pro. Sans clé." "Depois de instalar, o AXYON abre a página da OpenAI e mostra um código: entre com sua conta ChatGPT Plus ou Pro. Sem chave."
   ${ElseIf} $CoucouKeyEntry != ""
     !insertmacro CoucouText $3 "Stored in Windows Credential Manager, never in a file." "Gardée dans le Gestionnaire d'identification Windows, jamais dans un fichier." "Guardada no Gerenciador de Credenciais do Windows, nunca em um arquivo."
   ${Else}
-    !insertmacro CoucouText $3 "No key needed: Coucou uses the server on this computer ($CoucouAddress unless Settings already has another address)." "Pas de clé : Coucou utilise le serveur de cet ordinateur ($CoucouAddress, sauf autre adresse déjà dans les Réglages)." "Sem chave: o Coucou usa o servidor deste computador ($CoucouAddress, salvo outro endereço já nas Configurações)."
+    !insertmacro CoucouText $3 "No key needed: AXYON uses the server on this computer ($CoucouAddress unless Settings already has another address)." "Pas de clé : AXYON utilise le serveur de cet ordinateur ($CoucouAddress, sauf autre adresse déjà dans les Réglages)." "Sem chave: o AXYON usa o servidor deste computador ($CoucouAddress, salvo outro endereço já nas Configurações)."
   ${EndIf}
   ${NSD_SetText} $CoucouHwHint $3
 FunctionEnd
@@ -504,9 +504,9 @@ Function CoucouSaveChoices
   ${AndIf} $CoucouKey != ""
     Call CoucouStoreKey
     ${If} $0 = 1
-      !insertmacro CoucouText $4 "Coucou: the key is in Windows Credential Manager ($CoucouKeyEntry)." "Coucou : la clé est dans le Gestionnaire d'identification Windows ($CoucouKeyEntry)." "Coucou: a chave está no Gerenciador de Credenciais do Windows ($CoucouKeyEntry)."
+      !insertmacro CoucouText $4 "AXYON: the key is in Windows Credential Manager ($CoucouKeyEntry)." "AXYON : la clé est dans le Gestionnaire d'identification Windows ($CoucouKeyEntry)." "AXYON: a chave está no Gerenciador de Credenciais do Windows ($CoucouKeyEntry)."
     ${Else}
-      !insertmacro CoucouText $4 "Coucou: the key could not be stored (error $1): add it in Coucou's Settings." "Coucou : la clé n'a pas pu être enregistrée (erreur $1) : ajoutez-la dans les Réglages de Coucou." "Coucou: não foi possível guardar a chave (erro $1): adicione nas Configurações do Coucou."
+      !insertmacro CoucouText $4 "AXYON: the key could not be stored (error $1): add it in AXYON's Settings." "AXYON : la clé n'a pas pu être enregistrée (erreur $1) : ajoutez-la dans les Réglages d'AXYON." "AXYON: não foi possível guardar a chave (erro $1): adicione nas Configurações do AXYON."
     ${EndIf}
     DetailPrint $4
   ${EndIf}
@@ -544,10 +544,10 @@ Function CoucouSaveChoices
     FileClose $0
   ${EndIf}
   ${If} $2 = 0
-    !insertmacro CoucouText $4 "Coucou: could not write $APPDATA\Coucou\setup.json: set the assistant up in Coucou's Settings." "Coucou : impossible d'écrire $APPDATA\Coucou\setup.json : configurez l'assistant dans les Réglages de Coucou." "Coucou: não foi possível gravar $APPDATA\Coucou\setup.json: configure o assistente nas Configurações do Coucou."
+    !insertmacro CoucouText $4 "AXYON: could not write $APPDATA\Coucou\setup.json: set the assistant up in AXYON's Settings." "AXYON : impossible d'écrire $APPDATA\Coucou\setup.json : configurez l'assistant dans les Réglages d'AXYON." "AXYON: não foi possível gravar $APPDATA\Coucou\setup.json: configure o assistente nas Configurações do AXYON."
     DetailPrint $4
   ${ElseIf} $CoucouEnable = 1
-    !insertmacro CoucouText $4 "Coucou: your choices are kept for its next start ($APPDATA\Coucou\setup.json)." "Coucou : vos choix sont gardés pour son prochain lancement ($APPDATA\Coucou\setup.json)." "Coucou: suas escolhas ficam guardadas para a próxima abertura ($APPDATA\Coucou\setup.json)."
+    !insertmacro CoucouText $4 "AXYON: your choices are kept for its next start ($APPDATA\Coucou\setup.json)." "AXYON : vos choix sont gardés pour son prochain lancement ($APPDATA\Coucou\setup.json)." "AXYON: suas escolhas ficam guardadas para a próxima abertura ($APPDATA\Coucou\setup.json)."
     DetailPrint $4
   ${EndIf}
 

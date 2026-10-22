@@ -184,9 +184,9 @@ test("every text is in English, French and Portuguese, the contract's own words 
   for (const en of [
     "Set up the assistant now (recommended)",
     "Stored in Windows Credential Manager, never in a file.",
-    "After installing, Coucou opens OpenAI's page and shows a code: sign in with your ChatGPT Plus or Pro account. No key needed.",
-    "Let my iPhone change the assistant and use Mochi's home",
-    "When Coucou first starts it will: download Hermes Agent's official installer (a fixed version, checked by SHA-256), install Hermes and its Python in your user folder, set the brain, write the personality to Hermes' SOUL.md (an existing one is backed up), and install the ticked skills.",
+    "After installing, AXYON opens OpenAI's page and shows a code: sign in with your ChatGPT Plus or Pro account. No key needed.",
+    "Let my iPhone change the assistant and use AXYON's home",
+    "When AXYON first starts it will: download AXYON Core's official installer from Nous Research (a fixed version, checked by SHA-256), install AXYON Core and its Python in your user folder, set the brain, write the personality to its SOUL.md (an existing one is backed up), and install the ticked skills.",
   ]) {
     assert.ok(english.has(en), `"${en}"`);
   }
@@ -204,7 +204,7 @@ test("every text is in English, French and Portuguese, the contract's own words 
     Professional: "Profissional",
     Playful: "Divertido",
     "Butler (formal, witty)": "Mordomo (formal e espirituoso)",
-    "Mochi's home (TVs, lights…)": "Casa do Mochi (TVs, luzes…)",
+    "AXYON's home (TVs, lights…)": "Casa do AXYON (TVs, luzes…)",
     "Free web search (DuckDuckGo)": "Busca na web grátis (DuckDuckGo)",
     "News and feeds (RSS)": "Notícias e feeds (RSS)",
   };

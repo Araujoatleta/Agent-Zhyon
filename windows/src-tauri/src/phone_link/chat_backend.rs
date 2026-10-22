@@ -164,7 +164,7 @@ pub fn provider_name(provider: &str) -> String {
         "openrouter" => "OpenRouter".into(),
         "ollama" => "Ollama".into(),
         "lmstudio" => "LM Studio".into(),
-        crate::hermes::PROVIDER => "Hermes Agent".into(),
+        crate::hermes::PROVIDER => "AXYON Core".into(),
         _ => "Custom server".into(),
     }
 }
@@ -251,7 +251,7 @@ mod tests {
         let o = options(&ids(&["anthropic/claude-x", "lmstudio/qwen"]));
         assert_eq!(o[0], ModelOption { id: "anthropic/claude-x".into(), provider: "anthropic".into(), label: "Anthropic · claude-x".into() });
         assert_eq!(o[1].label, "LM Studio · qwen");
-        assert_eq!(options(&ids(&["hermes/zheus"]))[0].label, "Hermes Agent · zheus");
+        assert_eq!(options(&ids(&["hermes/zheus"]))[0].label, "AXYON Core · zheus");
     }
 
     #[test]

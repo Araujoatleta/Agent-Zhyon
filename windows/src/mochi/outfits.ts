@@ -14,6 +14,7 @@
 import { Ease } from "../core/anim";
 import type { Outfit, OutfitSelection } from "./wardrobe";
 import { SCRIPT_FONTS } from "../core/fonts";
+import { LED, drawAntenna, drawPods, glow, mixRGB, noGlow, paintScreen, paintShell, rgba as ledRgba, screenPath } from "./axyon";
 
 const EXP = 2.7;
 const VIEW_TILT = -0.3;
@@ -938,6 +939,401 @@ function bunnyEars(ctx: Ctx, H: Head) {
   }
 }
 
+
+// ── AXYON's own outfits ───────────────────────────────────────────────────────
+// Drawn on the same head as the others. What goes over the top of the head hides AXYON's antenna (coversTop).
+
+const GRAPHITE: [number, string][] = [[0, "#46505C"], [1, "#14181E"]];
+const TEAL_LED: [number, number, number] = [0.369, 0.918, 0.831];
+
+/** Gaming headset: a band over the head, ear cups lit in AXYON's teal, and a microphone on the left. */
+function headset(ctx: Ctx, H: Head, simple: boolean) {
+  const R = H.R;
+  const e = 2 / EXP;
+  const band: P3[] = [];
+  for (let i = 0; i <= 48; i++) {
+    const t = (i / 48) * Math.PI;
+    const ct = -Math.cos(t);
+    const st = Math.sin(t);
+    band.push(proj(H, [Math.sign(ct) * Math.pow(Math.abs(ct), e) * 1.08, Math.pow(st, e) * 1.08, 0]));
+  }
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  polyline(ctx, band);
+  ctx.strokeStyle = "#151A20";
+  ctx.lineWidth = R * 0.16;
+  ctx.stroke();
+  polyline(ctx, band);
+  ctx.strokeStyle = lin(ctx, 0, -H.ry * 1.1, 0, 0, GRAPHITE);
+  ctx.lineWidth = R * 0.11;
+  ctx.stroke();
+  if (!simple) {
+    polyline(ctx, band.slice(8, 41));
+    ctx.strokeStyle = "rgba(255,255,255,0.22)";
+    ctx.lineWidth = R * 0.03;
+    ctx.stroke();
+  }
+
+  // The microphone, from the left cup toward the mouth.
+  const cupL = proj(H, [-1.03, -0.04, 0]);
+  const mic = proj(H, [-0.5, -0.5, 0.86]);
+  if (mic.z > 0) {
+    ctx.beginPath();
+    ctx.moveTo(cupL.x, cupL.y + R * 0.08);
+    ctx.quadraticCurveTo(cupL.x - R * 0.02, mic.y + R * 0.05, mic.x, mic.y);
+    ctx.strokeStyle = "#1B2027";
+    ctx.lineWidth = R * 0.055;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(mic.x, mic.y, R * 0.1, R * 0.075, -0.3, 0, Math.PI * 2);
+    ctx.fillStyle = lin(ctx, mic.x, mic.y - R * 0.08, mic.x, mic.y + R * 0.08, GRAPHITE);
+    ctx.fill();
+    if (!simple) {
+      glow(ctx, [1, 0.3, 0.35], R * 0.2);
+      ctx.fillStyle = "#FF5A6E";
+      ctx.beginPath();
+      ctx.arc(mic.x + R * 0.04, mic.y - R * 0.01, R * 0.025, 0, Math.PI * 2);
+      ctx.fill();
+      noGlow(ctx);
+    }
+  }
+
+  // The cups, over the ear pods.
+  for (const sd of [-1, 1]) {
+    const c = proj(H, [sd * 1.04, -0.04, 0]);
+    const w = R * 0.34;
+    const h = R * 0.58;
+    ctx.save();
+    ctx.translate(c.x, c.y);
+    roundRect(ctx, -w / 2, -h / 2, w, h, w * 0.48);
+    ctx.fillStyle = lin(ctx, 0, -h / 2, 0, h / 2, GRAPHITE);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(0,0,0,0.35)";
+    ctx.lineWidth = R * 0.025;
+    ctx.stroke();
+    if (!simple) {
+      glow(ctx, TEAL_LED, R * 0.3);
+      ctx.strokeStyle = "rgba(125,240,222,0.95)";
+      ctx.lineWidth = R * 0.045;
+      ctx.beginPath();
+      ctx.ellipse(sd * w * 0.08, 0, w * 0.22, h * 0.28, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      noGlow(ctx);
+    }
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+/** A halo of light floating over the head, bobbing on the soft-part spring. */
+function halo(ctx: Ctx, H: Head) {
+  const y = 1.46 + Math.max(-1, Math.min(1, H.physDy)) * 0.1;
+  const pts: P3[] = [];
+  for (let i = 0; i <= 72; i++) {
+    const a = (i / 72) * Math.PI * 2;
+    pts.push(proj(H, [0.58 * Math.sin(a) + H.physDx * 0.12, y, 0.58 * Math.cos(a)]));
+  }
+  ctx.save();
+  glow(ctx, [1, 0.86, 0.5], H.R * 0.45, 0.95);
+  polyline(ctx, pts);
+  ctx.closePath();
+  ctx.strokeStyle = "rgba(255,214,120,0.95)";
+  ctx.lineWidth = H.R * 0.1;
+  ctx.stroke();
+  noGlow(ctx);
+  polyline(ctx, pts);
+  ctx.closePath();
+  ctx.strokeStyle = "rgba(255,250,225,0.9)";
+  ctx.lineWidth = H.R * 0.035;
+  ctx.stroke();
+  ctx.restore();
+}
+
+/** The astronaut's glass bubble: where it is, around the head and the antenna. */
+function helmetEllipse(H: Head) {
+  return { x: 0, y: -H.ry * 0.2, rx: H.rx * 1.3, ry: H.ry * 1.64 };
+}
+
+/** The far side of the bubble, behind the body: a faint blue tint and its rim. */
+function helmetBack(ctx: Ctx, H: Head) {
+  const e = helmetEllipse(H);
+  ctx.save();
+  ctx.beginPath();
+  ctx.ellipse(e.x, e.y, e.rx, e.ry, 0, 0, Math.PI * 2);
+  ctx.fillStyle = rad(ctx, e.x, e.y, 0, e.ry, [[0, "rgba(150,215,255,0.05)"], [1, "rgba(150,215,255,0.2)"]]);
+  ctx.fill();
+  ctx.restore();
+}
+
+/** The near side: glass reflections, its rim, and the collar where it meets the body. */
+function helmetFront(ctx: Ctx, H: Head, simple: boolean) {
+  const e = helmetEllipse(H);
+  const R = H.R;
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.ellipse(e.x, e.y, e.rx, e.ry, 0, 0, Math.PI * 2);
+  ctx.strokeStyle = "rgba(225,245,255,0.6)";
+  ctx.lineWidth = R * 0.04;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.ellipse(e.x, e.y, e.rx * 0.86, e.ry * 0.88, 0, Math.PI * 1.08, Math.PI * 1.42);
+  ctx.strokeStyle = "rgba(255,255,255,0.6)";
+  ctx.lineWidth = R * 0.08;
+  ctx.stroke();
+  if (!simple) {
+    ctx.beginPath();
+    ctx.ellipse(e.x, e.y, e.rx * 0.9, e.ry * 0.9, 0, Math.PI * 1.55, Math.PI * 1.62);
+    ctx.strokeStyle = "rgba(255,255,255,0.45)";
+    ctx.lineWidth = R * 0.05;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(e.x + e.rx * 0.5, e.y + e.ry * 0.42, R * 0.05, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(255,255,255,0.55)";
+    ctx.fill();
+  }
+  // The collar: a white ring with a stripe of AXYON's light.
+  const collar = frontArc(H, -0.84, 1.16);
+  if (collar.length > 1) {
+    polyline(ctx, collar);
+    ctx.strokeStyle = "#9AA8B6";
+    ctx.lineWidth = R * 0.26;
+    ctx.stroke();
+    polyline(ctx, collar);
+    ctx.strokeStyle = lin(ctx, 0, collar[0].y - R * 0.12, 0, collar[0].y + R * 0.12, [[0, "#FFFFFF"], [1, "#C7D2DC"]]);
+    ctx.lineWidth = R * 0.2;
+    ctx.stroke();
+    if (!simple) {
+      glow(ctx, TEAL_LED, R * 0.25);
+      polyline(ctx, collar);
+      ctx.strokeStyle = "rgba(110,238,218,0.9)";
+      ctx.lineWidth = R * 0.035;
+      ctx.stroke();
+      noGlow(ctx);
+    }
+  }
+  ctx.restore();
+}
+
+/** A cape from the shoulders, behind the body, flaring out and swinging on the spring. */
+function cape(ctx: Ctx, H: Head, unfurl: number) {
+  const R = H.R;
+  const sw = Math.max(-1, Math.min(1, H.physDx)) * H.rx * 0.28;
+  const L = proj(H, [-0.86, -0.18, -0.3]);
+  const Rt = proj(H, [0.86, -0.18, -0.3]);
+  const bottom = L.y + (H.ry * 1.5) * unfurl;
+  const p = new Path2D();
+  p.moveTo(L.x, L.y);
+  p.bezierCurveTo(L.x - R * 0.3, L.y + (bottom - L.y) * 0.4, L.x - R * 0.55 + sw, bottom - R * 0.2, L.x - R * 0.5 + sw, bottom);
+  const steps = 4;
+  const x0 = L.x - R * 0.5 + sw;
+  const x1 = Rt.x + R * 0.5 + sw;
+  for (let i = 1; i <= steps; i++) {
+    const xa = x0 + ((x1 - x0) * (i - 0.5)) / steps;
+    const xb = x0 + ((x1 - x0) * i) / steps;
+    p.quadraticCurveTo(xa, bottom - R * 0.16, xb, bottom);
+  }
+  p.bezierCurveTo(Rt.x + R * 0.55 + sw, bottom - R * 0.2, Rt.x + R * 0.3, Rt.y + (bottom - Rt.y) * 0.4, Rt.x, Rt.y);
+  p.quadraticCurveTo(0, Rt.y - R * 0.3, L.x, L.y);
+  p.closePath();
+  ctx.save();
+  ctx.fillStyle = lin(ctx, 0, L.y, 0, bottom, [[0, "#0F766E"], [1, "#0B3B37"]]);
+  ctx.fill(p);
+  ctx.strokeStyle = "#FB923C";
+  ctx.lineWidth = R * 0.05;
+  ctx.stroke(p);
+  ctx.clip(p);
+  ctx.strokeStyle = "rgba(0,0,0,0.22)";
+  ctx.lineWidth = R * 0.09;
+  ctx.lineCap = "round";
+  for (const f of [-0.45, 0, 0.45]) {
+    ctx.beginPath();
+    ctx.moveTo(f * H.rx * 0.6, L.y + R * 0.2);
+    ctx.quadraticCurveTo(f * H.rx * 0.9 + sw * 0.5, (L.y + bottom) / 2, f * H.rx * 1.2 + sw, bottom);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/** A baseball cap with AXYON's mark on its front panel. */
+function cap(ctx: Ctx, H: Head, simple: boolean) {
+  const s = 1.045;
+  const yEdge = 0.46;
+  const head = bodyOutline(H.rx * s, H.ry * s);
+  ctx.save();
+  ctx.clip(capClip(H, yEdge, s));
+  ctx.fillStyle = lin(ctx, H.rx * 0.5, -H.ry * 1.1, -H.rx * 0.6, -H.ry * 0.2, [[0, "#334155"], [1, "#0F172A"]]);
+  ctx.fill(head);
+  if (!simple) {
+    ctx.clip(head);
+    ctx.strokeStyle = "rgba(255,255,255,0.12)";
+    ctx.lineWidth = H.R * 0.03;
+    for (const lon of [-0.9, -0.3, 0.3, 0.9]) {
+      const pts: P3[] = [];
+      for (let i = 0; i <= 14; i++) {
+        const q = proj(H, surf(yEdge + ((1.04 - yEdge) * i) / 14, lon, s));
+        if (q.z > 0) pts.push(q);
+      }
+      if (pts.length > 1) {
+        polyline(ctx, pts);
+        ctx.stroke();
+      }
+    }
+    const m = proj(H, surf(0.72, 0, s * 1.01));
+    if (m.z > 0.2) {
+      const k = H.R * 0.09;
+      glow(ctx, TEAL_LED, H.R * 0.3);
+      ctx.strokeStyle = "rgba(125,240,222,0.95)";
+      ctx.lineWidth = k * 0.45;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(m.x - k, m.y - k * 0.8);
+      ctx.lineTo(m.x + k, m.y + k * 0.8);
+      ctx.moveTo(m.x + k, m.y - k * 0.8);
+      ctx.lineTo(m.x - k, m.y + k * 0.8);
+      ctx.stroke();
+      noGlow(ctx);
+    }
+  }
+  ctx.restore();
+  // The brim, out over the screen.
+  const brim: P3[] = [];
+  const rr = ringR(yEdge) * s;
+  for (let i = 0; i <= 24; i++) {
+    const a = -0.82 + (1.64 * i) / 24;
+    brim.push(proj(H, [rr * 1.08 * Math.sin(a), yEdge - 0.06, rr * 1.42 * Math.cos(a)]));
+  }
+  const root = frontArc(H, yEdge, s);
+  if (root.length > 1) {
+    const p = new Path2D();
+    brim.forEach((q, i) => (i ? p.lineTo(q.x, q.y) : p.moveTo(q.x, q.y)));
+    for (let i = root.length - 1; i >= 0; i--) p.lineTo(root[i].x, root[i].y);
+    p.closePath();
+    ctx.fillStyle = lin(ctx, 0, root[0].y - H.R * 0.1, 0, brim[12].y, [[0, "#1E293B"], [1, "#0B1220"]]);
+    ctx.fill(p);
+    polyline(ctx, brim);
+    ctx.strokeStyle = "rgba(255,255,255,0.18)";
+    ctx.lineWidth = H.R * 0.03;
+    ctx.stroke();
+  }
+}
+
+/** A graduation cap: the board, turned, on a skull cap, and its tassel swinging. */
+function gradCap(ctx: Ctx, H: Head, simple: boolean) {
+  const s = 1.04;
+  const yEdge = 0.6;
+  const head = bodyOutline(H.rx * s, H.ry * s);
+  ctx.save();
+  ctx.clip(capClip(H, yEdge, s));
+  ctx.fillStyle = lin(ctx, 0, -H.ry * 1.05, 0, -H.ry * 0.5, [[0, "#1F2937"], [1, "#0B0F17"]]);
+  ctx.fill(head);
+  ctx.restore();
+
+  const y = 1.12;
+  const k = 1.18;
+  const corners = [[0, y, k], [k, y, 0], [0, y, -k], [-k, y, 0]].map((c) => proj(H, c as unknown as Vec3));
+  const board = new Path2D();
+  corners.forEach((q, i) => (i ? board.lineTo(q.x, q.y) : board.moveTo(q.x, q.y)));
+  board.closePath();
+  ctx.save();
+  ctx.translate(0, H.R * 0.07);
+  ctx.fillStyle = "#05070B";
+  ctx.fill(board);
+  ctx.restore();
+  ctx.fillStyle = lin(ctx, corners[3].x, corners[2].y, corners[1].x, corners[0].y, [[0, "#374151"], [1, "#111827"]]);
+  ctx.fill(board);
+  ctx.strokeStyle = "rgba(255,255,255,0.18)";
+  ctx.lineWidth = H.R * 0.025;
+  ctx.stroke(board);
+
+  // The tassel: from the button to the right corner, then hanging.
+  const top = proj(H, [0, y + 0.02, 0]);
+  const corner = corners[1];
+  const sw = Math.max(-1, Math.min(1, H.physDx)) * H.R * 0.25;
+  const end = { x: corner.x + sw, y: corner.y + H.R * 0.55 };
+  ctx.lineCap = "round";
+  ctx.strokeStyle = "#FBBF24";
+  ctx.lineWidth = H.R * 0.04;
+  ctx.beginPath();
+  ctx.moveTo(top.x, top.y);
+  ctx.lineTo(corner.x, corner.y);
+  ctx.quadraticCurveTo(corner.x + sw * 0.3, corner.y + H.R * 0.3, end.x, end.y);
+  ctx.stroke();
+  ctx.fillStyle = "#F59E0B";
+  ctx.beginPath();
+  ctx.arc(top.x, top.y, H.R * 0.06, 0, Math.PI * 2);
+  ctx.fill();
+  if (!simple) {
+    ctx.fillStyle = lin(ctx, end.x, end.y, end.x, end.y + H.R * 0.25, [[0, "#FCD34D"], [1, "#D97706"]]);
+    roundRect(ctx, end.x - H.R * 0.07, end.y, H.R * 0.14, H.R * 0.26, H.R * 0.04);
+    ctx.fill();
+  }
+}
+
+/** A cyber visor across the eyes: one band of tinted glass with a line of light. */
+function cyberVisor(ctx: Ctx, H: Head, body: Path2D) {
+  const [l, r] = eyeFrames(H);
+  if (!l.visible && !r.visible) return;
+  const a = l.visible ? l : r;
+  const b = r.visible ? r : l;
+  const x0 = a.x - H.R * 0.42 * a.fx;
+  const x1 = b.x + H.R * 0.42 * b.fx;
+  const h = H.R * 0.42;
+  const ang = Math.atan2(b.y - a.y, x1 - x0);
+  const len = Math.hypot(x1 - x0, b.y - a.y);
+  ctx.save();
+  ctx.clip(body);
+  ctx.translate(x0, a.y);
+  ctx.rotate(ang);
+  roundRect(ctx, 0, -h / 2, len, h, h * 0.42);
+  ctx.fillStyle = lin(ctx, 0, 0, len, 0, [[0, "rgba(236,72,153,0.82)"], [0.5, "rgba(124,58,237,0.78)"], [1, "rgba(34,211,238,0.82)"]]);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(10,12,20,0.7)";
+  ctx.lineWidth = H.R * 0.035;
+  ctx.stroke();
+  glow(ctx, [1, 1, 1], H.R * 0.3, 0.8);
+  ctx.strokeStyle = "rgba(255,255,255,0.9)";
+  ctx.lineWidth = H.R * 0.035;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(len * 0.1, -h * 0.05);
+  ctx.lineTo(len * 0.9, -h * 0.05);
+  ctx.stroke();
+  noGlow(ctx);
+  ctx.fillStyle = "rgba(255,255,255,0.22)";
+  roundRect(ctx, len * 0.06, -h * 0.4, len * 0.42, h * 0.16, h * 0.08);
+  ctx.fill();
+  ctx.restore();
+}
+
+/** A bow tie low on the front. */
+function bowtie(ctx: Ctx, H: Head) {
+  const a = proj(H, surf(-0.72, 0, 1.03));
+  if (a.z < 0.1) return;
+  const s = H.R * 0.22;
+  const sq = Math.max(0.4, Math.cos(H.yaw));
+  ctx.save();
+  ctx.translate(a.x, a.y);
+  ctx.scale(sq, 1);
+  for (const sd of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(sd * s * 0.7, -s * 0.75, sd * s * 1.3, -s * 0.62);
+    ctx.quadraticCurveTo(sd * s * 1.45, 0, sd * s * 1.3, s * 0.62);
+    ctx.quadraticCurveTo(sd * s * 0.7, s * 0.75, 0, 0);
+    ctx.fillStyle = lin(ctx, 0, -s, 0, s, [[0, "#2B3340"], [1, "#0B0E13"]]);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,0.12)";
+    ctx.lineWidth = s * 0.08;
+    ctx.stroke();
+  }
+  roundRect(ctx, -s * 0.24, -s * 0.3, s * 0.48, s * 0.6, s * 0.14);
+  ctx.fillStyle = lin(ctx, 0, -s * 0.3, 0, s * 0.3, [[0, "#3B4555"], [1, "#11151B"]]);
+  ctx.fill();
+  ctx.restore();
+}
+
 // ── Layers and transitions ────────────────────────────────────────────────────
 
 let scratch: HTMLCanvasElement | null = null;
@@ -976,8 +1372,19 @@ function withLayer(ctx: Ctx, alpha: number, fn: (c: Ctx) => void) {
 }
 
 /** Glasses, bow, scarf and pumpkin are on the face: behind the head once it has turned away. */
-const ON_FACE: ReadonlySet<Outfit> = new Set(["sunglasses", "roundGlasses", "bow", "scarf", "pumpkin"]);
-const HATS: ReadonlySet<Outfit> = new Set(["beanie", "santaHat", "partyHat", "crown", "witchHat"]);
+const ON_FACE: ReadonlySet<Outfit> = new Set(["sunglasses", "roundGlasses", "bow", "scarf", "pumpkin", "cyberVisor", "bowtie"]);
+/** What drops onto the head and settles. */
+const HATS: ReadonlySet<Outfit> = new Set([
+  "beanie", "santaHat", "partyHat", "crown", "witchHat", "headset", "halo", "astronaut", "cap", "gradCap",
+]);
+/** What sits over the top of the head: AXYON's antenna goes under it (engine.ts). */
+const OVER_THE_TOP: ReadonlySet<Outfit> = new Set([
+  "beanie", "santaHat", "partyHat", "crown", "witchHat", "pumpkin", "bunnyEars", "headset", "halo", "cap", "gradCap",
+]);
+
+export function coversTop(outfit: Outfit): boolean {
+  return OVER_THE_TOP.has(outfit);
+}
 
 export interface OutfitState {
   /** 0 = gone, 1 = fully on. Animated by the engine. */
@@ -997,6 +1404,8 @@ function drawFace(ctx: Ctx, outfit: Outfit, H: Head, body: Path2D, simple: boole
     case "scarf": scarf(ctx, H); break;
     case "pumpkin": pumpkin(ctx, H, body, simple); break;
     case "bow": bow(ctx, H); break;
+    case "cyberVisor": cyberVisor(ctx, H, body); break;
+    case "bowtie": bowtie(ctx, H); break;
     default: break;
   }
 }
@@ -1021,6 +1430,11 @@ export function drawOutfitBehind(ctx: Ctx, outfit: Outfit, H: Head, st: OutfitSt
     if (faceTurnedAway(H)) withLayer(ctx, alpha, (l) => drawFace(l, outfit, H, body, simple));
     return;
   }
+  if (outfit === "cape") {
+    // A cape unfurls from the shoulders rather than dropping in.
+    withLayer(ctx, alpha, (l) => cape(l, H, Math.max(0.05, Ease.out(st.presence))));
+    return;
+  }
   const posP = Ease.back(st.presence);
   const hatScale = 0.85 + 0.15 * posP;
   ctx.save();
@@ -1030,13 +1444,14 @@ export function drawOutfitBehind(ctx: Ctx, outfit: Outfit, H: Head, st: OutfitSt
     if (outfit === "bunnyEars") bunnyEars(l, H);
     else if (outfit === "crown") crownPart(l, H, -1, simple);
     else if (outfit === "witchHat") witchHatBack(l, H);
+    else if (outfit === "astronaut") helmetBack(l, H);
   });
   ctx.restore();
 }
 
 /** The parts in front of Mochi, drawn after the body and the eyes. */
 export function drawOutfitFront(ctx: Ctx, outfit: Outfit, H: Head, st: OutfitState) {
-  if (outfit === "none" || outfit === "bunnyEars") return;
+  if (outfit === "none" || outfit === "bunnyEars" || outfit === "cape") return;
   if (ON_FACE.has(outfit) && faceTurnedAway(H)) return;
   const alpha = layerAlpha(st);
   if (alpha <= 0.005) return;
@@ -1065,6 +1480,11 @@ export function drawOutfitFront(ctx: Ctx, outfit: Outfit, H: Head, st: OutfitSta
       case "partyHat": partyHat(l, H, simple); break;
       case "crown": crownFront(l, H, body, simple); break;
       case "witchHat": witchHatFront(l, H, body); break;
+      case "headset": headset(l, H, simple); break;
+      case "halo": halo(l, H); break;
+      case "astronaut": helmetFront(l, H, simple); break;
+      case "cap": cap(l, H, simple); break;
+      case "gradCap": gradCap(l, H, simple); break;
       default: drawFace(l, outfit, H, body, simple);
     }
   });
@@ -1073,9 +1493,7 @@ export function drawOutfitFront(ctx: Ctx, outfit: Outfit, H: Head, st: OutfitSta
 
 // ── Wardrobe icons ────────────────────────────────────────────────────────────
 
-const INK = "rgb(26,20,18)";
-
-/** A little Mochi wearing `outfit`, centred in a `size`×`size` icon. */
+/** A little AXYON wearing `outfit`, centred in a `size`×`size` icon. */
 function iconMochi(ctx: Ctx, size: number, outfit: Outfit) {
   const R = 10;
   const H = makeHead(R);
@@ -1085,17 +1503,22 @@ function iconMochi(ctx: Ctx, size: number, outfit: Outfit) {
   ctx.save();
   ctx.translate(cx, cy);
   drawOutfitBehind(ctx, outfit, H, st);
+  // AXYON (axyon.ts): pods, the antenna unless a hat is over it, the pearl shell, the screen and its eyes of light.
+  drawPods(ctx, R, H.rx, H.ry, 0, LED.idle);
+  if (!coversTop(outfit)) drawAntenna(ctx, R, H.ry, 0, 0, LED.idle, 1);
   const body = bodyOutline(H.rx, H.ry);
-  const [top, bottom] = outfit === "pumpkin" ? PUMPKIN_BODY : ["rgb(237,237,239)", "rgb(196,197,202)"];
-  ctx.fillStyle = lin(ctx, H.rx * 0.7, -H.ry * 0.85, -H.rx * 0.8, H.ry * 0.9, [[0, top], [1, bottom]]);
-  ctx.fill(body);
-  ctx.fillStyle = rad(ctx, 0, 0, R * 0.15, R * 1.25, [[0, "rgba(0,0,0,0)"], [0.6, "rgba(0,0,0,0)"], [1, "rgba(0,0,0,0.2)"]]);
-  ctx.fill(body);
-  ctx.fillStyle = rad(ctx, H.rx * 0.34, -H.ry * 0.46, 0, R * 0.42, [[0, "rgba(255,255,255,0.55)"], [1, "rgba(255,255,255,0)"]]);
-  ctx.fill(body);
+  if (outfit === "pumpkin") {
+    ctx.fillStyle = lin(ctx, H.rx * 0.7, -H.ry * 0.85, -H.rx * 0.8, H.ry * 0.9, [[0, PUMPKIN_BODY[0]], [1, PUMPKIN_BODY[1]]]);
+    ctx.fill(body);
+    paintShell(ctx, body, H.rx, H.ry, R, false);
+  } else {
+    paintShell(ctx, body, H.rx, H.ry, R);
+  }
   ctx.save();
   ctx.clip(body);
-  ctx.fillStyle = INK;
+  paintScreen(ctx, screenPath(H.rx, H.ry, 0, EYE_P), R, LED.idle, 1);
+  ctx.fillStyle = ledRgba(mixRGB(LED.idle, [1, 1, 1], 0.38));
+  glow(ctx, LED.idle, R * 0.3);
   for (const e of eyeFrames(H)) {
     if (!e.visible) continue;
     ctx.save();
@@ -1106,6 +1529,7 @@ function iconMochi(ctx: Ctx, size: number, outfit: Outfit) {
     ctx.fill();
     ctx.restore();
   }
+  noGlow(ctx);
   ctx.restore();
   drawOutfitFront(ctx, outfit, H, st);
   ctx.restore();
