@@ -20,6 +20,36 @@ mod linux_focus;
 #[cfg(target_os = "linux")]
 pub use self::linux_focus::{focus_session_window, process_ancestors, window_owners};
 
+/// What the screen behind a window gave (`behind_window`), for the island's liquid glass.
+pub enum Behind {
+    /// Its width and height, physical pixels, and its RGBA rows.
+    // Never one on Linux, which doesn't read the screen behind.
+    #[cfg_attr(not(windows), allow(dead_code))]
+    Picture(u32, u32, Vec<u8>),
+    /// Not now: the screen is locked, say, or the window is not on screen yet.
+    NotNow,
+    /// Never on this system: the window can't be left out of the picture.
+    Never,
+}
+
+impl Behind {
+    /// As the island's page reads it (island/backdrop.ts): nothing for never, a width and height of 0 for not now,
+    /// else the width and height (little-endian u32s) and the rows.
+    pub fn encode(self) -> Vec<u8> {
+        match self {
+            Behind::Never => Vec::new(),
+            Behind::NotNow => vec![0; 8],
+            Behind::Picture(w, h, pixels) => {
+                let mut out = Vec::with_capacity(8 + pixels.len());
+                out.extend_from_slice(&w.to_le_bytes());
+                out.extend_from_slice(&h.to_le_bytes());
+                out.extend_from_slice(&pixels);
+                out
+            }
+        }
+    }
+}
+
 /// Wall-clock time in the user's time zone, for log lines and backup names.
 pub struct LocalTime {
     pub year: u32,
@@ -87,4 +117,18 @@ pub enum MouseShape {
     Whole,
     /// A disc, in window-logical pixels: Mochi's body.
     Disc { cx: f64, cy: f64, r: f64 },
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Behind;
+
+    #[test]
+    fn what_is_behind_reaches_the_page_as_it_reads_it() {
+        assert!(Behind::Never.encode().is_empty());
+        assert_eq!(Behind::NotNow.encode(), vec![0; 8]);
+        let picture = Behind::Picture(2, 1, vec![1, 2, 3, 255, 4, 5, 6, 255]).encode();
+        assert_eq!(&picture[..8], &[2, 0, 0, 0, 1, 0, 0, 0]);
+        assert_eq!(&picture[8..], &[1, 2, 3, 255, 4, 5, 6, 255]);
+    }
 }

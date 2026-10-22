@@ -65,6 +65,9 @@ webview2-com = "0.39"
 wv2_core = { package = "windows-core", version = "0.62" }
 windows = { version = "0.61", features = [
   "Win32_Foundation",
+  # The island's liquid glass: the screen behind its window (platform::behind_window).
+  "Win32_Graphics_Dwm",
+  "Win32_Graphics_Gdi",
   "Win32_Security",
   "Win32_Security_Authorization",
   # "Open terminal": the relay's process tree leads to the session's window.

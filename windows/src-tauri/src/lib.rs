@@ -225,6 +225,20 @@ fn set_island_rect(app: AppHandle, shared: State<Shared>, x: f64, y: f64, width:
     }
 }
 
+/// The screen behind the island, for its liquid glass (platform::behind_window), as Behind::encode lays it out. Where
+/// it can never be read (Linux), the island keeps its own water.
+#[tauri::command]
+async fn island_backdrop(app: AppHandle) -> tauri::ipc::Response {
+    // Off the main thread: reading the screen waits for the desktop's next frame.
+    let behind = tauri::async_runtime::spawn_blocking(move || match island::window(&app) {
+        Some(win) => platform::behind_window(&win),
+        None => platform::Behind::NotNow,
+    })
+    .await
+    .unwrap_or(platform::Behind::NotNow);
+    tauri::ipc::Response::new(behind.encode())
+}
+
 #[tauri::command]
 fn focus_window(app: AppHandle, focused: bool) {
     let Some(win) = island::window(&app) else { return };
@@ -798,6 +812,7 @@ pub fn run() {
             set_system_languages,
             set_collapsed,
             set_island_rect,
+            island_backdrop,
             focus_window,
             reposition,
             list_monitors,

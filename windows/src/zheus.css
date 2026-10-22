@@ -55,6 +55,87 @@
   background: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='520' height='520'%3E%3Cfilter id='c' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.0095 0.013' numOctaves='2' seed='5' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  1 0 0 0 0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='table' tableValues='0 0 0 0 0 0.35 0.7 0.35 0 0 0 0 0'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23c)' opacity='0.07'/%3E%3C/svg%3E") 0 0 / 520px 520px;
 }
 
+/* The island itself is a pane of glass (#island-glass, island.ts): its rim catches the light and, where the engine
+   can, bends what is under it. On Windows what is under it is the screen behind the island (island/backdrop.ts),
+   read and drawn blurred in the glass and bent by the same map as its rim, so the island is see-through: the glass is
+   darker the lighter that is, so the island's words read over a white page as over a dark one. Until it is read, and
+   where it can't be (Linux), the glass lies over the dark water above. */
+#island-glass {
+  display: none;
+}
+
+:root[data-look="glass"] #island-glass {
+  display: block;
+  position: absolute;
+  left: 0;
+  right: 0;
+  /* Its top is above the top of the screen: the rim that shows is the drop's own, at the sides and the bottom. */
+  top: -48px;
+  bottom: 0;
+  border-radius: var(--island-r, 30px);
+  pointer-events: none;
+  --glass-shadow: none;
+  --glass-tint-top: rgba(255, 255, 255, 0.05);
+  --glass-tint: rgba(255, 255, 255, 0.015);
+}
+
+/* The picture lies under the glass's tint and light, in the glass's own box, where its map lines up. */
+.island-lens {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+}
+
+#island-backdrop {
+  position: absolute;
+  /* The top of the screen, 48 px down the glass. */
+  top: 48px;
+  width: 720px;
+  height: 320px;
+  opacity: 0;
+  transition: opacity 0.45s ease-out;
+}
+
+:root[data-look="glass"] #island.see-through #island-backdrop {
+  opacity: 1;
+}
+
+/* Bent by the glass's own map, as its rim would bend it (core/liquid.ts). */
+:root[data-look="glass"].glass-refracts #island.see-through #island-glass.glass-bends .island-lens {
+  filter: var(--glass-filter) saturate(1.5);
+}
+
+:root[data-look="glass"] #island.see-through #island-glass::before {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background:
+    radial-gradient(120% 90% at var(--glass-x) var(--glass-y), rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0) 55%),
+    linear-gradient(
+      180deg,
+      rgba(6, 12, 16, calc(0.32 + var(--behind-light, 0.5) * 0.36)),
+      rgba(3, 8, 12, calc(0.4 + var(--behind-light, 0.5) * 0.34))
+    );
+}
+
+/* The panes in the see-through island bend the island's glass, already bright with what is behind it: not brightened
+   a second time. */
+.glass-refracts #island.see-through [data-glass]:not(#island-glass)::before {
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+.glass-refracts #island.see-through [data-glass].glass-bends:not(#island-glass)::before {
+  -webkit-backdrop-filter: var(--glass-filter);
+  backdrop-filter: var(--glass-filter);
+}
+
+/* Over what is behind, the island meets the top of the screen as glass does: no dark water curving out to it. */
+:root[data-look="glass"] #island.see-through::before,
+:root[data-look="glass"] #island.see-through::after {
+  display: none;
+}
+
 /* Cards are panes of glass over the water (data-glass, set while the look is on: island.ts). */
 :root[data-look="glass"] .card {
   background: transparent;

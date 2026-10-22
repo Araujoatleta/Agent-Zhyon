@@ -20,7 +20,7 @@ use gtk::glib::translate::ToGlibPtr;
 use gtk::prelude::*;
 use tauri::{AppHandle, WebviewWindow};
 
-use super::{home_dir, LocalTime};
+use super::{home_dir, Behind, LocalTime};
 
 /// File name of the Claude Code relay.
 pub const HOOK_EXE: &str = "coucou-hook";
@@ -544,6 +544,12 @@ pub fn set_activating(win: &WebviewWindow, activating: bool) {
         let mode = if activating { layer::KEYBOARD_ON_DEMAND } else { layer::KEYBOARD_NONE };
         unsafe { layer::gtk_layer_set_keyboard_mode(gtk_window_ptr(&gw), mode) };
     }
+}
+
+/// The screen behind the island is not read on Linux: its glass is frosted over
+/// its own water there (src/liquid.css).
+pub fn behind_window(_win: &WebviewWindow) -> Behind {
+    Behind::Never
 }
 
 /// Only this rectangle (window-logical pixels) takes the mouse; `None` means

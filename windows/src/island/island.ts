@@ -23,6 +23,7 @@ import { closePlanCard, openPlanColor, planCardOpen } from "../views/usage";
 import { buildHeader, buildViews, type ViewActions, type ViewHost } from "../views/views";
 import { h } from "../views/dom";
 import { markGlass } from "../core/liquid";
+import { Backdrop } from "./backdrop";
 import { IslandStateMachine } from "./fsm";
 import { refreshHookPills } from "./integrations";
 import { DesktopLink } from "./desktop";
@@ -34,6 +35,7 @@ const GLASS_EXPANDED_CORNER = 30;
 
 /** What is glass in the island's glass look (core/liquid.ts): the cards and the field to write in. */
 const ISLAND_GLASS = [
+  ["#island-glass", "panel"],
   [".card", "panel"],
   [".chat-bar", "capsule"],
 ] as const;
@@ -61,6 +63,10 @@ export class Island {
   private root: HTMLElement;
   private islandEl!: HTMLElement;
   private clipEl!: HTMLElement;
+  /** What is behind the island, for its liquid glass (./backdrop.ts), and the glass that bends it. */
+  private backdrop!: Backdrop;
+  private glassEl!: HTMLElement;
+  private behindLight = "";
   private contentEl!: HTMLElement;
   private viewsEl!: HTMLElement;
   private botCanvas!: HTMLCanvasElement;
@@ -288,9 +294,16 @@ export class Island {
       cancel: () => this.discardDrop(),
     });
 
+    this.backdrop = new Backdrop((seen) => {
+      this.islandEl.classList.toggle("see-through", seen);
+      if (seen) this.lightBehind();
+    });
+    // The island's own glass: the picture of what is behind lies in it, bent by its rim (zheus.css).
+    this.glassEl = h("div", { id: "island-glass", "aria-hidden": "true" }, h("div", { class: "island-lens" }, this.backdrop.canvas));
     this.clipEl = h(
       "div",
       { id: "island-clip" },
+      this.glassEl,
       this.greetingCanvas,
       this.uploadCanvas.el,
       this.contentEl,
@@ -666,6 +679,10 @@ export class Island {
 
   private animateGeometry(shrinking: boolean) {
     const { w, h, r } = this.targetSize();
+    // The island's glass is as thick as its size allows: a deep rim on the open island, a thin one on the small one,
+    // which bends nothing from above the top of the screen (core/liquid.ts reads these once the size settles).
+    this.glassEl.dataset.glassRim = String(Math.round(Math.min(44, h * 0.5)));
+    this.glassEl.dataset.glassBend = String(Math.round(Math.min(40, h * 0.42)));
     if (shrinking) {
       this.width.curveTowards(w);
       this.height.curveTowards(h);
@@ -685,7 +702,11 @@ export class Island {
     this.islandEl.style.width = `${w}px`;
     this.islandEl.style.height = `${hh}px`;
     this.islandEl.style.borderRadius = `0 0 ${r}px ${r}px`;
+    this.islandEl.style.setProperty("--island-r", `${r}px`);
     this.islandEl.style.transform = `translateX(-50%)`;
+    // The picture of what is behind covers the window, wherever the island's edges are.
+    this.backdrop.canvas.style.left = `${-(PANEL_W - w) / 2}px`;
+    this.lightBehind();
     // These follow the island as it resizes, so they belong here rather than in
     // the state-driven DOM sync.
     this.miniGrid.style.left = `${w - 40 - 14.5}px`;
@@ -699,6 +720,17 @@ export class Island {
       this.pushedRect = rect;
       void Bridge.setIslandRect(rect.x, rect.y, rect.w, rect.h);
     }
+  }
+
+  /** The island's glass is darker the lighter what is behind it is (zheus.css): its words read over anything. */
+  private lightBehind() {
+    const r = this.islandRect();
+    const light = this.backdrop.lightUnder(r.x, r.y, r.w, r.h);
+    if (light == null) return;
+    const v = (Math.round(light * 20) / 20).toFixed(2);
+    if (v === this.behindLight) return;
+    this.behindLight = v;
+    this.islandEl.style.setProperty("--behind-light", v);
   }
 
   /** Island rect in window coordinates (origin top-left of the 720×320 window). */
@@ -716,6 +748,7 @@ export class Island {
       this.collapseTimer = null;
     }
     if (State.mode === "hidden") {
+      this.backdrop.stop();
       // Let the island finish retracting, then drop the window to the wake strip:
       // from there the OS delivers no cursor events, so nothing polls at all.
       this.collapseTimer = window.setTimeout(() => {
@@ -724,10 +757,13 @@ export class Island {
         this.collapsed = true;
         void Bridge.setCollapsed(true);
       }, 420);
-    } else if (this.collapsed) {
-      // Grow the window back before the island animates open.
-      this.collapsed = false;
-      void Bridge.setCollapsed(false);
+    } else {
+      if (this.collapsed) {
+        // Grow the window back before the island animates open.
+        this.collapsed = false;
+        void Bridge.setCollapsed(false);
+      }
+      if (State.settings.islandLook !== "classic") this.backdrop.start();
     }
   }
 
@@ -1210,6 +1246,8 @@ export class Island {
     const glass = State.settings.islandLook !== "classic";
     document.documentElement.dataset.look = glass ? "glass" : "classic";
     markGlass(ISLAND_GLASS, glass);
+    if (!glass) this.backdrop.clear();
+    else if (State.mode !== "hidden") this.backdrop.start();
     Sound.setEnabled(State.settings.soundEnabled);
     Sound.setVolume(State.settings.soundVolume);
     this.fsm.homeToPetitDelay = State.settings.autoCloseInterval;

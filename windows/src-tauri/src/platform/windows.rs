@@ -9,7 +9,12 @@ use std::process::Command;
 use tauri::{AppHandle, Manager, WebviewWindow};
 
 use ::windows::core::{BOOL, PWSTR};
-use ::windows::Win32::Foundation::{CloseHandle, HANDLE, HLOCAL, HWND, LPARAM, LocalFree, POINT};
+use ::windows::Win32::Foundation::{CloseHandle, HANDLE, HLOCAL, HWND, LPARAM, LocalFree, POINT, RECT};
+use ::windows::Win32::Graphics::Dwm::DwmFlush;
+use ::windows::Win32::Graphics::Gdi::{
+    BitBlt, ClientToScreen, CreateCompatibleBitmap, CreateCompatibleDC, DeleteDC, DeleteObject, GetDC, GetDIBits,
+    ReleaseDC, SelectObject, BITMAPINFO, BITMAPINFOHEADER, BI_RGB, DIB_RGB_COLORS, HGDIOBJ, SRCCOPY,
+};
 use ::windows::Win32::Security::Authorization::ConvertSidToStringSidW;
 use ::windows::Win32::Security::{GetTokenInformation, TokenUser, TOKEN_QUERY, TOKEN_USER};
 use ::windows::Win32::System::Diagnostics::ToolHelp::{
@@ -24,13 +29,13 @@ use ::windows::Win32::UI::Input::KeyboardAndMouse::{
     VK_CONTROL, VK_LBUTTON, VK_MENU, VK_SHIFT,
 };
 use ::windows::Win32::UI::WindowsAndMessaging::{
-    EnumChildWindows, EnumWindows, GetClassNameW, GetCursorPos, GetWindow, GetWindowLongPtrW,
-    GetWindowTextW, GetWindowThreadProcessId, IsIconic, IsWindowVisible, SetForegroundWindow,
-    SetWindowLongPtrW, ShowWindow, GWL_EXSTYLE, GW_OWNER, SW_RESTORE, WS_EX_NOACTIVATE,
-    WS_EX_TOOLWINDOW,
+    EnumChildWindows, EnumWindows, GetClassNameW, GetClientRect, GetCursorPos, GetWindow, GetWindowDisplayAffinity,
+    GetWindowLongPtrW, GetWindowTextW, GetWindowThreadProcessId, IsIconic, IsWindowVisible, SetForegroundWindow,
+    SetWindowDisplayAffinity, SetWindowLongPtrW, ShowWindow, GWL_EXSTYLE, GW_OWNER, SW_RESTORE,
+    WDA_EXCLUDEFROMCAPTURE, WINDOW_DISPLAY_AFFINITY, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW,
 };
 
-use super::LocalTime;
+use super::{Behind, LocalTime};
 use crate::session_window::{self, Proc};
 
 /// File name of the Claude Code relay.
@@ -349,6 +354,79 @@ pub fn set_pointer_watch(_active: bool) {}
 
 /// `set_position` already places a Win32 window on the right display.
 pub fn pin_to_monitor(_win: &WebviewWindow, _x: i32, _y: i32) {}
+
+/// The screen behind a window, as rows of RGBA (its physical pixels): what the island's liquid glass blurs and bends.
+/// The window is kept out of captures for the moment the screen is read (WDA_EXCLUDEFROMCAPTURE), so the glass never
+/// shows itself, and put back at once: screenshots and screen sharing see the island as before, but for that moment.
+/// The picture is not kept: it goes to the island's page and is replaced by the next one.
+pub fn behind_window(win: &WebviewWindow) -> Behind {
+    let Some(hwnd) = hwnd_of(win) else { return Behind::NotNow };
+    // The page fills the client area: that is what its picture must line up with.
+    let mut client = RECT::default();
+    let mut origin = POINT::default();
+    unsafe {
+        if GetClientRect(hwnd, &mut client).is_err() || !ClientToScreen(hwnd, &mut origin).as_bool() {
+            return Behind::NotNow;
+        }
+    }
+    let (w, h) = (client.right - client.left, client.bottom - client.top);
+    if w <= 0 || h <= 0 || w > 4096 || h > 2048 {
+        return Behind::NotNow;
+    }
+    unsafe {
+        // Put back as it was found, should anything else ever keep the window out of captures.
+        let mut was = 0u32;
+        let _ = GetWindowDisplayAffinity(hwnd, &mut was);
+        let was = WINDOW_DISPLAY_AFFINITY(was);
+        if was != WDA_EXCLUDEFROMCAPTURE && SetWindowDisplayAffinity(hwnd, WDA_EXCLUDEFROMCAPTURE).is_err() {
+            return Behind::Never;
+        }
+        // The next frame of the desktop is composed without the window.
+        let _ = DwmFlush();
+        let screen = GetDC(None);
+        let memory = CreateCompatibleDC(Some(screen));
+        let bitmap = CreateCompatibleBitmap(screen, w, h);
+        let previous = SelectObject(memory, HGDIOBJ(bitmap.0));
+        let copied = BitBlt(memory, 0, 0, w, h, Some(screen), origin.x, origin.y, SRCCOPY).is_ok();
+        if was != WDA_EXCLUDEFROMCAPTURE {
+            let _ = SetWindowDisplayAffinity(hwnd, was);
+        }
+        // GetDIBits wants the bitmap out of the device context.
+        SelectObject(memory, previous);
+        let mut info = BITMAPINFO {
+            bmiHeader: BITMAPINFOHEADER {
+                biSize: std::mem::size_of::<BITMAPINFOHEADER>() as u32,
+                biWidth: w,
+                // Negative: rows top to bottom.
+                biHeight: -h,
+                biPlanes: 1,
+                biBitCount: 32,
+                biCompression: BI_RGB.0,
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let mut pixels = vec![0u8; (w as usize) * (h as usize) * 4];
+        let rows = GetDIBits(memory, bitmap, 0, h as u32, Some(pixels.as_mut_ptr().cast()), &mut info, DIB_RGB_COLORS);
+        let _ = DeleteObject(HGDIOBJ(bitmap.0));
+        let _ = DeleteDC(memory);
+        ReleaseDC(None, screen);
+        // A locked screen or a UAC prompt can't be read: tried again later.
+        if !copied || rows <= 0 {
+            return Behind::NotNow;
+        }
+        // A Windows older than 10 2004 blacks the window out instead of leaving it out: nothing to see through.
+        if pixels.chunks_exact(4).all(|px| px[0] == 0 && px[1] == 0 && px[2] == 0) {
+            return Behind::NotNow;
+        }
+        // GDI's BGRx to RGBA, opaque.
+        for px in pixels.chunks_exact_mut(4) {
+            px.swap(0, 2);
+            px[3] = 255;
+        }
+        Behind::Picture(w as u32, h as u32, pixels)
+    }
+}
 
 // ── Session windows ("Open terminal") ─────────────────────────────────────────
 //

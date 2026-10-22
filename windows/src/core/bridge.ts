@@ -238,6 +238,12 @@ export const Bridge = {
   setIslandRect: (x: number, y: number, width: number, height: number) =>
     call<void>("set_island_rect", { x, y, width, height }),
 
+  /**
+   * The screen behind the island window, for its liquid glass (island/backdrop.ts): width and height as little-endian
+   * u32s, then RGBA rows. Empty where it can't be read (Linux, an older Windows).
+   */
+  islandBackdrop: () => call<ArrayBuffer>("island_backdrop"),
+
   /** Give the window keyboard focus (chat field) and take it away again. */
   focusWindow: (focused: boolean) => call<void>("focus_window", { focused }),
 
