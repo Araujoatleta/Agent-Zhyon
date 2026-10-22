@@ -14,6 +14,12 @@ on:
 permissions:
   contents: read
 
+# Windows minutes count twice: a newer push to the same branch cancels the build still going (only the newest
+# installer is wanted). The installers are kept 7 days, as they count against the account's storage.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: windows-latest
@@ -63,7 +69,7 @@ jobs:
           path: |
             windows/release/Coucou-Windows-${{ steps.pack.outputs.version }}.msi
             windows/release/SHA256SUMS.txt
-          retention-days: 14
+          retention-days: 7
 
       - uses: actions/upload-artifact@v7
         with:
@@ -71,7 +77,7 @@ jobs:
           path: |
             windows/release/Coucou-Windows-${{ steps.pack.outputs.version }}-setup.exe
             windows/release/SHA256SUMS.txt
-          retention-days: 14
+          retention-days: 7
 
       # Portable app, relay and edge worker. The edge worker is not auto-started
       # in portable mode; pair/configure it before enabling logon startup.
@@ -83,4 +89,4 @@ jobs:
             windows/release/Coucou-Windows-${{ steps.pack.outputs.version }}-portable/coucou-hook.exe
             windows/release/Coucou-Windows-${{ steps.pack.outputs.version }}-portable/coucou-edge-worker.exe
             windows/release/SHA256SUMS.txt
-          retention-days: 14
+          retention-days: 7

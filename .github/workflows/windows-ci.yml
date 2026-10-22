@@ -18,6 +18,11 @@ on:
 permissions:
   contents: read
 
+# Windows minutes count twice: a newer push to the same pull request cancels the run still going.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: windows-latest

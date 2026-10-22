@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use tauri::AppHandle;
 
+use crate::chat_history::{self, Kept, Shelf, ShelfView};
 use crate::settings::Settings;
 use crate::{claude, local_chat, openai_compat, secrets};
 
@@ -48,6 +49,8 @@ pub struct ModelInfo {
 #[derive(Default)]
 pub struct Chat {
     inner: Mutex<Conversation>,
+    /// Where the island's conversations are kept between launches (chat_history.rs). The phone's chat keeps none.
+    shelf: Option<Shelf>,
 }
 
 #[derive(Default)]
@@ -60,7 +63,53 @@ struct Conversation {
     /// `{"role", "content": text}` turns, the same whoever answered.
     plain: Vec<Value>,
     /// The session Hermes Agent keeps this conversation in (hermes.rs), made on first use; a new chat gets a new one.
+    /// A kept conversation keeps its session, so Hermes goes on with what it remembers of it.
     hermes_session: Option<String>,
+    /// Its place among the kept conversations, and when it began: from its first recorded turn.
+    id: Option<String>,
+    created: i64,
+    /// The kept conversation the island was on has been taken up (at first use: the keystore is not asked at start).
+    resumed: bool,
+}
+
+impl Conversation {
+    /// A new, empty conversation; the kept one, if any, is not taken up again.
+    fn fresh(epoch: u64) -> Self {
+        Self { epoch, resumed: true, ..Default::default() }
+    }
+
+    fn resume(&mut self, kept: Kept) {
+        self.owner = kept.owner;
+        self.native = kept.native;
+        self.plain = kept.plain;
+        self.hermes_session = kept.hermes_session;
+        self.id = Some(kept.id);
+        self.created = kept.created;
+    }
+}
+
+/// How many earlier messages a turn sends at most: a conversation kept for days must still fit the model's window.
+/// Hermes keeps its own history and is not sent these.
+const MAX_SENT: usize = 120;
+
+/// The last of the history, whole turns only: from a message the user wrote (not a tool's result), so no tool call
+/// is ever sent without its answer.
+fn recent(history: &[Value]) -> Vec<Value> {
+    if history.len() <= MAX_SENT {
+        return history.to_vec();
+    }
+    let user_turn = |m: &Value| {
+        m["role"] == "user"
+            && match &m["content"] {
+                Value::String(_) => true,
+                Value::Array(blocks) => !blocks.iter().any(|b| b["type"] == "tool_result"),
+                _ => false,
+            }
+    };
+    match (history.len() - MAX_SENT..history.len()).find(|&i| user_turn(&history[i])) {
+        Some(from) => history[from..].to_vec(),
+        None => history.to_vec(),
+    }
 }
 
 /// What a provider needs to build one turn.
@@ -74,15 +123,108 @@ pub struct Turn {
 }
 
 impl Chat {
-    pub fn reset(&self) {
+    /// The island's chat: it goes on with the conversation it was in when Coucou last closed.
+    pub fn kept(shelf: Shelf) -> Self {
+        Self { inner: Mutex::new(Conversation::default()), shelf: Some(shelf) }
+    }
+
+    /// The conversation, the kept one taken up first if this is the first use.
+    fn lock(&self) -> std::sync::MutexGuard<'_, Conversation> {
         let mut c = self.inner.lock().unwrap();
-        let epoch = c.epoch + 1;
-        *c = Conversation { epoch, ..Default::default() };
+        if !c.resumed {
+            c.resumed = true;
+            if let Some(kept) = self.shelf.as_ref().and_then(Shelf::current) {
+                c.resume(kept);
+            }
+        }
+        c
+    }
+
+    /// "New chat": the next turn starts a new conversation. The one before stays among the kept ones.
+    pub fn reset(&self) {
+        {
+            let mut c = self.lock();
+            let epoch = c.epoch + 1;
+            *c = Conversation::fresh(epoch);
+        }
+        if let Some(shelf) = &self.shelf {
+            shelf.set_current(None);
+        }
+    }
+
+    /// Goes back to a kept conversation: its words on the island, its history for the provider, its Hermes session.
+    pub fn open(&self, id: &str) -> Result<(), String> {
+        let kept = self.shelf.as_ref().and_then(|s| s.get(id));
+        let Some(kept) = kept else {
+            return Err(crate::i18n::t("This conversation is no longer kept."));
+        };
+        {
+            let mut c = self.lock();
+            let epoch = c.epoch + 1;
+            *c = Conversation::fresh(epoch);
+            c.resume(kept);
+        }
+        if let Some(shelf) = &self.shelf {
+            shelf.set_current(Some(id.to_string()));
+        }
+        Ok(())
+    }
+
+    /// Erases a kept conversation for good; erasing the one on the island starts a new one.
+    pub fn forget(&self, id: &str) {
+        {
+            let mut c = self.lock();
+            if c.id.as_deref() == Some(id) {
+                let epoch = c.epoch + 1;
+                *c = Conversation::fresh(epoch);
+            }
+        }
+        if let Some(shelf) = &self.shelf {
+            shelf.remove(id);
+        }
+    }
+
+    /// What the island shows: the conversation on it and the kept ones.
+    pub fn view(&self) -> ShelfView {
+        let (current, messages) = {
+            let c = self.lock();
+            (c.id.clone(), chat_history::lines(&c.plain))
+        };
+        let chats = self.shelf.as_ref().map(Shelf::summaries).unwrap_or_default();
+        ShelfView { current, messages, chats }
+    }
+
+    /// The conversation as it now is, kept: after each recorded turn.
+    fn keep(&self, c: &mut Conversation) {
+        let Some(shelf) = &self.shelf else { return };
+        if c.plain.is_empty() {
+            return;
+        }
+        let now = chat_history::now();
+        let id = match &c.id {
+            Some(id) => id.clone(),
+            None => {
+                let id = chat_history::new_id();
+                c.id = Some(id.clone());
+                c.created = now;
+                id
+            }
+        };
+        shelf.put(Kept {
+            id,
+            title: chat_history::title_of(&c.plain),
+            created: c.created,
+            updated: now,
+            owner: c.owner.clone(),
+            native: c.native.clone(),
+            plain: c.plain.clone(),
+            hermes_session: c.hermes_session.clone(),
+        });
     }
 
     /// The session Hermes Agent keeps this conversation in: "coucou-" and random hex, the same until "New chat".
     pub fn hermes_session(&self) -> String {
-        let mut c = self.inner.lock().unwrap();
+        let mut c = self.lock();
         c.hermes_session
             .get_or_insert_with(|| {
                 let mut bytes = [0u8; 8];
@@ -95,7 +237,7 @@ impl Chat {
     /// Starts a turn with `provider`, converting the history if another
     /// provider answered the previous turns.
     pub fn begin(&self, provider: &str) -> Turn {
-        let mut c = self.inner.lock().unwrap();
+        let mut c = self.lock();
         if c.owner.as_deref() != Some(provider) {
             c.native = c.plain.clone();
             c.owner = Some(provider.to_string());
@@ -104,7 +246,7 @@ impl Chat {
             epoch: c.epoch,
             provider: provider.to_string(),
             first: c.plain.is_empty(),
-            history: c.native.clone(),
+            history: recent(&c.native),
         }
     }
 
@@ -112,7 +254,7 @@ impl Chat {
     /// provider's format, and their plain text. Only a successful turn is
     /// recorded, so the history always matches what the model saw.
     pub fn commit(&self, turn: &Turn, user: Value, assistant: Value, user_text: &str, answer: &str) {
-        let mut c = self.inner.lock().unwrap();
+        let mut c = self.lock();
         if c.epoch != turn.epoch || c.owner.as_deref() != Some(turn.provider.as_str()) {
             return;
         }
@@ -120,6 +262,7 @@ impl Chat {
         c.native.push(assistant);
         c.plain.push(json!({ "role": "user", "content": user_text }));
         c.plain.push(json!({ "role": "assistant", "content": answer }));
+        self.keep(&mut c);
     }
 
     /// Records a finished turn of Mochi with hands: every message of it in the provider's format (the user's, the
@@ -127,13 +270,14 @@ impl Chat {
     /// work stays in this provider's history only; another provider, or the chat without hands, starts from the
     /// plain turns.
     pub fn commit_turn(&self, turn: &Turn, messages: Vec<Value>, user_text: &str, answer: &str) {
-        let mut c = self.inner.lock().unwrap();
+        let mut c = self.lock();
         if c.epoch != turn.epoch || c.owner.as_deref() != Some(turn.provider.as_str()) {
             return;
         }
         c.native.extend(messages);
         c.plain.push(json!({ "role": "user", "content": user_text }));
         c.plain.push(json!({ "role": "assistant", "content": answer }));
+        self.keep(&mut c);
     }
 }
 
@@ -296,6 +440,126 @@ pub async fn models(settings: &Settings, provider: &str) -> Result<Vec<ModelInfo
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The island's chat over a kept file of its own, as it is after a restart when `path` already holds one.
+    fn island_chat(path: &std::path::Path) -> Chat {
+        Chat::kept(Shelf::with_key(path.to_path_buf(), [9; 32]))
+    }
+
+    fn temp_file(name: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!("coucou-chat-{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        dir.join("chats.bin")
+    }
+
+    fn say(chat: &Chat, provider: &str, question: &str, answer: &str) {
+        let t = chat.begin(provider);
+        chat.commit(&t, json!({"role":"user","content":question}), json!({"role":"assistant","content":answer}), question, answer);
+    }
+
+    #[test]
+    fn the_island_goes_on_where_it_was_after_a_restart() {
+        let path = temp_file("restart");
+        let chat = island_chat(&path);
+        let session = chat.hermes_session();
+        say(&chat, "anthropic", "Onde aporto este mês?", "Em GGRC11.");
+        drop(chat);
+
+        // Coucou (or the computer) restarts.
+        let chat = island_chat(&path);
+        let view = chat.view();
+        assert_eq!(view.messages.len(), 2);
+        assert_eq!(view.messages[0].content, "Onde aporto este mês?");
+        assert_eq!(view.chats.len(), 1);
+        assert_eq!(view.current, Some(view.chats[0].id.clone()));
+        // Hermes is asked in the same session, so it remembers it too; another provider is sent the history again.
+        assert_eq!(chat.hermes_session(), session);
+        let t = chat.begin("anthropic");
+        assert!(!t.first);
+        assert_eq!(t.history.len(), 2);
+    }
+
+    #[test]
+    fn a_new_chat_keeps_the_old_one_which_can_be_opened_again() {
+        let path = temp_file("new");
+        let chat = island_chat(&path);
+        let old_session = chat.hermes_session();
+        say(&chat, "hermes", "Assunto X", "Sobre X…");
+        let old = chat.view().current.unwrap();
+
+        chat.reset();
+        let view = chat.view();
+        assert!(view.messages.is_empty() && view.current.is_none());
+        assert_ne!(chat.hermes_session(), old_session, "a new chat, a new Hermes session");
+        say(&chat, "hermes", "Assunto Y", "Sobre Y…");
+        assert_eq!(chat.view().chats.len(), 2);
+
+        // Back to X, also after a restart.
+        chat.open(&old).unwrap();
+        assert_eq!(chat.view().messages[0].content, "Assunto X");
+        assert_eq!(chat.hermes_session(), old_session);
+        drop(chat);
+        let chat = island_chat(&path);
+        assert_eq!(chat.view().current.as_deref(), Some(old.as_str()));
+        assert!(chat.open("c-gone").is_err());
+    }
+
+    #[test]
+    fn an_answer_that_lands_after_new_chat_or_another_conversation_is_dropped() {
+        let chat = island_chat(&temp_file("late"));
+        say(&chat, "anthropic", "um", "1");
+        let first = chat.view().current.unwrap();
+        let late = chat.begin("anthropic");
+        chat.reset();
+        chat.commit(&late, json!({"role":"user","content":"dois"}), json!({"role":"assistant","content":"2"}), "dois", "2");
+        assert!(chat.view().messages.is_empty());
+        let late = chat.begin("anthropic");
+        chat.open(&first).unwrap();
+        chat.commit(&late, json!({"role":"user","content":"três"}), json!({"role":"assistant","content":"3"}), "três", "3");
+        assert_eq!(chat.view().messages.len(), 2, "the kept conversation is as it was");
+    }
+
+    #[test]
+    fn erasing_the_conversation_on_the_island_starts_anew() {
+        let path = temp_file("erase");
+        let chat = island_chat(&path);
+        say(&chat, "anthropic", "apague isto", "ok");
+        let id = chat.view().current.unwrap();
+        chat.forget(&id);
+        let view = chat.view();
+        assert!(view.messages.is_empty() && view.chats.is_empty() && view.current.is_none());
+        drop(chat);
+        assert!(island_chat(&path).view().chats.is_empty(), "gone from the file too");
+    }
+
+    #[test]
+    fn the_phone_chat_keeps_nothing() {
+        let chat = Chat::default();
+        say(&chat, "anthropic", "oi", "olá");
+        let view = chat.view();
+        assert_eq!(view.messages.len(), 2);
+        assert!(view.current.is_none() && view.chats.is_empty());
+    }
+
+    #[test]
+    fn a_long_conversation_sends_its_last_whole_turns() {
+        let mut history = Vec::new();
+        for i in 0..100 {
+            history.push(json!({"role":"user","content":format!("q{i}")}));
+            // A turn with a tool call: its result is a user message that is not a question.
+            history.push(json!({"role":"assistant","content":[{"type":"tool_use","id":format!("t{i}"),"name":"read","input":{}}]}));
+            history.push(json!({"role":"user","content":[{"type":"tool_result","tool_use_id":format!("t{i}"),"content":"…"}]}));
+            history.push(json!({"role":"assistant","content":"a"}));
+        }
+        let sent = recent(&history);
+        assert!(sent.len() <= MAX_SENT);
+        assert_eq!(sent[0]["role"], "user");
+        assert!(sent[0]["content"].is_string(), "it starts at a question, never at a tool's result");
+        assert_eq!(sent.last(), history.last());
+        let short = &history[..8];
+        assert_eq!(recent(short), short.to_vec());
+    }
 
     fn turn_texts(history: &[Value]) -> Vec<(String, Value)> {
         history

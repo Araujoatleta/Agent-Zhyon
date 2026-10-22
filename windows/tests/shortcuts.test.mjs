@@ -285,6 +285,7 @@ const host = {
   canLeaveIsland: () => desktopSupported,
   flyOutOrHome: () => did.push("desktop"),
   viewCommand: (c) => did.push(`view:${c}`),
+  newChat: () => did.push("newChat"),
 };
 let desktopSupported = true;
 const resume = () => did.push("resume");
@@ -486,14 +487,9 @@ test("island keys: pills by number, new chat, settings, pin", () => {
   runIslandKey(host, { kind: "cycle", delta: 1 });
   assert.equal(State.focusId, ids[2 % ids.length]);
 
-  State.chatHistory = [{ id: 1, role: "user", content: "hi" }];
-  State.stateOverride = "thinking";
+  // The island starts it, keeping the conversation before (core/chats.ts, tested in chats.test.mjs).
   runIslandKey(host, { kind: "newChat" });
-  assert.equal(State.chatHistory.length, 1, "not while an answer is on its way");
-  State.stateOverride = null;
-  runIslandKey(host, { kind: "newChat" });
-  assert.deepEqual(State.chatHistory, []);
-  assert.equal(sent("chat_reset").length, 1);
+  assert.equal(did.at(-1), "newChat");
 
   runIslandKey(host, { kind: "settings" });
   assert.equal(sent("open_settings_window").length, 1);
@@ -501,7 +497,7 @@ test("island keys: pills by number, new chat, settings, pin", () => {
   runIslandKey(host, { kind: "pin" });
   State.pendingApproval = { requestId: "r1", sessionId: "s", pillId: "integration_claude", tool: "Bash", command: "ls" };
   runIslandKey(host, { kind: "pin" });
-  assert.deepEqual(did, ["setView:overview", "setView:overview", "setView:prompt", "pin:true"]);
+  assert.deepEqual(did, ["setView:overview", "setView:overview", "newChat", "pin:true"]);
 });
 
 test("island keys: the highlight walks the list on screen, Ctrl+O opens it, Ctrl+E the diff", () => {

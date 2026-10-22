@@ -79,6 +79,8 @@ pub const INTERNAL_KEYS: &[&str] = &[
     "home-android-key",
     // Hermes Agent (hermes.rs): its API server's key, bound to its address; only ever sent there.
     "hermes-api-key",
+    // The island's kept conversations (chat_history.rs): the key their file is sealed with.
+    "chat-history-key",
 ];
 
 /// Whether the keystore would accept this key through `get_internal` / `set_internal`.
@@ -95,6 +97,16 @@ fn internal_entry(key: &str) -> Result<Entry, String> {
 
 pub fn get_internal(key: &str) -> Option<String> {
     internal_entry(key).ok()?.get_password().ok().filter(|v| !v.is_empty())
+}
+
+/// Like `get_internal`, telling "there is none" (Ok(None)) from "the keystore could not be read now" (Err): a key
+/// that only can't be reached for the moment must not be replaced by a new one.
+pub fn read_internal(key: &str) -> Result<Option<String>, String> {
+    match internal_entry(key)?.get_password() {
+        Ok(value) => Ok(Some(value).filter(|v| !v.is_empty())),
+        Err(keyring::Error::NoEntry) => Ok(None),
+        Err(e) => Err(e.to_string()),
+    }
 }
 
 pub fn set_internal(key: &str, value: &str) -> Result<(), String> {

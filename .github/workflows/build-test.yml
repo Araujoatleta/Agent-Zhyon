@@ -1,14 +1,32 @@
 name: Build and Test
 
+# The VPS control plane and the edge worker, on Windows (whose minutes count twice): only when they change, and a
+# newer push to the same branch or pull request cancels the run still going.
 on:
   workflow_dispatch:
   push:
     branches: [main, "feat/**"]
+    paths:
+      - 'vps-control/**'
+      - 'windows/edge-worker/**'
+      - 'windows/Cargo.toml'
+      - 'windows/Cargo.lock'
+      - '.github/workflows/build-test.yml'
   pull_request:
     branches: [main]
+    paths:
+      - 'vps-control/**'
+      - 'windows/edge-worker/**'
+      - 'windows/Cargo.toml'
+      - 'windows/Cargo.lock'
+      - '.github/workflows/build-test.yml'
 
 permissions:
   contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:

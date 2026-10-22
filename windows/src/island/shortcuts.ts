@@ -32,6 +32,8 @@ export interface ShortcutHost {
   flyOutOrHome(): void;
   /** Hands Ctrl+O / Ctrl+E to the view on screen (the Mac posts notifications). */
   viewCommand(command: ViewCommand): void;
+  /** A new chat, the conversation before kept in the list (Island.newChat). */
+  newChat(): void;
 }
 
 /** What the open view is asked to do: open the highlighted item, toggle the diff. */
@@ -163,14 +165,7 @@ export function runIslandKey(host: ShortcutHost, action: IslandKeyAction) {
       host.viewCommand("toggleDiff");
       break;
     case "newChat":
-      // Not while an answer is on its way: it would land in the new chat.
-      if (State.stateOverride === "thinking") return;
-      State.chatHistory = [];
-      State.droppedFile = null;
-      State.promptContext = null;
-      void Bridge.chatReset();
-      Sound.play("blip");
-      host.setView("prompt");
+      host.newChat();
       break;
     case "settings":
       void Bridge.openSettingsWindow();

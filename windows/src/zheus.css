@@ -1,122 +1,291 @@
 /* Zheus One and the Liquid Glass look (views/zheus.ts, settings/zheus.ts, settings/tv.ts).
 
-   The island's glass is drawn here, not by the window: the island lives in a fixed, transparent 720×320 window, and a
-   blur of the desktop behind it would frost that whole rectangle rather than the island's shape. So the glass is
-   layers — a translucent tint, light along the rims, a soft field of color inside that the cards frost over with
-   backdrop-filter, and highlights on their edges. Nothing moves: it costs nothing while the island is hidden.
-   The classic black island is one setting away (Settings → Zheus One → Look). */
+   The island hangs from the top of the screen like a drop of dark water. Its body is painted, not glass: it lives in
+   a fixed, transparent 720×320 window, which can't bend the desktop behind it. So the body is deep, nearly black
+   water with light coming down through it and the faint net of light that ripples throw; and the glass in it — the
+   cards, the field to write in, the send button (a drop) — is real glass (core/liquid.ts, src/liquid.css), bending
+   that water and what scrolls behind it. Nothing moves: it costs nothing while the island is hidden. The classic
+   black island is one setting away (Settings → Zheus One → Look). */
 
 /* ── The island, in glass ──────────────────────────────────────────────── */
 
-/* Nearly opaque: the window can't blur the desktop, so a thinner tint would let the page behind read through. */
 :root[data-look="glass"] #island {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 42%, rgba(255, 255, 255, 0.05) 100%),
-    rgba(15, 17, 25, 0.95);
+    radial-gradient(85% 70% at 50% -25%, rgba(94, 234, 212, 0.17), rgba(94, 234, 212, 0) 70%),
+    radial-gradient(60% 65% at -5% 115%, rgba(255, 138, 61, 0.15), rgba(255, 138, 61, 0) 70%),
+    radial-gradient(55% 60% at 105% 112%, rgba(56, 189, 248, 0.13), rgba(56, 189, 248, 0) 70%),
+    #020507;
   box-shadow:
-    inset 0 -1px 0 rgba(255, 255, 255, 0.18),
-    inset 1px 0 0 rgba(255, 255, 255, 0.08),
-    inset -1px 0 0 rgba(255, 255, 255, 0.08),
-    0 14px 34px rgba(0, 0, 0, 0.3);
+    inset 0 -1px 0.5px rgba(255, 255, 255, 0.3),
+    inset 0 -14px 22px -18px rgba(190, 255, 245, 0.25),
+    inset 1px 0 0 rgba(255, 255, 255, 0.05),
+    inset -1px 0 0 rgba(255, 255, 255, 0.05),
+    0 18px 40px -12px rgba(0, 0, 0, 0.6);
 }
 
-/* The field of color the glass refracts: three soft lights, still. */
+/* Where the drop meets the top of the screen, the water curves out to it, as surface tension pulls a drop to the
+   edge it hangs from. */
+:root[data-look="glass"] #island::before,
+:root[data-look="glass"] #island::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 12px;
+  height: 12px;
+  pointer-events: none;
+  background: radial-gradient(circle at var(--shoulder) 100%, transparent 11.5px, #04090b 12px);
+}
+
+:root[data-look="glass"] #island::before {
+  left: -12px;
+  --shoulder: 0%;
+}
+
+:root[data-look="glass"] #island::after {
+  right: -12px;
+  --shoulder: 100%;
+}
+
+/* The net of light on the water, faint and still. */
 :root[data-look="glass"] #island-clip::before {
   content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
+  background: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='520' height='520'%3E%3Cfilter id='c' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.0095 0.013' numOctaves='2' seed='5' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  1 0 0 0 0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='table' tableValues='0 0 0 0 0 0.35 0.7 0.35 0 0 0 0 0'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23c)' opacity='0.07'/%3E%3C/svg%3E") 0 0 / 520px 520px;
+}
+
+/* The island itself is a pane of glass (#island-glass, island.ts): its rim catches the light and, where the engine
+   can, bends what is under it. On Windows what is under it is the screen behind the island (island/backdrop.ts),
+   read and drawn blurred in the glass and bent by the same map as its rim, so the island is see-through: the glass is
+   darker the lighter that is, so the island's words read over a white page as over a dark one. Until it is read, and
+   where it can't be (Linux), the glass lies over the dark water above. */
+#island-glass {
+  display: none;
+}
+
+:root[data-look="glass"] #island-glass {
+  display: block;
+  position: absolute;
+  left: 0;
+  right: 0;
+  /* Its top is above the top of the screen: the rim that shows is the drop's own, at the sides and the bottom. */
+  top: -48px;
+  bottom: 0;
+  border-radius: var(--island-r, 30px);
+  pointer-events: none;
+  --glass-shadow: none;
+  --glass-tint-top: rgba(255, 255, 255, 0.05);
+  --glass-tint: rgba(255, 255, 255, 0.015);
+}
+
+/* The picture lies under the glass's tint and light, in the glass's own box, where its map lines up. */
+.island-lens {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+}
+
+#island-backdrop {
+  position: absolute;
+  /* The top of the screen, 48 px down the glass. */
+  top: 48px;
+  width: 720px;
+  height: 320px;
+  opacity: 0;
+  transition: opacity 0.45s ease-out;
+}
+
+:root[data-look="glass"] #island.see-through #island-backdrop {
+  opacity: 1;
+}
+
+/* Bent by the glass's own map, as its rim would bend it (core/liquid.ts). */
+:root[data-look="glass"].glass-refracts #island.see-through #island-glass.glass-bends .island-lens {
+  filter: var(--glass-filter) saturate(1.5);
+}
+
+:root[data-look="glass"] #island.see-through #island-glass::before {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
   background:
-    radial-gradient(520px 260px at 6% -12%, rgba(99, 102, 241, 0.3), rgba(99, 102, 241, 0) 70%),
-    radial-gradient(420px 240px at 102% -4%, rgba(34, 211, 238, 0.18), rgba(34, 211, 238, 0) 70%),
-    radial-gradient(560px 300px at 72% 125%, rgba(236, 72, 153, 0.14), rgba(236, 72, 153, 0) 70%);
+    radial-gradient(120% 90% at var(--glass-x) var(--glass-y), rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0) 55%),
+    linear-gradient(
+      180deg,
+      rgba(6, 12, 16, calc(0.32 + var(--behind-light, 0.5) * 0.36)),
+      rgba(3, 8, 12, calc(0.4 + var(--behind-light, 0.5) * 0.34))
+    );
 }
 
+/* The panes in the see-through island bend the island's glass, already bright with what is behind it: not brightened
+   a second time. */
+.glass-refracts #island.see-through [data-glass]:not(#island-glass)::before {
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+.glass-refracts #island.see-through [data-glass].glass-bends:not(#island-glass)::before {
+  -webkit-backdrop-filter: var(--glass-filter);
+  backdrop-filter: var(--glass-filter);
+}
+
+/* Over what is behind, the island meets the top of the screen as glass does: no dark water curving out to it. */
+:root[data-look="glass"] #island.see-through::before,
+:root[data-look="glass"] #island.see-through::after {
+  display: none;
+}
+
+/* Cards are panes of glass over the water (data-glass, set while the look is on: island.ts). */
 :root[data-look="glass"] .card {
-  background: linear-gradient(155deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.035) 55%, rgba(255, 255, 255, 0.06));
-  border: 1px solid rgba(255, 255, 255, 0.11);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.16),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.18),
-    0 6px 18px rgba(0, 0, 0, 0.16);
+  background: transparent;
+  border: 0;
+  --glass-tint-top: rgba(255, 255, 255, 0.08);
+  --glass-tint: rgba(255, 255, 255, 0.03);
+  --glass-shadow: 0 10px 26px -14px rgba(0, 0, 0, 0.8);
 }
 
-/* Frosted only on screen: a hidden view's glass is never composited. */
-:root[data-look="glass"] .view.on .card {
-  -webkit-backdrop-filter: blur(16px) saturate(1.5);
-  backdrop-filter: blur(16px) saturate(1.5);
+/* A hidden view's glass is never composited. */
+:root[data-look="glass"] .view:not(.on) [data-glass]::before {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+/* The glow under a card (its "wash") stays, as water lit from below; the chat's is the water's own colour. */
+:root[data-look="glass"] .chat-card.wash::after {
+  background: radial-gradient(300px 220px at 50% 135%, rgba(45, 212, 191, 0.26), rgba(45, 212, 191, 0) 70%);
 }
 
 :root[data-look="glass"] .tab:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.08);
 }
 
+/* The tab shown: a small capsule of glass catching the light. */
 :root[data-look="glass"] .tab.on {
-  background: rgba(255, 255, 255, 0.16);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  color: #fff;
+  background:
+    radial-gradient(90% 120% at 30% 0%, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0) 60%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.05));
+  box-shadow:
+    inset 0 1px 0.5px rgba(255, 255, 255, 0.6),
+    inset 0 -1px 0.5px rgba(255, 255, 255, 0.18),
+    0 4px 10px -4px rgba(0, 0, 0, 0.7);
+}
+
+:root[data-look="glass"] .tab.on svg {
+  color: var(--water);
+  filter: drop-shadow(0 0 4px var(--water-glow));
 }
 
 :root[data-look="glass"] .btn.secondary {
-  background: rgba(255, 255, 255, 0.12);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  background:
+    radial-gradient(120% 140% at 30% 0%, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0) 55%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.05));
+  box-shadow: inset 0 1px 0.5px rgba(255, 255, 255, 0.45), inset 0 -1px 0.5px rgba(255, 255, 255, 0.12), 0 6px 14px -8px rgba(0, 0, 0, 0.7);
 }
 
 :root[data-look="glass"] .btn.secondary:hover {
-  background: rgba(255, 255, 255, 0.18);
+  background:
+    radial-gradient(120% 140% at 30% 0%, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0) 55%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.08));
 }
 
 :root[data-look="glass"] .btn.primary {
-  background: linear-gradient(180deg, #ffffff, #e6e9f0);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 4px 12px rgba(0, 0, 0, 0.25);
+  color: #03201c;
+  background:
+    radial-gradient(120% 140% at 30% 0%, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0) 60%),
+    linear-gradient(180deg, #a7f3e4, #4fd1bd 55%, #2cb7a6);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.85), inset 0 -2px 4px rgba(4, 80, 72, 0.45), 0 8px 20px -8px rgba(45, 212, 191, 0.65);
 }
 
-/* The chat: a glass capsule to write in, glass bubbles, brighter answers. */
+/* The chat: a capsule of glass to write in, a drop to send, bubbles of water-tinted glass. */
 :root[data-look="glass"] .chat-bar {
-  background: rgba(255, 255, 255, 0.08);
+  background: transparent;
   border-radius: 999px;
-  padding: 6px 6px 6px 14px;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.13), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  padding: 5px 5px 5px 16px;
+  --glass-tint-top: rgba(255, 255, 255, 0.1);
+  --glass-tint: rgba(255, 255, 255, 0.04);
+  --glass-shadow: 0 8px 20px -10px rgba(0, 0, 0, 0.85);
 }
 
 :root[data-look="glass"] .send-btn {
-  background: linear-gradient(180deg, #ffffff, #e2e6ee);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 3px 10px rgba(0, 0, 0, 0.3);
+  width: 30px;
+  height: 30px;
+  flex-basis: 30px;
+  color: #04201c;
+  font-size: 22px;
+  border-radius: 50% 50% 49% 51% / 47% 47% 53% 53%;
+  background:
+    radial-gradient(22% 15% at 34% 24%, #fff, rgba(255, 255, 255, 0) 100%),
+    radial-gradient(60% 34% at 55% 92%, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0) 100%),
+    radial-gradient(closest-side at 50% 52%, #d9fbf4 0%, #8be9d8 58%, #3cc4b1 90%, #c7fff6 100%);
+  box-shadow:
+    inset 0 -2px 3px rgba(2, 60, 54, 0.35),
+    0 3px 6px -1px rgba(0, 0, 0, 0.6),
+    0 0 14px -2px rgba(45, 212, 191, 0.55);
+}
+
+:root[data-look="glass"] .send-btn:active {
+  transform: scale(1.12, 0.9);
 }
 
 :root[data-look="glass"] .bubble {
-  background: linear-gradient(160deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1));
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.22);
-  border-radius: 14px;
+  border-radius: 18px 18px 6px 18px;
+  padding: 7px 13px;
+  color: #effffb;
+  background:
+    radial-gradient(120% 140% at 30% 0%, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0) 55%),
+    linear-gradient(180deg, rgba(45, 212, 191, 0.34), rgba(20, 184, 166, 0.18));
+  box-shadow:
+    inset 0 1px 0.5px rgba(255, 255, 255, 0.45),
+    inset 0 -1px 0.5px rgba(255, 255, 255, 0.15),
+    0 6px 14px -8px rgba(0, 0, 0, 0.7);
 }
 
 :root[data-look="glass"] .reply,
 :root[data-look="glass"] .md-p {
-  color: #c9cdd6;
+  color: #d3dbe2;
 }
 
-:root[data-look="glass"] .model-btn {
-  background: rgba(255, 255, 255, 0.1);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+:root[data-look="glass"] .model-btn,
+:root[data-look="glass"] .chip {
+  border-radius: 999px;
+  background:
+    radial-gradient(120% 140% at 30% 0%, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 55%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04));
+  box-shadow: inset 0 1px 0.5px rgba(255, 255, 255, 0.4), inset 0 -1px 0.5px rgba(255, 255, 255, 0.1);
 }
 
 :root[data-look="glass"] .model-name {
-  color: #aab0bb;
+  color: #c4ccd4;
 }
 
-:root[data-look="glass"] .chip {
-  background: rgba(255, 255, 255, 0.12);
-}
-
-:root[data-look="glass"] .picker {
-  background: rgba(22, 24, 32, 0.72);
+:root[data-look="glass"] .picker,
+:root[data-look="glass"] .shelf {
+  background: rgba(4, 14, 18, 0.78);
   border-color: rgba(255, 255, 255, 0.12);
+  border-radius: 22px;
   -webkit-backdrop-filter: blur(18px) saturate(1.5);
   backdrop-filter: blur(18px) saturate(1.5);
 }
 
+:root[data-look="glass"] .shelf-new,
+:root[data-look="glass"] .shelf-reset:not(.armed) {
+  background:
+    radial-gradient(120% 140% at 30% 0%, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 55%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04));
+  border-color: transparent;
+  box-shadow: inset 0 1px 0.5px rgba(255, 255, 255, 0.4), inset 0 -1px 0.5px rgba(255, 255, 255, 0.1);
+}
+
+:root[data-look="glass"] .shelf-chat {
+  border-radius: 14px;
+}
+
 :root[data-look="glass"] .hands-card {
+  border-radius: 18px;
   background: linear-gradient(160deg, rgba(245, 165, 36, 0.14), rgba(245, 165, 36, 0.05));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 1px 0.5px rgba(255, 255, 255, 0.18);
 }
 
 /* ── Glass pieces of Zheus One, in the island and the TV mode ──────────── */
@@ -179,7 +348,7 @@
 
 .zheus-presence svg {
   flex: 0 0 auto;
-  color: #a5b4fc;
+  color: #99f6e4;
 }
 
 .zheus-missions {
@@ -204,7 +373,7 @@
 
 .zheus-etas svg {
   flex: 0 0 auto;
-  color: #a5b4fc;
+  color: #99f6e4;
 }
 
 .zheus-etas-label,
@@ -356,7 +525,7 @@
 }
 
 .zheus-switch.on {
-  background: #2f81f7;
+  background: #14b8a6;
 }
 
 .zheus-tile.vacuum .zheus-switch.on {
@@ -423,8 +592,8 @@
 
 .zheus-tile.on .zheus-tile-icon {
   color: #fff;
-  background: #2f81f7;
-  box-shadow: 0 0 14px rgba(47, 129, 247, 0.55);
+  background: #14b8a6;
+  box-shadow: 0 0 14px rgba(20, 184, 166, 0.55);
 }
 
 .zheus-tile.vacuum.on .zheus-tile-icon {
@@ -634,8 +803,8 @@
 
 .zheus-choice.on {
   color: #fff;
-  background: rgba(47, 129, 247, 0.88);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 0 12px rgba(47, 129, 247, 0.45);
+  background: rgba(20, 184, 166, 0.88);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 0 12px rgba(20, 184, 166, 0.45);
 }
 
 .zheus-plan-actions {
@@ -681,8 +850,8 @@
   padding: 3px 4px 3px 10px;
   border-radius: 999px;
   color: var(--ink-2);
-  background: rgba(99, 102, 241, 0.2);
-  box-shadow: inset 0 0 0 1px rgba(165, 180, 252, 0.26);
+  background: rgba(45, 212, 191, 0.2);
+  box-shadow: inset 0 0 0 1px rgba(153, 246, 228, 0.26);
 }
 
 .zheus-suggestion svg {

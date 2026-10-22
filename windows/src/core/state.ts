@@ -13,6 +13,7 @@ import type { HandsRequest, HandsStep } from "./hands";
 import type { ZheusStatus } from "./zheus";
 import type { PowersView } from "./powers";
 import type { Bindings } from "./shortcuts";
+import type { ChatShelf } from "./bridge";
 import { DEFAULT_OUTFIT, type Outfit } from "../mochi/wardrobe";
 import { pillColor } from "./pill-colors";
 import { Spotify, musicPlaying } from "./spotify";
@@ -279,6 +280,12 @@ class AppState {
   noteMessage: string | null = null;
   searchResult: SearchResult | null = null;
   chatHistory: ChatMessage[] = [];
+  /** The island's kept conversations (core/chats.ts): which one is on the island, and the list; null until asked. */
+  chatShelf: ChatShelf | null = null;
+  /** The island's chat waits for an answer: no other conversation until it comes, or it would land there. */
+  chatSending = false;
+  /** The chat's list of kept conversations is open: the island stands as tall as the chat goes. */
+  chatShelfOpen = false;
   /** A question another view wrote for the chat (views/powers.ts): the chat puts it in its field, for the user to send. */
   chatDraft: string | null = null;
   /** An action of Mochi's hands waiting for a click (from the island's chat or the phone's). */

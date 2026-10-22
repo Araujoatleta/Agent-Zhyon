@@ -11759,6 +11759,105 @@
    "pt-BR": "seu próprio preço teto",
    "ru": "ваша собственная предельная цена",
    "id": "harga plafon Anda sendiri"
+  },
+  "AI models": {
+   "zh-Hans": "AI 模型",
+   "hi": "AI मॉडल",
+   "es": "Modelos de IA",
+   "ar": "نماذج الذكاء الاصطناعي",
+   "fr": "Modèles d'IA",
+   "bn": "AI মডেল",
+   "pt-BR": "Modelos de IA",
+   "ru": "Модели ИИ",
+   "id": "Model AI"
+  },
+  "New chat": {
+   "zh-Hans": "新对话",
+   "hi": "नई चैट",
+   "es": "Nuevo chat",
+   "ar": "محادثة جديدة",
+   "fr": "Nouvelle discussion",
+   "bn": "নতুন চ্যাট",
+   "pt-BR": "Novo chat",
+   "ru": "Новый чат",
+   "id": "Obrolan baru"
+  },
+  "Conversations": {
+   "zh-Hans": "对话",
+   "hi": "बातचीत",
+   "es": "Conversaciones",
+   "ar": "المحادثات",
+   "fr": "Conversations",
+   "bn": "কথোপকথন",
+   "pt-BR": "Conversas",
+   "ru": "Разговоры",
+   "id": "Percakapan"
+  },
+  "Reset this conversation": {
+   "zh-Hans": "清空此对话",
+   "hi": "यह बातचीत मिटाएँ",
+   "es": "Borrar esta conversación",
+   "ar": "مسح هذه المحادثة",
+   "fr": "Effacer cette conversation",
+   "bn": "এই কথোপকথন মুছুন",
+   "pt-BR": "Zerar esta conversa",
+   "ru": "Стереть этот разговор",
+   "id": "Hapus percakapan ini"
+  },
+  "Tap again to erase it": {
+   "zh-Hans": "再点一次即删除",
+   "hi": "मिटाने के लिए फिर से दबाएँ",
+   "es": "Toca otra vez para borrarla",
+   "ar": "انقر مرة أخرى لمسحها",
+   "fr": "Touchez encore pour l’effacer",
+   "bn": "মুছতে আবার চাপুন",
+   "pt-BR": "Toque de novo para apagar",
+   "ru": "Нажмите ещё раз, чтобы стереть",
+   "id": "Ketuk lagi untuk menghapus"
+  },
+  "Erase": {
+   "zh-Hans": "删除",
+   "hi": "मिटाएँ",
+   "es": "Borrar",
+   "ar": "مسح",
+   "fr": "Effacer",
+   "bn": "মুছুন",
+   "pt-BR": "Apagar",
+   "ru": "Стереть",
+   "id": "Hapus"
+  },
+  "No kept conversations yet.": {
+   "zh-Hans": "还没有保存的对话。",
+   "hi": "अभी कोई सहेजी गई बातचीत नहीं।",
+   "es": "Aún no hay conversaciones guardadas.",
+   "ar": "لا توجد محادثات محفوظة بعد.",
+   "fr": "Aucune conversation gardée pour l’instant.",
+   "bn": "এখনও কোনো সংরক্ষিত কথোপকথন নেই।",
+   "pt-BR": "Nenhuma conversa salva ainda.",
+   "ru": "Сохранённых разговоров пока нет.",
+   "id": "Belum ada percakapan yang disimpan."
+  },
+  "This conversation is no longer kept.": {
+   "zh-Hans": "此对话已不再保存。",
+   "hi": "यह बातचीत अब सहेजी नहीं है।",
+   "es": "Esta conversación ya no está guardada.",
+   "ar": "لم تعد هذه المحادثة محفوظة.",
+   "fr": "Cette conversation n’est plus gardée.",
+   "bn": "এই কথোপকথনটি আর সংরক্ষিত নেই।",
+   "pt-BR": "Esta conversa não está mais salva.",
+   "ru": "Этот разговор больше не сохранён.",
+   "id": "Percakapan ini tidak lagi disimpan."
+  },
+  "Yesterday": {
+   "zh-Hans": "昨天",
+   "hi": "कल",
+   "es": "Ayer",
+   "ar": "أمس",
+   "fr": "Hier",
+   "bn": "গতকাল",
+   "pt-BR": "Ontem",
+   "ru": "Вчера",
+   "id": "Kemarin"
   }
  }
 }

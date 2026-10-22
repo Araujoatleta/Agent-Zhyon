@@ -1,10 +1,27 @@
 name: Build
 
+# The Mac and iPhone apps, on macOS, whose minutes count ten times on a private repository: only when they, their
+# scripts or their tests change (a change to the Windows app alone does not build them), and a newer push to the same
+# branch or pull request cancels the run still going.
 on:
   push:
     branches: [main]
+    paths:
+      - 'NotchBuddy/**'
+      - 'scripts/**'
+      - 'tests/**'
+      - '.github/workflows/build.yml'
   pull_request:
     branches: [main]
+    paths:
+      - 'NotchBuddy/**'
+      - 'scripts/**'
+      - 'tests/**'
+      - '.github/workflows/build.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
