@@ -43,9 +43,11 @@ struct PCComputer: Codable, Equatable, Sendable {
     /// Where the computer can be reached from the internet, most direct first ("[2804:…]:47821",
     /// "198.51.100.7:47821"): what it said last over the link. Tried when the local network does not answer.
     var remote: [String] = []
+    /// Optional encrypted WebSocket relay pairing, kept separately from direct TLS endpoints.
+    var relay: PCRelayConfig? = nil
 
     private enum CodingKeys: String, CodingKey {
-        case host, port, fingerprint, name, remote
+        case host, port, fingerprint, name, remote, relay
     }
 
     /// What the computer announces on the network (TXT `fp`): a hint to find it again, never a proof.
@@ -65,6 +67,35 @@ extension PCComputer {
         fingerprint = try c.decode(String.self, forKey: .fingerprint)
         name = try c.decode(String.self, forKey: .name)
         remote = PCRemote.clean((try? c.decodeIfPresent([String].self, forKey: .remote)) ?? [])
+        relay = try? c.decodeIfPresent(PCRelayConfig.self, forKey: .relay)
+    }
+}
+
+/// Relay credentials are not a direct TCP endpoint. A relay connection requires the
+/// authenticated WebSocket + end-to-end encrypted framing in docs/RELAY_LINK.md.
+struct PCRelayConfig: Codable, Equatable, Sendable {
+    let url: String
+    let room: String
+    let key: String
+    let access: String
+
+    static func parse(url raw: String, room: String, key: String, access: String) -> PCRelayConfig? {
+        guard let components = URLComponents(string: raw),
+              components.scheme?.lowercased() == "wss",
+              let host = components.host, !host.isEmpty,
+              components.user == nil, components.password == nil,
+              components.path.isEmpty || components.path == "/",
+              components.query == nil, components.fragment == nil,
+              components.port == nil,
+              raw.count <= 253,
+              validBase64URL(room, count: 22),
+              validBase64URL(key, count: 43),
+              validBase64URL(access, count: 43) else { return nil }
+        return PCRelayConfig(url: raw, room: room, key: key, access: access)
+    }
+
+    private static func validBase64URL(_ text: String, count: Int) -> Bool {
+        text.count == count && text.allSatisfy { $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "-" || $0 == "_") }
     }
 }
 
@@ -110,8 +141,8 @@ enum PCRemote {
 }
 
 /// What the QR code in Settings → Phone on the computer holds:
-/// `coucou://pair?v=1&host=…&port=…&fp=…&token=…&name=…`. Relay fields, if any, are ignored: the iPhone uses the
-/// local network only.
+/// `coucou://pair?v=1&host=…&port=…&fp=…&token=…&name=…` with optional
+/// `relay`, `room`, `key`, `access` credentials for the encrypted relay protocol.
 struct PCPairing: Equatable, Sendable {
     var computer: PCComputer
     var token: String
@@ -140,7 +171,19 @@ struct PCPairing: Equatable, Sendable {
             return nil
         }
         let name = PCText.line(fields["name"] ?? "", max: 64)
-        return PCPairing(computer: PCComputer(host: host, port: port, fingerprint: fingerprint, name: name), token: token)
+        var computer = PCComputer(host: host, port: port, fingerprint: fingerprint, name: name)
+        let relayFields = ["relay", "room", "key", "access"]
+        let present = relayFields.filter { fields[$0] != nil }
+        // Fail closed for partial or malformed relay credentials: silently dropping
+        // them makes cellular pairing appear successful while it cannot connect.
+        if !present.isEmpty {
+            guard present.count == relayFields.count,
+                  let url = fields["relay"], let room = fields["room"],
+                  let key = fields["key"], let access = fields["access"],
+                  let relay = PCRelayConfig.parse(url: url, room: room, key: key, access: access) else { return nil }
+            computer.relay = relay
+        }
+        return PCPairing(computer: computer, token: token)
     }
 
     /// "[fe80::1]" is "fe80::1".
