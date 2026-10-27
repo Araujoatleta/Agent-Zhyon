@@ -556,6 +556,76 @@ mod tests {
         assert!(differs(&[vec![json!(8.69)]], 0, &[vec![json!(8.7)]]));
     }
 
+    /// `w` written into `tab` as Google writes it: its range's cells, the tab grown as needed.
+    fn apply(tab: &mut Vec<Vec<Value>>, w: &Write) {
+        let start = w.cells.split(':').next().unwrap();
+        let column = (start.as_bytes()[0] - b'A') as usize;
+        let row: usize = start[1..].parse().unwrap();
+        for (r, values) in w.values.iter().enumerate() {
+            let at = row - 1 + r;
+            if tab.len() <= at {
+                tab.resize(at + 1, Vec::new());
+            }
+            let line = &mut tab[at];
+            if line.len() < column + values.len() {
+                line.resize(column + values.len(), Value::Null);
+            }
+            for (c, v) in values.iter().enumerate() {
+                line[column + c] = v.clone();
+            }
+        }
+    }
+
+    fn row_of(tab: &[Vec<Value>], ticker: &str) -> usize {
+        tab.iter().position(|r| r.first() == Some(&json!(ticker))).unwrap()
+    }
+
+    #[test]
+    fn the_user_and_axyon_stay_in_step_through_the_tabs_life() {
+        let (mut store, market, today) = sample();
+        let mut tab: Vec<Vec<Value>> = Vec::new();
+        // A new tab, filled from what AXYON knows; read back, it is the same portfolio.
+        let t = table(&store, &market, today, &[], &aviso);
+        for w in seed(&t, &summary_rows(&store, &market, today, "1")) {
+            apply(&mut tab, &w);
+        }
+        assert!(is_ours(&tab));
+        assert!(!merge(&mut store.clone(), &sheet::positions(&tab).unwrap(), true), "what AXYON wrote reads back as what it knows");
+        // The user, in the sheet: GGRC11 to 200, a new row for VALE3, TIMS3's row deleted (the rows under it move up).
+        let ggrc = row_of(&tab, "GGRC11");
+        tab[ggrc][2] = json!(200);
+        tab.push(vec![json!("VALE3"), json!("Ação"), json!(10), json!(60)]);
+        let tims = row_of(&tab, "TIMS3");
+        tab.remove(tims);
+        let read = sheet::positions(&tab).unwrap();
+        assert!(merge(&mut store, &read, true));
+        assert_eq!(store.portfolio.position("GGRC11").unwrap().quantity, 200.0);
+        assert!(store.portfolio.position("TIMS3").is_none());
+        assert_eq!(store.portfolio.position("VALE3").map(|p| (p.quantity, p.average_price)), Some((10.0, 60.0)));
+        let t = table(&store, &market, today, &read.order, &aviso);
+        for w in after_reading(&tab, &t, &summary_rows(&store, &market, today, "2")) {
+            apply(&mut tab, &w);
+        }
+        assert_eq!(tab[row_of(&tab, "GGRC11")][INPUTS + 2], json!(1738.0), "GGRC11's value follows its new quantity: 200 × 8,69");
+        assert_eq!(tab[row_of(&tab, "KNRI11")][INPUTS], json!(140.0), "each row its own figures, after the rows moved");
+        // From the chat: 20 more GGRC11, and the RDB taken out.
+        let known = t.tickers.clone();
+        store.portfolio.positions.iter_mut().find(|p| p.ticker == "GGRC11").unwrap().quantity = 220.0;
+        store.portfolio.positions.retain(|p| p.ticker != "RDB Nubank");
+        let t = table(&store, &market, today, &sheet::positions(&tab).unwrap().order, &aviso);
+        for w in after_change(&tab, &t, &summary_rows(&store, &market, today, "3"), &known) {
+            apply(&mut tab, &w);
+        }
+        let read = sheet::positions(&tab).unwrap();
+        assert!(!merge(&mut store.clone(), &read, true), "the tab has every change from the chat");
+        assert_eq!(read.positions.iter().map(|p| p.ticker.as_str()).collect::<Vec<_>>(), ["GGRC11", "VALE3"]);
+        assert_eq!(read.ceilings, [("GGRC11".to_string(), 9.5), ("KNRI11".to_string(), 150.0)]);
+        assert!(is_ours(&tab) && tab[0][SUMMARY_COLUMN] == json!("Resumo AXYON"));
+        // Read again with nothing new: nothing to write.
+        let t = table(&store, &market, today, &read.order, &aviso);
+        assert!(after_reading(&tab, &t, &summary_rows(&store, &market, today, "4")).is_empty());
+    }
+
     #[test]
     fn each_round_writes_only_what_changed() {
         let (store, market, today) = sample();
