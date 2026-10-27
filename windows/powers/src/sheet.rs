@@ -31,6 +31,12 @@ pub struct Read {
     pub positions: Vec<Position>,
     /// Rows left out, and why ("ROW 12: 'Total' is not an asset"), for the user.
     pub skipped: Vec<String>,
+    /// The ceilings the user wrote ("Meu teto"), by ticker, held or only watched.
+    pub ceilings: Vec<(String, f64)>,
+    /// The sheet has a column for them: the tickers it lists without one have none.
+    pub has_ceilings: bool,
+    /// The assets in the order the sheet lists them (positions and watched ones).
+    pub order: Vec<String>,
 }
 
 /// The spreadsheet ID from a link ("https://docs.google.com/spreadsheets/d/<ID>/edit#gid=0") or the ID itself.
@@ -85,6 +91,7 @@ enum Column {
     Class,
     Value,
     Invested,
+    Ceiling,
 }
 
 /// What a header cell names, by its words (any case, accents or not).
@@ -93,6 +100,10 @@ fn column(header: &str) -> Option<Column> {
     let p = p.trim().trim_end_matches([':', '.']);
     let is = |words: &[&str]| words.iter().any(|w| p == *w);
     let starts = |words: &[&str]| words.iter().any(|w| p.starts_with(w));
+    if p.starts_with("teto axyon") {
+        // AXYON's own ceiling: written by AXYON, never read as the user's.
+        return None;
+    }
     Some(if is(&["ativo", "ativos", "ticker", "papel", "acao", "simbolo", "cod", "codigo", "asset", "symbol"]) || starts(&["codigo do", "ticker ", "ativo "]) {
         Column::Asset
     } else if starts(&["quantidade", "qtd", "qtde", "quant", "n de cotas", "numero de cotas", "num de cotas", "cotas", "quantity", "shares"]) || is(&["qt"]) {
@@ -101,7 +112,9 @@ fn column(header: &str) -> Option<Column> {
         Column::AveragePrice
     } else if is(&["classe", "tipo", "categoria", "classe do ativo", "tipo de ativo", "class", "type"]) {
         Column::Class
-    } else if starts(&["valor atual", "saldo", "valor de mercado", "patrimonio atual"]) {
+    } else if starts(&["meu teto", "teto (meu)", "preco teto", "preco-teto", "teto"]) {
+        Column::Ceiling
+    } else if starts(&["valor atual", "saldo", "valor de mercado", "patrimonio atual"]) || is(&["valor", "valor (r$)"]) {
         Column::Value
     } else if starts(&["valor investido", "total investido", "valor aplicado", "investido", "aplicado"]) {
         Column::Invested
@@ -133,29 +146,31 @@ fn unquoted_class(name: &str) -> Option<AssetClass> {
     }
 }
 
-/// The positions of a sheet's rows: the first row (of the first 30) that names an asset column and a quantity or
-/// amount column is the header; each row under it with a B3 ticker and a quantity above zero is a position, and a row
-/// with a fixed-income name and an amount is one too. The same ticker twice is one position (quantities added, the
-/// average price weighted). Err when no such header is there.
+/// The positions of a sheet's rows: the first row (of the first 30) that names an asset column and a quantity, amount
+/// or ceiling column is the header; each row under it with a B3 ticker and a quantity above zero is a position (one
+/// with none is watched, with its ceiling), and a row with a fixed-income name and an amount (or what was put in) is
+/// one too. The same ticker twice is one position (quantities added, the average price weighted). Err when no such
+/// header is there.
 pub fn positions(rows: &[Vec<Value>]) -> Result<Read, String> {
     let header = rows.iter().take(30).enumerate().find_map(|(i, row)| {
         let columns: Vec<Option<Column>> = row.iter().map(|c| column(&cell_text(c))).collect();
         let has = |k: Column| columns.iter().any(|c| *c == Some(k));
-        (has(Column::Asset) && (has(Column::Quantity) || has(Column::Value))).then_some((i, columns))
+        (has(Column::Asset) && (has(Column::Quantity) || has(Column::Value) || has(Column::Ceiling))).then_some((i, columns))
     });
     let Some((at, columns)) = header else {
         return Err(NO_HEADER.into());
     };
     let index = |k: Column| columns.iter().position(|c| *c == Some(k));
-    let (asset, quantity, average, class, value, invested) = (
+    let (asset, quantity, average, class, value, invested, ceiling) = (
         index(Column::Asset).unwrap_or(0),
         index(Column::Quantity),
         index(Column::AveragePrice),
         index(Column::Class),
         index(Column::Value),
         index(Column::Invested),
+        index(Column::Ceiling),
     );
-    let mut read = Read::default();
+    let mut read = Read { has_ceilings: ceiling.is_some(), ..Read::default() };
     for (i, row) in rows.iter().enumerate().skip(at + 1) {
         let get = |k: Option<usize>| k.and_then(|k| row.get(k));
         let name = get(Some(asset)).map(cell_text).unwrap_or_default();
@@ -167,6 +182,13 @@ pub fn positions(rows: &[Vec<Value>]) -> Result<Read, String> {
         let amount = get(value).and_then(cell_number).filter(|v| *v > 0.0);
         match ticker(&name).filter(|_| given_class.is_none_or(AssetClass::quoted)) {
             Some(t) => {
+                if let Some(c) = get(ceiling).and_then(cell_number).filter(|c| *c > 0.0) {
+                    read.ceilings.retain(|(x, _)| *x != t);
+                    read.ceilings.push((t.clone(), c));
+                }
+                if !read.order.contains(&t) {
+                    read.order.push(t.clone());
+                }
                 let Some(q) = get(quantity).and_then(cell_number).filter(|q| *q > 0.0) else {
                     // A ticker with no quantity: watched, not held.
                     continue;
@@ -192,17 +214,27 @@ pub fn positions(rows: &[Vec<Value>]) -> Result<Read, String> {
             }
             None => {
                 let class = given_class.filter(|c| !c.quoted()).or_else(|| unquoted_class(&name));
-                let invested_amount = get(invested).and_then(cell_number).filter(|v| *v > 0.0);
+                // What was put in: its own column, else the average price times the quantity (one when none).
+                let invested_amount = get(invested).and_then(cell_number).filter(|v| *v > 0.0).or_else(|| {
+                    let q = get(quantity).and_then(cell_number).filter(|q| *q > 0.0).unwrap_or(1.0);
+                    get(average).and_then(cell_number).filter(|p| *p > 0.0).map(|p| p * q)
+                });
                 match (class, amount.or(invested_amount)) {
-                    (Some(class), Some(now)) => read.positions.push(Position {
-                        ticker: name.chars().take(60).collect(),
+                    (Some(class), Some(now)) => {
+                        let name: String = name.chars().take(60).collect();
+                        if !read.order.contains(&name) {
+                            read.order.push(name.clone());
+                        }
+                        read.positions.push(Position {
+                        ticker: name,
                         class,
                         quantity: 1.0,
                         average_price: invested_amount.unwrap_or(now),
                         subtype: String::new(),
                         current_value: Some(now),
                         note: String::new(),
-                    }),
+                    })
+                    }
                     _ => read.skipped.push(format!("row {line}: \"{}\" is not a B3 ticker", name.chars().take(40).collect::<String>())),
                 }
             }
@@ -282,6 +314,34 @@ mod tests {
         assert_eq!((rdb.class, rdb.current_value, rdb.quantity), (AssetClass::RendaFixa, Some(2500.0), 1.0));
         assert_eq!(read.positions[4].class, AssetClass::Cripto);
         assert_eq!(read.skipped, ["row 12: \"Something\" is not a B3 ticker"]);
+    }
+
+    #[test]
+    fn the_users_ceilings_are_read_for_held_and_watched_assets() {
+        let read = positions(&rows(json!([
+            ["Ativo", "Classe", "Quantidade", "Preço médio", "Meu teto", "Cotação", "Valor", "Teto AXYON"],
+            ["GGRC11", "FII", 150, 9.2, 9.5, 8.69, 1303.5, 10.56],
+            ["KNRI11", "FII", "", "", 150],
+            ["XPLG11", "FII", 3, 100, "", 98, 294, 105],
+            ["RDB Nubank", "Renda Fixa", 1, 500, "", "", 512.3],
+        ]))).unwrap();
+        assert_eq!(read.ceilings, [("GGRC11".to_string(), 9.5), ("KNRI11".to_string(), 150.0)], "AXYON's own column is not the user's");
+        assert!(read.has_ceilings);
+        assert_eq!(read.order, ["GGRC11", "KNRI11", "XPLG11", "RDB Nubank"]);
+        assert_eq!(read.positions.len(), 3, "KNRI11 is only watched");
+        assert_eq!(read.positions[2].current_value, Some(512.3), "\"Valor\" is a fixed income's amount");
+        assert_eq!(read.positions[2].average_price, 500.0, "what was put in: its average price");
+        // A list of watched assets and their ceilings, as the user keeps one: no quantity, no amount.
+        let read = positions(&rows(json!([
+            ["Ativo", "Classe", "Status", "Cotação base (R$)", "Distribuição anual (R$)", "Yield alvo", "Preço teto (R$)", "Margem até o teto %"],
+            ["HGLG11", "FII", "Mantido", 158, 13.2, 0.085, 155.3, -0.017],
+            ["XPLG11", "FII", "Mantido", 98, 9.6, 0.09, 106.67, 0.088],
+        ]))).unwrap();
+        assert_eq!((read.positions.len(), read.ceilings.len()), (0, 2));
+        assert_eq!(read.ceilings[1], ("XPLG11".to_string(), 106.67));
+        // A fixed income typed with its quantity and price, and no amount yet.
+        let read = positions(&rows(json!([["Ativo", "Classe", "Quantidade", "Preço médio"], ["CDB Inter 2028", "Renda Fixa", 2, 500]]))).unwrap();
+        assert_eq!((read.positions[0].average_price, read.positions[0].current_value), (1000.0, Some(1000.0)));
     }
 
     #[test]

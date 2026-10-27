@@ -6,22 +6,30 @@
 // month — and the brain gets them as tools: Mochi's (agent/tools.rs) and Hermes' over MCP (agent/mcp.rs). The island
 // shows the portfolio and the day, and says the morning's briefing.
 //
-// Off by default (Settings → Zheus' superpowers). Only B3, the CVM, FundosNet and the Banco Central are contacted, for
-// public data, with no account and nothing about the user sent. Nothing here buys, sells, pays, sends or posts.
+// During B3's session the prices come from Google Finance every few minutes, and what they make worth telling (an asset
+// under the user's ceiling, a strong day) is told at once on the island. With the user's Google Sheet linked, AXYON
+// keeps its own tab there (coucou_powers::workspace, through gog): the user's edits are read back, and AXYON writes
+// its figures and every change made from the chat.
+//
+// Off by default (Settings → Zheus' superpowers). Only B3, the CVM, FundosNet, the Banco Central and Google Finance
+// are contacted, for public data, with no account and nothing about the user sent; the user's own sheet only through
+// their own gog. Nothing here buys, sells, pays, sends or posts.
 
 mod sheet;
 
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use coucou_powers::date::Date;
 use coucou_powers::day::{self, Item};
 use coucou_powers::engine::{self, Alert, Summary};
-use coucou_powers::model::{AssetClass, Market, Store};
+use coucou_powers::model::{AssetClass, LivePrice, Market, Position, Store};
+use coucou_powers::sheet::SheetLink;
 use coucou_powers::sources::{self, fetch::Http};
-use coucou_powers::{import, refresh};
+use coucou_powers::{alerts, import, refresh, workspace};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use serde_json::{json, Value};
@@ -51,8 +59,13 @@ const LIVE_PAUSE: Duration = Duration::from_millis(400);
 const LIVE_MOST: usize = 40;
 /// The longest a tool waits for the session's prices.
 const LIVE_BUDGET: Duration = Duration::from_secs(15);
-/// The user's sheet is read again this often.
+/// The user's sheet is read again this often (and after each reading of the session's prices, so AXYON's columns follow
+/// them).
 const SHEET_EVERY: Duration = Duration::from_secs(10 * 60);
+/// The longest a tool that changes the portfolio waits for the user's latest edits in the sheet…
+const SHEET_READ_BUDGET: Duration = Duration::from_secs(15);
+/// …and for its change to be written there (the writing goes on after).
+const SHEET_BUDGET: Duration = Duration::from_secs(25);
 /// What the portfolio's source says when it comes from the sheet.
 const SHEET_SOURCE: &str = "Google Sheets";
 /// Copies of the user's data kept before a list is replaced.
@@ -81,10 +94,13 @@ pub struct Powers {
     live_watching: AtomicBool,
     /// When the ★ tab or Settings last asked for the view.
     looked_at: Mutex<Option<Instant>>,
-    /// The user's sheet: the last reading, one at a time.
+    /// The user's sheet: the last round, one at a time.
     sheet: Mutex<SheetState>,
     sheet_read: Mutex<Option<Instant>>,
-    sheet_running: AtomicBool,
+    sheet_turn: tokio::sync::Mutex<()>,
+    /// Counts the changes to the portfolio and the user's ceilings: a reading of the sheet that began before one does
+    /// not undo it.
+    version: AtomicU64,
 }
 
 /// The last reading of the session's prices.
@@ -97,15 +113,22 @@ pub struct LiveState {
     pub missed: Vec<String>,
 }
 
-/// The last reading of the user's sheet.
+/// The last round with the user's sheet.
 #[derive(Debug, Clone, Default, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SheetState {
     pub running: bool,
     /// When it was last read ("15:20").
     pub at: Option<String>,
+    /// When AXYON last wrote its tab ("15:20").
+    pub written: Option<String>,
+    /// The tab, and whether it is AXYON's own (read and written) rather than one of the user's (only read).
+    pub tab: String,
+    pub ours: bool,
     pub positions: usize,
-    /// Why it could not be read, in the user's language.
+    /// Assets watched with the user's ceiling, not held.
+    pub watched: usize,
+    /// Why the last round failed, in the user's language.
     pub problem: Option<String>,
     /// Rows left out, and why.
     pub skipped: Vec<String>,
@@ -140,7 +163,8 @@ impl Powers {
             looked_at: Mutex::new(None),
             sheet: Mutex::new(SheetState::default()),
             sheet_read: Mutex::new(None),
-            sheet_running: AtomicBool::new(false),
+            sheet_turn: tokio::sync::Mutex::new(()),
+            version: AtomicU64::new(0),
         }
     }
 }
@@ -442,7 +466,7 @@ pub fn start(app: &AppHandle) {
             if tauri::async_runtime::spawn(async move {
                 refresh(&round, false).await;
                 brief(&round);
-                tell_opportunities(&round);
+                tell(&round);
             })
             .await
             .is_err()
@@ -486,7 +510,7 @@ async fn read_live(app: &AppHandle) {
             tokio::time::sleep(LIVE_PAUSE).await;
         }
         match sources::live_price(&powers.http, ticker).await {
-            Ok(live) => got.push((ticker.clone(), live.price, live.at)),
+            Ok(live) => got.push((ticker.clone(), LivePrice { price: live.price, at: live.at, previous: live.previous_close })),
             Err(_) => missed.push(ticker.clone()),
         }
     }
@@ -503,61 +527,213 @@ async fn read_live(app: &AppHandle) {
     powers.live_running.store(false, Ordering::SeqCst);
     changed(app);
     if !got.is_empty() {
-        tell_opportunities(app);
+        tell(app);
     }
 }
 
-/// The user's sheet, read again: its positions replace the portfolio's (a copy kept first, only when they changed).
-/// Nothing is replaced by an empty sheet or one that could not be read.
-async fn sync_sheet(app: &AppHandle) {
+/// What a round with the sheet did.
+#[derive(Debug, Clone, Default)]
+pub struct Round {
+    /// AXYON's own tab, read and written; else a tab of the user's, only read.
+    pub ours: bool,
+    /// AXYON wrote cells of it.
+    pub wrote: bool,
+    /// AXYON made the tab.
+    pub made: bool,
+    pub skipped: Vec<String>,
+}
+
+/// AXYON's tab in the user's spreadsheet, one round at a time (coucou_powers::workspace): read back, the user's edits
+/// taken in and AXYON's columns and summary written where they changed; or, after a change from the chat (`write`, or
+/// one not written yet), written from the user's data. AXYON's tab is made when missing; a tab of the user's is only
+/// read. None when no sheet is linked.
+async fn sync_sheet(app: &AppHandle, write: bool) -> Option<Result<Round, String>> {
     let powers = app.state::<Powers>();
+    if read(app, |s, _| s.sheet.id.trim().is_empty()) {
+        return None;
+    }
+    let _turn = powers.sheet_turn.lock().await;
+    // The link, as it is once the round before is over.
     let link = read(app, |s, _| s.sheet.clone());
-    if link.id.trim().is_empty() || powers.sheet_running.swap(true, Ordering::SeqCst) {
-        return;
+    if link.id.trim().is_empty() {
+        return None;
     }
     held(&powers.sheet).running = true;
     changed(app);
-    let result = sheet::read(&link).await;
-    let previous = held(&powers.sheet).clone();
-    let state = match result {
-        Ok(found) if found.positions.is_empty() => SheetState {
-            problem: Some(t("The sheet has no position: a row needs a B3 ticker and a quantity.")),
-            skipped: found.skipped,
-            ..previous
-        },
-        Ok(found) => {
-            let count = found.positions.len();
-            let today = today();
-            let replaced = change(app, |store, market| {
-                let positions = coucou_powers::sheet::with_known(found.positions, &store.portfolio.positions);
-                if positions == store.portfolio.positions && store.portfolio.source == SHEET_SOURCE {
-                    return false;
-                }
-                backup(store);
-                store.portfolio.positions = positions;
-                store.portfolio.source = SHEET_SOURCE.into();
-                store.portfolio.updated = Some(today);
-                refresh::fix_classes(store, market);
-                true
-            });
-            if replaced {
-                log::line(format!("powers: the portfolio read from the user's sheet ({count} positions)"));
-            }
-            SheetState { running: false, at: Some(clock_now()), positions: count, problem: None, skipped: found.skipped }
-        }
-        Err(e) => {
-            log::line(format!("powers: the sheet could not be read: {e}"));
-            SheetState { problem: Some(tf("The sheet could not be read: {error}", &[("error", &e)])), ..previous }
-        }
-    };
-    *held(&powers.sheet) = SheetState { running: false, ..state };
+    let result = sheet_round(app, &link, write).await;
+    let now = clock_now();
+    let (positions, watched) = read(app, |s, _| (s.portfolio.positions.len(), s.ceilings.manual.keys().filter(|t| s.portfolio.position(t).is_none()).count()));
+    {
+        let mut state = held(&powers.sheet);
+        let before = state.clone();
+        *state = match &result {
+            Ok(round) => SheetState {
+                running: false,
+                at: Some(now.clone()),
+                written: if round.wrote { Some(now) } else { before.written },
+                tab: sheet::tab_of(&link),
+                ours: round.ours,
+                positions,
+                watched,
+                problem: None,
+                skipped: round.skipped.clone(),
+            },
+            Err(e) => SheetState { running: false, problem: Some(e.clone()), ..before },
+        };
+    }
+    match &result {
+        Ok(round) if round.made => log::line(format!("powers: AXYON's tab made in the user's sheet ({positions} positions)")),
+        Ok(round) if round.wrote => log::line("powers: AXYON's tab written"),
+        Ok(_) => {}
+        Err(e) => log::line(format!("powers: the sheet: {e}")),
+    }
     *held(&powers.sheet_read) = Some(Instant::now());
-    powers.sheet_running.store(false, Ordering::SeqCst);
     changed(app);
+    Some(result)
 }
 
-/// While the superpowers are on: the user's sheet every ten minutes, and during B3's session its prices every five
-/// minutes, every minute while the ★ tab or Settings shows them. Outside the session nothing is asked of Google.
+/// "27/10/2026 15:20": when AXYON wrote its tab, for the tab.
+fn written_stamp() -> String {
+    let t = crate::platform::local_time();
+    format!("{:02}/{:02}/{:04} {:02}:{:02}", t.day, t.month, t.year, t.hour, t.minute)
+}
+
+async fn sheet_round(app: &AppHandle, link: &SheetLink, write: bool) -> Result<Round, String> {
+    let powers = app.state::<Powers>();
+    let tab = sheet::tab_of(link);
+    let version = powers.version.load(Ordering::SeqCst);
+    let (pending, known) = read(app, |s, _| {
+        let same = s.sheet_sync.id == link.id;
+        (same && s.sheet_sync.pending, if same { s.sheet_sync.known.clone() } else { Vec::new() })
+    });
+    let write = write || pending;
+    let mut made = false;
+    let rows = match sheet::get(link).await.map_err(|e| tf("The sheet could not be read: {error}", &[("error", &e)]))? {
+        sheet::Got::Rows(rows) => rows,
+        sheet::Got::NoTab if tab == workspace::TAB => {
+            sheet::add_tab(link, &tab).await.map_err(|e| tf("AXYON's tab could not be made in the sheet: {error}", &[("error", &e)]))?;
+            made = true;
+            Vec::new()
+        }
+        sheet::Got::NoTab => return Err(tf("The spreadsheet has no tab named {tab}.", &[("tab", &tab)])),
+    };
+    let blank = workspace::is_blank(&rows);
+    if !workspace::is_ours(&rows) && !(blank && tab == workspace::TAB) {
+        return read_only(app, link, &rows, write, version);
+    }
+    let found = if blank { None } else { Some(sheet::positions(&rows)?) };
+    // The user's edits taken in, unless a change from the chat waits to be written (the reading would undo it).
+    let taken = !write && found.as_ref().is_some_and(|f| workspace::has_assets(f) && take_in(app, f, true, version));
+    let today = today();
+    let order = found.as_ref().map(|f| f.order.clone()).unwrap_or_default();
+    let stamp = written_stamp();
+    let (table, summary, computed_at) = read(app, |s, m| {
+        (workspace::table(s, m, today, &order, &workspace::aviso), workspace::summary_rows(s, m, today, &stamp), powers.version.load(Ordering::SeqCst))
+    });
+    let writes = if blank {
+        workspace::seed(&table, &summary)
+    } else if taken {
+        workspace::after_reading(&rows, &table, &summary)
+    } else {
+        workspace::after_change(&rows, &table, &summary, &known)
+    };
+    for w in &writes {
+        sheet::update(link, &sheet::in_tab(&tab, &w.cells), &w.values).await.map_err(|e| tf("The sheet could not be written: {error}", &[("error", &e)]))?;
+    }
+    // What the tab has now; nothing waits to be written, unless a change came meanwhile.
+    {
+        let mut store = held(&powers.store);
+        let since = powers.version.load(Ordering::SeqCst) != computed_at;
+        let sync = workspace::Sync { id: link.id.clone(), pending: since && store.sheet_sync.pending, known: table.tickers.clone() };
+        if store.sheet_sync != sync {
+            store.sheet_sync = sync;
+            save_store(&store);
+        }
+    }
+    Ok(Round { ours: true, wrote: !writes.is_empty(), made, skipped: found.map(|f| f.skipped).unwrap_or_default() })
+}
+
+/// A tab of the user's: only read, its positions and ceilings taken in, but not right after a change from the chat
+/// (that would undo it at once; the next reading does). Nothing is written there.
+fn read_only(app: &AppHandle, link: &SheetLink, rows: &[Vec<Value>], write: bool, version: u64) -> Result<Round, String> {
+    let found = sheet::positions(rows)?;
+    if !workspace::has_assets(&found) {
+        return Err(t("The sheet has no position: a row needs a B3 ticker and a quantity."));
+    }
+    if !write {
+        take_in(app, &found, false, version);
+    }
+    let powers = app.state::<Powers>();
+    let mut store = held(&powers.store);
+    let sync = workspace::Sync { id: link.id.clone(), pending: false, known: Vec::new() };
+    if store.sheet_sync != sync {
+        store.sheet_sync = sync;
+        save_store(&store);
+    }
+    Ok(Round { ours: false, wrote: false, made: false, skipped: found.skipped })
+}
+
+/// A reading of the sheet taken into the user's data (a copy kept first when it changes it), unless the data changed
+/// since the round began (`version`): a change from the chat, to be written instead. Whether it was taken in.
+fn take_in(app: &AppHandle, found: &coucou_powers::sheet::Read, whole: bool, version: u64) -> bool {
+    let powers = app.state::<Powers>();
+    let mut store = held(&powers.store);
+    if powers.version.load(Ordering::SeqCst) != version {
+        return false;
+    }
+    let before = store.clone();
+    if workspace::merge(&mut store, found, whole) {
+        backup(&before);
+        store.portfolio.source = SHEET_SOURCE.into();
+        store.portfolio.updated = Some(today());
+        refresh::fix_classes(&mut store, &held(&powers.market));
+        save_store(&store);
+        log::line(format!("powers: the user's sheet changed the portfolio ({} positions, {} ceilings of theirs)", store.portfolio.positions.len(), store.ceilings.manual.len()));
+    }
+    true
+}
+
+/// What a round with the sheet, waited for a while, came to.
+#[derive(Debug, Clone)]
+pub enum SheetOutcome {
+    NotLinked,
+    Done(Round),
+    Failed(String),
+    /// Still going when the wait was over (it goes on).
+    Going,
+}
+
+/// A round with the sheet in the background, waited for `budget` at most.
+async fn sheet_now(app: &AppHandle, write: bool, budget: Duration) -> SheetOutcome {
+    if read(app, |s, _| s.sheet.id.trim().is_empty()) {
+        return SheetOutcome::NotLinked;
+    }
+    let reading = app.clone();
+    let job = tauri::async_runtime::spawn(async move { sync_sheet(&reading, write).await });
+    match tokio::time::timeout(budget, job).await {
+        Ok(Ok(Some(Ok(round)))) => SheetOutcome::Done(round),
+        Ok(Ok(Some(Err(e)))) => SheetOutcome::Failed(e),
+        Ok(Ok(None)) => SheetOutcome::NotLinked,
+        Ok(Err(e)) => {
+            // A round that stopped on a panic (written down by crash.rs) is not still reading.
+            held(&app.state::<Powers>().sheet).running = false;
+            SheetOutcome::Failed(e.to_string())
+        }
+        Err(_) => SheetOutcome::Going,
+    }
+}
+
+/// A round with the sheet in the background, not waited for.
+fn sheet_later(app: &AppHandle, write: bool) {
+    let reading = app.clone();
+    tauri::async_runtime::spawn(async move {
+        sync_sheet(&reading, write).await;
+    });
+}
+
+/// While the superpowers are on: the user's sheet every ten minutes, and during B3's session the prices every five
+/// minutes (every minute while the ★ tab or Settings shows them), the sheet after them. Outside the session nothing is
+/// asked of Google Finance.
 fn start_live(app: &AppHandle) {
     if app.state::<Powers>().live_watching.swap(true, Ordering::SeqCst) {
         return;
@@ -573,15 +749,16 @@ fn start_live(app: &AppHandle) {
             let powers = app.state::<Powers>();
             let looked = !since(&powers.looked_at, LOOK_LASTS);
             let round = app.clone();
-            let sheet_due = since(&powers.sheet_read, SHEET_EVERY);
             let live_due = session_open() && since(&powers.live_read, if looked { LIVE_LOOKED } else { LIVE_EVERY } - Duration::from_secs(5));
+            // During the session, AXYON's columns follow the prices, every five minutes at most.
+            let sheet_due = since(&powers.sheet_read, SHEET_EVERY) || (live_due && since(&powers.sheet_read, LIVE_EVERY - Duration::from_secs(5)));
             if (sheet_due || live_due)
                 && tauri::async_runtime::spawn(async move {
-                    if sheet_due {
-                        sync_sheet(&round).await;
-                    }
                     if live_due {
                         read_live(&round).await;
+                    }
+                    if sheet_due {
+                        sync_sheet(&round, false).await;
                     }
                 })
                 .await
@@ -589,7 +766,7 @@ fn start_live(app: &AppHandle) {
             {
                 let powers = app.state::<Powers>();
                 powers.live_running.store(false, Ordering::SeqCst);
-                powers.sheet_running.store(false, Ordering::SeqCst);
+                held(&powers.sheet).running = false;
                 log::line("powers: a reading of the session's prices stopped on a panic");
             }
             tokio::time::sleep(Duration::from_secs(20)).await;
@@ -597,30 +774,100 @@ fn start_live(app: &AppHandle) {
     });
 }
 
-/// The opportunities found since they were last told (a week ago, or 5 points less far below): said on the island,
-/// three at most at once (the rest are in the ★ tab's day).
-fn tell_opportunities(app: &AppHandle) {
+/// One thing AXYON tells about the portfolio on the island (src/island/powers.ts): its headline and what follows, in
+/// the user's language, the asset, and its tone (its colour, AXYON's face and sound).
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PowersAlert {
+    /// "opportunity", "into_zone", "out_of_zone", "up", "down", "portfolio_up" or "portfolio_down".
+    pub kind: String,
+    pub ticker: String,
+    pub title: String,
+    pub text: String,
+    /// "good", "bad" or "info".
+    pub tone: String,
+    /// When the price was, in Brasília ("15:16"), when it is the session's.
+    pub at: Option<String>,
+}
+
+/// The most told at once.
+const MOST_ALERTS: usize = 8;
+
+/// "+R$ 20,40", "−R$ 45,00".
+fn signed_money(v: f64) -> String {
+    format!("{}{}", if v < 0.0 { "−" } else { "+" }, money(v.abs()))
+}
+
+/// The alerts of the moments and opportunities found, the most important first: an asset going under the user's own
+/// ceiling, an opportunity under a ceiling, the portfolio's strong day, an asset's, an asset back above the ceiling.
+fn alerts_of(moments: &[alerts::Moment], opportunities: &[coucou_powers::ceiling::Opportunity], market: &Market) -> Vec<PowersAlert> {
+    let clock = |t: &str| market.live_now(t).map(|l| coucou_powers::portfolio::brasilia_clock(l.at));
+    let mut out: Vec<(u8, PowersAlert)> = Vec::new();
+    for m in moments {
+        let pct = percent_text(m.day.abs());
+        let price = money(m.now);
+        let ceiling = money(m.ceiling.unwrap_or_default());
+        let against_ceiling = tf("{price} now · your ceiling {ceiling}", &[("price", &price), ("ceiling", &ceiling)]);
+        let day_text = match m.money {
+            Some(made) => tf("{price} now · your position {money} today", &[("price", &price), ("money", &signed_money(made))]),
+            None => tf("{price} now", &[("price", &price)]),
+        };
+        let whole = tf("{value} now · {money} today", &[("value", &price), ("money", &signed_money(m.money.unwrap_or_default()))]);
+        let who = [("ticker", m.ticker.as_str()), ("pct", pct.as_str())];
+        let (rank, kind, tone, title, text) = match m.kind {
+            alerts::Kind::IntoZone => (0, "into_zone", "good", tf("{ticker} went below your ceiling", &who), against_ceiling),
+            alerts::Kind::OutOfZone => (4, "out_of_zone", "info", tf("{ticker} went back above your ceiling", &who), against_ceiling),
+            alerts::Kind::PortfolioUp => (2, "portfolio_up", "good", tf("Your portfolio is up {pct}% today", &who), whole),
+            alerts::Kind::PortfolioDown => (2, "portfolio_down", "bad", tf("Your portfolio is down {pct}% today", &who), whole),
+            alerts::Kind::Up => (3, "up", "good", tf("{ticker} up {pct}% today", &who), day_text),
+            alerts::Kind::Down => (3, "down", "bad", tf("{ticker} down {pct}% today", &who), day_text),
+        };
+        let at = if m.ticker.is_empty() { market.live.values().map(|l| l.at).max().map(coucou_powers::portfolio::brasilia_clock) } else { clock(&m.ticker) };
+        out.push((rank, PowersAlert { kind: kind.into(), ticker: m.ticker.clone(), title, text, tone: tone.into(), at }));
+    }
+    for o in opportunities {
+        // An asset just gone under the user's own ceiling is told by that, once.
+        if moments.iter().any(|m| m.kind == alerts::Kind::IntoZone && m.ticker == o.ticker) {
+            continue;
+        }
+        out.push((
+            1,
+            PowersAlert {
+                kind: "opportunity".into(),
+                ticker: o.ticker.clone(),
+                title: tf("{ticker} is {pct}% below its ceiling", &[("ticker", &o.ticker), ("pct", &percent_text(o.below))]),
+                text: tf("{price} now · {method}: {ceiling}", &[("price", &money(o.price)), ("method", &method_name(o.method)), ("ceiling", &money(o.ceiling))]),
+                tone: "good".into(),
+                at: clock(&o.ticker),
+            },
+        ));
+    }
+    out.sort_by_key(|(rank, _)| *rank);
+    out.into_iter().take(MOST_ALERTS).map(|(_, a)| a).collect()
+}
+
+/// What the session's prices (and B3's closes) just made worth telling: told on the island at once (src/island/
+/// powers.ts: the ★ tab opens on it, with AXYON's face and sound, in the chat, and aloud when the user asked for it).
+/// The record of what was told is saved only when it changed.
+fn tell(app: &AppHandle) {
     let today = today();
-    // Saved only when the record of what was told changed: most half hours, nothing is written.
     let found = {
         let powers = app.state::<Powers>();
         let mut store = held(&powers.store);
-        let before = store.ceilings.told.clone();
-        let found = coucou_powers::ceiling::to_tell(&mut store, &held(&powers.market), today);
-        if store.ceilings.told != before {
+        let market = held(&powers.market);
+        let before = (store.ceilings.told.clone(), store.told_today.clone());
+        let opportunities = coucou_powers::ceiling::to_tell(&mut store, &market, today);
+        let moments = alerts::to_tell(&mut store, &market, today);
+        if (store.ceilings.told.clone(), store.told_today.clone()) != before {
             save_store(&store);
         }
-        found
+        alerts_of(&moments, &opportunities, &market)
     };
-    for o in found.iter().take(3) {
-        crate::zheus_one::say(
-            app,
-            &tf("Opportunity: {ticker} is {pct}% below its ceiling ({method}: {ceiling}).", &[("ticker", &o.ticker), ("pct", &percent_text(o.below)), ("method", &method_name(o.method)), ("ceiling", &money(o.ceiling))]),
-        );
+    if found.is_empty() {
+        return;
     }
-    if !found.is_empty() {
-        log::line(format!("powers: {} opportunity(ies) told", found.len()));
-    }
+    log::line(format!("powers: {} alert(s) told", found.len()));
+    let _ = app.emit_to(island::WINDOW_LABEL, "powers-alert", &found);
 }
 
 /// A ceiling method's name, in the user's language.
@@ -675,12 +922,28 @@ fn read<R>(app: &AppHandle, f: impl FnOnce(&Store, &Market) -> R) -> R {
     f(&store, &market)
 }
 
-/// A change to the user's data, saved at once.
+/// The part of the user's data AXYON's tab holds: the positions and the user's own ceilings.
+fn record(store: &Store) -> (Vec<Position>, BTreeMap<String, f64>) {
+    (store.portfolio.positions.clone(), store.ceilings.manual.clone())
+}
+
+/// A change to the user's data, saved at once. One to what AXYON's tab holds is counted (a reading of the sheet begun
+/// before it does not undo it) and, with a sheet linked, waits to be written there (sync_sheet).
 fn change<R>(app: &AppHandle, f: impl FnOnce(&mut Store, &Market) -> R) -> R {
     let powers = app.state::<Powers>();
     let mut store = held(&powers.store);
     let market = held(&powers.market);
+    let before = record(&store);
     let out = f(&mut store, &market);
+    if record(&store) != before {
+        powers.version.fetch_add(1, Ordering::SeqCst);
+        if !store.sheet.id.trim().is_empty() {
+            if store.sheet_sync.id != store.sheet.id {
+                store.sheet_sync = workspace::Sync { id: store.sheet.id.clone(), ..workspace::Sync::default() };
+            }
+            store.sheet_sync.pending = true;
+        }
+    }
     save_store(&store);
     out
 }
@@ -710,12 +973,22 @@ fn refused(text: String) -> HomeResult {
     HomeResult { ok: false, detail: coucou_powers::text::clip(&text, 120), text }
 }
 
-/// When the portfolio comes from the user's sheet, positions changed by a tool last until the sheet is read again.
-fn sheet_note(app: &AppHandle, text: String) -> String {
-    if read(app, |s, _| s.sheet.id.is_empty()) {
-        return text;
-    }
-    format!("{text}\n\nNote: the user's portfolio comes from their Google Sheet, which AXYON reads again every 10 minutes, so positions changed here are replaced then. To keep a change, it goes into the sheet (the user's own gog skill can write it there, with their OK).")
+/// The tools that change what AXYON's tab holds (the positions, the user's own ceilings): the user's latest edits in
+/// the sheet are read first, and the change is written there after.
+fn changes_record(tool: &str) -> bool {
+    matches!(tool, "wealth_update" | "wealth_trade" | "wealth_ceiling")
+}
+
+/// The answer, with where the change went: the sheet's round after it (`tab`, the tab named).
+fn sheet_note(text: String, outcome: &SheetOutcome, tab: &str) -> String {
+    let note = match outcome {
+        SheetOutcome::NotLinked => return text,
+        SheetOutcome::Done(round) if round.ours => format!("Written to the \"{tab}\" tab of the user's Google Sheet, AXYON's workspace there (the user sees it and edits it too)."),
+        SheetOutcome::Done(_) => format!("Note: the user's portfolio comes from the \"{tab}\" tab of their own Google Sheet, which AXYON only reads (again every 10 minutes), so a change made here is replaced then: to keep it, it goes into that tab. With no tab named in Settings, AXYON keeps its own \"AXYON\" tab, which it reads and writes."),
+        SheetOutcome::Failed(e) => format!("Not written to the user's Google Sheet yet ({e}): AXYON writes it there before it reads the sheet again."),
+        SheetOutcome::Going => format!("Being written to the \"{tab}\" tab of the user's Google Sheet."),
+    };
+    format!("{text}\n\n{note}")
 }
 
 /// The tools that read the official data: what is due is read first.
@@ -738,19 +1011,28 @@ pub async fn call(app: &AppHandle, tool: &str, input: &Value) -> HomeResult {
     if !enabled(app) {
         return refused(crate::agent::NO_POWERS.into());
     }
-    if reads_market(tool) {
-        fresh(app, READ_BUDGET).await;
-        if session_open() && since(&app.state::<Powers>().live_read, Duration::from_secs(120)) {
-            let reading = app.clone();
-            let job = tauri::async_runtime::spawn(async move { read_live(&reading).await });
-            let _ = tokio::time::timeout(LIVE_BUDGET, job).await;
+    let version = app.state::<Powers>().version.load(Ordering::SeqCst);
+    let sheet_first = async {
+        if changes_record(tool) {
+            sheet_now(app, false, SHEET_READ_BUDGET).await;
         }
-    }
+    };
+    let market_first = async {
+        if reads_market(tool) {
+            fresh(app, READ_BUDGET).await;
+            if session_open() && since(&app.state::<Powers>().live_read, Duration::from_secs(120)) {
+                let reading = app.clone();
+                let job = tauri::async_runtime::spawn(async move { read_live(&reading).await });
+                let _ = tokio::time::timeout(LIVE_BUDGET, job).await;
+            }
+        }
+    };
+    tokio::join!(sheet_first, market_first);
     if let Some(asset) = asked_asset(tool, input) {
         ensure_asset(app, &asset).await;
     }
     let today = today();
-    let result = match tool {
+    let mut result = match tool {
         "wealth_portfolio" => answer(read(app, |s, m| engine::portfolio(s, m, today))),
         "wealth_update" => {
             let mode = engine::s(input, "mode");
@@ -767,7 +1049,7 @@ pub async fn call(app: &AppHandle, tool: &str, input: &Value) -> HomeResult {
                     for t in input["fund_cnpjs"].as_object().into_iter().flat_map(|o| o.keys()).filter_map(|k| coucou_powers::text::ticker(k)) {
                         text.push_str(&format!("\n\n{}", read(app, |s, m| engine::funds(s, m, Some(&t), today))));
                     }
-                    answer(sheet_note(app, text))
+                    answer(text)
                 }
                 Err(e) => refused(e),
             }
@@ -784,7 +1066,7 @@ pub async fn call(app: &AppHandle, tool: &str, input: &Value) -> HomeResult {
             Some(ticker) => answer(change(app, |s, m| engine::company_view(s, m, &ticker, input, today).0)),
             None => refused("wealth_company needs the share's ticker (\"TIMS3\").".into()),
         },
-        "wealth_trade" => change(app, |s, m| engine::trade_view(s, m, input, today)).map_or_else(refused, |text| answer(sheet_note(app, text))),
+        "wealth_trade" => change(app, |s, m| engine::trade_view(s, m, input, today)).map_or_else(refused, answer),
         "wealth_ceiling" => change(app, |s, m| engine::ceiling_view(s, m, input, today)).map_or_else(refused, answer),
         "wealth_plan" => answer(read(app, |s, m| engine::plan(s, m, input, today))),
         "wealth_audit" => answer(read(app, |s, m| engine::audit_view(s, m, input, today))),
@@ -806,6 +1088,12 @@ pub async fn call(app: &AppHandle, tool: &str, input: &Value) -> HomeResult {
         },
         other => refused(format!("There is no superpower named \"{other}\".")),
     };
+    // A change to what AXYON's tab holds: written there now.
+    if result.ok && changes_record(tool) && app.state::<Powers>().version.load(Ordering::SeqCst) != version {
+        let outcome = sheet_now(app, true, SHEET_BUDGET).await;
+        let tab = read(app, |s, _| sheet::tab_of(&s.sheet));
+        result.text = sheet_note(std::mem::take(&mut result.text), &outcome, &tab);
+    }
     log::line(format!("powers: {tool} {}", if result.ok { "done" } else { "refused" }));
     changed(app);
     result
@@ -1156,17 +1444,18 @@ pub fn powers_refresh(app: AppHandle, window: WebviewWindow) -> Result<View, Str
     }
     let reading = app.clone();
     tauri::async_runtime::spawn(async move {
-        sync_sheet(&reading).await;
         if session_open() {
             read_live(&reading).await;
         }
+        sync_sheet(&reading, false).await;
         refresh(&reading, true).await;
     });
     Ok(view(&app))
 }
 
-/// Settings → Zheus' superpowers → Your Google Sheet: which sheet the portfolio comes from (its link or ID, the tab,
-/// gog's account), read at once. An empty link stops reading it (the portfolio stays as it is).
+/// Settings → Zheus' superpowers → Your Google Sheet: which spreadsheet AXYON keeps the portfolio in (its link or ID,
+/// the tab — empty: AXYON's own, made there — and gog's account), read at once. An empty link stops it (the portfolio
+/// stays as it is).
 #[tauri::command]
 pub fn powers_sheet(app: AppHandle, window: WebviewWindow, id: String, tab: String, account: String) -> Result<View, String> {
     crate::phone_link::only_settings(&window)?;
@@ -1185,10 +1474,10 @@ pub fn powers_sheet(app: AppHandle, window: WebviewWindow, id: String, tab: Stri
     if linked && enabled(&app) {
         let reading = app.clone();
         tauri::async_runtime::spawn(async move {
-            sync_sheet(&reading).await;
             if session_open() {
                 read_live(&reading).await;
             }
+            sync_sheet(&reading, false).await;
         });
     }
     changed(&app);
@@ -1223,6 +1512,7 @@ pub async fn powers_import(app: AppHandle, window: WebviewWindow, name: String, 
     read(&app, |s, _| backup(s));
     change(&app, |s, _| engine::update(s, &json!({ "source": "b3" }), Some(file), today())).map_err(|e| tf("Nothing was saved ({error}).", &[("error", &e)]))?;
     fresh(&app, READ_BUDGET).await;
+    sheet_later(&app, true);
     changed(&app);
     Ok(Imported { text: imported_line(counts.0, counts.1, counts.2), view: view(&app) })
 }
@@ -1241,6 +1531,7 @@ pub async fn powers_paste(app: AppHandle, window: WebviewWindow, text: String) -
     read(&app, |s, _| backup(s));
     change(&app, |s, _| engine::update(s, &json!({ "text": text, "source": "paste" }), None, today())).map_err(|e| tf("Nothing was saved ({error}).", &[("error", &e)]))?;
     fresh(&app, READ_BUDGET).await;
+    sheet_later(&app, true);
     changed(&app);
     Ok(Imported { text: imported_line(count, 0, 0), view: view(&app) })
 }
@@ -1317,6 +1608,41 @@ mod tests {
         assert!(in_session(tuesday, 15 * 60 + 16));
         assert!(!in_session(tuesday, 9 * 60 + 59) && !in_session(tuesday, 18 * 60 + 30), "before the opening, after the closing call");
         assert!(!in_session(Date::new(2026, 10, 31).unwrap(), 12 * 60), "a Saturday");
+    }
+
+    #[test]
+    fn alerts_say_the_moment_the_most_important_first() {
+        let moment = |kind, ticker: &str, now: f64, day: f64, ceiling: Option<f64>, money: Option<f64>| alerts::Moment { kind, ticker: ticker.into(), now, day, ceiling, money, step: None };
+        let moments = [
+            moment(alerts::Kind::Up, "TIMS3", 18.78, 3.76, None, Some(20.4)),
+            moment(alerts::Kind::IntoZone, "GGRC11", 8.69, -1.81, Some(8.8), Some(-24.0)),
+            moment(alerts::Kind::PortfolioDown, "", 7420.0, -2.1, None, Some(-160.0)),
+            moment(alerts::Kind::Down, "KNRI11", 140.0, -3.2, None, None),
+        ];
+        let opportunity = |ticker: &str, method: &'static str, ceiling: f64, price: f64| coucou_powers::ceiling::Opportunity { ticker: ticker.into(), method, ceiling, price, below: (1.0 - price / ceiling) * 100.0 };
+        // GGRC11's is told by its crossing.
+        let opportunities = [opportunity("GGRC11", "manual", 8.8, 8.69), opportunity("XPML11", "bazin_projected", 120.0, 105.0)];
+        let told = alerts_of(&moments, &opportunities, &Market::default());
+        assert_eq!(told.iter().map(|a| a.kind.as_str()).collect::<Vec<_>>(), ["into_zone", "opportunity", "portfolio_down", "up", "down"]);
+        assert_eq!((told[0].title.as_str(), told[0].text.as_str(), told[0].tone.as_str()), ("GGRC11 went below your ceiling", "R$ 8,69 now · your ceiling R$ 8,80", "good"));
+        assert_eq!((told[1].title.as_str(), told[1].text.as_str()), ("XPML11 is 12,5% below its ceiling", "R$ 105,00 now · projected Bazin: R$ 120,00"));
+        assert_eq!((told[2].title.as_str(), told[2].text.as_str(), told[2].tone.as_str()), ("Your portfolio is down 2,1% today", "R$ 7.420,00 now · −R$ 160,00 today", "bad"));
+        assert_eq!((told[3].title.as_str(), told[3].text.as_str()), ("TIMS3 up 3,8% today", "R$ 18,78 now · your position +R$ 20,40 today"));
+        assert_eq!(told[4].text, "R$ 140,00 now", "watched, not held: no position to speak of");
+        assert!(told.iter().all(|a| a.at.is_none()), "no session's price in this market");
+    }
+
+    #[test]
+    fn the_answer_says_where_a_change_went() {
+        let said = |outcome: &SheetOutcome, tab: &str| sheet_note("Recorded.".into(), outcome, tab);
+        assert_eq!(said(&SheetOutcome::NotLinked, "AXYON"), "Recorded.");
+        let ours = Round { ours: true, wrote: true, ..Round::default() };
+        assert_eq!(said(&SheetOutcome::Done(ours), "AXYON"), "Recorded.\n\nWritten to the \"AXYON\" tab of the user's Google Sheet, AXYON's workspace there (the user sees it and edits it too).");
+        assert!(said(&SheetOutcome::Done(Round::default()), "Carteira").contains("the \"Carteira\" tab of their own Google Sheet, which AXYON only reads"));
+        assert!(said(&SheetOutcome::Failed("token expired".into()), "AXYON").contains("Not written to the user's Google Sheet yet (token expired): AXYON writes it there before it reads the sheet again."));
+        assert!(said(&SheetOutcome::Going, "AXYON").ends_with("Being written to the \"AXYON\" tab of the user's Google Sheet."));
+        assert!(changes_record("wealth_trade") && changes_record("wealth_ceiling") && !changes_record("wealth_portfolio"));
+        assert_eq!(signed_money(-45.0), "−R$ 45,00");
     }
 
     #[test]

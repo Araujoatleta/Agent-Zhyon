@@ -11,13 +11,13 @@ import { emit, internals, sent } from "./tauri.mjs";
 
 installFakeDom();
 const {
-  amountOf, classBars, classLabel, clockOf, incomeProgress, liveLine, money, percent, pngName, pricedLine, quickQuestions, refreshLine, sheetLine, targetsFrom,
-  targetsTotal,
+  alertIcon, alertMood, alertQuestion, alertsMessage, amountOf, classBars, classLabel, clockOf, incomeProgress, liveLine, money, percent, pngName, pricedLine,
+  quickQuestions, refreshLine, sheetLine, shownAlerts, targetsFrom, targetsTotal, ALERT_LASTS,
 } = await import("../src/core/powers.ts");
 const { State } = await import("../src/core/state.ts");
 const { buildPowers } = await import("../src/views/powers.ts");
 const { powersSection } = await import("../src/settings/powers.ts");
-const { savePngs } = await import("../src/island/powers.ts");
+const { savePngs, tellAlerts } = await import("../src/island/powers.ts");
 
 /** What the mocked Rust side answers, by command. */
 let answers = {};
@@ -99,7 +99,7 @@ const view = (fields = {}) => ({
   command: "C:\\Users\\Ana\\AppData\\Local\\AXYON\\bin\\coucou-hook.exe",
   live: { at: null, missed: [] },
   sheetLink: { id: "", tab: "", account: "" },
-  sheet: { running: false, at: null, positions: 0, problem: null, skipped: [] },
+  sheet: { running: false, at: null, written: null, tab: "AXYON", ours: true, positions: 0, watched: 0, problem: null, skipped: [] },
   gog: true,
   ...fields,
 });
@@ -121,10 +121,13 @@ test("money and percents are written the Brazilian way, whatever the interface's
   assert.equal(clockOf(1793125002), clock);
   assert.equal(pricedLine(summary({ liveAt: 1793125002 })), `+1,8% on cost · Google Finance at ${clock}`);
   // The sheet's and the prices' lines in Settings.
-  const sheet = (fields) => view({ sheetLink: { id: "abc", tab: "", account: "" }, sheet: { running: false, at: null, positions: 0, problem: null, skipped: [], ...fields } });
+  const sheet = (fields) =>
+    view({ sheetLink: { id: "abc", tab: "", account: "" }, sheet: { running: false, at: null, written: null, tab: "AXYON", ours: true, positions: 0, watched: 0, problem: null, skipped: [], ...fields } });
   assert.equal(sheetLine(sheet({ running: true })), "Reading the sheet…");
   assert.equal(sheetLine(sheet({ problem: "The sheet could not be read: no token" })), "The sheet could not be read: no token");
-  assert.equal(sheetLine(sheet({ at: "15:20", positions: 12 })), "Sheet read at 15:20: 12 positions");
+  assert.equal(sheetLine(sheet({ at: "15:20", positions: 12, watched: 3 })), "AXYON's tab, read at 15:20: 12 positions, 3 watched");
+  assert.equal(sheetLine(sheet({ at: "15:20", written: "15:20", positions: 12, watched: 3 })), "AXYON's tab, read at 15:20: 12 positions, 3 watched · written at 15:20");
+  assert.equal(sheetLine(sheet({ at: "15:20", positions: 5, ours: false, tab: "Carteira" })), "The Carteira tab, only read, at 15:20: 5 positions");
   assert.equal(liveLine(view({ live: { at: "15:21", missed: [] } })), "Prices from Google Finance read at 15:21 · some 15 minutes late; B3's official close in the evening");
   assert.equal(classLabel("fii"), "Real-estate funds");
   assert.equal(classLabel("renda_fixa"), "Fixed income");
@@ -376,4 +379,83 @@ test("the chat takes the question written for it into its field, and sends nothi
   assert.equal(input.value, "What is my day?");
   assert.equal(State.chatDraft, null, "taken once");
   assert.equal(sent("chat_send").length, before);
+});
+
+// ── What AXYON tells the moment it happens ───────────────────────────────────
+
+const alert = (fields = {}) => ({
+  kind: "into_zone",
+  ticker: "GGRC11",
+  title: "GGRC11 went below your ceiling",
+  text: "R$ 8,69 now · your ceiling R$ 8,80",
+  tone: "good",
+  at: "15:16",
+  ...fields,
+});
+
+test("an alert has its sign, its mood and a question for AXYON", () => {
+  assert.equal(alertIcon(alert()), "🟢");
+  assert.equal(alertIcon(alert({ kind: "portfolio_down", tone: "bad" })), "📉");
+  assert.deepEqual(alertMood(alert()), { emote: "proud", sound: "proud" });
+  assert.deepEqual(alertMood(alert({ kind: "up" })), { emote: "happy", sound: "love" });
+  assert.deepEqual(alertMood(alert({ kind: "down", tone: "bad" })), { emote: "surprised", sound: "gulp" });
+  assert.equal(alertQuestion(alert()), "Is it a good time to buy GGRC11?");
+  assert.equal(alertQuestion(alert({ kind: "down", tone: "bad" })), "What is happening with GGRC11 today?");
+  assert.equal(alertQuestion(alert({ kind: "portfolio_up", ticker: "" })), "Why did my portfolio move so much today?");
+  assert.equal(
+    alertsMessage([alert(), alert({ kind: "up", ticker: "TIMS3", title: "TIMS3 up 3,8% today", text: "R$ 18,78 now", at: null })]),
+    "🟢 GGRC11 went below your ceiling — R$ 8,69 now · your ceiling R$ 8,80 (15:16)\n📈 TIMS3 up 3,8% today — R$ 18,78 now",
+  );
+  const now = 1_800_000_000_000;
+  const list = [{ ...alert(), came: now - 1000 }, { ...alert({ ticker: "OLD11" }), came: now - ALERT_LASTS }];
+  assert.deepEqual(shownAlerts(list, now).map((a) => a.ticker), ["GGRC11"], "an alert goes after half an hour");
+});
+
+test("alerts open the ★ tab on the first, with AXYON's face and sound, and go into the chat", () => {
+  State.settings = { ...State.settings, powersEnabled: true, readAloud: false };
+  State.paused = false;
+  State.mode = "hidden";
+  State.powers = view();
+  State.powersAlerts = [];
+  const before = State.chatHistory.length;
+  const told = [];
+  const island = { alert: (v) => told.push(`view:${v}`), emote: (e) => told.push(`emote:${e}`) };
+  tellAlerts(island, [alert(), alert({ kind: "up", ticker: "TIMS3", title: "TIMS3 up 3,8% today", text: "R$ 18,78 now · your position +R$ 20,40 today" })]);
+  assert.deepEqual(told, ["view:powers", "emote:proud"]);
+  assert.equal(State.chatHistory.length, before + 1, "one message for the alerts that came together");
+  assert.ok(State.chatHistory.at(-1).content.startsWith("🟢 GGRC11 went below your ceiling"));
+  assert.equal(State.powersAlerts.length, 2);
+  // The ★ tab shows the first in place of the questions, with a question for AXYON and a way to close it.
+  State.view = "powers";
+  State.mode = "expanded";
+  const a = actions();
+  const host = buildPowers(a);
+  host.sync();
+  const shown = byClass(host.el, "powers-alert")[0];
+  assert.ok(shown && shown.className.includes("good"));
+  assert.ok(byText(host.el, "B", "GGRC11 went below your ceiling"));
+  assert.ok(byText(host.el, "SPAN", "R$ 8,69 now · your ceiling R$ 8,80 · Google Finance at 15:16 · +1 more"));
+  assert.ok(!byText(host.el, "BUTTON", "Where should this month's contribution go?"), "the questions wait");
+  byText(host.el, "BUTTON", "Ask AXYON").fire("click");
+  assert.equal(State.chatDraft, "Is it a good time to buy GGRC11?");
+  assert.equal(sent("chat_send").length, 0, "written for the user to send");
+  // Closed: the next one, then the questions again.
+  byClass(host.el, "powers-alert-close")[0].fire("click");
+  assert.ok(byText(host.el, "B", "TIMS3 up 3,8% today"));
+  byClass(host.el, "powers-alert-close")[0].fire("click");
+  assert.equal(byClass(host.el, "powers-alert").length, 0);
+  assert.ok(byText(host.el, "BUTTON", "Where should this month's contribution go?"));
+  // Writing in the chat: the chat is not taken away, AXYON's face says it.
+  State.view = "prompt";
+  told.length = 0;
+  tellAlerts(island, [alert({ kind: "up", ticker: "TIMS3", title: "TIMS3 up 6,2% today", text: "R$ 19,22 now" })]);
+  assert.deepEqual(told, ["emote:happy"]);
+  State.view = "powers";
+  // Paused, the island stays shut; the alert is still kept and written.
+  State.paused = true;
+  told.length = 0;
+  tellAlerts(island, [alert({ kind: "portfolio_down", ticker: "", tone: "bad", title: "Your portfolio is down 2,1% today", text: "R$ 7.420,00 now · −R$ 160,00 today" })]);
+  assert.deepEqual(told, []);
+  assert.equal(State.powersAlerts[0].kind, "portfolio_down");
+  State.paused = false;
 });

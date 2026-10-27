@@ -116,7 +116,7 @@ async function main() {
   registerShortcutHandlers(island, () => setPaused(false));
   registerSpotifyHandlers(island);
   registerZheus(island);
-  registerPowers();
+  registerPowers(island);
   // Rust may have read Spotify before this page listened: ask once.
   if (State.settings.activeIntegrations.includes(SPOTIFY_ID)) {
     void Bridge.spotifyRefresh().then((s) => s && applySpotify(island, s));

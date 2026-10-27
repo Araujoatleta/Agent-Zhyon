@@ -1,10 +1,24 @@
 // Zheus' superpowers in the island (src-tauri/src/powers): the portfolio's value and its classes against the user's
 // targets, the passive income against its goal, the alerts and the day's lines, the official data's last reading,
-// and questions for Zheus a click away (they open the chat with the question written, for the user to send). Nothing
-// here buys, sells or sends anything.
+// what AXYON just told (an asset under the user's ceiling, a strong day) in place of the questions for a while, and
+// questions for Zheus a click away (they open the chat with the question written, for the user to send). Nothing here
+// buys, sells or sends anything.
 
 import { Bridge } from "../core/bridge";
-import { classBars, incomeProgress, money, percent, pricedLine, quickQuestions, refreshLine, type PowersView } from "../core/powers";
+import {
+  alertIcon,
+  alertKey,
+  alertQuestion,
+  classBars,
+  incomeProgress,
+  money,
+  percent,
+  pricedLine,
+  quickQuestions,
+  refreshLine,
+  shownAlerts,
+  type PowersView,
+} from "../core/powers";
 import { Sound } from "../core/sound";
 import { State } from "../core/state";
 import { t, tl } from "../i18n/i18n";
@@ -29,6 +43,8 @@ export function buildPowers(actions: ViewActions): ViewHost {
 
   let note = "";
   let drawn = "";
+  /** The alerts closed with ×, by alertKey. */
+  const closed = new Set<string>();
 
   async function refresh() {
     actions.blip();
@@ -128,11 +144,45 @@ export function buildPowers(actions: ViewActions): ViewHost {
     return h("div", { class: "powers-col" }, h("div", { class: "powers-col-title", text: t("Today") }), ...list);
   }
 
+  /** The newest alert still shown, in place of the questions: its headline, the price, a question for AXYON. */
+  function drawAlert(): boolean {
+    const shown = shownAlerts(State.powersAlerts, Date.now(), closed);
+    const a = shown[0];
+    if (!a) return false;
+    const more = shown.length - 1;
+    const caption = [a.text, a.at ? t("Google Finance at {time}", { time: a.at }) : "", more > 0 ? t("+{count} more", { count: more }) : ""].filter(Boolean).join(" · ");
+    foot.replaceChildren(
+      h(
+        "div",
+        { class: `powers-alert ${a.tone}`, title: shown.map((x) => `${x.title} — ${x.text}`).join("\n") },
+        h("span", { class: "powers-alert-icon", text: alertIcon(a) }),
+        h("span", { class: "powers-alert-words" }, h("b", { text: a.title }), h("span", { text: caption })),
+        h("button", { class: "zheus-chip powers-ask", text: t("Ask AXYON"), onclick: () => ask(alertQuestion(a)) }),
+        h(
+          "button",
+          {
+            class: "powers-alert-close",
+            title: t("Close"),
+            "aria-label": t("Close"),
+            onclick: () => {
+              actions.blip();
+              closed.add(alertKey(a));
+              draw(true);
+            },
+          },
+          svg(ICONS.xmark, 10),
+        ),
+      ),
+    );
+    return true;
+  }
+
   function drawFoot(v: PowersView) {
     if (note) {
       foot.replaceChildren(h("div", { class: "zheus-note", text: note }));
       return;
     }
+    if (drawAlert()) return;
     foot.replaceChildren(
       h(
         "div",
@@ -144,7 +194,7 @@ export function buildPowers(actions: ViewActions): ViewHost {
 
   function draw(force = false) {
     const v = State.powers;
-    const key = JSON.stringify([v, note, State.settings.powersEnabled]);
+    const key = JSON.stringify([v, note, State.settings.powersEnabled, shownAlerts(State.powersAlerts, Date.now(), closed).map(alertKey)]);
     if (!force && key === drawn) return;
     drawn = key;
     if (!v?.on || State.settings.powersEnabled !== true) {

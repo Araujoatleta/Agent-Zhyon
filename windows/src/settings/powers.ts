@@ -138,7 +138,7 @@ export function powersSection(makeToggle: Toggle): HTMLElement {
   function sheetCard(v: PowersView): HTMLElement {
     const link = h("input", { type: "text", placeholder: "https://docs.google.com/spreadsheets/d/…" }) as HTMLInputElement;
     link.value = v.sheetLink.id;
-    const tab = h("input", { type: "text", placeholder: t("The first one") }) as HTMLInputElement;
+    const tab = h("input", { type: "text", placeholder: t("AXYON (its own tab)") }) as HTMLInputElement;
     tab.value = v.sheetLink.tab;
     const account = h("input", { type: "text", placeholder: t("gog's default") }) as HTMLInputElement;
     account.value = v.sheetLink.account;
@@ -162,7 +162,7 @@ export function powersSection(makeToggle: Toggle): HTMLElement {
     return glassCard(
       svg(ICONS.doc, 15, { stroke: 1.7 }),
       t("Your Google Sheet"),
-      h("p", { class: "hint", text: t("Your portfolio comes from your own Google Sheet, read through gog with the sign-in your assistant's gog skill uses, read only. A header row names the columns: Ativo and Quantidade, and Preço médio and Classe if you like; a row without a quantity is left out. Read again every 10 minutes and with Refresh. Leave the link empty and save to stop.") }),
+      h("p", { class: "hint", text: t("AXYON keeps your portfolio in its own AXYON tab of your Google Sheet, made there the first time, through gog with the sign-in your assistant's gog skill uses. You both write it: your rows (Ativo, Classe, Quantidade, Preço médio, Meu teto; a ticker with your ceiling and no quantity is watched) are read back every 10 minutes and with Refresh, and what you ask AXYON in the chat (a buy, a sale, a ceiling) is written there at once. Beside them AXYON writes the price now, the result, its own ceilings and what to watch. Name another tab to have it only read. Your other tabs are never written. Leave the link empty and save to stop.") }),
       ...(v.gog ? [] : [notice(t("gog was not found on this computer: install it (github.com/openclaw/gogcli) and sign in with gog auth add, as your assistant's gog skill does."), false)]),
       h("div", { class: "zheus-grid" }, field(t("Sheet link or ID"), [link]), field(t("Tab"), [tab]), field(t("gog account"), [account])),
       sheetStatus,
