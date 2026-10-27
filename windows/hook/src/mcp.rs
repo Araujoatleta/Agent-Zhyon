@@ -23,11 +23,12 @@ const START_BUDGET: Duration = Duration::from_secs(25);
 /// Where Coucou writes its own path, next to this relay (hooks.rs, note_app_path): what starts it when it is closed.
 const APP_FILE: &str = "coucou-app.txt";
 const TOOLS: &str = include_str!("house_tools.json");
-const INSTRUCTIONS: &str = "Coucou is the app where Mochi lives on the user's screen. The home_ and zheus_ tools act on the \
-user's home through Coucou: only the devices the user let agents use, and the actions each one reported. Some actions \
-wait for the user's approval in Coucou. Call home_devices first when you do not know a device. The wealth_ and life_ \
-tools are Zheus' superpowers: the user's portfolio read against Brazil's official data (B3, the CVM, FundosNet, the \
-Banco Central), and their studies, English and training. They only read and keep the user's own records in Coucou: \
+const INSTRUCTIONS: &str = "AXYON is the app whose character lives at the top of the user's screen. The home_ and zheus_ \
+tools act on the user's home through AXYON: only the devices the user let agents use, and the actions each one reported. \
+Some actions wait for the user's approval in AXYON. Call home_devices first when you do not know a device. The wealth_ \
+and life_ tools are Zheus' superpowers: the user's portfolio (from their own Google Sheet when they linked one) priced \
+during B3's session from Google Finance and read against Brazil's official data (B3, the CVM, FundosNet, the Banco \
+Central), and their studies, English and training. They only read and keep the user's own records in AXYON: \
 they never buy, sell, pay, send or post anything. Call wealth_portfolio before talking about the user's investments, \
 wealth_trade when they tell a buy or a sale they made, wealth_ceiling for ceiling prices, and life_day for their day.";
 
@@ -93,7 +94,8 @@ fn app_path() -> Option<PathBuf> {
 fn app_path_in(dir: &std::path::Path) -> Option<PathBuf> {
     let path = PathBuf::from(std::fs::read_to_string(dir.join(APP_FILE)).ok()?.trim());
     let name = path.file_name()?.to_string_lossy().to_ascii_lowercase();
-    (path.is_absolute() && path.is_file() && name.starts_with("coucou")).then_some(path)
+    // The installed app is coucou.exe; the portable one is AXYON.exe.
+    (path.is_absolute() && path.is_file() && (name.starts_with("coucou") || name.starts_with("axyon"))).then_some(path)
 }
 
 /// Starts Coucou, at most once a minute: a Coucou that cannot start is not started again at every call.
@@ -150,7 +152,7 @@ pub fn answer(message: &Value, client: &mut String, relay: &dyn Fn(&Value) -> Re
                 json!({
                     "protocolVersion": version,
                     "capabilities": { "tools": { "listChanged": false } },
-                    "serverInfo": { "name": "coucou", "title": "Coucou — Mochi's home", "version": env!("CARGO_PKG_VERSION") },
+                    "serverInfo": { "name": "coucou", "title": "AXYON", "version": env!("CARGO_PKG_VERSION") },
                     "instructions": INSTRUCTIONS,
                 }),
             ))
@@ -168,9 +170,9 @@ pub fn answer(message: &Value, client: &mut String, relay: &dyn Fn(&Value) -> Re
             let payload = json!({ "hook_event_name": EVENT, "client": client, "name": name, "arguments": arguments });
             let answer = match relay(&payload) {
                 Relayed::Answer(answer) if answer["content"].is_array() => answer,
-                Relayed::Answer(_) => tool_error("Coucou answered something that is not a tool result. Try again; if it repeats, Coucou needs updating."),
-                Relayed::Closed => tool_error("Coucou is not open on this computer, and it could not be started. Ask the user to open Coucou, then try again."),
-                Relayed::Silent => tool_error("Coucou took the call but did not answer in time (it may still be reading the official sources). Try again in a minute."),
+                Relayed::Answer(_) => tool_error("AXYON answered something that is not a tool result. Try again; if it repeats, AXYON needs updating."),
+                Relayed::Closed => tool_error("AXYON is not open on this computer, and it could not be started. Ask the user to open AXYON, then try again."),
+                Relayed::Silent => tool_error("AXYON took the call but did not answer in time (it may still be reading the official sources). Try again in a minute."),
             };
             Some(result(id, answer))
         }
@@ -248,6 +250,10 @@ mod tests {
         assert_eq!(app_path_in(&dir), None, "another program is never started");
         std::fs::write(dir.join(APP_FILE), "coucou").unwrap();
         assert_eq!(app_path_in(&dir), None, "a relative path is not trusted");
+        let portable = dir.join(if cfg!(windows) { "AXYON.exe" } else { "axyon" });
+        std::fs::write(&portable, b"").unwrap();
+        std::fs::write(dir.join(APP_FILE), portable.display().to_string()).unwrap();
+        assert_eq!(app_path_in(&dir), Some(portable), "the portable app, named AXYON");
         let _ = std::fs::remove_dir_all(&dir);
     }
 }

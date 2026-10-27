@@ -8,15 +8,15 @@ O worker Windows faz apenas conexões HTTPS/WSS de saída. Ele sempre anuncia `h
 
 ## Empacotamento Windows
 
-`npm run pack` compila `coucou-hook` e `coucou-edge-worker` com `Cargo.lock`, gera NSIS e MSI, cria o diretório portátil com `Coucou.exe`, `coucou-hook.exe` e `coucou-edge-worker.exe`, grava `release/SHA256SUMS.txt` e verifica cada SHA-256 imediatamente. O CI executa novamente `npm run verify:artifacts`. Os artifacts do Actions são identificados como `unsigned`; assinatura não é simulada quando os secrets de assinatura não existem.
+`npm run pack` compila `coucou-hook` e `coucou-edge-worker` com `Cargo.lock`, gera NSIS e MSI, cria o diretório portátil com `AXYON.exe`, `coucou-hook.exe` e `coucou-edge-worker.exe`, grava `release/SHA256SUMS.txt` e verifica cada SHA-256 imediatamente. O CI executa novamente `npm run verify:artifacts`. Os artifacts do Actions são identificados como `unsigned`; assinatura não é simulada quando os secrets de assinatura não existem.
 
 NSIS instala `coucou-edge-worker.exe` como recurso do aplicativo e cria a tarefa **Coucou Edge Worker** com gatilho **ONLOGON**, privilégio `LIMITED` e execução na sessão do usuário. A tarefa fica **desabilitada** por padrão: instalação não equivale a consentimento nem a pareamento. O uninstall do NSIS remove a tarefa antes de apagar os arquivos. MSI e pacote portátil contêm o worker, mas não criam autostart. Não use serviço, `SYSTEM` ou Session 0.
 
 Para conferir um download no PowerShell, no diretório que contém o arquivo e o manifesto:
 
 ```powershell
-(Get-FileHash .\Coucou-Windows-0.4.0-setup.exe -Algorithm SHA256).Hash.ToLower()
-Select-String .\SHA256SUMS.txt -Pattern 'Coucou-Windows-0.4.0-setup.exe'
+(Get-FileHash .\AXYON-Windows-0.4.0-setup.exe -Algorithm SHA256).Hash.ToLower()
+Select-String .\SHA256SUMS.txt -Pattern 'AXYON-Windows-0.4.0-setup.exe'
 ```
 
 ## Deploy do VPS

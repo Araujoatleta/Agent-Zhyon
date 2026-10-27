@@ -156,10 +156,27 @@ export function buildPowers(actions: ViewActions): ViewHost {
     drawFoot(v);
   }
 
+  // Looking at the portfolio: its prices are read every minute while the tab is on screen (src-tauri/src/powers,
+  // looked), and at once when the last reading is a minute old.
+  let lookedAt = 0;
+  function look() {
+    if (Date.now() - lookedAt < 60_000) return;
+    lookedAt = Date.now();
+    void Bridge.powersStatus().then((v) => {
+      if (v) {
+        State.powers = v;
+        State.notify();
+      }
+    });
+  }
+
   return {
     el,
     sync() {
-      if (State.view === "powers" && State.mode === "expanded") draw();
+      if (State.view === "powers" && State.mode === "expanded") {
+        draw();
+        look();
+      }
     },
   };
 }

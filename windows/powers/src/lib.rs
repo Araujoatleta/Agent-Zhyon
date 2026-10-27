@@ -23,6 +23,7 @@ pub mod journal;
 pub mod model;
 pub mod portfolio;
 pub mod refresh;
+pub mod sheet;
 pub mod sources;
 pub mod srs;
 pub mod study;

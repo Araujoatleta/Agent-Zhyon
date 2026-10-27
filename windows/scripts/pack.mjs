@@ -27,22 +27,22 @@ const PACKAGES = {
     {
       dir: "nsis",
       suffix: "-setup.exe",
-      names: [`Coucou-Windows-${version}-setup.exe`, "Coucou-Windows-setup.exe"],
+      names: [`AXYON-Windows-${version}-setup.exe`, "AXYON-Windows-setup.exe"],
     },
     {
       dir: "msi",
       suffix: ".msi",
-      names: [`Coucou-Windows-${version}.msi`, "Coucou-Windows.msi"],
+      names: [`AXYON-Windows-${version}.msi`, "AXYON-Windows.msi"],
     },
   ],
   linux: [
     {
       dir: "appimage",
       suffix: ".AppImage",
-      names: [`Coucou-Linux-${version}-${arch}.AppImage`, `Coucou-Linux-${arch}.AppImage`],
+      names: [`AXYON-Linux-${version}-${arch}.AppImage`, `AXYON-Linux-${arch}.AppImage`],
     },
-    { dir: "deb", suffix: ".deb", names: [`Coucou-Linux-${version}-${debArch}.deb`] },
-    { dir: "rpm", suffix: ".rpm", names: [`Coucou-Linux-${version}-${arch}.rpm`] },
+    { dir: "deb", suffix: ".deb", names: [`AXYON-Linux-${version}-${debArch}.deb`] },
+    { dir: "rpm", suffix: ".rpm", names: [`AXYON-Linux-${version}-${arch}.rpm`] },
   ],
 };
 
@@ -122,9 +122,9 @@ function pack() {
   }
 
   if (process.platform === "win32") {
-    const portable = join(outDir, `Coucou-Windows-${version}-portable`);
+    const portable = join(outDir, `AXYON-Windows-${version}-portable`);
     for (const name of ["coucou.exe", "coucou-hook.exe", "coucou-edge-worker.exe"]) {
-      const destination = join(portable, name === "coucou.exe" ? "Coucou.exe" : basename(name));
+      const destination = join(portable, name === "coucou.exe" ? "AXYON.exe" : basename(name));
       copy(join(root, "target", "release", name), destination, written);
     }
   }

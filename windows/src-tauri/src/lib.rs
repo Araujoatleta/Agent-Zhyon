@@ -49,7 +49,7 @@ use std::sync::{Arc, Mutex};
 
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, State, WebviewUrl, WebviewWindowBuilder};
-use tauri_plugin_autostart::{ManagerExt, MacosLauncher};
+use tauri_plugin_autostart::ManagerExt;
 
 use chat::{Chat, ChatContext, ChatReply, ModelInfo};
 use files::DroppedFile;
@@ -811,7 +811,9 @@ pub fn run() {
                 }
             }
         }))
-        .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None));
+        // "Start with Windows" (and the Linux session) keeps the entry it had when the app was Coucou: an entry made
+        // by an earlier build is the same one, so it is never doubled nor left behind (the uninstaller removes it).
+        .plugin(tauri_plugin_autostart::Builder::new().app_name("Coucou").build());
     // Where no global shortcut can work, the plugin isn't even started.
     if platform::global_shortcuts_blocked().is_none() {
         builder = builder.plugin(shortcuts::plugin());
@@ -1002,6 +1004,7 @@ pub fn run() {
             powers::powers_status,
             powers::powers_set,
             powers::powers_refresh,
+            powers::powers_sheet,
             powers::powers_import,
             powers::powers_paste,
             powers::powers_save,

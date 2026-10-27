@@ -87,9 +87,9 @@ jobs:
       - uses: actions/upload-artifact@v7
         if: github.event_name == 'workflow_dispatch' || env.PUBLISH == 'true'
         with:
-          name: Coucou-Windows-setup-unsigned
+          name: AXYON-Windows-setup-unsigned
           path: |
-            windows/release/Coucou-Windows-${{ steps.pack.outputs.version }}-setup.exe
+            windows/release/AXYON-Windows-${{ steps.pack.outputs.version }}-setup.exe
             windows/release/SHA256SUMS.txt
           retention-days: 3
 
@@ -98,9 +98,9 @@ jobs:
       - uses: actions/upload-artifact@v7
         if: github.event_name == 'workflow_dispatch' || env.PUBLISH == 'true'
         with:
-          name: Coucou-Windows-msi-unsigned
+          name: AXYON-Windows-msi-unsigned
           path: |
-            windows/release/Coucou-Windows-${{ steps.pack.outputs.version }}.msi
+            windows/release/AXYON-Windows-${{ steps.pack.outputs.version }}.msi
             windows/release/SHA256SUMS.txt
           retention-days: 3
 
@@ -109,11 +109,11 @@ jobs:
       - uses: actions/upload-artifact@v7
         if: github.event_name == 'workflow_dispatch' || env.PUBLISH == 'true'
         with:
-          name: Coucou-Windows-portable-unsigned
+          name: AXYON-Windows-portable-unsigned
           path: |
-            windows/release/Coucou-Windows-${{ steps.pack.outputs.version }}-portable/Coucou.exe
-            windows/release/Coucou-Windows-${{ steps.pack.outputs.version }}-portable/coucou-hook.exe
-            windows/release/Coucou-Windows-${{ steps.pack.outputs.version }}-portable/coucou-edge-worker.exe
+            windows/release/AXYON-Windows-${{ steps.pack.outputs.version }}-portable/AXYON.exe
+            windows/release/AXYON-Windows-${{ steps.pack.outputs.version }}-portable/coucou-hook.exe
+            windows/release/AXYON-Windows-${{ steps.pack.outputs.version }}-portable/coucou-edge-worker.exe
             windows/release/SHA256SUMS.txt
           retention-days: 3
 
@@ -127,7 +127,7 @@ jobs:
           $notes = @"
           Coucou for Windows $v — Mochi at the top of your screen.
 
-          Download ``Coucou-Windows-$v.msi`` (Windows Installer) or ``Coucou-Windows-$v-setup.exe`` and run it. The installer is not
+          Download ``AXYON-Windows-$v.msi`` (Windows Installer) or ``AXYON-Windows-$v-setup.exe`` and run it. The installer is not
           code-signed yet, so Windows SmartScreen shows a warning: click
           **More info → Run anyway**.
           "@
@@ -136,8 +136,8 @@ jobs:
           # button points at /releases/latest. A Windows tag would silently send
           # Mac users to the .exe. The macOS `v*` releases own that slot.
           gh release create "${{ github.ref_name }}" `
-            "release/Coucou-Windows-$v-setup.exe" `
-            "release/Coucou-Windows-$v.msi" `
+            "release/AXYON-Windows-$v-setup.exe" `
+            "release/AXYON-Windows-$v.msi" `
             "release/SHA256SUMS.txt" `
             --title "Coucou for Windows $v" `
             --notes $notes `
@@ -158,11 +158,11 @@ jobs:
             git tag -f windows-latest "${{ github.sha }}"
             git push -f origin windows-latest
             gh release edit windows-latest --title "Coucou for Windows (latest)" --notes "Always the newest Windows build — currently $v."
-            gh release upload windows-latest "release/Coucou-Windows-setup.exe" "release/Coucou-Windows.msi" "release/SHA256SUMS.txt" --clobber
+            gh release upload windows-latest "release/AXYON-Windows-setup.exe" "release/AXYON-Windows.msi" "release/SHA256SUMS.txt" --clobber
           } else {
             gh release create windows-latest `
-              "release/Coucou-Windows-setup.exe" `
-              "release/Coucou-Windows.msi" `
+              "release/AXYON-Windows-setup.exe" `
+              "release/AXYON-Windows.msi" `
               "release/SHA256SUMS.txt" `
               --title "Coucou for Windows (latest)" `
               --notes "Always the newest Windows build — currently $v." `

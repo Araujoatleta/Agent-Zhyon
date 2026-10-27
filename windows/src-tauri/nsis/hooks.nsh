@@ -565,7 +565,23 @@ FunctionEnd
   ExecWait '"$SYSDIR\schtasks.exe" /End /TN "Coucou Edge Worker"' $0
 !macroend
 
+; The app was Coucou before it was AXYON: a shortcut of that name that opens this app becomes AXYON's, or goes when
+; AXYON's is already there. Shortcuts pinned to the taskbar are left as they are: they still open the app.
+!macro CoucouOldShortcut DIR
+  !insertmacro IsShortcutTarget "${DIR}\Coucou.lnk" "$INSTDIR\${MAINBINARYNAME}.exe"
+  Pop $0
+  ${If} $0 = 1
+    ${If} ${FileExists} "${DIR}\${PRODUCTNAME}.lnk"
+      Delete "${DIR}\Coucou.lnk"
+    ${Else}
+      Rename "${DIR}\Coucou.lnk" "${DIR}\${PRODUCTNAME}.lnk"
+    ${EndIf}
+  ${EndIf}
+!macroend
+
 !macro NSIS_HOOK_POSTINSTALL
+  !insertmacro CoucouOldShortcut "$SMPROGRAMS"
+  !insertmacro CoucouOldShortcut "$DESKTOP"
   Call CoucouSaveChoices
   ; These are non-secret settings. The durable identity stays in Credential Manager.
   StrCpy $CoucouVpsUrl "https://coucou-relay.navellux.com.br/control"
@@ -614,6 +630,10 @@ FunctionEnd
 ; printing anything, so a leftover entry costs nothing beyond a dead path.
 
 !macro NSIS_HOOK_PREUNINSTALL
+  ; "Start with Windows" keeps the name it had when the app was Coucou (lib.rs): it goes with the app, not on an update.
+  ${If} $UpdateMode <> 1
+    DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "Coucou"
+  ${EndIf}
   ExecWait '"$SYSDIR\schtasks.exe" /End /TN "Coucou Edge Worker"' $0
   ExecWait '"$SYSDIR\schtasks.exe" /Delete /TN "Coucou Edge Worker" /F' $0
   ReadRegStr $1 HKCU "Software\Coucou\EdgeWorker" "IdentityServer"

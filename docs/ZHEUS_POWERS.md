@@ -75,6 +75,8 @@ And "What is my day?" — between 7 and 11, once a day, the island says it by it
 
 | Source | What | When |
 | --- | --- | --- |
+| Google Finance (its quote page) | each asset's price during the session (some 15 minutes late) | B3's trading days, 10:00–18:30 in Brasília: every 5 minutes, every minute while the ★ tab or Settings shows it, and before Zheus answers about the portfolio |
+| Your Google Sheet, through gog | your positions (asset, quantity, average price, class) | every 10 minutes, and with Refresh |
 | B3 (COTAHIST) | each asset's close | when B3 publishes the day (in the evening) |
 | CVM, the funds' monthly reports | VP per share, dividend yield, holders, segment | once a week |
 | FundosNet | notices, material facts, assemblies, offerings and dividend notices | once a day |
@@ -84,6 +86,25 @@ And "What is my day?" — between 7 and 11, once a day, the island says it by it
 While the superpowers are on, Coucou wakes every half hour to see what is due; when nothing is, nothing is read. A
 question to Zheus waits about 20 seconds at most for what is due (and up to 40 for an asset you do not hold); the
 reading goes on behind it and the next question has the rest.
+
+### Your portfolio from your Google Sheet
+
+Settings → Zheus' superpowers → **Your Google Sheet**: paste the sheet's link (or its ID), the tab to read (empty: the
+first one) and gog's account (empty: gog's default), then **Save and read**. AXYON reads it with
+[gog](https://github.com/openclaw/gogcli), the command your assistant's gog skill already uses, with gog's own sign-in
+and read only (`gog sheets get … --readonly`): AXYON never writes to the sheet and never sees the sign-in. A header row
+names the columns — **Ativo** (or Ticker, Código) and **Quantidade** (or Qtd, Cotas), and if you like **Preço médio**
+and **Classe**; for fixed income, a **Valor atual** (or Saldo) column. Each row with a B3 ticker and a quantity is a
+position, the same ticker twice is added up, a row without a quantity is left out (a watch list), and a total row is
+skipped. The sheet is the record: what it holds replaces the positions (a copy is kept first, only when they changed),
+while the targets, goals and history stay. A position changed in the chat lasts until the next reading: Zheus says so
+and points to the sheet.
+
+### The price during the session
+
+During B3's session the portfolio, the ceilings and the opportunities use Google Finance's price (its quote page: no
+key, no account), shown on the ★ tab as "Google Finance at 15:16". Google gives B3's prices some 15 minutes late. In
+the evening B3's official close takes over again.
 
 ## Your data
 

@@ -19,6 +19,8 @@ export interface PowersSummary {
   value: number;
   gainPct: number | null;
   pricedOn: string | null;
+  /** When the newest of the session's prices (Google Finance) was, unix seconds, when the value uses some. */
+  liveAt: number | null;
   classes: ClassLine[];
   /** R$ a month. */
   income: number;
@@ -40,6 +42,29 @@ export interface RefreshState {
   running: boolean;
   at: string | null;
   problems: string[];
+}
+
+/** The last reading of the session's prices. */
+export interface LiveState {
+  at: string | null;
+  /** The assets Google Finance gave no price for. */
+  missed: string[];
+}
+
+/** The user's Google Sheet, as Settings keeps it. */
+export interface SheetLink {
+  id: string;
+  tab: string;
+  account: string;
+}
+
+/** The last reading of the user's sheet. */
+export interface SheetState {
+  running: boolean;
+  at: string | null;
+  positions: number;
+  problem: string | null;
+  skipped: string[];
 }
 
 export interface PowersProfile {
@@ -81,6 +106,11 @@ export interface PowersView {
   hermes: "" | "ready" | "missing";
   /** coucou-hook, for another Hermes' config. */
   command: string;
+  live: LiveState;
+  sheetLink: SheetLink;
+  sheet: SheetState;
+  /** gog is on this computer. */
+  gog: boolean;
 }
 
 export interface KitFile {
@@ -173,18 +203,41 @@ export function incomeProgress(s: PowersSummary): number | null {
   return Math.max(0, Math.min(100, (s.income / s.incomeGoal) * 100));
 }
 
-/** The line under the portfolio's value: when it was priced, and the gain. */
+/** The line under the portfolio's value: the gain, and where the prices come from (the session's from Google
+ *  Finance, else B3's last close). */
 export function pricedLine(s: PowersSummary): string {
   const parts: string[] = [];
   if (s.gainPct != null) parts.push(t("{gain} on cost", { gain: percent(s.gainPct, 1, true) }));
-  if (s.pricedOn) parts.push(t("B3's close of {date}", { date: brDate(s.pricedOn) }));
+  if (s.liveAt) parts.push(t("Google Finance at {time}", { time: clockOf(s.liveAt) }));
+  else if (s.pricedOn) parts.push(t("B3's close of {date}", { date: brDate(s.pricedOn) }));
   return parts.join(" · ");
+}
+
+/** Unix seconds as "15:16", on this computer's clock. */
+export function clockOf(unix: number): string {
+  const d = new Date(unix * 1000);
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
 /** "2026-10-20" as "20/10". */
 export function brDate(iso: string): string {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
   return m ? `${m[3]}/${m[2]}` : iso;
+}
+
+/** The user's sheet's last reading, for Settings. */
+export function sheetLine(v: PowersView): string {
+  const s = v.sheet;
+  if (s.running) return t("Reading the sheet…");
+  if (s.problem) return s.problem;
+  if (s.at) return t("Sheet read at {time}: {count} positions", { time: s.at, count: s.positions });
+  return t("The sheet is read in a moment.");
+}
+
+/** The session's prices: where they come from, and when they were last read. */
+export function liveLine(v: PowersView): string {
+  const base = v.live.at ? t("Prices from Google Finance read at {time}", { time: v.live.at }) : t("Prices from Google Finance during B3's session");
+  return `${base} · ${t("some 15 minutes late; B3's official close in the evening")}`;
 }
 
 /** The official data's state, for the island's foot and Settings. */

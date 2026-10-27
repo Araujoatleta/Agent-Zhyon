@@ -1,6 +1,7 @@
 //! The official sources Zheus reads, and how each is fetched: B3's daily quotes, the CVM's open data on funds and
-//! companies, FundosNet's documents and dividends, and the Banco Central's rates and survey. All free, no key, no
-//! account; only these addresses are ever contacted, and only while the user has them on.
+//! companies, FundosNet's documents and dividends, and the Banco Central's rates and survey; and, for the price during
+//! the session, Google Finance's quote page. All free, no key, no account; only these addresses are ever contacted,
+//! and only while the user has them on.
 
 pub mod b3;
 pub mod bcb;
@@ -8,11 +9,18 @@ pub mod cvm_cia;
 pub mod cvm_fii;
 pub mod fetch;
 pub mod fnet;
+pub mod gfinance;
 
 use std::collections::{HashMap, HashSet};
 
 use crate::date::{is_business_day, previous_business_day, Date};
 use fetch::Http;
+
+/// The price of `ticker` during the session, from Google Finance's quote page.
+pub async fn live_price(http: &Http, ticker: &str) -> Result<gfinance::Live, String> {
+    let page = http.page(&gfinance::url(ticker)).await?;
+    gfinance::parse(&page, ticker).ok_or_else(|| format!("Google Finance shows no price for {ticker}"))
+}
 
 /// The latest closing quotes of `tickers`: the newest day B3 has published, looking back from `today` (today's own
 /// file only once the evening has come, `evening`), and never back to `have` (a day already read: its file is not

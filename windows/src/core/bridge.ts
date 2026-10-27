@@ -470,6 +470,8 @@ export const Bridge = {
   powersSet: (on: boolean) => callOrThrow<PowersView>("powers_set", { on }),
   /** Everything that may have changed, read again now (in the background). */
   powersRefresh: () => callOrThrow<PowersView>("powers_refresh"),
+  /** Settings: the Google Sheet the portfolio comes from (read through gog); an empty link stops reading it. */
+  powersSheet: (id: string, tab: string, account: string) => callOrThrow<PowersView>("powers_sheet", { id, tab, account }),
   /** A file of B3's Área do Investidor (or a broker's table), as its bytes. */
   powersImport: (name: string, bytes: number[]) => callOrThrow<{ text: string; view: PowersView }>("powers_import", { name, bytes }),
   powersPaste: (text: string) => callOrThrow<{ text: string; view: PowersView }>("powers_paste", { text }),

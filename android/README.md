@@ -62,7 +62,7 @@ The desktop side is in `windows/src-tauri/src/phone_link`; the protocol is `docs
 
 ## Getting the phone link running on Windows
 
-1. Download the portable build from the repository's **Windows** workflow run (Actions, Windows, the `Coucou-Windows-portable`
+1. Download the portable build from the repository's **Windows** workflow run (Actions, Windows, the `AXYON-Windows-portable`
    artifact). It holds `coucou.exe` and `coucou-hook.exe`.
 2. **Close any other Coucou first.** An installed copy (for example in `C:\Program Files\Coucou`) starts at login and has no
    phone link, so the phone would say "Connecting…" forever. Then start the portable `coucou.exe`.

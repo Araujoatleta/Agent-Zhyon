@@ -1,10 +1,13 @@
 <div align="center">
 
-<img src="src-tauri/icons/128x128.png" width="96" alt="Coucou icon">
+<img src="src-tauri/icons/128x128.png" width="96" alt="AXYON icon">
 
-# Coucou for Windows
+# AXYON for Windows
 
-**Mochi doesn't get a notch on a PC — so it lives at the top of your screen instead.**
+**AXYON doesn't get a notch on a PC — so it lives at the top of your screen instead.**
+
+*AXYON was Coucou, and its character Mochi; the assistant's engine, Hermes Agent, is AXYON Core. The pages below still
+use the earlier names in places; the folders, settings and commands they name are unchanged.*
 
 Approve Claude Code permissions, watch your session work, drop a file, chat with Claude, keep an eye on your services — without leaving what you're doing.
 
@@ -441,8 +444,8 @@ ships in the app.
 workflow publishes:
 
 ```
-Coucou-Windows-X.Y.Z-setup.exe    the versioned installer
-Coucou-Windows-setup.exe          the same file under the rolling name
+AXYON-Windows-X.Y.Z-setup.exe     the versioned installer
+AXYON-Windows-setup.exe           the same file under the rolling name
 ```
 
 The setup.exe is built from `src-tauri/nsis/installer.nsi`, a copy of the NSIS

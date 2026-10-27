@@ -9,10 +9,12 @@
 // Off by default (Settings → Zheus' superpowers). Only B3, the CVM, FundosNet and the Banco Central are contacted, for
 // public data, with no account and nothing about the user sent. Nothing here buys, sells, pays, sends or posts.
 
+mod sheet;
+
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use coucou_powers::date::Date;
 use coucou_powers::day::{self, Item};
@@ -37,6 +39,22 @@ const READ_BUDGET: Duration = Duration::from_secs(20);
 /// The longest a tool waits for an asset the user does not hold: its quote, its fund's reports and notices, or its
 /// company's statements.
 const ASSET_BUDGET: Duration = Duration::from_secs(40);
+/// The session's prices (Google Finance) are read again this often while B3 trades…
+const LIVE_EVERY: Duration = Duration::from_secs(5 * 60);
+/// …and this often while the ★ tab or Settings shows them.
+const LIVE_LOOKED: Duration = Duration::from_secs(60);
+/// How long a look at the ★ tab counts as looking.
+const LOOK_LASTS: Duration = Duration::from_secs(150);
+/// A pause between two of Google's pages: one asset after the other, gently.
+const LIVE_PAUSE: Duration = Duration::from_millis(400);
+/// The most assets read in one round.
+const LIVE_MOST: usize = 40;
+/// The longest a tool waits for the session's prices.
+const LIVE_BUDGET: Duration = Duration::from_secs(15);
+/// The user's sheet is read again this often.
+const SHEET_EVERY: Duration = Duration::from_secs(10 * 60);
+/// What the portfolio's source says when it comes from the sheet.
+const SHEET_SOURCE: &str = "Google Sheets";
 /// Copies of the user's data kept before a list is replaced.
 const BACKUPS: usize = 10;
 /// The largest image the island may save into the content folder.
@@ -56,6 +74,41 @@ pub struct Powers {
     briefed: Mutex<String>,
     /// Companies whose statements could not be read today: not asked again before tomorrow.
     failed: Mutex<Vec<(String, Date)>>,
+    /// The session's prices: the last reading, one at a time, and the loop that reads them.
+    live: Mutex<LiveState>,
+    live_read: Mutex<Option<Instant>>,
+    live_running: AtomicBool,
+    live_watching: AtomicBool,
+    /// When the ★ tab or Settings last asked for the view.
+    looked_at: Mutex<Option<Instant>>,
+    /// The user's sheet: the last reading, one at a time.
+    sheet: Mutex<SheetState>,
+    sheet_read: Mutex<Option<Instant>>,
+    sheet_running: AtomicBool,
+}
+
+/// The last reading of the session's prices.
+#[derive(Debug, Clone, Default, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LiveState {
+    /// When it ended ("15:20").
+    pub at: Option<String>,
+    /// The assets Google Finance gave no price for.
+    pub missed: Vec<String>,
+}
+
+/// The last reading of the user's sheet.
+#[derive(Debug, Clone, Default, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SheetState {
+    pub running: bool,
+    /// When it was last read ("15:20").
+    pub at: Option<String>,
+    pub positions: usize,
+    /// Why it could not be read, in the user's language.
+    pub problem: Option<String>,
+    /// Rows left out, and why.
+    pub skipped: Vec<String>,
 }
 
 /// The last reading of the official sources.
@@ -80,6 +133,14 @@ impl Powers {
             watching: AtomicBool::new(false),
             briefed: Mutex::new(String::new()),
             failed: Mutex::new(Vec::new()),
+            live: Mutex::new(LiveState::default()),
+            live_read: Mutex::new(None),
+            live_running: AtomicBool::new(false),
+            live_watching: AtomicBool::new(false),
+            looked_at: Mutex::new(None),
+            sheet: Mutex::new(SheetState::default()),
+            sheet_read: Mutex::new(None),
+            sheet_running: AtomicBool::new(false),
         }
     }
 }
@@ -180,6 +241,26 @@ fn evening() -> bool {
 fn clock_now() -> String {
     let t = crate::platform::local_time();
     format!("{:02}:{:02}", t.hour, t.minute)
+}
+
+/// Now in Brasília (UTC−3, B3's own time): its day and its minute of the day.
+fn brasilia() -> (Date, u32) {
+    let secs = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs() as i64).unwrap_or(0) - 3 * 3600;
+    (Date::from_days(secs.div_euclid(86_400)), (secs.rem_euclid(86_400) / 60) as u32)
+}
+
+/// B3 trades, with a margin for its closing call and Google's 15 minutes: a trading day, 10:00 to 18:30 in Brasília.
+fn session_open() -> bool {
+    let (day, minute) = brasilia();
+    in_session(day, minute)
+}
+
+fn in_session(day: Date, minute: u32) -> bool {
+    coucou_powers::date::is_business_day(day, true) && (10 * 60..18 * 60 + 30).contains(&minute)
+}
+
+fn since(lock: &Mutex<Option<Instant>>, longer_than: Duration) -> bool {
+    held(lock).is_none_or(|t| t.elapsed() >= longer_than)
 }
 
 // ── Reading the sources ───────────────────────────────────────────────────────
@@ -345,6 +426,7 @@ pub fn start(app: &AppHandle) {
     if !enabled(app) || app.state::<Powers>().watching.swap(true, Ordering::SeqCst) {
         return;
     }
+    let app_for_live = app.clone();
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
         tokio::time::sleep(Duration::from_secs(20)).await;
@@ -372,6 +454,147 @@ pub fn start(app: &AppHandle) {
         }
     });
     log::line("powers: reading the official data while on");
+    start_live(&app_for_live);
+}
+
+// ── The session's prices and the user's sheet ─────────────────────────────────
+
+/// The assets priced during the session: those held that B3 quotes, and those the user set a ceiling for.
+fn live_tickers(store: &Store) -> Vec<String> {
+    let mut out = store.portfolio.tickers(None);
+    for t in store.ceilings.manual.keys() {
+        if !out.contains(t) {
+            out.push(t.clone());
+        }
+    }
+    out.truncate(LIVE_MOST);
+    out
+}
+
+/// The session's prices of the assets, from Google Finance, one page after the other; kept, shown, and the
+/// opportunities they make told. One reading at a time.
+async fn read_live(app: &AppHandle) {
+    let powers = app.state::<Powers>();
+    if powers.live_running.swap(true, Ordering::SeqCst) {
+        return;
+    }
+    let tickers = read(app, |s, _| live_tickers(s));
+    let mut got = Vec::new();
+    let mut missed = Vec::new();
+    for (i, ticker) in tickers.iter().enumerate() {
+        if i > 0 {
+            tokio::time::sleep(LIVE_PAUSE).await;
+        }
+        match sources::live_price(&powers.http, ticker).await {
+            Ok(live) => got.push((ticker.clone(), live.price, live.at)),
+            Err(_) => missed.push(ticker.clone()),
+        }
+    }
+    if !got.is_empty() {
+        let mut market = held(&powers.market);
+        market.keep_live(got.iter().cloned());
+        save_market(&market);
+    }
+    if !missed.is_empty() {
+        log::line(format!("powers: Google Finance gave no price for {}", missed.join(", ")));
+    }
+    *held(&powers.live) = LiveState { at: Some(clock_now()), missed };
+    *held(&powers.live_read) = Some(Instant::now());
+    powers.live_running.store(false, Ordering::SeqCst);
+    changed(app);
+    if !got.is_empty() {
+        tell_opportunities(app);
+    }
+}
+
+/// The user's sheet, read again: its positions replace the portfolio's (a copy kept first, only when they changed).
+/// Nothing is replaced by an empty sheet or one that could not be read.
+async fn sync_sheet(app: &AppHandle) {
+    let powers = app.state::<Powers>();
+    let link = read(app, |s, _| s.sheet.clone());
+    if link.id.trim().is_empty() || powers.sheet_running.swap(true, Ordering::SeqCst) {
+        return;
+    }
+    held(&powers.sheet).running = true;
+    changed(app);
+    let result = sheet::read(&link).await;
+    let previous = held(&powers.sheet).clone();
+    let state = match result {
+        Ok(found) if found.positions.is_empty() => SheetState {
+            problem: Some(t("The sheet has no position: a row needs a B3 ticker and a quantity.")),
+            skipped: found.skipped,
+            ..previous
+        },
+        Ok(found) => {
+            let count = found.positions.len();
+            let today = today();
+            let replaced = change(app, |store, market| {
+                let positions = coucou_powers::sheet::with_known(found.positions, &store.portfolio.positions);
+                if positions == store.portfolio.positions && store.portfolio.source == SHEET_SOURCE {
+                    return false;
+                }
+                backup(store);
+                store.portfolio.positions = positions;
+                store.portfolio.source = SHEET_SOURCE.into();
+                store.portfolio.updated = Some(today);
+                refresh::fix_classes(store, market);
+                true
+            });
+            if replaced {
+                log::line(format!("powers: the portfolio read from the user's sheet ({count} positions)"));
+            }
+            SheetState { running: false, at: Some(clock_now()), positions: count, problem: None, skipped: found.skipped }
+        }
+        Err(e) => {
+            log::line(format!("powers: the sheet could not be read: {e}"));
+            SheetState { problem: Some(tf("The sheet could not be read: {error}", &[("error", &e)])), ..previous }
+        }
+    };
+    *held(&powers.sheet) = SheetState { running: false, ..state };
+    *held(&powers.sheet_read) = Some(Instant::now());
+    powers.sheet_running.store(false, Ordering::SeqCst);
+    changed(app);
+}
+
+/// While the superpowers are on: the user's sheet every ten minutes, and during B3's session its prices every five
+/// minutes, every minute while the ★ tab or Settings shows them. Outside the session nothing is asked of Google.
+fn start_live(app: &AppHandle) {
+    if app.state::<Powers>().live_watching.swap(true, Ordering::SeqCst) {
+        return;
+    }
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        tokio::time::sleep(Duration::from_secs(8)).await;
+        loop {
+            if !enabled(&app) {
+                app.state::<Powers>().live_watching.store(false, Ordering::SeqCst);
+                return;
+            }
+            let powers = app.state::<Powers>();
+            let looked = !since(&powers.looked_at, LOOK_LASTS);
+            let round = app.clone();
+            let sheet_due = since(&powers.sheet_read, SHEET_EVERY);
+            let live_due = session_open() && since(&powers.live_read, if looked { LIVE_LOOKED } else { LIVE_EVERY } - Duration::from_secs(5));
+            if (sheet_due || live_due)
+                && tauri::async_runtime::spawn(async move {
+                    if sheet_due {
+                        sync_sheet(&round).await;
+                    }
+                    if live_due {
+                        read_live(&round).await;
+                    }
+                })
+                .await
+                .is_err()
+            {
+                let powers = app.state::<Powers>();
+                powers.live_running.store(false, Ordering::SeqCst);
+                powers.sheet_running.store(false, Ordering::SeqCst);
+                log::line("powers: a reading of the session's prices stopped on a panic");
+            }
+            tokio::time::sleep(Duration::from_secs(20)).await;
+        }
+    });
 }
 
 /// The opportunities found since they were last told (a week ago, or 5 points less far below): said on the island,
@@ -487,6 +710,14 @@ fn refused(text: String) -> HomeResult {
     HomeResult { ok: false, detail: coucou_powers::text::clip(&text, 120), text }
 }
 
+/// When the portfolio comes from the user's sheet, positions changed by a tool last until the sheet is read again.
+fn sheet_note(app: &AppHandle, text: String) -> String {
+    if read(app, |s, _| s.sheet.id.is_empty()) {
+        return text;
+    }
+    format!("{text}\n\nNote: the user's portfolio comes from their Google Sheet, which AXYON reads again every 10 minutes, so positions changed here are replaced then. To keep a change, it goes into the sheet (the user's own gog skill can write it there, with their OK).")
+}
+
 /// The tools that read the official data: what is due is read first.
 fn reads_market(tool: &str) -> bool {
     matches!(tool, "wealth_portfolio" | "wealth_fii" | "wealth_events" | "wealth_plan" | "wealth_audit" | "wealth_macro" | "wealth_committee" | "wealth_ceiling" | "life_day")
@@ -509,6 +740,11 @@ pub async fn call(app: &AppHandle, tool: &str, input: &Value) -> HomeResult {
     }
     if reads_market(tool) {
         fresh(app, READ_BUDGET).await;
+        if session_open() && since(&app.state::<Powers>().live_read, Duration::from_secs(120)) {
+            let reading = app.clone();
+            let job = tauri::async_runtime::spawn(async move { read_live(&reading).await });
+            let _ = tokio::time::timeout(LIVE_BUDGET, job).await;
+        }
     }
     if let Some(asset) = asked_asset(tool, input) {
         ensure_asset(app, &asset).await;
@@ -531,7 +767,7 @@ pub async fn call(app: &AppHandle, tool: &str, input: &Value) -> HomeResult {
                     for t in input["fund_cnpjs"].as_object().into_iter().flat_map(|o| o.keys()).filter_map(|k| coucou_powers::text::ticker(k)) {
                         text.push_str(&format!("\n\n{}", read(app, |s, m| engine::funds(s, m, Some(&t), today))));
                     }
-                    answer(text)
+                    answer(sheet_note(app, text))
                 }
                 Err(e) => refused(e),
             }
@@ -548,7 +784,7 @@ pub async fn call(app: &AppHandle, tool: &str, input: &Value) -> HomeResult {
             Some(ticker) => answer(change(app, |s, m| engine::company_view(s, m, &ticker, input, today).0)),
             None => refused("wealth_company needs the share's ticker (\"TIMS3\").".into()),
         },
-        "wealth_trade" => change(app, |s, m| engine::trade_view(s, m, input, today)).map_or_else(refused, answer),
+        "wealth_trade" => change(app, |s, m| engine::trade_view(s, m, input, today)).map_or_else(refused, |text| answer(sheet_note(app, text))),
         "wealth_ceiling" => change(app, |s, m| engine::ceiling_view(s, m, input, today)).map_or_else(refused, answer),
         "wealth_plan" => answer(read(app, |s, m| engine::plan(s, m, input, today))),
         "wealth_audit" => answer(read(app, |s, m| engine::audit_view(s, m, input, today))),
@@ -683,6 +919,12 @@ pub struct View {
     pub hermes: String,
     /// The program an MCP client starts, with `--mcp`.
     pub command: String,
+    /// The session's prices: the last reading.
+    pub live: LiveState,
+    /// The user's sheet: which one, its last reading, and whether gog is on this computer.
+    pub sheet_link: coucou_powers::sheet::SheetLink,
+    pub sheet: SheetState,
+    pub gog: bool,
 }
 
 fn money(v: f64) -> String {
@@ -808,6 +1050,10 @@ pub fn view(app: &AppHandle) -> View {
         profile,
         hermes: hermes_state(app),
         command: settings::hook_exe_path().to_string_lossy().to_string(),
+        live: held(&app.state::<Powers>().live).clone(),
+        sheet_link: read(app, |s, _| s.sheet.clone()),
+        sheet: held(&app.state::<Powers>().sheet).clone(),
+        gog: sheet::program().is_some(),
     }
 }
 
@@ -865,7 +1111,21 @@ fn save_setting(app: &AppHandle, on: bool) {
 #[tauri::command]
 pub fn powers_status(app: AppHandle, window: WebviewWindow) -> Result<View, String> {
     ours(&window)?;
+    looked(&app);
     Ok(view(&app))
+}
+
+/// The ★ tab or Settings shows the portfolio: its prices are read every minute for a while, and now when the last
+/// reading is a minute old.
+fn looked(app: &AppHandle) {
+    let powers = app.state::<Powers>();
+    *held(&powers.looked_at) = Some(Instant::now());
+    if enabled(app) && session_open() && since(&powers.live_read, LIVE_LOOKED) {
+        let reading = app.clone();
+        tauri::async_runtime::spawn(async move {
+            read_live(&reading).await;
+        });
+    }
 }
 
 /// Settings → Zheus' superpowers: on or off. On starts the background reading and gives Hermes the tools (when Coucou
@@ -896,8 +1156,42 @@ pub fn powers_refresh(app: AppHandle, window: WebviewWindow) -> Result<View, Str
     }
     let reading = app.clone();
     tauri::async_runtime::spawn(async move {
+        sync_sheet(&reading).await;
+        if session_open() {
+            read_live(&reading).await;
+        }
         refresh(&reading, true).await;
     });
+    Ok(view(&app))
+}
+
+/// Settings → Zheus' superpowers → Your Google Sheet: which sheet the portfolio comes from (its link or ID, the tab,
+/// gog's account), read at once. An empty link stops reading it (the portfolio stays as it is).
+#[tauri::command]
+pub fn powers_sheet(app: AppHandle, window: WebviewWindow, id: String, tab: String, account: String) -> Result<View, String> {
+    crate::phone_link::only_settings(&window)?;
+    let given = id.trim();
+    let link = if given.is_empty() {
+        coucou_powers::sheet::SheetLink::default()
+    } else {
+        let id = coucou_powers::sheet::spreadsheet_id(given).ok_or_else(|| t("That is not a Google Sheets link or ID."))?;
+        let clean = |s: &str, n: usize| s.trim().chars().filter(|c| !c.is_control()).take(n).collect::<String>();
+        coucou_powers::sheet::SheetLink { id, tab: clean(&tab, 100), account: clean(&account, 120) }
+    };
+    let linked = !link.id.is_empty();
+    change(&app, |s, _| s.sheet = link);
+    log::line(format!("powers: the portfolio's sheet {}", if linked { "set" } else { "unlinked" }));
+    *held(&app.state::<Powers>().sheet) = SheetState::default();
+    if linked && enabled(&app) {
+        let reading = app.clone();
+        tauri::async_runtime::spawn(async move {
+            sync_sheet(&reading).await;
+            if session_open() {
+                read_live(&reading).await;
+            }
+        });
+    }
+    changed(&app);
     Ok(view(&app))
 }
 
@@ -1017,6 +1311,24 @@ pub fn powers_open_folder(window: WebviewWindow, month: Option<String>) -> Resul
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn prices_are_read_while_b3_trades_only() {
+        let tuesday = Date::new(2026, 10, 27).unwrap();
+        assert!(in_session(tuesday, 15 * 60 + 16));
+        assert!(!in_session(tuesday, 9 * 60 + 59) && !in_session(tuesday, 18 * 60 + 30), "before the opening, after the closing call");
+        assert!(!in_session(Date::new(2026, 10, 31).unwrap(), 12 * 60), "a Saturday");
+    }
+
+    #[test]
+    fn the_assets_priced_are_those_held_and_those_watched() {
+        let mut store = Store::default();
+        store.portfolio.positions.push(coucou_powers::model::Position { ticker: "GGRC11".into(), class: AssetClass::Fii, quantity: 1.0, average_price: 9.0, subtype: String::new(), current_value: None, note: String::new() });
+        store.portfolio.positions.push(coucou_powers::model::Position { ticker: "CDB X".into(), class: AssetClass::RendaFixa, quantity: 1.0, average_price: 1000.0, subtype: String::new(), current_value: Some(1010.0), note: String::new() });
+        store.ceilings.manual.insert("TAEE11".into(), 40.0);
+        store.ceilings.manual.insert("GGRC11".into(), 10.0);
+        assert_eq!(live_tickers(&store), ["GGRC11", "TAEE11"], "what B3 does not quote is not asked for");
+    }
+
     use super::*;
     use std::collections::BTreeMap;
 

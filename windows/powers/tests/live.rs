@@ -50,6 +50,40 @@ async fn fund_months(http: &Http, today: Date) -> Vec<cvm_fii::FiiMonth> {
 
 // ── What each source sends ────────────────────────────────────────────────────
 
+/// Google Finance's quote pages: the size, the data blocks the page carries (AF_initDataCallback), where the
+/// ticker shows in them, and what gfinance.rs reads, for shares, funds, an ETF and a ticker that does not exist.
+#[tokio::test]
+#[ignore]
+async fn live_raw_gfinance() {
+    let http = Http::new();
+    let now = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs() as i64).unwrap_or(0);
+    let clip = |s: &str, n: usize| coucou_powers::text::clip(s, n);
+    for (i, ticker) in ["GGRC11", "TIMS3", "BOVA11", "ZZZZ11"].into_iter().enumerate() {
+        section(&format!("Google Finance {ticker}"));
+        let url = sources::gfinance::url(ticker);
+        match http.page(&url).await {
+            Ok(page) => {
+                println!("{} bytes", page.len());
+                let title = page.split("<title>").nth(1).and_then(|t| t.split("</title>").next()).unwrap_or("(no title)");
+                println!("title: {}", clip(title, 200));
+                let full = i == 0;
+                for (at, _) in page.match_indices("AF_initDataCallback(").take(if full { 40 } else { 12 }) {
+                    let block = &page[at..(at + if full { 1800 } else { 500 }).min(page.len())];
+                    println!("--- AF at {at}: {}", clip(block, if full { 1800 } else { 500 }));
+                }
+                for (at, _) in page.match_indices(ticker).take(if full { 14 } else { 6 }) {
+                    println!("~~~ {ticker} at {at}: {}", clip(&page[at.saturating_sub(300)..(at + 500).min(page.len())], 800));
+                }
+                println!("read: {:?}", sources::gfinance::parse(&page, ticker));
+            }
+            Err(e) => println!("error: {e}"),
+        }
+    }
+    let read = sources::live_price(&http, "GGRC11").await.expect("GGRC11 on Google Finance");
+    assert!(read.price > 1.0 && read.price < 100.0 && read.at > now - 10 * 86_400, "{read:?}");
+    assert!(sources::live_price(&http, "ZZZZ11").await.is_err(), "a ticker that does not exist has no price");
+}
+
 #[tokio::test]
 #[ignore]
 async fn live_raw_b3() {

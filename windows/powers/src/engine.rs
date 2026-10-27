@@ -1108,6 +1108,8 @@ pub struct Summary {
     pub value: f64,
     pub gain_pct: Option<f64>,
     pub priced_on: Option<Date>,
+    /// When the newest of the session's prices was (unix seconds), when the value uses some.
+    pub live_at: Option<i64>,
     pub classes: Vec<ClassLine>,
     pub income: f64,
     pub income_goal: Option<f64>,
@@ -1150,6 +1152,7 @@ pub fn summary(store: &Store, market: &Market, today: Date) -> Summary {
         value: v.value,
         gain_pct: v.gain_pct,
         priced_on: v.priced_on,
+        live_at: v.live_at,
         classes: v.classes.iter().filter(|c| c.value > 0.0 || c.target.is_some()).map(|c| ClassLine { id: c.class.id().into(), label: c.label.clone(), weight: c.weight, target: c.target }).collect(),
         income: incomes.iter().map(|i| i.monthly).sum(),
         income_goal: p.income_goal,
@@ -1297,7 +1300,7 @@ mod tests {
         // Ceilings: the user's own, the yields, and an opportunity.
         let text = ceiling_view(&mut store, &market, &json!({"ticker": "GGRC11", "ceiling": 12, "fund_yield": 10}), today()).unwrap();
         assert!(text.contains("the user's own ceiling is R$ 12,00") && text.contains("Funds' yield: 10,0%"), "{text}");
-        assert!(text.contains("GGRC11 (a real-estate fund) — B3 close R$ 9,12") && text.contains("projected Bazin: ceiling R$ 10,56"), "{text}");
+        assert!(text.contains("GGRC11 (a real-estate fund) — price R$ 9,12") && text.contains("projected Bazin: ceiling R$ 10,56"), "{text}");
         assert!(text.contains("Opportunities now") && text.contains("GGRC11"), "{text}");
         assert_eq!(store.ceilings.manual["GGRC11"], 12.0);
         assert_eq!(store.ceilings.fund_yield, Some(10.0));
