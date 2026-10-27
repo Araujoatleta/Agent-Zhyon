@@ -23,8 +23,11 @@ pub struct Holding {
     pub subtype: String,
     pub quantity: f64,
     pub average_price: f64,
-    /// B3's last close, when there is one.
+    /// The price: the session's (Google Finance) while it is newer than B3's last close, else that close.
     pub price: Option<f64>,
+    /// The price is the session's.
+    #[serde(default)]
+    pub live: bool,
     pub cost: f64,
     pub value: f64,
     /// Percent of the whole portfolio.
@@ -62,6 +65,9 @@ pub struct Valuation {
     pub cash: f64,
     /// The day of the quotes.
     pub priced_on: Option<Date>,
+    /// When the newest of the session's prices used was (unix seconds), when some are.
+    #[serde(default)]
+    pub live_at: Option<i64>,
 }
 
 /// The user's targets as fractions adding up to 1 (whatever they add up to), or empty.
@@ -103,6 +109,7 @@ pub fn value(p: &Portfolio, market: &Market) -> Valuation {
                 quantity: pos.quantity,
                 average_price: pos.average_price,
                 price,
+                live: pos.class.quoted() && market.live_now(&pos.ticker).is_some(),
                 cost,
                 value,
                 weight: 0.0,
@@ -148,6 +155,7 @@ pub fn value(p: &Portfolio, market: &Market) -> Valuation {
         gain_pct: (cost > 0.0).then(|| (total / cost - 1.0) * 100.0),
         cash: p.cash,
         priced_on: market.quotes_day,
+        live_at: p.positions.iter().filter(|pos| pos.class.quoted()).filter_map(|pos| market.live_now(&pos.ticker).map(|l| l.at)).max(),
     }
 }
 
@@ -449,10 +457,24 @@ pub fn shadow(snapshots: &[Snapshot], p: &Portfolio, cdi: Option<f64>) -> Option
     Some(Shadow { since: snapshots[0].date, real, shadow: shade, difference: shade - real })
 }
 
+/// "15:16": a time in Brasília (UTC−3).
+pub fn brasilia_clock(at: i64) -> String {
+    let secs = (at - 3 * 3600).rem_euclid(86_400);
+    format!("{:02}:{:02}", secs / 3600, secs % 3600 / 60)
+}
+
 /// The portfolio in words, for the brain.
 pub fn for_model(v: &Valuation, p: &Portfolio, incomes: &[Income], economy: &Macro) -> String {
     let mut out = String::new();
-    let day = v.priced_on.map(|d| format!(" (B3 close of {})", d.br())).unwrap_or_default();
+    let day = match (v.live_at, v.priced_on) {
+        (Some(at), close) => format!(
+            " (prices from Google Finance during the session, the newest at {} in Brasília, some 15 minutes late{})",
+            brasilia_clock(at),
+            close.map(|d| format!("; B3's close of {} for the rest", d.br())).unwrap_or_default()
+        ),
+        (None, Some(d)) => format!(" (B3 close of {})", d.br()),
+        (None, None) => String::new(),
+    };
     out.push_str(&format!(
         "Portfolio worth {}{day}, cost {}, {} ({}).",
         brl(v.value),
@@ -467,7 +489,7 @@ pub fn for_model(v: &Valuation, p: &Portfolio, incomes: &[Income], economy: &Mac
     }
     out.push_str("\nHoldings:");
     for h in &v.holdings {
-        let price = h.price.map(|p| format!(", last close {}", brl(p))).unwrap_or_else(|| if h.unpriced { ", no quote (valued at cost)".into() } else { String::new() });
+        let price = h.price.map(|p| format!(", {} {}", if h.live { "now" } else { "last close" }, brl(p))).unwrap_or_else(|| if h.unpriced { ", no quote (valued at cost)".into() } else { String::new() });
         out.push_str(&format!(
             "\n- {} ({}{}): {} × avg {}{price} = {} ({}), {}",
             h.ticker,

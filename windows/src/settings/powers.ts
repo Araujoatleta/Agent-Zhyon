@@ -5,7 +5,7 @@
 // Nothing here buys, sells, sends or posts anything.
 
 import { Bridge, onEvent } from "../core/bridge";
-import { CLASS_IDS, amountOf, classLabel, money, refreshLine, targetsFrom, targetsTotal, type PowersView } from "../core/powers";
+import { CLASS_IDS, amountOf, classLabel, liveLine, money, refreshLine, sheetLine, targetsFrom, targetsTotal, type PowersView } from "../core/powers";
 import { t } from "../i18n/i18n";
 import { h, svg } from "../views/dom";
 import { ICONS } from "../views/icons";
@@ -111,9 +111,62 @@ export function powersSection(makeToggle: Toggle): HTMLElement {
         "div",
         { class: "powers-lines" },
         h("div", { class: "powers-line-row" }, svg(ICONS.star, 12), h("span", { text: portfolio + value })),
+        ...(v.sheetLink.id ? [h("div", { class: "powers-line-row" }, svg(ICONS.doc, 12, { stroke: 1.8 }), h("span", { text: sheetLine(v) }))] : []),
+        h("div", { class: "powers-line-row" }, svg(ICONS.arrowClockwise, 12, { stroke: 1.8 }), h("span", { text: liveLine(v) })),
         h("div", { class: "powers-line-row" }, svg(ICONS.arrowClockwise, 12, { stroke: 1.8 }), h("span", { text: refreshLine(v.refresh) })),
       ),
       ...(problems ? [problems] : []),
+    );
+    drawSheetStatus();
+  }
+
+  // ── Your Google Sheet ──
+  const sheetStatus = h("div", { class: "powers-sheet-status" });
+  function drawSheetStatus() {
+    const v = view;
+    if (!v?.sheetLink.id) {
+      sheetStatus.replaceChildren();
+      return;
+    }
+    const s = v.sheet;
+    const rows = s.skipped.length
+      ? [h("details", { class: "powers-problems" }, h("summary", { text: t("Rows left out ({count})", { count: s.skipped.length }) }), ...s.skipped.map((x) => h("div", { class: "hint", text: x })))]
+      : [];
+    sheetStatus.replaceChildren(s.problem && !s.running ? notice(s.problem, false) : h("p", { class: "hint", text: sheetLine(v) }), ...rows);
+  }
+
+  function sheetCard(v: PowersView): HTMLElement {
+    const link = h("input", { type: "text", placeholder: "https://docs.google.com/spreadsheets/d/…" }) as HTMLInputElement;
+    link.value = v.sheetLink.id;
+    const tab = h("input", { type: "text", placeholder: t("The first one") }) as HTMLInputElement;
+    tab.value = v.sheetLink.tab;
+    const account = h("input", { type: "text", placeholder: t("gog's default") }) as HTMLInputElement;
+    account.value = v.sheetLink.account;
+    const said = h("span", { class: "zheus-saved" });
+    const save = h("button", { class: "primary", text: t("Save and read") }) as HTMLButtonElement;
+    save.addEventListener("click", () =>
+      void (async () => {
+        save.disabled = true;
+        said.replaceChildren();
+        try {
+          view = await Bridge.powersSheet(link.value, tab.value, account.value);
+          link.value = view.sheetLink.id;
+          drawStatus();
+        } catch (err) {
+          said.append(notice(errorText(err), false));
+        } finally {
+          save.disabled = false;
+        }
+      })(),
+    );
+    return glassCard(
+      svg(ICONS.doc, 15, { stroke: 1.7 }),
+      t("Your Google Sheet"),
+      h("p", { class: "hint", text: t("Your portfolio comes from your own Google Sheet, read through gog with the sign-in your assistant's gog skill uses, read only. A header row names the columns: Ativo and Quantidade, and Preço médio and Classe if you like; a row without a quantity is left out. Read again every 10 minutes and with Refresh. Leave the link empty and save to stop.") }),
+      ...(v.gog ? [] : [notice(t("gog was not found on this computer: install it (github.com/openclaw/gogcli) and sign in with gog auth add, as your assistant's gog skill does."), false)]),
+      h("div", { class: "zheus-grid" }, field(t("Sheet link or ID"), [link]), field(t("Tab"), [tab]), field(t("gog account"), [account])),
+      sheetStatus,
+      h("div", { class: "zheus-actions" }, said, save),
     );
   }
 
@@ -361,7 +414,8 @@ export function powersSection(makeToggle: Toggle): HTMLElement {
     onSwitch.setAttribute("aria-pressed", String(on));
     drawStatus();
     if (on && v && !formsFor) {
-      forms.replaceChildren(portfolioCard(v), studyCard(v), englishCard(v), gymCard(v), contentCard(v), dataCard());
+      forms.replaceChildren(sheetCard(v), portfolioCard(v), studyCard(v), englishCard(v), gymCard(v), contentCard(v), dataCard());
+      drawSheetStatus();
       formsFor = true;
     } else if (!on) {
       forms.replaceChildren();

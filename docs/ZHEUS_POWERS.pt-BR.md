@@ -113,6 +113,8 @@ Os exemplos abaixo são frases que você pode mandar como estão, na ilha, no iP
 
 | Fonte | O quê | Quando |
 | --- | --- | --- |
+| Google Finance (a página de cotação) | o preço de cada ativo durante o pregão (uns 15 minutos de atraso) | nos dias de pregão da B3, das 10:00 às 18:30 de Brasília: a cada 5 minutos, a cada minuto com o ★ ou as Configurações abertos, e antes de o Zheus responder sobre a carteira |
+| A sua planilha do Google, pelo gog | as suas posições (ativo, quantidade, preço médio, classe) | a cada 10 minutos, e no Atualizar |
 | B3 (COTAHIST) | o fechamento de cada ativo | quando a B3 publica o dia (à noite) |
 | CVM, Informe Mensal dos FIIs | VP/cota, DY, cotistas, segmento | uma vez por semana |
 | FundosNet | comunicados, fatos relevantes, assembleias, ofertas e os avisos de rendimentos | uma vez por dia |
@@ -122,6 +124,25 @@ Os exemplos abaixo são frases que você pode mandar como estão, na ilha, no iP
 Com os superpoderes ligados, o Coucou acorda a cada meia hora para ver o que venceu; se nada venceu, nada é lido. Uma
 pergunta ao Zheus espera no máximo cerca de 20 segundos pelo que estiver vencendo (e até 40 segundos por um ativo que
 você não tem); a leitura continua por trás e a próxima pergunta já tem o resto.
+
+### A carteira vem da sua planilha do Google
+
+Configurações → Superpoderes do Zheus → **Sua planilha do Google**: cole o link da planilha (ou o ID), a aba a ler
+(vazio: a primeira) e a conta do gog (vazio: a padrão do gog) e clique em **Salvar e ler**. O AXYON lê com o
+[gog](https://github.com/openclaw/gogcli), o mesmo comando que a skill gog do seu assistente já usa, com o login do
+próprio gog e só leitura (`gog sheets get … --readonly`): o AXYON nunca escreve na planilha e nunca vê o login. Uma
+linha de cabeçalho nomeia as colunas — **Ativo** (ou Ticker, Código) e **Quantidade** (ou Qtd, Cotas) e, se quiser,
+**Preço médio** e **Classe**; para renda fixa, uma coluna **Valor atual** (ou Saldo). Cada linha com um ticker da B3 e
+uma quantidade é uma posição, o mesmo ticker duas vezes é somado, linha sem quantidade fica de fora (lista de
+observação) e linha de total é ignorada. A planilha manda: o que ela tem substitui as posições (com uma cópia guardada
+antes, só quando mudaram), e as metas, os objetivos e o histórico continuam. Uma posição alterada pelo chat vale até a
+próxima leitura: o Zheus avisa e aponta para a planilha.
+
+### O preço durante o pregão
+
+Durante o pregão da B3, a carteira, os preços-teto e as oportunidades usam o preço do Google Finance (a página de
+cotação: sem chave, sem conta), mostrado no ★ como "Google Finance às 15:16". O Google entrega as cotações da B3 com
+uns 15 minutos de atraso. À noite, o fechamento oficial da B3 volta a valer.
 
 ## Os seus dados
 

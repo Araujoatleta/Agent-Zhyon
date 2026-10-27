@@ -16,10 +16,10 @@ use std::collections::{HashMap, HashSet};
 use crate::date::{is_business_day, previous_business_day, Date};
 use fetch::Http;
 
-/// The price of `ticker` now, from Google Finance's quote page.
-pub async fn live_price(http: &Http, ticker: &str, read_at: i64) -> Result<gfinance::Live, String> {
+/// The price of `ticker` during the session, from Google Finance's quote page.
+pub async fn live_price(http: &Http, ticker: &str) -> Result<gfinance::Live, String> {
     let page = http.page(&gfinance::url(ticker)).await?;
-    gfinance::parse(&page, read_at).ok_or_else(|| format!("Google Finance shows no price for {ticker}"))
+    gfinance::parse(&page, ticker).ok_or_else(|| format!("Google Finance shows no price for {ticker}"))
 }
 
 /// The latest closing quotes of `tickers`: the newest day B3 has published, looking back from `today` (today's own

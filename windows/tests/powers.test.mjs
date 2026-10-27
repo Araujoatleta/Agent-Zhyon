@@ -11,7 +11,7 @@ import { emit, internals, sent } from "./tauri.mjs";
 
 installFakeDom();
 const {
-  amountOf, classBars, classLabel, incomeProgress, money, percent, pngName, pricedLine, quickQuestions, refreshLine, targetsFrom,
+  amountOf, classBars, classLabel, clockOf, incomeProgress, liveLine, money, percent, pngName, pricedLine, quickQuestions, refreshLine, sheetLine, targetsFrom,
   targetsTotal,
 } = await import("../src/core/powers.ts");
 const { State } = await import("../src/core/state.ts");
@@ -97,6 +97,10 @@ const view = (fields = {}) => ({
   profile: profile(),
   hermes: "ready",
   command: "C:\\Users\\Ana\\AppData\\Local\\AXYON\\bin\\coucou-hook.exe",
+  live: { at: null, missed: [] },
+  sheetLink: { id: "", tab: "", account: "" },
+  sheet: { running: false, at: null, positions: 0, problem: null, skipped: [] },
+  gog: true,
   ...fields,
 });
 
@@ -111,6 +115,17 @@ test("money and percents are written the Brazilian way, whatever the interface's
   assert.equal(percent(1.82, 1, true), "+1,8%");
   assert.equal(percent(-3.6, 1, true), "−3,6%");
   assert.equal(pricedLine(summary()), "+1,8% on cost · B3's close of 20/10");
+  // The session's prices: Google Finance's time, on this computer's clock, instead of B3's close.
+  const at = new Date(1793125002 * 1000);
+  const clock = `${String(at.getHours()).padStart(2, "0")}:${String(at.getMinutes()).padStart(2, "0")}`;
+  assert.equal(clockOf(1793125002), clock);
+  assert.equal(pricedLine(summary({ liveAt: 1793125002 })), `+1,8% on cost · Google Finance at ${clock}`);
+  // The sheet's and the prices' lines in Settings.
+  const sheet = (fields) => view({ sheetLink: { id: "abc", tab: "", account: "" }, sheet: { running: false, at: null, positions: 0, problem: null, skipped: [], ...fields } });
+  assert.equal(sheetLine(sheet({ running: true })), "Reading the sheet…");
+  assert.equal(sheetLine(sheet({ problem: "The sheet could not be read: no token" })), "The sheet could not be read: no token");
+  assert.equal(sheetLine(sheet({ at: "15:20", positions: 12 })), "Sheet read at 15:20: 12 positions");
+  assert.equal(liveLine(view({ live: { at: "15:21", missed: [] } })), "Prices from Google Finance read at 15:21 · some 15 minutes late; B3's official close in the evening");
   assert.equal(classLabel("fii"), "Real-estate funds");
   assert.equal(classLabel("renda_fixa"), "Fixed income");
   assert.equal(classLabel("whatever"), "Other");

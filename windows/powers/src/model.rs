@@ -495,6 +495,8 @@ pub struct Store {
     pub fund_cnpjs: BTreeMap<String, String>,
     /// How the user wants ceiling prices worked out, their own ceilings, and the opportunities already told.
     pub ceilings: Ceilings,
+    /// The user's spreadsheet, when the portfolio comes from it (sheet.rs).
+    pub sheet: crate::sheet::SheetLink,
 }
 
 /// The user's choices for ceiling prices (ceiling.rs).
@@ -582,12 +584,60 @@ pub struct Market {
     pub company_cnpjs: BTreeMap<String, (String, String)>,
     pub economy: Macro,
     pub economy_read: Option<Date>,
+    /// The prices read during the session (Google Finance), by ticker. Each is the price while it is newer than B3's
+    /// last close of the ticker; once B3 publishes that day's close, the close is the price again.
+    pub live: BTreeMap<String, LivePrice>,
+}
+
+/// A price read during the session.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LivePrice {
+    pub price: f64,
+    /// When it was, unix seconds.
+    pub at: i64,
+}
+
+impl LivePrice {
+    /// The session it belongs to: its day in Brasília (UTC−3, B3's own time).
+    pub fn day(&self) -> Date {
+        Date::from_days((self.at - 3 * 3600).div_euclid(86_400))
+    }
 }
 
 impl Market {
-    /// The latest close of a ticker, if B3 published it.
+    /// The price of a ticker: the session's while it is newer than B3's last close, else that close.
     pub fn price(&self, ticker: &str) -> Option<f64> {
+        self.live_now(ticker).map(|l| l.price).or_else(|| self.close(ticker))
+    }
+
+    /// The latest close of a ticker, if B3 published it.
+    pub fn close(&self, ticker: &str) -> Option<f64> {
         self.quotes.get(&ticker.to_uppercase()).map(|q| q.close).filter(|p| *p > 0.0)
+    }
+
+    /// The session's price of a ticker, while it is newer than B3's last close of it.
+    pub fn live_now(&self, ticker: &str) -> Option<&LivePrice> {
+        let t = ticker.to_uppercase();
+        let live = self.live.get(&t).filter(|l| l.price > 0.0)?;
+        match self.quotes.get(&t) {
+            Some(q) if q.close > 0.0 && q.date >= live.day() => None,
+            _ => Some(live),
+        }
+    }
+
+    /// Keeps `read` (ticker, price, unix seconds) as the session's prices, and lets go of those B3's closes made old.
+    pub fn keep_live(&mut self, read: impl IntoIterator<Item = (String, f64, i64)>) {
+        for (ticker, price, at) in read {
+            if price > 0.0 && price.is_finite() {
+                let t = ticker.to_uppercase();
+                if self.live.get(&t).is_none_or(|l| l.at <= at) {
+                    self.live.insert(t, LivePrice { price, at });
+                }
+            }
+        }
+        let quotes = &self.quotes;
+        self.live.retain(|t, l| quotes.get(t).is_none_or(|q| q.date < l.day()));
     }
 }
 
@@ -607,6 +657,43 @@ mod tests {
         assert_eq!(AssetClass::parse("renda_fixa"), Some(AssetClass::RendaFixa));
         assert_eq!(AssetClass::parse("xyz"), None);
         assert_eq!(serde_json::to_string(&AssetClass::RendaFixa).unwrap(), "\"renda_fixa\"");
+    }
+
+    #[test]
+    fn the_sessions_price_wins_until_b3_publishes_that_days_close() {
+        let mut m = Market::default();
+        let quote = |day: u32, close: f64| Quote {
+            ticker: "GGRC11".into(),
+            date: Date::new(2026, 10, day).unwrap(),
+            open: close,
+            high: close,
+            low: close,
+            average: close,
+            close,
+            trades: 1,
+            volume: 1.0,
+            bdi: "12".into(),
+            kind: "CI".into(),
+            name: "GGR COVEPI".into(),
+            isin: String::new(),
+            market: 10,
+        };
+        m.quotes.insert("GGRC11".into(), quote(26, 8.85));
+        assert_eq!(m.price("ggrc11"), Some(8.85));
+        // 27/10 15:16 in Brasília (18:16 UTC).
+        let at = 1_793_125_002;
+        m.keep_live([("GGRC11".to_string(), 8.69, at), ("TIMS3".to_string(), 18.78, at), ("BAD1".to_string(), 0.0, at)]);
+        assert_eq!(m.live["GGRC11"].day(), Date::new(2026, 10, 27).unwrap());
+        assert_eq!((m.price("GGRC11"), m.close("GGRC11")), (Some(8.69), Some(8.85)));
+        assert_eq!(m.price("TIMS3"), Some(18.78), "no close known: the session's price");
+        assert!(!m.live.contains_key("BAD1"));
+        m.keep_live([("GGRC11".to_string(), 8.60, at - 60)]);
+        assert_eq!(m.price("GGRC11"), Some(8.69), "an older reading does not replace a newer one");
+        // B3's file of the 27th: its close is the price again, and the session's goes.
+        m.quotes.insert("GGRC11".into(), quote(27, 8.70));
+        assert_eq!(m.price("GGRC11"), Some(8.70));
+        m.keep_live([]);
+        assert!(!m.live.contains_key("GGRC11") && m.live.contains_key("TIMS3"));
     }
 
     #[test]

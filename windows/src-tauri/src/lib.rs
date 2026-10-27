@@ -1004,6 +1004,7 @@ pub fn run() {
             powers::powers_status,
             powers::powers_set,
             powers::powers_refresh,
+            powers::powers_sheet,
             powers::powers_import,
             powers::powers_paste,
             powers::powers_save,

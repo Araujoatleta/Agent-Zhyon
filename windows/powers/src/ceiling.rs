@@ -327,7 +327,7 @@ pub fn for_model(a: &Assessment, margin: f64) -> String {
         Some(AssetClass::Etf) => "an ETF",
         _ => "an asset",
     };
-    let mut out = format!("{} ({kind}) — {}", a.ticker, a.price.map(|p| format!("B3 close {}", brl(p))).unwrap_or_else(|| "no B3 close yet".into()));
+    let mut out = format!("{} ({kind}) — {}", a.ticker, a.price.map(|p| format!("price {}", brl(p))).unwrap_or_else(|| "no price yet".into()));
     for c in &a.ceilings {
         let against = match a.price.filter(|_| c.value > 0.0) {
             Some(p) => {

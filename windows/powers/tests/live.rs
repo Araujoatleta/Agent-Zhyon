@@ -74,11 +74,14 @@ async fn live_raw_gfinance() {
                 for (at, _) in page.match_indices(ticker).take(if full { 14 } else { 6 }) {
                     println!("~~~ {ticker} at {at}: {}", clip(&page[at.saturating_sub(300)..(at + 500).min(page.len())], 800));
                 }
-                println!("read: {:?}", sources::gfinance::parse(&page, now));
+                println!("read: {:?}", sources::gfinance::parse(&page, ticker));
             }
             Err(e) => println!("error: {e}"),
         }
     }
+    let read = sources::live_price(&http, "GGRC11").await.expect("GGRC11 on Google Finance");
+    assert!(read.price > 1.0 && read.price < 100.0 && read.at > now - 10 * 86_400, "{read:?}");
+    assert!(sources::live_price(&http, "ZZZZ11").await.is_err(), "a ticker that does not exist has no price");
 }
 
 #[tokio::test]
