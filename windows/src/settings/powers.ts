@@ -163,7 +163,7 @@ export function powersSection(makeToggle: Toggle): HTMLElement {
       svg(ICONS.doc, 15, { stroke: 1.7 }),
       t("Your Google Sheet"),
       h("p", { class: "hint", text: t("AXYON keeps your portfolio in its own AXYON tab of your Google Sheet, made there the first time, through gog with the sign-in your assistant's gog skill uses. You both write it: your rows (Ativo, Classe, Quantidade, Preço médio, Meu teto; a ticker with your ceiling and no quantity is watched) are read back every 10 minutes and with Refresh, and what you ask AXYON in the chat (a buy, a sale, a ceiling) is written there at once. Beside them AXYON writes the price now, the result, its own ceilings and what to watch. Name another tab to have it only read. Your other tabs are never written. Leave the link empty and save to stop.") }),
-      ...(v.gog ? [] : [notice(t("gog was not found on this computer: install it (github.com/openclaw/gogcli) and sign in with gog auth add, as your assistant's gog skill does."), false)]),
+      ...(v.gog ? [] : [notice(t("gog was not found on this computer, on its PATH, in Downloads or in WSL: put gog.exe (from gogcli's Windows ZIP, github.com/openclaw/gogcli) on the PATH and sign in with gog auth add, as your assistant's gog skill does."), false)]),
       h("div", { class: "zheus-grid" }, field(t("Sheet link or ID"), [link]), field(t("Tab"), [tab]), field(t("gog account"), [account])),
       sheetStatus,
       h("div", { class: "zheus-actions" }, said, save),

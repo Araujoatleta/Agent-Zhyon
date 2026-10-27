@@ -1341,7 +1341,7 @@ pub fn view(app: &AppHandle) -> View {
         live: held(&app.state::<Powers>().live).clone(),
         sheet_link: read(app, |s, _| s.sheet.clone()),
         sheet: held(&app.state::<Powers>().sheet).clone(),
-        gog: sheet::program().is_some(),
+        gog: sheet::known(),
     }
 }
 

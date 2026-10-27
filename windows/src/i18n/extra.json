@@ -11991,16 +11991,16 @@
    "ru": "Ваша Google Таблица",
    "id": "Google Sheet Anda"
   },
-  "gog was not found on this computer: install it (github.com/openclaw/gogcli) and sign in with gog auth add, as your assistant's gog skill does.": {
-   "zh-Hans": "此电脑上未找到 gog：请安装（github.com/openclaw/gogcli），并像你的助手的 gog 技能那样用 gog auth add 登录。",
-   "hi": "इस कंप्यूटर पर gog नहीं मिला: इसे इंस्टॉल करें (github.com/openclaw/gogcli) और gog auth add से साइन इन करें, जैसे आपके असिस्टेंट की gog स्किल करती है।",
-   "es": "No se encontró gog en este equipo: instálalo (github.com/openclaw/gogcli) e inicia sesión con gog auth add, como hace la skill gog de tu asistente.",
-   "ar": "لم يُعثر على gog في هذا الحاسوب: ثبّته (github.com/openclaw/gogcli) وسجّل الدخول بالأمر gog auth add، كما تفعل مهارة gog لدى مساعدك.",
-   "fr": "gog est introuvable sur cet ordinateur : installez-le (github.com/openclaw/gogcli) et connectez-vous avec gog auth add, comme le fait la compétence gog de votre assistant.",
-   "bn": "এই কম্পিউটারে gog পাওয়া যায়নি: এটি ইনস্টল করুন (github.com/openclaw/gogcli) এবং gog auth add দিয়ে সাইন ইন করুন, যেমন আপনার সহকারীর gog স্কিল করে।",
-   "pt-BR": "O gog não foi encontrado neste computador: instale-o (github.com/openclaw/gogcli) e entre com gog auth add, como faz a skill gog do seu assistente.",
-   "ru": "gog не найден на этом компьютере: установите его (github.com/openclaw/gogcli) и войдите командой gog auth add, как делает навык gog вашего ассистента.",
-   "id": "gog tidak ditemukan di komputer ini: pasang (github.com/openclaw/gogcli) lalu masuk dengan gog auth add, seperti yang dilakukan skill gog asisten Anda."
+  "gog was not found on this computer, on its PATH, in Downloads or in WSL: put gog.exe (from gogcli's Windows ZIP, github.com/openclaw/gogcli) on the PATH and sign in with gog auth add, as your assistant's gog skill does.": {
+   "zh-Hans": "在此电脑的 PATH、下载文件夹和 WSL 中都未找到 gog：把 gog.exe（来自 gogcli 的 Windows ZIP，github.com/openclaw/gogcli）放到 PATH 中，并像你的助手的 gog 技能那样用 gog auth add 登录。",
+   "hi": "इस कंप्यूटर पर gog नहीं मिला, न PATH में, न Downloads में, न WSL में: gog.exe (gogcli के Windows ZIP से, github.com/openclaw/gogcli) को PATH में रखें और gog auth add से साइन इन करें, जैसे आपके असिस्टेंट की gog स्किल करती है।",
+   "es": "No se encontró gog en este equipo, ni en su PATH, ni en Descargas, ni en WSL: pon gog.exe (del ZIP de gogcli para Windows, github.com/openclaw/gogcli) en el PATH e inicia sesión con gog auth add, como hace la skill gog de tu asistente.",
+   "ar": "لم يُعثر على gog في هذا الحاسوب، لا في PATH ولا في التنزيلات ولا في WSL: ضع gog.exe (من ملف ZIP الخاص بـ gogcli لنظام Windows، github.com/openclaw/gogcli) في PATH وسجّل الدخول بالأمر gog auth add، كما تفعل مهارة gog لدى مساعدك.",
+   "fr": "gog est introuvable sur cet ordinateur, ni dans son PATH, ni dans Téléchargements, ni dans WSL : placez gog.exe (du ZIP Windows de gogcli, github.com/openclaw/gogcli) dans le PATH et connectez-vous avec gog auth add, comme le fait la compétence gog de votre assistant.",
+   "bn": "এই কম্পিউটারে gog পাওয়া যায়নি, PATH-এ, Downloads-এ বা WSL-এ কোথাও নয়: gog.exe (gogcli-এর Windows ZIP থেকে, github.com/openclaw/gogcli) PATH-এ রাখুন এবং gog auth add দিয়ে সাইন ইন করুন, যেমন আপনার সহকারীর gog স্কিল করে।",
+   "pt-BR": "O gog não foi encontrado neste computador, nem no PATH, nem em Downloads, nem no WSL: coloque o gog.exe (do ZIP do gogcli para Windows, github.com/openclaw/gogcli) no PATH e entre com gog auth add, como faz a skill gog do seu assistente.",
+   "ru": "gog не найден на этом компьютере — ни в PATH, ни в «Загрузках», ни в WSL: положите gog.exe (из Windows-архива gogcli, github.com/openclaw/gogcli) в PATH и войдите командой gog auth add, как делает навык gog вашего ассистента.",
+   "id": "gog tidak ditemukan di komputer ini, baik di PATH, di Downloads, maupun di WSL: taruh gog.exe (dari ZIP Windows gogcli, github.com/openclaw/gogcli) di PATH lalu masuk dengan gog auth add, seperti yang dilakukan skill gog asisten Anda."
   },
   "Sheet link or ID": {
    "zh-Hans": "表格链接或 ID",
