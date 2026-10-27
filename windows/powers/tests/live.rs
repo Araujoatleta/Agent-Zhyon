@@ -50,6 +50,42 @@ async fn fund_months(http: &Http, today: Date) -> Vec<cvm_fii::FiiMonth> {
 
 // ── What each source sends ────────────────────────────────────────────────────
 
+/// Google Finance's quote pages: the size, every `data-last-price` with its tag, the big price, the previous close,
+/// and what gfinance.rs reads from them, for shares, funds, an ETF and a ticker that does not exist.
+#[tokio::test]
+#[ignore]
+async fn live_raw_gfinance() {
+    let http = Http::new();
+    let now = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs() as i64).unwrap_or(0);
+    for ticker in ["GGRC11", "TIMS3", "PETR4", "BOVA11", "BTCI11", "ZZZZ11"] {
+        section(&format!("Google Finance {ticker}"));
+        let url = sources::gfinance::url(ticker);
+        match http.page(&url).await {
+            Ok(page) => {
+                println!("{} bytes", page.len());
+                let title = page.split("<title>").nth(1).and_then(|t| t.split("</title>").next()).unwrap_or("(no title)");
+                println!("title: {}", coucou_powers::text::clip(title, 200));
+                for (i, (at, _)) in page.match_indices("data-last-price=").take(6).enumerate() {
+                    let start = page[..at].rfind('<').unwrap_or(at);
+                    let end = at + page[at..].find('>').unwrap_or(0);
+                    println!("[{i}] at {at}: {}", coucou_powers::text::clip(&page[start..=end.min(page.len() - 1)], 900));
+                }
+                for marker in ["YMlKec fxKbKc", ">Previous close<", "data-mid=", "data-ticker", "data-tz-offset", "consent", "unusual traffic"] {
+                    match page.find(marker) {
+                        Some(at) => println!("{marker}: {}", coucou_powers::text::clip(&page[at.saturating_sub(120)..(at + 260).min(page.len())], 400)),
+                        None => println!("{marker}: (absent)"),
+                    }
+                }
+                println!("read: {:?}", sources::gfinance::parse(&page, now));
+            }
+            Err(e) => println!("error: {e}"),
+        }
+    }
+    let read = sources::live_price(&http, "GGRC11", now).await.expect("GGRC11 on Google Finance");
+    assert!(read.price > 1.0 && read.price < 100.0, "{read:?}");
+    assert!(sources::live_price(&http, "ZZZZ11", now).await.is_err(), "a ticker that does not exist has no price");
+}
+
 #[tokio::test]
 #[ignore]
 async fn live_raw_b3() {
