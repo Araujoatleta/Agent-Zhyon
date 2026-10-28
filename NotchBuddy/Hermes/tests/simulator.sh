@@ -172,10 +172,11 @@ grep -q '"streakDays":1' "$POWERS" || { head -c 600 "$POWERS"; fail "the English
 echo "Kept in the app's folder: $(wc -c < "$POWERS" | tr -d ' ') bytes"
 
 echo "The portfolio and the brain's settings answer"
-call GET /v1/settings | head -c 600
-echo
-call GET /v1/portfolio | head -c 400
-echo
+# Kept whole first: a curl cut short by head would fail the step under pipefail.
+settings="$(call GET /v1/settings)" || fail "the settings did not answer"
+echo "${settings:0:600}"
+portfolio="$(call GET /v1/portfolio)" || fail "the portfolio did not answer"
+echo "${portfolio:0:400}"
 
 kill "$MODEL_PID" 2>/dev/null || true
 xcrun simctl terminate "$DEVICE" "$BUNDLE" 2>/dev/null || true

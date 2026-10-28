@@ -22,7 +22,7 @@ alone: none of this is compiled or copied into them.
 | `Swift/` | `HermesEngine` (starts and talks to the host), `HermesArms` (what Hermes asks of the iPhone, and `HermesPowers`, the superpowers' engine), `HermesWire` (its events and the conversation, tested on Linux), `AXYONStyle`, `AXYONViews` and `AXYONHouse` (the screens), `AXYONAlerts` (the superpowers' alerts with the app closed). |
 | `utils.sh`, `iOS-dylib-Info-template.plist` | CPython's own iOS install steps: every compiled module becomes a framework. |
 | `requirements-*.txt` | Hermes' packages: pure Python, and the three with iOS wheels on PyPI. |
-| `tests/` | `test_units.py` (the tools, no Hermes), `test_home.py` (the home against a simulated Samsung TV, ADB box and Home Assistant), `test_host.py` (the host end to end with Hermes, iOS limits emulated), `simulator.sh` (CI: the app in the iOS Simulator, Hermes started for real, answering with an iPhone tool and with a superpower the engine answers inside iOS). |
+| `tests/` | `test_units.py` (the tools, no Hermes), `test_home.py` (the home against a simulated Samsung TV, ADB box and Home Assistant), `test_host.py` (the host end to end with Hermes, iOS limits emulated), `test_embedded.py` (the app's C start of Python, on a computer), `simulator.sh` (CI: the app in the iOS Simulator, Hermes started for real, answering with an iPhone tool and with a superpower the engine answers inside iOS). |
 
 ## Build
 
@@ -129,8 +129,12 @@ python3 tests/test_units.py                                   # the tools, quote
 (cd ../../windows && cargo test -p coucou-powers-ffi)         # the superpowers' C interface
 python3 tests/test_home.py                                    # the home (needs websockets and openssl)
 HERMES_SRC=…/hermes-agent PYTHON=…/venv/bin/python python3 tests/test_host.py   # the host with Hermes, end to end
+HERMES_SRC=…/hermes-agent PYTHON=…/venv/bin/python python3 tests/test_embedded.py   # the app's C start of Python
 bash ../../scripts/test-pc-link.sh                            # HermesWire.swift with the phone link's wire
 ```
 
 `test_host.py` runs the host under `tests/ios_like.py`, which takes away what iOS does not have (subprocess, fork,
 `sys.platform` is `ios`), against `tests/fake_model.py`, a local OpenAI-compatible model that streams and calls tools.
+`test_embedded.py` builds `bridge/AXYONPython.c` with `tests/embedded_main.c` against that Python and starts it as the
+app does, on a bundle laid out as the app's (with links), isolated from the computer's environment: the host must
+listen and Hermes become ready, and a start that fails must end at once with its traceback where the app shows it.

@@ -28,6 +28,9 @@ int axyon_python_run(const char *resources, char *error, size_t error_size) {
         return -1;
     }
     started = 1;
+    // Where the packages and the app's code are, for the code below. Python copies the environment into os.environ
+    // as it starts: what is set after is not there.
+    setenv("AXYON_BUNDLE", resources, 1);
 
     PyPreConfig_InitIsolatedConfig(&preconfig);
     preconfig.utf8_mode = 1;
@@ -41,8 +44,11 @@ int axyon_python_run(const char *resources, char *error, size_t error_size) {
     config.write_bytecode = 0;
     // The app's threads: Python never takes the signals over.
     config.install_signal_handlers = 0;
-    // print() and tracebacks go to the system log (Console, or a device's sysdiagnose).
+#ifdef __APPLE__
+    // print() and tracebacks go to the system log (Console, or a device's sysdiagnose). Apple's own: a computer's
+    // test of this start (tests/test_embedded.py) has none.
     config.use_system_logger = 1;
+#endif
 
     snprintf(home, sizeof home, "%s/python", resources);
     // Each step on the app's own output too (a Simulator test reads it): Python's own goes to the system log.
@@ -65,21 +71,19 @@ int axyon_python_run(const char *resources, char *error, size_t error_size) {
     fprintf(stderr, "AXYON: Python %s started, running Hermes' host\n", Py_GetVersion());
 
     // The packages (with their .pth files) and the app's code, then the host, which serves until the app ends. Its
-    // traceback, if it stops, is kept where the app shows it from.
-    setenv("AXYON_BUNDLE", resources, 1);
-    // A host that is not listening a minute and a half later writes where each thread stands to the app's own output
-    // (main() calls it off once it listens).
+    // traceback, if it stops, is kept where the app shows it from. A host that is not listening a minute and a half
+    // later writes where each thread stands to the app's own output (main() calls it off once it listens).
     const char *code =
-        "import faulthandler\n"
+        "import faulthandler, os, site, sys, traceback\n"
         "faulthandler.dump_traceback_later(90, file=2)\n"
-        "import os, site, sys, traceback\n"
-        "bundle = os.environ['AXYON_BUNDLE']\n"
-        "site.addsitedir(os.path.join(bundle, 'app_packages'))\n"
-        "sys.path.insert(0, os.path.join(bundle, 'app'))\n"
         "try:\n"
+        "    bundle = os.environ['AXYON_BUNDLE']\n"
+        "    site.addsitedir(os.path.join(bundle, 'app_packages'))\n"
+        "    sys.path.insert(0, os.path.join(bundle, 'app'))\n"
         "    import axyon_hermes.host\n"
         "    axyon_hermes.host.main()\n"
         "except BaseException:\n"
+        "    faulthandler.cancel_dump_traceback_later()\n"
         "    text = traceback.format_exc()\n"
         "    print(text, file=sys.stderr)\n"
         "    os.write(2, ('AXYON: ' + text).encode('utf-8', 'replace'))\n"
