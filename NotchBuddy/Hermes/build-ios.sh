@@ -173,9 +173,10 @@ WIN="$HERE/../../windows"
 (cd "$WIN" && CARGO_PROFILE_RELEASE_STRIP=false cargo build --release --locked --target "$RUST_TARGET" -p coucou-powers-ffi)
 mkdir -p "$OUT/powers"
 cp "$BUILT/libcoucou_powers_ffi.a" "$OUT/powers/"
-# (grep reads it all: with -q, nm could end on a closed pipe and fail the check under pipefail)
-nm -g "$OUT/powers/libcoucou_powers_ffi.a" 2>/dev/null | grep " T _axyon_powers_call$" >/dev/null \
-    || { echo "axyon_powers_call is not in libcoucou_powers_ffi.a"; exit 1; }
+# nm's own status is left out: it may stop on a member that is not an object and still list the others.
+symbols="$(nm -g "$OUT/powers/libcoucou_powers_ffi.a" 2>/dev/null || true)"
+grep -E " T _axyon_powers_[a-z]+$" <<<"$symbols" \
+    || { echo "axyon_powers_call is not in libcoucou_powers_ffi.a"; head -40 <<<"$symbols"; exit 1; }
 cp "$WIN/hook/src/house_tools.json" "$APP/axyon_hermes/house_tools.json"
 ls -l "$OUT/powers/libcoucou_powers_ffi.a"
 
