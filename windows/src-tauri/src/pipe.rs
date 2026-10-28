@@ -217,7 +217,7 @@ async fn handle(app: AppHandle, mut pipe: impl Relay) {
     // Not a hook: another agent calling Mochi's home through `coucou-hook --mcp` (agent/mcp.rs). The answer goes back
     // on the same connection, as one line.
     if event == MCP_EVENT {
-        let answer = crate::agent::mcp::call(&app, &payload).await;
+        let answer = crate::agent::mcp::answer(&app, payload).await;
         let _ = pipe.write_all(format!("{answer}\n").as_bytes()).await;
         let _ = pipe.flush().await;
         pipe.finish();

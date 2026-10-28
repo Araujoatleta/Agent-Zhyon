@@ -92,6 +92,7 @@ enum Column {
     Value,
     Invested,
     Ceiling,
+    Status,
 }
 
 /// What a header cell names, by its words (any case, accents or not).
@@ -118,9 +119,17 @@ fn column(header: &str) -> Option<Column> {
         Column::Value
     } else if starts(&["valor investido", "total investido", "valor aplicado", "investido", "aplicado"]) {
         Column::Invested
+    } else if is(&["status", "situacao", "estado"]) {
+        Column::Status
     } else {
         return None;
     })
+}
+
+/// A status that says the asset is no longer held ("Vendido", "Zerado", "Encerrado").
+fn is_gone(status: &str) -> bool {
+    let p = plain(status);
+    ["vend", "zerad", "encerr", "liquidad", "sold", "closed"].iter().any(|w| p.trim().starts_with(w))
 }
 
 /// Names that are a sum, not an asset.
@@ -161,7 +170,7 @@ pub fn positions(rows: &[Vec<Value>]) -> Result<Read, String> {
         return Err(NO_HEADER.into());
     };
     let index = |k: Column| columns.iter().position(|c| *c == Some(k));
-    let (asset, quantity, average, class, value, invested, ceiling) = (
+    let (asset, quantity, average, class, value, invested, ceiling, status) = (
         index(Column::Asset).unwrap_or(0),
         index(Column::Quantity),
         index(Column::AveragePrice),
@@ -169,12 +178,14 @@ pub fn positions(rows: &[Vec<Value>]) -> Result<Read, String> {
         index(Column::Value),
         index(Column::Invested),
         index(Column::Ceiling),
+        index(Column::Status),
     );
     let mut read = Read { has_ceilings: ceiling.is_some(), ..Read::default() };
     for (i, row) in rows.iter().enumerate().skip(at + 1) {
         let get = |k: Option<usize>| k.and_then(|k| row.get(k));
         let name = get(Some(asset)).map(cell_text).unwrap_or_default();
-        if name.is_empty() || is_total(&name) {
+        // A row marked sold is neither held nor watched.
+        if name.is_empty() || is_total(&name) || get(status).map(cell_text).is_some_and(|s| is_gone(&s)) {
             continue;
         }
         let line = i + 1;
@@ -339,6 +350,9 @@ mod tests {
         ]))).unwrap();
         assert_eq!((read.positions.len(), read.ceilings.len()), (0, 2));
         assert_eq!(read.ceilings[1], ("XPLG11".to_string(), 106.67));
+        // A row marked sold is left out.
+        let read = positions(&rows(json!([["Ativo", "Status", "Preço teto"], ["HGLG11", "Mantido", 155], ["MXRF11", "Vendido", 10.5], ["VISC11", "zerado", 120]]))).unwrap();
+        assert_eq!(read.order, ["HGLG11"]);
         // A fixed income typed with its quantity and price, and no amount yet.
         let read = positions(&rows(json!([["Ativo", "Classe", "Quantidade", "Preço médio"], ["CDB Inter 2028", "Renda Fixa", 2, 500]]))).unwrap();
         assert_eq!((read.positions[0].average_price, read.positions[0].current_value), (1000.0, Some(1000.0)));

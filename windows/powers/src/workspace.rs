@@ -10,7 +10,7 @@ use serde_json::{json, Value};
 
 use crate::ceiling::{self, Given};
 use crate::date::Date;
-use crate::model::{AssetClass, Market, Store};
+use crate::model::{AssetClass, Market, Position, Store};
 use crate::portfolio;
 use crate::sheet::Read;
 
@@ -52,6 +52,115 @@ pub struct Sync {
     /// The assets the tab had when AXYON last read or wrote it: one AXYON knew there and no longer follows was sold or
     /// removed from the chat, one it did not know was just added by the user.
     pub known: Vec<String>,
+    /// What AXYON asks the user to look at on a row, in its "Aviso".
+    pub notes: Vec<Note>,
+}
+
+/// A note on an asset's row, shown in its "Aviso" until the user acts on the row (its record changes), the asset
+/// leaves the tab, or two weeks go by.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Note {
+    pub ticker: String,
+    pub text: String,
+    /// The row's record (A to E) when the note was made.
+    pub record: Vec<Value>,
+    pub day: Date,
+}
+
+/// How long a note waits for the user.
+const NOTE_DAYS: i64 = 14;
+
+/// What the user's own tabs say (read once, when AXYON makes its tab): the assets they list, the positions they give
+/// with a quantity, and their ceilings.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct Theirs {
+    pub listed: Vec<String>,
+    pub positions: Vec<Position>,
+    pub ceilings: Vec<(String, f64)>,
+}
+
+impl Theirs {
+    /// One tab's reading added (an asset in two tabs counts once; a later tab's ceiling wins).
+    pub fn add(&mut self, read: &Read) {
+        for t in &read.order {
+            if !self.listed.iter().any(|x| x.eq_ignore_ascii_case(t)) {
+                self.listed.push(t.clone());
+            }
+        }
+        for p in &read.positions {
+            if !self.positions.iter().any(|x| x.ticker.eq_ignore_ascii_case(&p.ticker)) {
+                self.positions.push(p.clone());
+            }
+        }
+        for (t, c) in &read.ceilings {
+            self.ceilings.retain(|(x, _)| x != t);
+            self.ceilings.push((t.clone(), *c));
+        }
+    }
+}
+
+/// The note on an asset AXYON holds that the user's tabs do not list.
+pub const NOTE_UNLISTED: &str = "⚠️ não aparece nas suas outras abas: se vendeu, apague esta linha";
+/// The note on an asset the user's tabs list with no quantity.
+pub const NOTE_NO_QUANTITY: &str = "✏️ sem quantidade: se você tem, preencha a Quantidade e o Preço médio";
+
+/// The user's own tabs taken into their data, when AXYON makes its tab: their ceilings become the user's own, the
+/// positions they give with a quantity replace AXYON's (the classes AXYON worked out kept), and an asset they list
+/// with a ceiling and AXYON does not hold is watched. What does not agree gets a note: an asset AXYON holds that their
+/// tabs do not list, an asset they list with no quantity. The notes, by asset; none when their tabs list nothing.
+pub fn take_theirs(store: &mut Store, theirs: &Theirs) -> Vec<(String, &'static str)> {
+    if theirs.listed.is_empty() {
+        return Vec::new();
+    }
+    let given: Vec<Position> = crate::sheet::with_known(theirs.positions.clone(), &store.portfolio.positions);
+    for p in given {
+        store.portfolio.positions.retain(|x| !x.ticker.eq_ignore_ascii_case(&p.ticker));
+        store.portfolio.positions.push(p);
+    }
+    for (t, c) in &theirs.ceilings {
+        store.ceilings.manual.insert(t.clone(), *c);
+    }
+    let listed = |t: &str| theirs.listed.iter().any(|x| x.eq_ignore_ascii_case(t));
+    let mut notes: Vec<(String, &'static str)> = store.portfolio.positions.iter().filter(|p| !listed(&p.ticker)).map(|p| (p.ticker.clone(), NOTE_UNLISTED)).collect();
+    for t in &theirs.listed {
+        if store.portfolio.position(t).is_none() && store.ceilings.manual.contains_key(t) {
+            notes.push((t.clone(), NOTE_NO_QUANTITY));
+        }
+    }
+    notes
+}
+
+/// The notes made now, with each row's record as the table has it.
+pub fn notes_for(table: &Table, made: &[(String, &str)], today: Date) -> Vec<Note> {
+    made.iter()
+        .filter_map(|(t, text)| {
+            let i = table.tickers.iter().position(|x| x == t)?;
+            Some(Note { ticker: t.clone(), text: text.to_string(), record: table.record[i].clone(), day: today })
+        })
+        .collect()
+}
+
+/// The notes still waiting: their asset still in the table, its record as it was, and younger than two weeks.
+pub fn notes_kept(notes: &[Note], table: &Table, today: Date) -> Vec<Note> {
+    notes
+        .iter()
+        .filter(|n| n.day.until(today) < NOTE_DAYS)
+        .filter(|n| table.tickers.iter().position(|t| *t == n.ticker).is_some_and(|i| !differs(std::slice::from_ref(&n.record), 0, std::slice::from_ref(&table.record[i]))))
+        .cloned()
+        .collect()
+}
+
+/// The notes put first in their rows' "Aviso".
+pub fn with_notes(table: &mut Table, notes: &[Note]) {
+    let aviso = HEADERS.len() - INPUTS - 1;
+    for n in notes {
+        if let Some(i) = table.tickers.iter().position(|t| *t == n.ticker) {
+            let cell = &mut table.computed[i][aviso];
+            let rest = cell.as_str().unwrap_or("").to_string();
+            *cell = json!(if rest.is_empty() { n.text.clone() } else { format!("{} · {rest}", n.text) });
+        }
+    }
 }
 
 /// Whether the rows are AXYON's own layout: its header row, first.
@@ -624,6 +733,46 @@ mod tests {
         // Read again with nothing new: nothing to write.
         let t = table(&store, &market, today, &read.order, &aviso);
         assert!(after_reading(&tab, &t, &summary_rows(&store, &market, today, "4")).is_empty());
+    }
+
+    #[test]
+    fn the_users_own_tabs_are_taken_in_once_and_what_differs_gets_a_note() {
+        let (mut store, market, today) = sample();
+        // Their tabs: a list of what they hold with their ceilings (no quantities), and a fixed income.
+        let mut theirs = Theirs::default();
+        theirs.add(
+            &sheet::positions(&[
+                vec![json!("Ativo"), json!("Classe"), json!("Status"), json!("Preço teto (R$)")],
+                vec![json!("GGRC11"), json!("FII"), json!("Mantido"), json!(10)],
+                vec![json!("KNSC11"), json!("FII"), json!("Mantido"), json!(9)],
+            ])
+            .unwrap(),
+        );
+        theirs.add(&sheet::positions(&[vec![json!("Ativo"), json!("Valor")], vec![json!("RDB Nubank"), json!(512.3)], vec![json!("ggrc11"), json!("")]]).unwrap());
+        assert_eq!(theirs.listed, ["GGRC11", "KNSC11", "RDB Nubank"], "each asset once");
+        let notes = take_theirs(&mut store, &theirs);
+        assert_eq!(store.ceilings.manual.get("GGRC11"), Some(&10.0), "their ceiling");
+        assert_eq!(store.ceilings.manual.get("KNSC11"), Some(&9.0), "watched now");
+        assert_eq!(store.portfolio.position("GGRC11").unwrap().quantity, 150.0, "AXYON's quantity, as their tabs give none");
+        assert_eq!(notes, [("TIMS3".to_string(), NOTE_UNLISTED), ("KNSC11".to_string(), NOTE_NO_QUANTITY)]);
+        // On the rows; until the user acts on the row.
+        let mut t = table(&store, &market, today, &theirs.listed, &aviso);
+        let made = notes_for(&t, &notes, today);
+        with_notes(&mut t, &made);
+        let knsc = t.tickers.iter().position(|x| x == "KNSC11").unwrap();
+        assert!(t.computed[knsc][10].as_str().unwrap().starts_with("✏️ sem quantidade"));
+        let tims = t.tickers.iter().position(|x| x == "TIMS3").unwrap();
+        assert!(t.computed[tims][10].as_str().unwrap().starts_with("⚠️ não aparece"));
+        assert_eq!(notes_kept(&made, &t, today).len(), 2);
+        assert_eq!(notes_kept(&made, &t, today.add_days(14)).len(), 0, "two weeks at most");
+        store.portfolio.positions.push(pos("KNSC11", AssetClass::Fii, 160.0, 9.1));
+        store.portfolio.positions.retain(|p| p.ticker != "TIMS3");
+        let t = table(&store, &market, today, &theirs.listed, &aviso);
+        assert!(notes_kept(&made, &t, today).is_empty(), "KNSC11 filled in, TIMS3's row deleted");
+        // Their tabs list nothing: nothing taken, no note.
+        let mut untouched = sample().0;
+        assert!(take_theirs(&mut untouched, &Theirs::default()).is_empty());
+        assert_eq!(untouched, sample().0);
     }
 
     #[test]

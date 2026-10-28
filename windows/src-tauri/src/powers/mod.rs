@@ -15,6 +15,7 @@
 // are contacted, for public data, with no account and nothing about the user sent; the user's own sheet only through
 // their own gog. Nothing here buys, sells, pays, sends or posts.
 
+mod google;
 mod sheet;
 
 use std::collections::BTreeMap;
@@ -390,13 +391,26 @@ pub async fn refresh(app: &AppHandle, force: bool) -> RefreshState {
     state
 }
 
+/// `job` on a thread of its own rather than on the async threads the whole app shares (the hooks' and AXYON Core's
+/// pipe, the island, the phone): what B3, the CVM and Google send is unpacked and read there, which can take a while,
+/// and a call from AXYON Core is still taken at once meanwhile.
+fn apart<T: Send + 'static>(job: impl std::future::Future<Output = T> + Send + 'static) -> tauri::async_runtime::JoinHandle<T> {
+    tauri::async_runtime::spawn_blocking(move || tauri::async_runtime::block_on(job))
+}
+
 /// What is due, read in the background; waits for it `budget` at most (the reading goes on after).
 async fn fresh(app: &AppHandle, budget: Duration) {
     let reading = app.clone();
-    let job = tauri::async_runtime::spawn(async move {
+    let job = apart(async move {
         refresh(&reading, false).await;
     });
     let _ = tokio::time::timeout(budget, job).await;
+}
+
+/// Whether an answer about the portfolio would lack what it rests on — a price for an asset held that B3 quotes, or
+/// the economy's figures —, so that it waits for the reading a while; else it answers at once and the reading goes on.
+fn needs_reading(store: &Store, market: &Market) -> bool {
+    store.portfolio.tickers(None).iter().any(|t| market.price(t).is_none()) || market.economy_read.is_none()
 }
 
 /// An asset the user asks about and may not hold: its last close, and its fund's reports and documents or its
@@ -404,7 +418,7 @@ async fn fresh(app: &AppHandle, budget: Duration) {
 async fn ensure_asset(app: &AppHandle, ticker: &str) {
     let reading = app.clone();
     let ticker = ticker.to_string();
-    let job = tauri::async_runtime::spawn(async move {
+    let job = apart(async move {
         let powers = reading.state::<Powers>();
         let _turn = powers.turn.lock().await;
         let today = today();
@@ -463,7 +477,7 @@ pub fn start(app: &AppHandle) {
             // Each round in a task of its own: one that stops on something unexpected (written down by crash.rs)
             // ends that round only, and the next comes half an hour later as usual.
             let round = app.clone();
-            if tauri::async_runtime::spawn(async move {
+            if apart(async move {
                 refresh(&round, false).await;
                 brief(&round);
                 tell(&round);
@@ -622,14 +636,30 @@ async fn sheet_round(app: &AppHandle, link: &SheetLink, write: bool) -> Result<R
         return read_only(app, link, &rows, write, version);
     }
     let found = if blank { None } else { Some(sheet::positions(&rows)?) };
+    // A tab with nothing in it is AXYON's to fill: the user's own tabs are read for it once, their ceilings and the
+    // assets they list taken in, and what does not agree noted on its row.
+    let mut made_notes = Vec::new();
+    if blank {
+        if let Some(theirs) = their_tabs(link, &tab).await {
+            made_notes = take_theirs(app, &theirs, version);
+        }
+    }
     // The user's edits taken in, unless a change from the chat waits to be written (the reading would undo it).
     let taken = !write && found.as_ref().is_some_and(|f| workspace::has_assets(f) && take_in(app, f, true, version));
     let today = today();
     let order = found.as_ref().map(|f| f.order.clone()).unwrap_or_default();
     let stamp = written_stamp();
-    let (table, summary, computed_at) = read(app, |s, m| {
-        (workspace::table(s, m, today, &order, &workspace::aviso), workspace::summary_rows(s, m, today, &stamp), powers.version.load(Ordering::SeqCst))
+    let (mut table, summary, computed_at, old_notes) = read(app, |s, m| {
+        (
+            workspace::table(s, m, today, &order, &workspace::aviso),
+            workspace::summary_rows(s, m, today, &stamp),
+            powers.version.load(Ordering::SeqCst),
+            if s.sheet_sync.id == link.id { s.sheet_sync.notes.clone() } else { Vec::new() },
+        )
     });
+    let mut notes = workspace::notes_kept(&old_notes, &table, today);
+    notes.extend(workspace::notes_for(&table, &made_notes, today));
+    workspace::with_notes(&mut table, &notes);
     let writes = if blank {
         workspace::seed(&table, &summary)
     } else if taken {
@@ -644,13 +674,79 @@ async fn sheet_round(app: &AppHandle, link: &SheetLink, write: bool) -> Result<R
     {
         let mut store = held(&powers.store);
         let since = powers.version.load(Ordering::SeqCst) != computed_at;
-        let sync = workspace::Sync { id: link.id.clone(), pending: since && store.sheet_sync.pending, known: table.tickers.clone() };
+        let sync = workspace::Sync { id: link.id.clone(), pending: since && store.sheet_sync.pending, known: table.tickers.clone(), notes: notes.clone() };
         if store.sheet_sync != sync {
             store.sheet_sync = sync;
             save_store(&store);
         }
     }
+    if blank {
+        tell_sheet_ready(app, &notes);
+    }
     Ok(Round { ours: true, wrote: !writes.is_empty(), made, skipped: found.map(|f| f.skipped).unwrap_or_default() })
+}
+
+/// The user's other tabs (ten at most), read once when AXYON makes its own: what they list, the positions they give
+/// with a quantity, their ceilings. None when they could not be listed.
+async fn their_tabs(link: &SheetLink, ours: &str) -> Option<workspace::Theirs> {
+    let names = match sheet::tabs(link).await {
+        Ok(names) => names,
+        Err(e) => {
+            log::line(format!("powers: the sheet's tabs could not be listed: {e}"));
+            return None;
+        }
+    };
+    let mut theirs = workspace::Theirs::default();
+    for name in names.iter().filter(|n| !n.eq_ignore_ascii_case(ours)).take(10) {
+        if let Ok(sheet::Got::Rows(rows)) = sheet::get_tab(link, name).await {
+            if let Ok(found) = coucou_powers::sheet::positions(&rows) {
+                theirs.add(&found);
+            }
+        }
+    }
+    log::line(format!("powers: the user's tabs list {} asset(s), {} ceiling(s)", theirs.listed.len(), theirs.ceilings.len()));
+    Some(theirs)
+}
+
+/// The user's tabs taken into their data (a copy kept first when it changes it), unless the data changed since the
+/// round began: the notes to put on the rows.
+fn take_theirs(app: &AppHandle, theirs: &workspace::Theirs, version: u64) -> Vec<(String, &'static str)> {
+    let powers = app.state::<Powers>();
+    let mut store = held(&powers.store);
+    if powers.version.load(Ordering::SeqCst) != version {
+        return Vec::new();
+    }
+    let before = store.clone();
+    let notes = workspace::take_theirs(&mut store, theirs);
+    if *store != before {
+        backup(&before);
+        refresh::fix_classes(&mut store, &held(&powers.market));
+        save_store(&store);
+    }
+    notes
+}
+
+/// AXYON's tab is ready in the user's sheet: said on the island, with what to look at in it.
+fn tell_sheet_ready(app: &AppHandle, notes: &[workspace::Note]) {
+    let text = if notes.is_empty() {
+        t("Your portfolio is there with the price now, the result and the ceilings: edit it there or tell me in the chat.")
+    } else {
+        tf("Look at its rows: {list}.", &[("list", &notes_list(notes))])
+    };
+    let alert = PowersAlert { kind: "sheet".into(), ticker: String::new(), title: t("AXYON's tab is ready in your sheet"), text, tone: "info".into(), at: None };
+    let _ = app.emit_to(island::WINDOW_LABEL, "powers-alert", [alert]);
+}
+
+/// "TIMS3 (not in your other tabs), KNSC11 (no quantity)": the notes, in the user's language.
+fn notes_list(notes: &[workspace::Note]) -> String {
+    notes
+        .iter()
+        .map(|n| {
+            let why = if n.text == workspace::NOTE_NO_QUANTITY { t("no quantity") } else { t("not in your other tabs") };
+            format!("{} ({why})", n.ticker)
+        })
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 /// A tab of the user's: only read, its positions and ceilings taken in, but not right after a change from the chat
@@ -665,7 +761,7 @@ fn read_only(app: &AppHandle, link: &SheetLink, rows: &[Vec<Value>], write: bool
     }
     let powers = app.state::<Powers>();
     let mut store = held(&powers.store);
-    let sync = workspace::Sync { id: link.id.clone(), pending: false, known: Vec::new() };
+    let sync = workspace::Sync { id: link.id.clone(), ..workspace::Sync::default() };
     if store.sheet_sync != sync {
         store.sheet_sync = sync;
         save_store(&store);
@@ -753,7 +849,7 @@ fn start_live(app: &AppHandle) {
             // During the session, AXYON's columns follow the prices, every five minutes at most.
             let sheet_due = since(&powers.sheet_read, SHEET_EVERY) || (live_due && since(&powers.sheet_read, LIVE_EVERY - Duration::from_secs(5)));
             if (sheet_due || live_due)
-                && tauri::async_runtime::spawn(async move {
+                && apart(async move {
                     if live_due {
                         read_live(&round).await;
                     }
@@ -779,7 +875,8 @@ fn start_live(app: &AppHandle) {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PowersAlert {
-    /// "opportunity", "into_zone", "out_of_zone", "up", "down", "portfolio_up" or "portfolio_down".
+    /// "opportunity", "into_zone", "out_of_zone", "up", "down", "portfolio_up", "portfolio_down", or "sheet" (AXYON's
+    /// tab made in the user's sheet).
     pub kind: String,
     pub ticker: String,
     pub title: String,
@@ -973,6 +1070,30 @@ fn refused(text: String) -> HomeResult {
     HomeResult { ok: false, detail: coucou_powers::text::clip(&text, 120), text }
 }
 
+/// Where the positions come from and how old they are, and what AXYON's tab asks the user to check: for the brain, so
+/// that an old list is not taken for today's portfolio.
+fn record_note(s: &Store) -> String {
+    let source = match s.portfolio.source.as_str() {
+        SHEET_SOURCE => "read from the AXYON tab of the user's Google Sheet",
+        "paste" | "text" => "pasted by the user",
+        "b3" => "imported from B3's file",
+        "chat" => "told in the chat",
+        _ => "saved in AXYON",
+    };
+    let when = s.portfolio.updated.map(|d| format!(", last changed on {}", d.br())).unwrap_or_default();
+    let mut out = format!("\n\nPositions {source}{when}. If the user no longer holds one of them, or holds one not listed, change it with them (wealth_trade for a buy or a sale; wealth_update with remove for one gone).");
+    if !s.sheet_sync.notes.is_empty() {
+        let list: Vec<String> = s
+            .sheet_sync
+            .notes
+            .iter()
+            .map(|n| format!("{} ({})", n.ticker, if n.text == workspace::NOTE_NO_QUANTITY { "in their own tabs with no quantity" } else { "held here but not in their own tabs: sold?" }))
+            .collect();
+        out.push_str(&format!(" AXYON's tab asks the user to check: {}.", list.join(", ")));
+    }
+    out
+}
+
 /// The tools that change what AXYON's tab holds (the positions, the user's own ceilings): the user's latest edits in
 /// the sheet are read first, and the change is written there after.
 fn changes_record(tool: &str) -> bool {
@@ -1019,10 +1140,17 @@ pub async fn call(app: &AppHandle, tool: &str, input: &Value) -> HomeResult {
     };
     let market_first = async {
         if reads_market(tool) {
-            fresh(app, READ_BUDGET).await;
-            if session_open() && since(&app.state::<Powers>().live_read, Duration::from_secs(120)) {
+            // What is due is read either way; the answer waits for it only when it would lack a price or the economy.
+            if read(app, needs_reading) {
+                fresh(app, READ_BUDGET).await;
+            } else {
                 let reading = app.clone();
-                let job = tauri::async_runtime::spawn(async move { read_live(&reading).await });
+                apart(async move { refresh(&reading, false).await });
+            }
+            // The session's prices, when the last reading is older than the background loop's pace (AXYON just started).
+            if session_open() && since(&app.state::<Powers>().live_read, LIVE_EVERY) {
+                let reading = app.clone();
+                let job = apart(async move { read_live(&reading).await });
                 let _ = tokio::time::timeout(LIVE_BUDGET, job).await;
             }
         }
@@ -1033,7 +1161,7 @@ pub async fn call(app: &AppHandle, tool: &str, input: &Value) -> HomeResult {
     }
     let today = today();
     let mut result = match tool {
-        "wealth_portfolio" => answer(read(app, |s, m| engine::portfolio(s, m, today))),
+        "wealth_portfolio" => answer(read(app, |s, m| format!("{}{}", engine::portfolio(s, m, today), record_note(s)))),
         "wealth_update" => {
             let mode = engine::s(input, "mode");
             let replaces = (engine::s(input, "text").is_some() && mode.as_deref() != Some("merge")) || mode.as_deref() == Some("replace") || engine::b(input, "rebuild_from_trades") == Some(true);
@@ -1209,10 +1337,12 @@ pub struct View {
     pub command: String,
     /// The session's prices: the last reading.
     pub live: LiveState,
-    /// The user's sheet: which one, its last reading, and whether gog is on this computer.
+    /// The user's sheet: which one, its last reading, and whether AXYON has a way to it (`way`: "gog", "core" for AXYON
+    /// Core's Google sign-in, or "").
     pub sheet_link: coucou_powers::sheet::SheetLink,
     pub sheet: SheetState,
     pub gog: bool,
+    pub way: String,
 }
 
 fn money(v: f64) -> String {
@@ -1328,7 +1458,11 @@ pub fn view(app: &AppHandle) -> View {
         (engine::summary(s, m, today), profile)
     });
     let today_lines = summary.today.iter().map(|i| Line { area: i.area.clone(), text: line(i), urgent: i.urgent }).collect();
-    let alerts = summary.alerts.iter().map(|a| Line { area: a.kind.clone(), text: alert_line(a), urgent: a.urgent }).collect();
+    let mut alerts: Vec<Line> = summary.alerts.iter().map(|a| Line { area: a.kind.clone(), text: alert_line(a), urgent: a.urgent }).collect();
+    let notes = read(app, |s, _| s.sheet_sync.notes.clone());
+    if !notes.is_empty() {
+        alerts.insert(0, Line { area: "money".into(), text: tf("Check in AXYON's tab: {list}", &[("list", &notes_list(&notes))]), urgent: true });
+    }
     View {
         on,
         summary,
@@ -1341,7 +1475,8 @@ pub fn view(app: &AppHandle) -> View {
         live: held(&app.state::<Powers>().live).clone(),
         sheet_link: read(app, |s, _| s.sheet.clone()),
         sheet: held(&app.state::<Powers>().sheet).clone(),
-        gog: sheet::program().is_some(),
+        gog: sheet::way().is_some(),
+        way: sheet::way_name().into(),
     }
 }
 
@@ -1410,7 +1545,7 @@ fn looked(app: &AppHandle) {
     *held(&powers.looked_at) = Some(Instant::now());
     if enabled(app) && session_open() && since(&powers.live_read, LIVE_LOOKED) {
         let reading = app.clone();
-        tauri::async_runtime::spawn(async move {
+        apart(async move {
             read_live(&reading).await;
         });
     }
@@ -1427,7 +1562,7 @@ pub fn powers_set(app: AppHandle, window: WebviewWindow, on: bool) -> Result<Vie
         start(&app);
         crate::hermes_setup::offer_tools(&app);
         let reading = app.clone();
-        tauri::async_runtime::spawn(async move {
+        apart(async move {
             refresh(&reading, false).await;
         });
     }
@@ -1443,7 +1578,7 @@ pub fn powers_refresh(app: AppHandle, window: WebviewWindow) -> Result<View, Str
         return Err(t("Zheus' superpowers are off."));
     }
     let reading = app.clone();
-    tauri::async_runtime::spawn(async move {
+    apart(async move {
         if session_open() {
             read_live(&reading).await;
         }
@@ -1473,7 +1608,7 @@ pub fn powers_sheet(app: AppHandle, window: WebviewWindow, id: String, tab: Stri
     *held(&app.state::<Powers>().sheet) = SheetState::default();
     if linked && enabled(&app) {
         let reading = app.clone();
-        tauri::async_runtime::spawn(async move {
+        apart(async move {
             if session_open() {
                 read_live(&reading).await;
             }
@@ -1608,6 +1743,33 @@ mod tests {
         assert!(in_session(tuesday, 15 * 60 + 16));
         assert!(!in_session(tuesday, 9 * 60 + 59) && !in_session(tuesday, 18 * 60 + 30), "before the opening, after the closing call");
         assert!(!in_session(Date::new(2026, 10, 31).unwrap(), 12 * 60), "a Saturday");
+    }
+
+    #[test]
+    fn a_reading_apart_runs_on_a_thread_of_its_own_and_still_reaches_the_runtime() {
+        let main = std::thread::current().id();
+        let (thread, slept) = tauri::async_runtime::block_on(async {
+            apart(async {
+                // A timer of the shared runtime, from that thread.
+                tokio::time::sleep(Duration::from_millis(10)).await;
+                (std::thread::current().id(), true)
+            })
+            .await
+            .unwrap()
+        });
+        assert!(slept && thread != main);
+        let record = |q: f64| {
+            let mut store = Store::default();
+            store.portfolio.positions.push(coucou_powers::model::Position { ticker: "TIMS3".into(), class: AssetClass::Acao, quantity: q, average_price: 18.0, subtype: String::new(), current_value: None, note: String::new() });
+            store
+        };
+        let mut market = Market::default();
+        market.economy_read = Some(Date::new(2026, 10, 27).unwrap());
+        assert!(needs_reading(&record(30.0), &market), "TIMS3 has no price yet: the answer waits for the reading");
+        market.keep_live([("TIMS3".to_string(), LivePrice { price: 18.78, at: 1_793_125_002, previous: None })]);
+        assert!(!needs_reading(&record(30.0), &market), "priced: it answers at once");
+        market.economy_read = None;
+        assert!(needs_reading(&record(30.0), &market));
     }
 
     #[test]

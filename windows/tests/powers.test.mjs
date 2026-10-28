@@ -12,7 +12,7 @@ import { emit, internals, sent } from "./tauri.mjs";
 installFakeDom();
 const {
   alertIcon, alertMood, alertQuestion, alertsMessage, amountOf, classBars, classLabel, clockOf, incomeProgress, liveLine, money, percent, pngName, pricedLine,
-  quickQuestions, refreshLine, sheetLine, shownAlerts, targetsFrom, targetsTotal, ALERT_LASTS,
+  quickQuestions, refreshLine, sheetLine, shownAlerts, targetsFrom, targetsTotal, wayLine, ALERT_LASTS,
 } = await import("../src/core/powers.ts");
 const { State } = await import("../src/core/state.ts");
 const { buildPowers } = await import("../src/views/powers.ts");
@@ -101,6 +101,7 @@ const view = (fields = {}) => ({
   sheetLink: { id: "", tab: "", account: "" },
   sheet: { running: false, at: null, written: null, tab: "AXYON", ours: true, positions: 0, watched: 0, problem: null, skipped: [] },
   gog: true,
+  way: "core",
   ...fields,
 });
 
@@ -128,6 +129,9 @@ test("money and percents are written the Brazilian way, whatever the interface's
   assert.equal(sheetLine(sheet({ at: "15:20", positions: 12, watched: 3 })), "AXYON's tab, read at 15:20: 12 positions, 3 watched");
   assert.equal(sheetLine(sheet({ at: "15:20", written: "15:20", positions: 12, watched: 3 })), "AXYON's tab, read at 15:20: 12 positions, 3 watched · written at 15:20");
   assert.equal(sheetLine(sheet({ at: "15:20", positions: 5, ours: false, tab: "Carteira" })), "The Carteira tab, only read, at 15:20: 5 positions");
+  assert.equal(wayLine(view({ way: "core" })), "Through AXYON Core's Google sign-in (its google-workspace skill)");
+  assert.equal(wayLine(view({ way: "gog" })), "Through gog, with its own sign-in");
+  assert.equal(wayLine(view({ way: "", gog: false })), "");
   assert.equal(liveLine(view({ live: { at: "15:21", missed: [] } })), "Prices from Google Finance read at 15:21 · some 15 minutes late; B3's official close in the evening");
   assert.equal(classLabel("fii"), "Real-estate funds");
   assert.equal(classLabel("renda_fixa"), "Fixed income");
@@ -402,6 +406,8 @@ test("an alert has its sign, its mood and a question for AXYON", () => {
   assert.equal(alertQuestion(alert()), "Is it a good time to buy GGRC11?");
   assert.equal(alertQuestion(alert({ kind: "down", tone: "bad" })), "What is happening with GGRC11 today?");
   assert.equal(alertQuestion(alert({ kind: "portfolio_up", ticker: "" })), "Why did my portfolio move so much today?");
+  assert.equal(alertIcon(alert({ kind: "sheet", ticker: "", tone: "info" })), "📋");
+  assert.equal(alertQuestion(alert({ kind: "sheet", ticker: "", tone: "info" })), "What is left to check in AXYON's tab?");
   assert.equal(
     alertsMessage([alert(), alert({ kind: "up", ticker: "TIMS3", title: "TIMS3 up 3,8% today", text: "R$ 18,78 now", at: null })]),
     "🟢 GGRC11 went below your ceiling — R$ 8,69 now · your ceiling R$ 8,80 (15:16)\n📈 TIMS3 up 3,8% today — R$ 18,78 now",

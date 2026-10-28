@@ -78,7 +78,7 @@ export interface SheetState {
 
 /** One thing AXYON tells about the portfolio the moment it happens (src-tauri/src/powers, tell). */
 export interface PowersAlert {
-  kind: "opportunity" | "into_zone" | "out_of_zone" | "up" | "down" | "portfolio_up" | "portfolio_down";
+  kind: "opportunity" | "into_zone" | "out_of_zone" | "up" | "down" | "portfolio_up" | "portfolio_down" | "sheet";
   /** The asset; empty for the whole portfolio. */
   ticker: string;
   /** Its headline and what follows, in the user's language. */
@@ -139,8 +139,10 @@ export interface PowersView {
   live: LiveState;
   sheetLink: SheetLink;
   sheet: SheetState;
-  /** gog is on this computer. */
+  /** AXYON has a way to the sheet on this computer… */
   gog: boolean;
+  /** …and which: "gog", or "core" (AXYON Core's own Google sign-in). */
+  way: "gog" | "core" | "";
 }
 
 export interface KitFile {
@@ -255,6 +257,13 @@ export function brDate(iso: string): string {
   return m ? `${m[3]}/${m[2]}` : iso;
 }
 
+/** How AXYON reaches the user's sheet, for Settings. */
+export function wayLine(v: PowersView): string {
+  if (v.way === "core") return t("Through AXYON Core's Google sign-in (its google-workspace skill)");
+  if (v.way === "gog") return t("Through gog, with its own sign-in");
+  return "";
+}
+
 /** The user's sheet's last round, for Settings. */
 export function sheetLine(v: PowersView): string {
   const s = v.sheet;
@@ -277,6 +286,8 @@ export function alertIcon(a: PowersAlert): string {
     case "up":
     case "portfolio_up":
       return "📈";
+    case "sheet":
+      return "📋";
     default:
       return "📉";
   }
@@ -297,6 +308,7 @@ export function alertMood(a: PowersAlert): { emote: BotEmoteName; sound: SoundNa
 
 /** The question an alert offers to ask AXYON (written in the chat for the user to send). */
 export function alertQuestion(a: PowersAlert): string {
+  if (a.kind === "sheet") return t("What is left to check in AXYON's tab?");
   if (!a.ticker) return t("Why did my portfolio move so much today?");
   if (a.kind === "opportunity" || a.kind === "into_zone") return t("Is it a good time to buy {ticker}?", { ticker: a.ticker });
   return t("What is happening with {ticker} today?", { ticker: a.ticker });

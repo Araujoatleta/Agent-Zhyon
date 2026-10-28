@@ -1,7 +1,8 @@
-// The user's Google Sheet, through gog (github.com/openclaw/gogcli), the Google Workspace command the user's assistant
-// already uses with its gog skill: gog's own sign-in, kept by gog in the system's keystore, never seen here; nothing is
-// ever asked (`--no-input`). AXYON reads the tab it was given, and writes only into its own tab (powers/mod.rs,
-// workspace_sync): its values, raw, from stdin.
+// The user's Google Sheet, one of two ways: gog (github.com/openclaw/gogcli), the Google Workspace command an assistant's
+// gog skill uses — gog's own sign-in, kept by gog in the system's keystore, never seen here, and nothing ever asked
+// (`--no-input`); else AXYON Core's own Google sign-in, the one its google-workspace skill keeps (google.rs). AXYON
+// reads the tab it was given (and, once, the user's other tabs), and writes only into its own tab (powers/mod.rs,
+// sync_sheet): its values, raw.
 
 use std::io::{Read as _, Write as _};
 use std::path::{Path, PathBuf};
@@ -16,22 +17,53 @@ use crate::i18n::{t, tf};
 /// The longest gog may take to answer.
 const WAIT: Duration = Duration::from_secs(45);
 
-/// gog's program: on the PATH, or where its installs put it.
+/// gog's program: on the PATH, or where its installs put it (Go, WinGet, Scoop, Chocolatey, Homebrew).
 pub fn program() -> Option<PathBuf> {
     let name = if cfg!(windows) { "gog.exe" } else { "gog" };
     let home = crate::platform::home_dir();
+    let local = std::env::var_os("LOCALAPPDATA").map(PathBuf::from).unwrap_or_else(|| home.join("AppData").join("Local"));
     let usual = [
         home.join("go").join("bin"),
         home.join(".local").join("bin"),
-        home.join("AppData").join("Local").join("Programs").join("gog"),
-        home.join("AppData").join("Local").join("gogcli"),
+        home.join("bin"),
+        local.join("Programs").join("gog"),
+        local.join("Programs").join("gogcli"),
+        local.join("gogcli"),
+        local.join("Microsoft").join("WinGet").join("Links"),
         home.join("scoop").join("shims"),
+        PathBuf::from(r"C:\ProgramData\chocolatey\bin"),
         PathBuf::from("/opt/homebrew/bin"),
         PathBuf::from("/usr/local/bin"),
         PathBuf::from("/home/linuxbrew/.linuxbrew/bin"),
     ];
     let on_path: Vec<PathBuf> = std::env::var_os("PATH").map(|p| std::env::split_paths(&p).collect()).unwrap_or_default();
     on_path.into_iter().chain(usual).map(|dir| dir.join(name)).find(|p| p.is_file())
+}
+
+/// How AXYON reaches the sheet.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Way {
+    Gog(PathBuf),
+    /// AXYON Core's own Google sign-in (google.rs).
+    Core,
+}
+
+/// gog when it is on the computer, else AXYON Core's Google sign-in when there is one.
+pub fn way() -> Option<Way> {
+    program().map(Way::Gog).or_else(|| super::google::token_file().map(|_| Way::Core))
+}
+
+/// The way's name for Settings: "gog", "core" or "" (none).
+pub fn way_name() -> &'static str {
+    match way() {
+        Some(Way::Gog(_)) => "gog",
+        Some(Way::Core) => "core",
+        None => "",
+    }
+}
+
+fn no_way() -> String {
+    t("AXYON found no way to your Google Sheet on this computer: ask AXYON Core to set up its google-workspace skill (it asks for your Google sign-in once), or install gog (github.com/openclaw/gogcli) and sign in with gog auth add.")
 }
 
 /// The tab: the one the user named, else AXYON's own.
@@ -58,9 +90,14 @@ fn strings(parts: &[&str]) -> Vec<String> {
     parts.iter().map(|s| s.to_string()).collect()
 }
 
-/// gog's arguments to read the tab: its values as numbers, read only.
-pub fn args(link: &SheetLink, id: &str) -> Vec<String> {
-    with_account(strings(&["sheets", "get", id, &in_tab(&tab_of(link), "A1:Z400"), "--json", "--render", "UNFORMATTED_VALUE", "--no-input", "--readonly"]), link)
+/// gog's arguments to read `range`: its values as numbers, read only.
+pub fn args(link: &SheetLink, id: &str, range: &str) -> Vec<String> {
+    with_account(strings(&["sheets", "get", id, range, "--json", "--render", "UNFORMATTED_VALUE", "--no-input", "--readonly"]), link)
+}
+
+/// gog's arguments to describe the spreadsheet (its tabs), read only.
+pub fn metadata_args(link: &SheetLink, id: &str) -> Vec<String> {
+    with_account(strings(&["sheets", "metadata", id, "--json", "--no-input", "--readonly"]), link)
 }
 
 /// gog's arguments to write `range` with the values given on stdin, raw (a text is never taken for a formula).
@@ -132,9 +169,13 @@ fn run(program: &Path, args: &[String], input: Option<String>) -> Result<String,
 }
 
 /// gog with `args` (and `input`), off the async threads.
-async fn gog(args: Vec<String>, input: Option<String>) -> Result<String, String> {
-    let program = program().ok_or_else(|| t("gog was not found on this computer: install it (github.com/openclaw/gogcli) and sign in with gog auth add, as your assistant's gog skill does."))?;
+async fn gog(program: PathBuf, args: Vec<String>, input: Option<String>) -> Result<String, String> {
     tauri::async_runtime::spawn_blocking(move || run(&program, &args, input)).await.map_err(|e| e.to_string())?
+}
+
+/// What gog printed, as JSON.
+fn json_of(printed: &str) -> Result<Value, String> {
+    serde_json::from_str(printed.trim()).map_err(|_| t("gog's answer could not be read."))
 }
 
 /// The spreadsheet's ID, from the link the user gave.
@@ -151,29 +192,53 @@ pub enum Got {
 
 /// The tab's cells (its first 400 rows and 26 columns), as numbers where they are numbers.
 pub async fn get(link: &SheetLink) -> Result<Got, String> {
+    get_tab(link, &tab_of(link)).await
+}
+
+/// The cells of the tab named `tab`.
+pub async fn get_tab(link: &SheetLink, tab: &str) -> Result<Got, String> {
     let id = id_of(link)?;
-    match gog(args(link, &id), None).await {
-        Ok(printed) => {
-            let json: Value = serde_json::from_str(printed.trim()).map_err(|_| t("gog's answer could not be read."))?;
-            Ok(Got::Rows(sheet::values_of(&json)))
-        }
+    let range = in_tab(tab, "A1:Z400");
+    let answer = match way().ok_or_else(no_way)? {
+        Way::Gog(program) => gog(program, args(link, &id, &range), None).await.and_then(|printed| json_of(&printed)),
+        Way::Core => super::google::values(&id, &range).await,
+    };
+    match answer {
+        Ok(json) => Ok(Got::Rows(sheet::values_of(&json))),
         // Google says so of a range in a tab that is not there.
         Err(e) if e.to_lowercase().contains("unable to parse range") => Ok(Got::NoTab),
         Err(e) => Err(e),
     }
 }
 
+/// The names of the spreadsheet's tabs.
+pub async fn tabs(link: &SheetLink) -> Result<Vec<String>, String> {
+    let id = id_of(link)?;
+    match way().ok_or_else(no_way)? {
+        Way::Gog(program) => Ok(super::google::titles_of(&json_of(&gog(program, metadata_args(link, &id), None).await?)?)),
+        Way::Core => super::google::tabs(&id).await,
+    }
+}
+
 /// Adds the tab to the spreadsheet.
 pub async fn add_tab(link: &SheetLink, tab: &str) -> Result<(), String> {
     let id = id_of(link)?;
-    gog(add_tab_args(link, &id, tab), None).await.map(|_| ())
+    match way().ok_or_else(no_way)? {
+        Way::Gog(program) => gog(program, add_tab_args(link, &id, tab), None).await.map(|_| ()),
+        Way::Core => super::google::add_tab(&id, tab).await,
+    }
 }
 
 /// Writes `values` into `range` of the spreadsheet, raw.
 pub async fn update(link: &SheetLink, range: &str, values: &[Vec<Value>]) -> Result<(), String> {
     let id = id_of(link)?;
-    let body = serde_json::to_string(values).map_err(|e| e.to_string())?;
-    gog(update_args(link, &id, range), Some(body)).await.map(|_| ())
+    match way().ok_or_else(no_way)? {
+        Way::Gog(program) => {
+            let body = serde_json::to_string(values).map_err(|e| e.to_string())?;
+            gog(program, update_args(link, &id, range), Some(body)).await.map(|_| ())
+        }
+        Way::Core => super::google::update(&id, range, values).await,
+    }
 }
 
 /// The sheet's positions from its rows, the reader's own sentence in the user's language.
@@ -195,13 +260,14 @@ mod tests {
         let id = "1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789_-xyz";
         let link = SheetLink { id: "x".into(), tab: "Carteira".into(), account: " eu@gmail.com ".into() };
         assert_eq!(
-            args(&link, id),
+            args(&link, id, &in_tab(&tab_of(&link), "A1:Z400")),
             ["sheets", "get", id, "'Carteira'!A1:Z400", "--json", "--render", "UNFORMATTED_VALUE", "--no-input", "--readonly", "--account", "eu@gmail.com"]
         );
         let ours = SheetLink { id: "x".into(), ..SheetLink::default() };
         assert_eq!(tab_of(&ours), "AXYON", "no tab named: AXYON's own");
-        assert_eq!(args(&ours, id)[3], "'AXYON'!A1:Z400");
-        assert!(!args(&ours, id).contains(&"--account".to_string()), "gog's own default account");
+        assert_eq!(in_tab(&tab_of(&ours), "A1:Z400"), "'AXYON'!A1:Z400");
+        assert!(!args(&ours, id, "'AXYON'!A1:Z400").contains(&"--account".to_string()), "gog's own default account");
+        assert_eq!(metadata_args(&ours, id), ["sheets", "metadata", id, "--json", "--no-input", "--readonly"]);
         assert_eq!(update_args(&ours, id, "'AXYON'!F2:P9"), ["sheets", "update", id, "'AXYON'!F2:P9", "--values-json", "@-", "--input", "RAW", "--no-input", "--force"]);
         assert_eq!(add_tab_args(&ours, id, "AXYON"), ["sheets", "add-tab", id, "AXYON", "--no-input"]);
         assert_eq!(in_tab("Ana's", "A1"), "'Ana''s'!A1");
