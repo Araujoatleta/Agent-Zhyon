@@ -36,8 +36,27 @@ option: paired, it adds its home, its agents (Claude Code, Codex…) and the por
   aloud, the clipboard.
 - **The web**: a search and reading a page, no key, no account.
 - **The home**: the TVs, boxes and Home Assistant the iPhone reaches itself (below).
-- **The portfolio**: B3 prices from Google Finance (about 15 minutes late), with the positions a paired computer gave.
 - **Memory**: Hermes remembers what you tell it and past conversations, as on the computer.
+
+## The superpowers, inside the iPhone
+
+The computer's own superpowers engine runs inside the app, with no computer:
+
+- **The portfolio**: *"how is my portfolio today?"*, *"what is GARE11 at?"*, from the official data of B3, the CVM,
+  FundosNet and the Banco Central (read when you ask) and the session's prices from Google Finance (about 15 minutes
+  late).
+- **What you did**: *"today I bought 10 GGRC11 at 9.20"*, a pasted portfolio (Investidor10 or the broker), *"my
+  ceiling for TIMS3 is 21.50"*. Kept on this iPhone, shown in the Wallet tab.
+- **Funds and companies**: book value, P/VP, dividends and whether they last, record dates and payments,
+  assemblies; a company's statements and your thesis checked point by point.
+- **Ceiling prices** (Bazin, projected Bazin, Graham, Peter Lynch) and the opportunities under them.
+- **Plan, taxes and decisions**: the road to your targets by class, the month's DARF and the yearly declaration, the
+  decision journal and the *committee* before you decide.
+- **Studies, English and training**: the exam plan, review cards, the English lesson from your own companies, today's
+  workout, and *"what is my day today?"*.
+
+None of it buys, sells, pays or sends: AXYON only records and works things out. The month's content kit stays on the
+computer.
 
 iOS asks the first time for each thing it protects; **Settings → What AXYON may use on this iPhone** shows what is
 allowed.
@@ -55,7 +74,8 @@ switches ask for Face ID first. The first scan makes iOS ask for the local netwo
 
 **Settings → Computer (optional) → Windows or Linux computer** pairs as before. Once paired, the computer's portfolio
 (positions, your ceilings, last prices, the notes of AXYON's tab) reaches the iPhone each time it connects and stays
-there, so Hermes on the iPhone still answers about it with the computer off; the computer's home shows in the Home tab
+there, so Hermes on the iPhone still answers about it with the computer off (each newer copy replaces the iPhone's
+positions: with a computer, it and its sheet stay the record); the computer's home shows in the Home tab
 and Hermes can act on it; the computer's agents show on the start screen with Allow and Deny. Away from home, use
 Tailscale on both ([IPHONE_PC.md](IPHONE_PC.md)).
 

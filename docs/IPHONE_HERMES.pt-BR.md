@@ -41,9 +41,27 @@ Peça normalmente, por texto ou voz (o microfone do chat; uma pausa envia):
 - **O iPhone**: bateria, armazenamento, onde você está, lanterna, música (tocar, pausar, próxima), ler em voz alta, a
   área de transferência.
 - **Web**: *"pesquisa o horário da farmácia aqui perto"*, *"lê esta página e me resume"*. Sem chave nem conta.
-- **Carteira**: *"como está a minha carteira hoje?"*, *"quanto está o GARE11?"*. Os preços da B3 vêm do Google
-  Finance (com uns 15 minutos de atraso).
 - **Memória**: o Hermes lembra do que você contar e das conversas anteriores, como no computador.
+
+## Os superpoderes, dentro do iPhone
+
+O mesmo motor dos superpoderes do computador roda dentro do app, sem computador:
+
+- **Carteira**: *"como está a minha carteira hoje?"*, *"quanto está o GARE11?"*. Com os dados oficiais da B3, da CVM,
+  do FundosNet e do Banco Central (lidos na hora que você pergunta), e os preços do pregão pelo Google Finance (com
+  uns 15 minutos de atraso).
+- **Registrar o que você fez**: *"hoje comprei 10 GGRC11 a 9,20"*, *"cola a minha carteira"* (texto do Investidor10 ou
+  da corretora), *"o meu teto para TIMS3 é 21,50"*. Fica guardado neste iPhone e aparece na aba Carteira.
+- **FIIs e empresas**: valor patrimonial, P/VP, dividendos e se são sustentáveis, data-com e pagamentos, assembleias;
+  os balanços de uma empresa e a sua tese conferida item a item.
+- **Preço teto** (Bazin, Bazin projetivo, Graham, Peter Lynch) e as oportunidades abaixo do teto.
+- **Plano, impostos e decisões**: o caminho até as suas metas por classe, o DARF do mês e a declaração anual, o
+  diário de decisões e o *comitê* antes de decidir.
+- **Estudos, inglês e treino**: o plano do concurso, os cartões de revisão, a aula de inglês com as empresas da sua
+  carteira, o treino do dia e *"como é o meu dia hoje?"*.
+
+Nada disso compra, vende, paga ou envia: o AXYON só registra e calcula. O kit de conteúdo do mês continua no
+computador.
 
 Cada coisa que o iPhone protege (calendário, lembretes, contatos, localização, notificações) o iOS pergunta na
 primeira vez. **Ajustes → O que o AXYON pode usar** mostra o que está liberado.
@@ -86,7 +104,8 @@ Rede → Configurações avançadas).
 
 - a **carteira** do AXYON do computador (posições, os seus tetos, os últimos preços e os avisos da aba do AXYON) passa
   para o iPhone sempre que ele se conecta, e fica guardada: com o computador desligado, o Hermes do iPhone continua
-  respondendo sobre ela, com os preços de agora;
+  respondendo sobre ela, com os preços de agora. Cada cópia nova do computador substitui as posições do iPhone: com
+  um computador, ele e a sua planilha continuam sendo o registro;
 - a **casa** do computador aparece na aba Casa e o Hermes pode ligar e desligar os aparelhos dela;
 - os **agentes** do computador aparecem no início, com Permitir/Negar;
 - o **chat com o AXYON do computador** e os ajustes do assistente de lá continuam em Ajustes.

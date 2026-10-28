@@ -1,9 +1,10 @@
 """Coucou's tools for Hermes on the iPhone: its arms.
 
-The portfolio is the copy the computer gave the iPhone over the link (windows/src-tauri/src/powers/mod.rs,
-phone_copy), kept by the app in a file this module reads; prices are read here, from Google Finance, during B3's
-session (some 15 minutes late). Mochi's home goes through the app (`bridge`): it asks the paired computer when the
-link is up, and a device that asks first is acted on only after the owner's Face ID there.
+The wallet the app shows (/v1/portfolio) is the copy the computer gave the iPhone over the link
+(windows/src-tauri/src/powers/mod.rs, phone_copy), kept by the app in a file this module reads, with prices read here
+from Google Finance (some 15 minutes late); Hermes itself answers about investments with the superpowers (powers.py),
+which take the same copy. Mochi's home goes through the app (`bridge`): it asks the paired computer when the link is
+up, and a device that asks first is acted on only after the owner's Face ID there.
 """
 
 from __future__ import annotations
@@ -123,7 +124,8 @@ def portfolio_report(copy: dict[str, Any], live: dict[str, dict[str, Any]], now:
                     moved += qty * (q["price"] - before)
             elif last.get("price"):
                 row["price"] = float(last["price"])
-                row["priceFrom"] = "last price the computer had" + (f" ({last.get('closeDay')})" if last.get("closeDay") else "")
+                had = "B3's last close" if copy.get("keptOnIphone") else "last price the computer had"
+                row["priceFrom"] = had + (f" ({last.get('closeDay')})" if last.get("closeDay") else "")
             if "price" in row:
                 row["value"] = round(qty * row["price"], 2)
                 if avg > 0:
@@ -161,6 +163,7 @@ def portfolio_report(copy: dict[str, Any], live: dict[str, dict[str, Any]], now:
         "invested": round(cost, 2),
         "source": copy.get("source") or "",
         "copyFromComputer": _when(copy.get("receivedAt")) or "unknown",
+        "keptOnIphone": bool(copy.get("keptOnIphone")),
         "pricesReadAt": datetime.fromtimestamp(now, BRT).strftime("%d/%m %H:%M"),
     }
     if moved:
@@ -170,29 +173,69 @@ def portfolio_report(copy: dict[str, Any], live: dict[str, dict[str, Any]], now:
     return report
 
 
+def _read(path: str) -> Any:
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return None
+
+
+def iphone_record(powers_dir: str) -> Optional[dict[str, Any]]:
+    """The portfolio the superpowers keep on this iPhone (powers.json, windows/powers-ffi), as a copy like the
+    computer's: its positions, the user's ceilings and cash, with B3's last closes of powers-market.json."""
+    store = _read(os.path.join(powers_dir, "powers.json"))
+    if not isinstance(store, dict):
+        return None
+    p = store.get("portfolio") or {}
+    positions = p.get("positions") or []
+    ceilings = (store.get("ceilings") or {}).get("manual") or {}
+    if not positions and not ceilings:
+        return None
+    market = _read(os.path.join(powers_dir, "powers-market.json")) or {}
+    prices = {}
+    for t, q in (market.get("quotes") or {}).items():
+        if isinstance(q, dict) and q.get("close"):
+            prices[str(t).upper()] = {"price": q["close"], "close": q["close"], "closeDay": q.get("date")}
+    return {"type": "portfolio", "positions": positions, "ceilings": ceilings, "cash": p.get("cash") or 0,
+            "source": p.get("source") or "", "updated": p.get("updated"), "prices": prices, "keptOnIphone": True}
+
+
 class Coucou:
     """The tools, registered in Hermes' registry under the `coucou` toolset."""
 
-    def __init__(self, portfolio_file: str, bridge=None, opener: Callable[[str], str] | None = None):
+    def __init__(self, portfolio_file: str, bridge=None, opener: Callable[[str], str] | None = None,
+                 powers_dir: str = ""):
         self.portfolio_file = portfolio_file
         self.bridge = bridge
         self.opener = opener
+        self.powers_dir = powers_dir
 
     def _copy(self) -> Optional[dict[str, Any]]:
+        """What the wallet shows: the superpowers' own record once they have one, unless the computer gave a newer
+        copy since they last took one (they take it at their next call, powers-ffi `take_copy`)."""
+        data = _read(self.portfolio_file)
+        computer = data if isinstance(data, dict) and data.get("positions") is not None else None
+        mine = iphone_record(self.powers_dir) if self.powers_dir else None
+        if mine is None or computer is None:
+            return mine or computer
         try:
-            with open(self.portfolio_file, encoding="utf-8") as f:
-                data = json.load(f)
-            return data if isinstance(data, dict) and data.get("positions") is not None else None
+            with open(os.path.join(self.powers_dir, "powers-copy.txt"), encoding="utf-8") as f:
+                taken = float(f.read().strip() or 0)
         except (OSError, ValueError):
-            return None
+            taken = 0.0
+        return computer if float(computer.get("receivedAt") or 0) > taken else mine
 
     # Each handler gets the tool's arguments as a dict and returns a JSON string, as Hermes' tools do.
 
     def portfolio(self, args: dict[str, Any], **_kw) -> str:
         copy = self._copy()
         if copy is None:
-            return json.dumps({"error": "No portfolio on this iPhone yet: it arrives from AXYON on the computer the next "
-                                        "time the iPhone connects to it (with the superpowers on there)."})
+            # `empty`: the app says it in the user's language.
+            return json.dumps({"empty": True,
+                               "error": "No portfolio on this iPhone yet: tell AXYON your positions in the chat, or it "
+                                        "arrives from AXYON on the computer the next time the iPhone connects to it "
+                                        "(with the superpowers on there)."})
         tickers = [p.get("ticker", "") for p in copy.get("positions") or [] if p.get("class") in QUOTED]
         tickers += list((copy.get("ceilings") or {}).keys())
         live = fetch_quotes(tickers, self.opener)
@@ -225,13 +268,8 @@ class Coucou:
         return json.dumps(self.bridge.ask("homeAction", request), ensure_ascii=False)
 
     def register(self, registry) -> None:
+        # The portfolio itself is wealth_portfolio's (powers.py).
         tools = [
-            ("coucou_portfolio", self.portfolio,
-             "The user's investment portfolio as AXYON on their computer last gave it to this iPhone, with B3 prices "
-             "read now from Google Finance (about 15 minutes late): each position's quantity, average price, price, "
-             "value, day change and gain, the user's own ceiling (preço teto) and how far the price is from it, the "
-             "assets they watch with a ceiling, and the total. Use it for any question about their investments.",
-             {"type": "object", "properties": {}}),
             ("coucou_quote", self.quote,
              "Prices of B3 assets (shares, FIIs, ETFs, BDRs) from Google Finance, about 15 minutes late: price, "
              "previous close and day change.",

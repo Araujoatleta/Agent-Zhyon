@@ -1,0 +1,17 @@
+[package]
+name = "coucou-powers-ffi"
+description = "The superpowers for Hermes inside the iPhone app (NotchBuddy/Hermes): coucou-powers behind a C interface the app links in"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+# Linked into the iPhone app (NotchBuddy/project-hermes.yml); rlib for its tests.
+crate-type = ["staticlib", "rlib"]
+
+[dependencies]
+coucou-powers = { path = "../powers" }
+serde = "1"
+serde_json = "1"
+# A runtime of its own for the official sources' readings, each call on the thread the app gives it.
+tokio = { version = "1", features = ["rt-multi-thread", "time", "net"] }

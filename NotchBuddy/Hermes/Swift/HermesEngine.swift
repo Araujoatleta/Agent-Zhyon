@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import os
 import Security
 import UIKit
 
@@ -24,6 +25,9 @@ final class HermesEngine {
         return false
         #endif
     }()
+
+    /// How Hermes' start went, in the system log (Console, a device's sysdiagnose, the Simulator test).
+    nonisolated static let log = Logger(subsystem: "fr.louisraille.Coucou", category: "Hermes")
 
     enum State: Equatable {
         case off
@@ -106,10 +110,14 @@ final class HermesEngine {
         let home = Self.home
         try? FileManager.default.createDirectory(at: home, withIntermediateDirectories: true)
         try? FileManager.default.removeItem(at: home.appendingPathComponent("host-error.txt"))
+        try? FileManager.default.removeItem(at: home.appendingPathComponent("python-ended.txt"))
+        let listening = port
+        Self.log.info("Starting Hermes on 127.0.0.1:\(listening, privacy: .public)")
         setenv("AXYON_HERMES_HOME", home.path, 1)
         setenv("AXYON_HOST_PORT", String(port), 1)
         setenv("AXYON_HOST_TOKEN", token, 1)
         setenv("AXYON_PORTFOLIO", HermesPortfolio.fileURL.path, 1)
+        setenv("AXYON_POWERS", HermesPowers.folder.path, 1)
         setenv("AXYON_LANGUAGE", Locale.preferredLanguages.first ?? "pt-BR", 1)
         #if HERMES
         let resources = Bundle.main.resourcePath ?? ""
@@ -134,6 +142,7 @@ final class HermesEngine {
             if case .failed = state { return }
             if let health = try? await call("GET", "/health", timeout: 3) {
                 if health["ready"] as? Bool == true {
+                    Self.log.info("Hermes is ready")
                     state = .ready
                     await pushKeys()
                     await refreshSettings()
@@ -147,10 +156,14 @@ final class HermesEngine {
             }
             try? await Task.sleep(for: .milliseconds(400))
         }
+        Self.log.error("Hermes did not answer on its port in time")
         state = .failed(Self.hostError() ?? String(localized: "Hermes did not start in time."))
     }
 
     private func pythonEnded(_ said: String) {
+        Self.log.error("Python ended: \(said, privacy: .public)")
+        // Beside the host's own traceback, for a test or a look at the app's folder.
+        try? said.write(to: Self.home.appendingPathComponent("python-ended.txt"), atomically: true, encoding: .utf8)
         state = .failed(Self.hostError() ?? said)
     }
 

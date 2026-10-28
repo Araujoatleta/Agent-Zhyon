@@ -1,6 +1,7 @@
-"""The host as the app uses it, end to end, against a fake model (fake_model.py): settings, a run with Coucou's
-portfolio tool, the session remembered, the bridge, and the token. Needs Hermes' checkout and a Python 3.14 with its
-dependencies: `HERMES_SRC=… PYTHON=… python3 test_host.py`."""
+"""The host as the app uses it, end to end, against a fake model (fake_model.py): settings, a run with the
+superpowers' portfolio tool (the app's side of the bridge answering for the engine), the session remembered, the
+bridge, and the token. Needs Hermes' checkout and a Python 3.14 with its dependencies:
+`HERMES_SRC=… PYTHON=… python3 test_host.py`."""
 import json
 import os
 import secrets
@@ -121,17 +122,45 @@ def main():
         code, scan = call("POST", "/v1/home/scan", {"address": "8.8.8.8"})
         check("no scan off the home's Wi-Fi", code == 200 and "Wi-Fi" in scan.get("error", ""))
 
-        print("A run with Coucou's portfolio")
+        def app_answering(answer):
+            """The app's side of the bridge: the first request it gets, answered with `answer`."""
+            got = []
+
+            def side():
+                req = urllib.request.Request(base + "/v1/bridge")
+                req.add_header("Authorization", "Bearer " + token)
+                with urllib.request.urlopen(req, timeout=60) as resp:
+                    for raw in resp:
+                        line = raw.decode().strip()
+                        if line.startswith("data: "):
+                            ask = json.loads(line[6:])
+                            got.append(ask)
+                            call("POST", f"/v1/bridge/{ask['id']}", {"answer": answer})
+                            return
+
+            t = threading.Thread(target=side, daemon=True)
+            t.start()
+            time.sleep(0.5)
+            return t, got
+
+        print("A run with the superpowers' portfolio")
+        app, asked_app = app_answering({"ok": True, "text": "GARE11: 204 shares at R$ 8,31 (B3's close of 27/10/2026)"})
         code, r = call("POST", "/v1/runs", {"session": "axyon-test", "message": "qual é a minha carteira?"})
         check("run started", code == 202 and r.get("run_id", "").startswith("run_"))
         evs = events(r["run_id"])
+        app.join(timeout=10)
         kinds = [e["type"] for e in evs]
         check("the tool shows as it runs", "tool" in kinds and "tool_done" in kinds)
-        check("its name is Coucou's", any(e.get("name") == "coucou_portfolio" for e in evs if e["type"] == "tool"))
+        check("its name is the computer's", any(e.get("name") == "wealth_portfolio" for e in evs if e["type"] == "tool"))
+        check("the app's engine was asked", bool(asked_app) and asked_app[0]["kind"] == "powers"
+              and asked_app[0]["request"] == {"tool": "wealth_portfolio", "input": {}})
         done = [e for e in evs if e["type"] == "done"]
         check("it ends with the answer", bool(done) and "Feito:" in done[0]["text"])
-        check("from the portfolio's figures", bool(done) and "GARE11" in done[0]["text"])
+        check("from the engine's figures", bool(done) and "GARE11" in done[0]["text"])
         check("the answer streamed", any(e["type"] == "delta" for e in evs))
+        seen = open(os.path.join(work, "model.log")).read()
+        check("the model has every superpower but the content kit", "life_gym" in seen and "wealth_committee" in seen
+              and "life_content" not in seen and "coucou_portfolio" not in seen)
 
         print("The session is remembered")
         code, r2 = call("POST", "/v1/runs", {"session": "axyon-test", "message": "obrigado"})
@@ -141,23 +170,7 @@ def main():
         check("the model saw the first exchange", "msgs=6" in log or "msgs=5" in log or "msgs=7" in log)
 
         print("The bridge")
-        got = []
-
-        def app_side():
-            req = urllib.request.Request(base + "/v1/bridge")
-            req.add_header("Authorization", "Bearer " + token)
-            with urllib.request.urlopen(req, timeout=60) as resp:
-                for raw in resp:
-                    line = raw.decode().strip()
-                    if line.startswith("data: "):
-                        ask = json.loads(line[6:])
-                        got.append(ask)
-                        call("POST", f"/v1/bridge/{ask['id']}", {"answer": {"devices": [{"id": "tv1", "name": "TV"}]}})
-                        return
-
-        t = threading.Thread(target=app_side, daemon=True)
-        t.start()
-        time.sleep(0.5)
+        t, got = app_answering({"devices": [{"id": "tv1", "name": "TV"}]})
         code, r3 = call("POST", "/v1/runs", {"session": "axyon-test-2", "message": "liga a casa"})
         evs3 = events(r3["run_id"])
         t.join(timeout=10)

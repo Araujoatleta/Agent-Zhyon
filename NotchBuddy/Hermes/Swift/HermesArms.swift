@@ -24,6 +24,12 @@ enum HermesArms {
         case "home": return data(home())
         case "homeAction": return data(await homeAction(r))
         case "secret": return data(secret(r))
+        case "powers":
+            let tool = r["tool"] as? String ?? ""
+            let answer = await HermesPowers.call(tool, input: data(r["input"] as? [String: Any] ?? [:]))
+            // The wallet shows the record these change.
+            if ["wealth_update", "wealth_trade", "wealth_ceiling"].contains(tool) { HermesEngine.shared.portfolioChanged() }
+            return answer
         default: return data(["error": "The app does not know \(kind)."])
         }
     }
@@ -439,5 +445,40 @@ enum HermesArms {
         f.timeZone = .current
         f.formatOptions = [.withInternetDateTime]
         return f.string(from: date)
+    }
+}
+
+/// AXYON's superpowers on this iPhone (axyon_hermes/powers.py): the computer's own engine (windows/powers-ffi), linked
+/// into the app, answers Hermes' wealth_ and life_ tools with its files in Application Support/AXYON/powers, and takes
+/// the portfolio a paired computer gives (HermesPortfolio). A call may read B3, the CVM, FundosNet, the Banco Central or
+/// Google Finance first (about a minute at most), so each one runs on a queue of its own, one after the other.
+enum HermesPowers {
+    private static let queue = DispatchQueue(label: "fr.louisraille.Coucou.powers", qos: .userInitiated)
+
+    static var folder: URL {
+        HermesEngine.home.deletingLastPathComponent().appendingPathComponent("AXYON/powers", isDirectory: true)
+    }
+
+    /// `{"ok": …, "text": …}`: the answer in English, for Hermes to tell.
+    static func call(_ tool: String, input: Data) async -> Data {
+        let files = Self.folder.path
+        let copy = HermesPortfolio.fileURL.path
+        let now = Calendar.current.dateComponents([.year, .month, .day, .hour], from: .now)
+        let today = String(format: "%04d-%02d-%02d", Int32(now.year ?? 0), Int32(now.month ?? 0), Int32(now.day ?? 0))
+        // B3 publishes the day's quotes in the evening.
+        let evening = (now.hour ?? 0) >= 21
+        let json = String(decoding: input, as: UTF8.self)
+        return await withCheckedContinuation { done in
+            queue.async {
+                try? FileManager.default.createDirectory(atPath: files, withIntermediateDirectories: true)
+                guard let answer = axyon_powers_call(tool, json, files, copy, today, evening) else {
+                    done.resume(returning: Data(#"{"ok":false,"text":"The superpowers did not answer."}"#.utf8))
+                    return
+                }
+                let out = Data(String(cString: answer).utf8)
+                axyon_powers_free(answer)
+                done.resume(returning: out)
+            }
+        }
     }
 }

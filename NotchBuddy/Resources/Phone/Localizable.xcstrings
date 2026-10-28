@@ -7789,6 +7789,28 @@
         }
       }
     },
+    "Positions kept on this iPhone · prices %@, about 15 min late": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Posiciones guardadas en este iPhone · precios %@, con unos 15 min de retraso"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Positions gardées sur cet iPhone · cours %@, environ 15 min de retard"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Posições guardadas neste iPhone · preços %@, com uns 15 min de atraso"
+          }
+        }
+      }
+    },
     "Power": {
       "localizations": {
         "es": {

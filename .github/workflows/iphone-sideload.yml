@@ -14,6 +14,10 @@ on:
       - 'tests/HermesWireTests.swift'
       - 'scripts/test-pc-link.sh'
       - 'windows/src-tauri/src/hermes_setup.rs'
+      - 'windows/powers/**'
+      - 'windows/powers-ffi/**'
+      - 'windows/hook/src/house_tools.json'
+      - 'windows/Cargo.lock'
       - '.github/workflows/iphone-sideload.yml'
   pull_request:
     paths:
@@ -22,6 +26,10 @@ on:
       - 'tests/HermesWireTests.swift'
       - 'scripts/test-pc-link.sh'
       - 'windows/src-tauri/src/hermes_setup.rs'
+      - 'windows/powers/**'
+      - 'windows/powers-ffi/**'
+      - 'windows/hook/src/house_tools.json'
+      - 'windows/Cargo.lock'
       - '.github/workflows/iphone-sideload.yml'
   workflow_dispatch:
 
@@ -109,7 +117,9 @@ jobs:
             ~/.cargo/git
             NotchBuddy/Hermes/build/support
             NotchBuddy/Hermes/build/rust/target
-          key: hermes-ios-${{ hashFiles('NotchBuddy/Hermes/build-ios.sh', 'NotchBuddy/Hermes/requirements-*.txt') }}
+          key: hermes-ios-device-${{ hashFiles('NotchBuddy/Hermes/build-ios.sh', 'NotchBuddy/Hermes/requirements-*.txt', 'windows/Cargo.lock') }}
+          # An older one still has most of the Rust built: cargo builds again only what changed.
+          restore-keys: hermes-ios-device-
 
       - name: Hermes' own pieces (quotes, portfolio, web, iPhone tools, bridge)
         run: python3.14 NotchBuddy/Hermes/tests/test_units.py
@@ -151,6 +161,7 @@ jobs:
           test -f "$APP/python/lib/python3.14/os.py"
           test -f "$APP/app/run_agent.py"
           test -f "$APP/app/axyon_hermes/host.py"
+          test -f "$APP/app/axyon_hermes/house_tools.json"
           test -d "$APP/Frameworks/Python.framework"
           ls "$APP/Frameworks" | wc -l
           test -z "$(find "$APP" -name '*.so' | head -1)" || { echo "::error::a .so is left outside Frameworks"; find "$APP" -name '*.so' | head; exit 1; }
@@ -188,7 +199,17 @@ jobs:
           otool -L "$APP/Coucou" | head -40
           nm "$APP/Coucou" 2>/dev/null | grep -E "axyon_python_(run|exec)" || echo "no axyon_python symbols"
           du -sh "$APP/python" "$APP/app" "$APP/app_packages" "$APP/Frameworks"
-          npx -y rea-agents@6.8.0 inspect-artifact "$PWD/AXYON-iPhone-Hermes.ipa" --format md --token-limit 6000 || true
+          # A summary here; the whole evidence is the REA-evidence artifact.
+          npx -y rea-agents@6.8.0 inspect-artifact "$PWD/AXYON-iPhone-Hermes.ipa" --detail summary \
+            --evidence_output "$RUNNER_TEMP/rea-evidence" --format md --token-limit 4000 || true
+
+      - uses: actions/upload-artifact@v7
+        continue-on-error: true
+        with:
+          name: REA-evidence
+          path: ${{ runner.temp }}/rea-evidence
+          if-no-files-found: ignore
+          retention-days: 14
 
   # Hermes started for real inside iOS, in the Simulator: the same app built for it, launched, its host ready, then an
   # answer that takes a tool the app answers itself (NotchBuddy/Hermes/tests/simulator.sh).
@@ -214,7 +235,8 @@ jobs:
             ~/.cargo/git
             NotchBuddy/Hermes/build/support
             NotchBuddy/Hermes/build/rust/target
-          key: hermes-ios-sim-${{ hashFiles('NotchBuddy/Hermes/build-ios.sh', 'NotchBuddy/Hermes/requirements-*.txt') }}
+          key: hermes-ios-sim-${{ hashFiles('NotchBuddy/Hermes/build-ios.sh', 'NotchBuddy/Hermes/requirements-*.txt', 'windows/Cargo.lock') }}
+          restore-keys: hermes-ios-sim-
 
       - name: CPython, Hermes and its packages for the iOS Simulator
         env:

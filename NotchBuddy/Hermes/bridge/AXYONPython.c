@@ -13,6 +13,7 @@ static int started = 0;
 
 static int failed(char *error, size_t size, const char *what, PyStatus status) {
     snprintf(error, size, "%s: %s", what, status.err_msg ? status.err_msg : "unknown error");
+    fprintf(stderr, "AXYON: %s\n", error);
     return -1;
 }
 
@@ -44,6 +45,8 @@ int axyon_python_run(const char *resources, char *error, size_t error_size) {
     config.use_system_logger = 1;
 
     snprintf(home, sizeof home, "%s/python", resources);
+    // Each step on the app's own output too (a Simulator test reads it): Python's own goes to the system log.
+    fprintf(stderr, "AXYON: starting Python in %s\n", home);
     status = PyConfig_SetBytesString(&config, &config.home, home);
     if (PyStatus_Exception(status)) {
         PyConfig_Clear(&config);
@@ -59,11 +62,16 @@ int axyon_python_run(const char *resources, char *error, size_t error_size) {
     if (PyStatus_Exception(status)) {
         return failed(error, error_size, "Python did not start", status);
     }
+    fprintf(stderr, "AXYON: Python %s started, running Hermes' host\n", Py_GetVersion());
 
     // The packages (with their .pth files) and the app's code, then the host, which serves until the app ends. Its
     // traceback, if it stops, is kept where the app shows it from.
     setenv("AXYON_BUNDLE", resources, 1);
+    // A host that is not listening a minute and a half later writes where each thread stands to the app's own output
+    // (main() calls it off once it listens).
     const char *code =
+        "import faulthandler\n"
+        "faulthandler.dump_traceback_later(90, file=2)\n"
         "import os, site, sys, traceback\n"
         "bundle = os.environ['AXYON_BUNDLE']\n"
         "site.addsitedir(os.path.join(bundle, 'app_packages'))\n"
@@ -74,6 +82,7 @@ int axyon_python_run(const char *resources, char *error, size_t error_size) {
         "except BaseException:\n"
         "    text = traceback.format_exc()\n"
         "    print(text, file=sys.stderr)\n"
+        "    os.write(2, ('AXYON: ' + text).encode('utf-8', 'replace'))\n"
         "    home = os.environ.get('AXYON_HERMES_HOME')\n"
         "    if home:\n"
         "        os.makedirs(home, exist_ok=True)\n"
@@ -82,9 +91,11 @@ int axyon_python_run(const char *resources, char *error, size_t error_size) {
         "    raise\n";
     if (PyRun_SimpleString(code) != 0) {
         snprintf(error, error_size, "Hermes' host stopped with an error");
+        fprintf(stderr, "AXYON: %s\n", error);
         return -1;
     }
     snprintf(error, error_size, "Hermes' host ended");
+    fprintf(stderr, "AXYON: %s\n", error);
     return -1;
 }
 

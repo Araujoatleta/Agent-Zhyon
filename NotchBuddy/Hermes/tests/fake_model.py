@@ -1,6 +1,6 @@
-"""A fake OpenAI-compatible model for the host's tests: it calls coucou_portfolio when asked about "carteira",
-coucou_home about "casa" and iphone_status about "iPhone", then answers "Feito: <what the tool returned>". It logs how
-many messages it saw."""
+"""A fake OpenAI-compatible model for the host's tests: it calls wealth_portfolio when asked about "carteira",
+life_english (15 minutes logged) about "inglês", coucou_home about "casa" and iphone_status about "iPhone", then answers
+"Feito: <what the tool returned>". It logs how many messages it saw."""
 import json
 import sys
 import time
@@ -37,8 +37,11 @@ class Model(BaseHTTPRequestHandler):
         call = None
         if last.get("role") == "tool":
             content = "Feito: " + str(last.get("content"))[:400]
-        elif "coucou_portfolio" in tools and "carteira" in asked:
-            call = {"id": "call_1", "type": "function", "function": {"name": "coucou_portfolio", "arguments": "{}"}}
+        elif "wealth_portfolio" in tools and "carteira" in asked:
+            call = {"id": "call_1", "type": "function", "function": {"name": "wealth_portfolio", "arguments": "{}"}}
+        elif "life_english" in tools and "ingl" in asked.lower():
+            call = {"id": "call_4", "type": "function",
+                    "function": {"name": "life_english", "arguments": json.dumps({"action": "log", "minutes": 15})}}
         elif "coucou_home" in tools and "casa" in asked:
             call = {"id": "call_2", "type": "function", "function": {"name": "coucou_home", "arguments": "{}"}}
         elif "iphone_status" in tools and "iphone" in asked.lower():

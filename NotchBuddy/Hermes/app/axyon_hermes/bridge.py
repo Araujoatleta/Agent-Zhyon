@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import itertools
 import threading
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 ANSWER_WAIT = 45.0
 # How long a request waits for the app's stream to be there.
@@ -44,11 +44,16 @@ class Bridge:
             finally:
                 self._pending.discard(rid)
 
-    def next_request(self, timeout: float) -> Optional[dict[str, Any]]:
-        """The oldest request not handed out yet, or None after `timeout` seconds (the stream then sends a keepalive)."""
+    def next_request(self, timeout: float, gone: Optional[Callable[[], bool]] = None) -> Optional[dict[str, Any]]:
+        """The oldest request not handed out yet, or None after `timeout` seconds (the stream then sends a keepalive).
+        A stream the app already closed (`gone`, asked before a request is taken) ends instead, and leaves the request
+        to the app's new one: the app opens another after a launch or a suspension, and the host sees the old one
+        closed only when it next writes to it."""
         with self._lock:
             if not self._lock.wait_for(lambda: bool(self._queue), timeout=timeout):
                 return None
+            if gone is not None and gone():
+                raise ConnectionResetError("the app closed this stream")
             return self._queue.pop(0)
 
     def answer(self, rid: str, value: Any) -> bool:

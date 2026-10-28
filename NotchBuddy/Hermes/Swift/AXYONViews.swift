@@ -945,6 +945,8 @@ struct WalletReport {
     let invested: Double
     let dayMoney: Double?
     let copyDate: String
+    /// The positions are the superpowers' own record on this iPhone, rather than the computer's copy.
+    let keptOnIphone: Bool
     let pricesAt: String
     let notes: [String]
     let error: String?
@@ -963,11 +965,13 @@ struct WalletReport {
         invested = object["invested"] as? Double ?? 0
         dayMoney = object["dayChangeMoney"] as? Double
         copyDate = object["copyFromComputer"] as? String ?? ""
+        keptOnIphone = object["keptOnIphone"] as? Bool ?? false
         pricesAt = object["pricesReadAt"] as? String ?? ""
         notes = (object["notesInAxyonTab"] as? [[String: Any]] ?? []).map {
             "\($0["ticker"] as? String ?? ""): \($0["text"] as? String ?? "")"
         }
-        error = object["error"] as? String
+        // No portfolio yet is said by the screen itself, in the user's language.
+        error = object["empty"] as? Bool == true ? nil : object["error"] as? String
     }
 
     /// The day's biggest moves, either way.
@@ -1014,7 +1018,9 @@ struct AXYONWalletView: View {
                         .padding(16)
                         .axyonCard(tint: AXYONPalette.gold)
                     }
-                    Text("Positions from AXYON on your computer (\(report.copyDate)) · prices \(report.pricesAt), about 15 min late")
+                    Text(report.keptOnIphone
+                         ? String(localized: "Positions kept on this iPhone · prices \(report.pricesAt), about 15 min late")
+                         : String(localized: "Positions from AXYON on your computer (\(report.copyDate)) · prices \(report.pricesAt), about 15 min late"))
                         .font(.caption2)
                         .foregroundStyle(AXYONPalette.faint)
                         .multilineTextAlignment(.center)

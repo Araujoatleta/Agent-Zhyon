@@ -14,4 +14,7 @@ int axyon_python_run(const char *resources, char *error, size_t error_size);
 /// Runs a line of Python on the running interpreter from any thread (it takes the GIL). 0 when it ran.
 int axyon_python_exec(const char *code);
 
+// The superpowers' engine, which Hermes' tools reach through the app.
+#include "AXYONPowers.h"
+
 #endif

@@ -1,14 +1,15 @@
 """The host's own pieces, without Hermes: Google Finance's quote, the portfolio's figures, the web's results, the
-iPhone tools' requests and the bridge. `python3 test_units.py`"""
+iPhone tools' requests, the superpowers' tools and the bridge. `python3 test_units.py`"""
 import json
 import os
 import sys
+import tempfile
 import threading
 import time
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "app"))
 
-from axyon_hermes import bridge, coucou, iphone, web  # noqa: E402
+from axyon_hermes import bridge, coucou, iphone, powers, web  # noqa: E402
 
 failures = 0
 
@@ -61,6 +62,37 @@ check("a watched asset", report["watchedWithCeiling"] == [{"ticker": "KNRI11", "
 check("the total with the cash", report["totalValue"] == round(869.0 + 30 * 18.78 + 91.0 + 104.5 + 100, 2))
 check("the notes of AXYON's tab", report["notesInAxyonTab"][0]["ticker"] == "KNSC11")
 check("the copy's age said", report["copyFromComputer"].startswith("2"))
+check("the computer's copy said as such", report["keptOnIphone"] is False)
+
+print("The wallet with the superpowers' own record")
+work = tempfile.mkdtemp(prefix="axyon-wallet-")
+powers_dir = os.path.join(work, "powers")
+os.makedirs(powers_dir)
+computer_file = os.path.join(work, "portfolio.json")
+with open(computer_file, "w") as f:
+    json.dump(dict(copy, receivedAt=1793100000), f)
+wallet = coucou.Coucou(computer_file, powers_dir=powers_dir)
+check("no record of its own yet: the computer's copy", wallet._copy()["receivedAt"] == 1793100000)
+with open(os.path.join(powers_dir, "powers.json"), "w") as f:
+    json.dump({"portfolio": {"positions": [{"ticker": "GARE11", "class": "fii", "quantity": 210, "averagePrice": 8.9,
+                                            "subtype": "", "currentValue": None, "note": ""}],
+                             "cash": 40.0, "source": "chat", "updated": "2026-10-28"},
+               "ceilings": {"manual": {"GARE11": 8.5}}}, f)
+with open(os.path.join(powers_dir, "powers-market.json"), "w") as f:
+    json.dump({"quotes": {"GARE11": {"ticker": "GARE11", "date": "2026-10-27", "close": 8.31}}}, f)
+check("a copy the engine never took is newer: still the computer's", wallet._copy()["receivedAt"] == 1793100000)
+with open(os.path.join(powers_dir, "powers-copy.txt"), "w") as f:
+    f.write("1793100000")
+mine = wallet._copy()
+check("once taken, the iPhone's own record", mine.get("keptOnIphone") and mine["positions"][0]["quantity"] == 210)
+check("its ceilings and B3's last close", mine["ceilings"] == {"GARE11": 8.5}
+      and mine["prices"]["GARE11"] == {"price": 8.31, "close": 8.31, "closeDay": "2026-10-27"})
+own = coucou.portfolio_report(mine, {}, 1793125100)
+check("valued at the last close, said kept on the iPhone", own["keptOnIphone"] and own["positions"][0]["value"] == round(210 * 8.31, 2)
+      and own["totalValue"] == round(210 * 8.31 + 40, 2))
+check("no computer at all: the iPhone's record", coucou.Coucou(os.path.join(work, "none.json"), powers_dir=powers_dir)._copy()["keptOnIphone"])
+check("nothing anywhere: the screen says it", json.loads(coucou.Coucou(os.path.join(work, "none.json"),
+                                                                       powers_dir=os.path.join(work, "x")).portfolio({}))["empty"])
 
 print("The web")
 SAMPLE = '''<div class="result results_links results_links_deep web-result ">
@@ -106,6 +138,40 @@ check("the action and its arguments go to the app", fake.asked[-1] == ("iphone",
 check("the app's answer to the model", json.loads(out) == {"ok": True})
 check("every schema says its name", all(s["name"] == n for n, (_, s, _) in registered.items()))
 
+print("The superpowers")
+
+
+class PowersBridge:
+    def __init__(self, answer):
+        self.answer, self.asked = answer, []
+
+    def ask(self, kind, request, wait=None):
+        self.asked.append((kind, request, wait))
+        return self.answer
+
+
+tools = powers.load_tools()
+names = [t["name"] for t in tools]
+check("the computer's tools, wealth_ and life_", len(names) == 17 and "wealth_portfolio" in names and "life_gym" in names)
+check("the content kit stays on the computer", "life_content" not in names and not any(n.startswith("home_") for n in names))
+check("each with its schema", all(t.get("inputSchema", {}).get("type") == "object" for t in tools))
+check("no tool file: no tools", powers.load_tools(["/nonexistent/house_tools.json"]) == [])
+registered.clear()
+pb = PowersBridge({"ok": True, "text": "GARE11 · 204 cotas"})
+powers.Powers(pb).register(FakeRegistry())
+check("registered in Coucou's toolset", len(registered) == 17 and all(t == "coucou" for t, _, _ in registered.values()))
+check("the schema the model sees", registered["wealth_trade"][1]["parameters"]["type"] == "object")
+out = registered["wealth_portfolio"][2]({})
+check("the call goes to the app's engine, with time to read the sources",
+      pb.asked[-1] == ("powers", {"tool": "wealth_portfolio", "input": {}}, powers.WAIT) and powers.WAIT > 60)
+check("the engine's text to the model", out == "GARE11 · 204 cotas")
+registered["life_english"][2]({"action": "log", "minutes": 15})
+check("the arguments as given", pb.asked[-1][1] == {"tool": "life_english", "input": {"action": "log", "minutes": 15}})
+refused = powers.Powers(PowersBridge({"ok": False, "text": "wealth_company needs the share's ticker"})).call("wealth_company", {})
+check("a refusal as an error the model reads", json.loads(refused) == {"error": "wealth_company needs the share's ticker"})
+away = powers.Powers(PowersBridge({"error": "The AXYON app is not listening right now."})).call("life_day", {})
+check("the app away: its error", "not listening" in json.loads(away)["error"])
+
 print("The bridge")
 b = bridge.Bridge()
 t0 = time.time()
@@ -139,6 +205,29 @@ check("an answer to nothing is refused", b.answer("b999", {}) is False)
 t0 = time.time()
 check("no answer in time: an error", "in time" in b.ask("iphone", {"x": 1}, wait=0.2)["error"] and time.time() - t0 < 1)
 check("and its request is withdrawn", b.next_request(0.05) is None)
+old_stream = {}
+
+
+def closed_stream():
+    try:
+        b.next_request(2, gone=lambda: True)
+    except ConnectionResetError:
+        old_stream["ended"] = True
+
+
+def new_stream():
+    time.sleep(0.2)
+    req = b.next_request(2, gone=lambda: False)
+    b.answer(req["id"], {"by": "the new stream"})
+
+
+threads = [threading.Thread(target=closed_stream), threading.Thread(target=new_stream)]
+for t in threads:
+    t.start()
+check("a stream the app closed leaves the request to its new one",
+      b.ask("iphone", {"x": 2}, wait=3) == {"by": "the new stream"} and old_stream.get("ended"))
+for t in threads:
+    t.join()
 
 print("All unit tests passed." if not failures else f"{failures} failed.")
 sys.exit(1 if failures else 0)

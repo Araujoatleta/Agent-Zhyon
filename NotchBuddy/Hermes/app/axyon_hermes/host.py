@@ -5,6 +5,7 @@ The app starts this in its embedded Python with, in the environment:
   AXYON_HOST_PORT     the port to listen on (127.0.0.1 only)
   AXYON_HOST_TOKEN    the bearer token every request must carry (made by the app for this launch)
   AXYON_PORTFOLIO     the file where the app keeps the portfolio the computer gave it
+  AXYON_POWERS        the folder of the superpowers' own files (the app's engine writes them; the wallet reads them)
 
 and talks to it with:
   GET  /health                       ready or not, the brain, and why not when it is not
@@ -29,6 +30,8 @@ import hmac
 import json
 import logging
 import os
+import select
+import socket
 import sys
 import threading
 import time
@@ -63,7 +66,8 @@ SOUL_MARK = "<!-- AXYON on the iPhone wrote this file -->"
 SOUL = """# Personality
 You are AXYON, the user's personal assistant. You live inside their iPhone: Hermes is your engine and the iPhone is
 your body. You act through it: notifications and reminders, the calendar, contacts, apps and links, their Shortcuts,
-the devices of their home, their investments (the portfolio, prices, ceilings) and the web.
+the devices of their home, the web, and your superpowers: their investments (the portfolio against B3's and the CVM's
+official data, funds, ceilings, taxes, the decision journal) and their studies, English and training.
 
 ## Style
 - Direct and warm. Short paragraphs, lists when they help, no filler.
@@ -126,6 +130,10 @@ class Host:
 
     def start(self) -> None:
         """Imports Hermes (a few seconds on an iPhone) and registers Coucou's tools; the server answers meanwhile."""
+        import faulthandler
+
+        # An import that hangs says where, on the app's own output.
+        faulthandler.dump_traceback_later(150, file=2)
         try:
             self._seed_home()
             t0 = time.time()
@@ -135,13 +143,15 @@ class Host:
             from .coucou import Coucou
             from .home import Home
             from .iphone import IPhone
+            from .powers import Powers
             from .web import Web
 
-            self.coucou = Coucou(self.portfolio_file, bridge=self.bridge)
+            self.coucou = Coucou(self.portfolio_file, bridge=self.bridge, powers_dir=os.environ.get("AXYON_POWERS", ""))
             self.coucou.register(registry)
             self.house = Home(self.home, bridge=self.bridge)
             self.house.register(registry)
             IPhone(self.bridge).register(registry)
+            Powers(self.bridge).register(registry)
             Web().register(registry)
             model = self._model_config()
             if model.get("provider") == "custom" and model.get("base_url"):
@@ -160,9 +170,13 @@ class Host:
             self.version = str(version or "")
             self.ready = True
             log.info("Hermes ready in %.1fs", time.time() - t0)
-        except Exception as exc:
-            self.problem = f"Hermes did not start: {exc}"
+            os.write(2, f"AXYON: Hermes ready in {time.time() - t0:.1f}s\n".encode())
+        except BaseException as exc:  # a module's SystemExit too: the app must hear why
+            self.problem = f"Hermes did not start: {exc!r}"
             log.error("%s\n%s", self.problem, traceback.format_exc())
+            os.write(2, f"AXYON: {self.problem}\n{traceback.format_exc()}".encode("utf-8", "replace"))
+        finally:
+            faulthandler.cancel_dump_traceback_later()
 
     def _seed_home(self) -> None:
         """A first launch: the config (tools straight in front of the model, no tool search) and AXYON's persona."""
@@ -408,6 +422,14 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(line.encode("utf-8"))
         self.wfile.flush()
 
+    def _peer_gone(self) -> bool:
+        """Whether the app closed this stream: it sends nothing on it, so anything to read is its end."""
+        try:
+            readable, _, _ = select.select([self.connection], [], [], 0)
+            return bool(readable) and self.connection.recv(1, socket.MSG_PEEK) == b""
+        except OSError:
+            return True
+
     # ── The iPhone's own home ────────────────────────────────────────────────
 
     def _home(self, work):
@@ -491,7 +513,7 @@ class Handler(BaseHTTPRequestHandler):
             h.bridge.listening(+1)
             try:
                 while True:
-                    request = h.bridge.next_request(KEEPALIVE)
+                    request = h.bridge.next_request(KEEPALIVE, gone=self._peer_gone)
                     self._event(request)
             except (BrokenPipeError, ConnectionResetError, OSError):
                 pass
@@ -597,6 +619,11 @@ def main() -> None:
     ios.prepare(home)
     host = Host(home, os.environ["AXYON_HOST_TOKEN"], os.environ.get("AXYON_PORTFOLIO", ""))
     _listen(host, int(os.environ["AXYON_HOST_PORT"]))
+    # Listening: the app's watch on a start that hangs (AXYONPython.c) is no longer needed.
+    import faulthandler
+
+    faulthandler.cancel_dump_traceback_later()
+    os.write(2, f"AXYON: Hermes' host listens on 127.0.0.1:{os.environ['AXYON_HOST_PORT']}\n".encode())
     threading.Thread(target=host.start, name="hermes-start", daemon=True).start()
     while True:
         time.sleep(3600)

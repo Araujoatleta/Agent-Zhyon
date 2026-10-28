@@ -1,6 +1,7 @@
 # The sideloaded iPhone app with Hermes inside it (Hermes/README.md): project.yml, plus CPython for iOS, Hermes and its
-# packages (Hermes/build-ios.sh builds them first), the C that starts them and the Swift of AXYON's screens, in the
-# CoucouPhone target, compiled with HERMES. The App Store and Mac builds use project.yml alone and carry none of it.
+# packages and AXYON's superpowers (Hermes/build-ios.sh builds them first), the C that starts them and the Swift of
+# AXYON's screens, in the CoucouPhone target, compiled with HERMES. The App Store and Mac builds use project.yml alone
+# and carry none of it.
 #   cd NotchBuddy && Hermes/build-ios.sh && xcodegen --spec project-hermes.yml
 include:
   - project.yml
@@ -40,6 +41,8 @@ targets:
         SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) HERMES"
         SWIFT_OBJC_BRIDGING_HEADER: Hermes/bridge/AXYONPython.h
         HEADER_SEARCH_PATHS: "$(inherited) \"$(PROJECT_DIR)/Hermes/build/support/Python.xcframework/ios-arm64/Python.framework/Headers\""
+        # AXYON's superpowers (Hermes/bridge/AXYONPowers.h): the computer's engine, built by Hermes/build-ios.sh.
+        OTHER_LDFLAGS: "$(inherited) \"$(PROJECT_DIR)/Hermes/build/powers/libcoucou_powers_ffi.a\""
         # The script below writes into the app's bundle, which the user script sandbox would refuse.
         ENABLE_USER_SCRIPT_SANDBOXING: NO
     postBuildScripts:

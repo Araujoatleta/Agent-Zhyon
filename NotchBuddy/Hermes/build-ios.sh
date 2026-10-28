@@ -6,6 +6,7 @@
 #   build/app                          Hermes at the commit the computer installs, its iOS stand-ins and the host
 #   build/app_packages                 its packages: pure Python, iOS wheels, and pydantic-core and jiter built here
 #                                      for arm64 iOS (they publish no iOS wheel)
+#   build/powers                       AXYON's superpowers: the computer's engine as a static library for the app
 # Every .py is compiled to bytecode that never goes stale (the bundle is signed: nothing is written in it).
 # IOS_SDK=iphonesimulator builds the same for the Simulator (CI's test of Hermes inside iOS, tests/simulator.sh).
 set -euo pipefail
@@ -162,6 +163,21 @@ cp "$JT/crates/jiter-python/jiter.pyi" "$PKG/jiter/__init__.pyi"
 touch "$PKG/jiter/py.typed"
 cp "$BUILT/libjiter_python.dylib" "$PKG/jiter/jiter$EXT_SUFFIX"
 dist_info jiter "$JITER"
+
+# ── AXYON's superpowers ──────────────────────────────────────────────────────
+# The computer's own engine (windows/powers) behind two C functions (windows/powers-ffi), a static library the app
+# links in (project-hermes.yml), and the tools the computer gives Hermes, which powers.py reads.
+step "AXYON's superpowers for $RUST_TARGET"
+WIN="$HERE/../../windows"
+# Its symbols are what the app calls: the workspace's release profile strips the programs it builds, not this.
+(cd "$WIN" && CARGO_PROFILE_RELEASE_STRIP=false cargo build --release --locked --target "$RUST_TARGET" -p coucou-powers-ffi)
+mkdir -p "$OUT/powers"
+cp "$BUILT/libcoucou_powers_ffi.a" "$OUT/powers/"
+# (grep reads it all: with -q, nm could end on a closed pipe and fail the check under pipefail)
+nm -g "$OUT/powers/libcoucou_powers_ffi.a" 2>/dev/null | grep " T _axyon_powers_call$" >/dev/null \
+    || { echo "axyon_powers_call is not in libcoucou_powers_ffi.a"; exit 1; }
+cp "$WIN/hook/src/house_tools.json" "$APP/axyon_hermes/house_tools.json"
+ls -l "$OUT/powers/libcoucou_powers_ffi.a"
 
 # ── Checks ───────────────────────────────────────────────────────────────────
 step "Every compiled module is arm64 $VT_PLATFORM"
