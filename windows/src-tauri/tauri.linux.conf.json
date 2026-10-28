@@ -8,6 +8,7 @@
     ],
     "resources": {
       "../target/release/coucou-hook.exe": null,
+      "../target/release/coucou-edge-worker.exe": null,
       "../target/release/coucou-hook": "coucou-hook"
     },
     "linux": {
