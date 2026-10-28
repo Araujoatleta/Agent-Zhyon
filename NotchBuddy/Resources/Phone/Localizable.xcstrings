@@ -2069,6 +2069,28 @@
         }
       }
     },
+    "Ceilings": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Precio techo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plafonds"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preço teto"
+          }
+        }
+      }
+    },
     "Certificate": {
       "localizations": {
         "es": {
@@ -3631,6 +3653,28 @@
         }
       }
     },
+    "English": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inglés"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anglais"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inglês"
+          }
+        }
+      }
+    },
     "Every action asks Face ID first: the computer is set to ask before each one.": {
       "localizations": {
         "es": {
@@ -4111,6 +4155,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Me dê três ideias para "
+          }
+        }
+      }
+    },
+    "Give me today's English lesson.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dame la clase de inglés de hoy."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Donne-moi la leçon d'anglais du jour."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Me dá a aula de inglês de hoje."
           }
         }
       }
@@ -11947,6 +12013,28 @@
         }
       }
     },
+    "What is my workout today?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Cuál es mi entrenamiento de hoy?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quelle est ma séance du jour ?"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Qual é o meu treino de hoje?"
+          }
+        }
+      }
+    },
     "What it did · %lld": {
       "localizations": {
         "es": {
@@ -12035,6 +12123,28 @@
         }
       }
     },
+    "Which of my assets are under their ceiling price?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Cuáles de mis activos están por debajo de su precio techo?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lesquels de mes actifs sont sous leur prix plafond ?"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quais dos meus ativos estão abaixo do preço teto?"
+          }
+        }
+      }
+    },
     "Windows or Linux computer": {
       "localizations": {
         "es": {
@@ -12097,6 +12207,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sem os braços"
+          }
+        }
+      }
+    },
+    "Workout": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entreno"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Séance"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Treino"
           }
         }
       }

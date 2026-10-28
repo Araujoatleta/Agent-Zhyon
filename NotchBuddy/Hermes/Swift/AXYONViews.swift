@@ -218,6 +218,13 @@ struct AXYONStartView: View {
                        String(localized: "Run my shortcut "))
                 action(String(localized: "Search"), "globe", .white,
                        String(localized: "Search the web: "))
+                // The superpowers (axyon_hermes/powers.py).
+                action(String(localized: "Ceilings"), "target", AXYONPalette.gold,
+                       String(localized: "Which of my assets are under their ceiling price?"))
+                action(String(localized: "English"), "character.book.closed.fill", AXYONPalette.cyan,
+                       String(localized: "Give me today's English lesson."))
+                action(String(localized: "Workout"), "figure.strengthtraining.traditional", AXYONPalette.magenta,
+                       String(localized: "What is my workout today?"))
             }
         }
     }
