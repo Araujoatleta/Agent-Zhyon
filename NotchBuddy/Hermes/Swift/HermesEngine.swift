@@ -62,6 +62,8 @@ final class HermesEngine {
     @ObservationIgnored private var bridgeTask: Task<Void, Never>?
     @ObservationIgnored private var signInTask: Task<Void, Never>?
     @ObservationIgnored private var backgroundTask: UIBackgroundTaskIdentifier = .invalid
+    /// Python returned: it cannot start again in this launch.
+    @ObservationIgnored private var pythonStopped = false
     @ObservationIgnored private let session: URLSession
 
     nonisolated static let cutText = "The answer stopped there: AXYON closed before it ended."
@@ -136,10 +138,13 @@ final class HermesEngine {
         Task { await waitUntilReady() }
     }
 
+    /// Ready, or why not. A start slower than four minutes (an older iPhone, its first launch) is said to be late, and
+    /// still becomes ready if it does within a quarter of an hour: the app keeps asking, more slowly.
     private func waitUntilReady() async {
-        let deadline = Date.now.addingTimeInterval(240)
-        while Date.now < deadline {
-            if case .failed = state { return }
+        let started = Date.now
+        var late = false
+        while Date.now.timeIntervalSince(started) < 900, !pythonStopped {
+            if case .failed = state, !late { return }
             if let health = try? await call("GET", "/health", timeout: 3) {
                 if health["ready"] as? Bool == true {
                     Self.log.info("Hermes is ready")
@@ -154,13 +159,17 @@ final class HermesEngine {
                     return
                 }
             }
-            try? await Task.sleep(for: .milliseconds(400))
+            if !late, Date.now.timeIntervalSince(started) > 240 {
+                Self.log.error("Hermes did not answer on its port in time")
+                state = .failed(Self.hostError() ?? String(localized: "Hermes did not start in time."))
+                late = true
+            }
+            try? await Task.sleep(for: late ? .seconds(5) : .milliseconds(400))
         }
-        Self.log.error("Hermes did not answer on its port in time")
-        state = .failed(Self.hostError() ?? String(localized: "Hermes did not start in time."))
     }
 
     private func pythonEnded(_ said: String) {
+        pythonStopped = true
         Self.log.error("Python ended: \(said, privacy: .public)")
         // Beside the host's own traceback, for a test or a look at the app's folder.
         try? said.write(to: Self.home.appendingPathComponent("python-ended.txt"), atomically: true, encoding: .utf8)
