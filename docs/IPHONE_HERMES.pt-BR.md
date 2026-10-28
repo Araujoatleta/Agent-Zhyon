@@ -12,6 +12,8 @@ continua sendo uma opção: pareado, ele acrescenta a casa dele, os agentes (Cla
    anterior. O ícone aparece como **AXYON**.
 3. No iPhone: **Ajustes → Geral → VPN e Gerenciamento de Dispositivo** → confie no seu Apple ID. Com Apple ID grátis,
    o app precisa ser reinstalado a cada 7 dias (o Sideloadly faz isso de novo com o mesmo arquivo).
+4. No iOS 16 ou mais novo, na primeira vez: **Ajustes → Privacidade e Segurança → Modo de Desenvolvedor** → ligue (o
+   iPhone reinicia e pergunta de novo: confirme).
 
 ## Primeiro uso
 
@@ -88,7 +90,7 @@ Na aba **Casa → +** você adiciona os aparelhos que o próprio iPhone controla
 
 Depois é só pedir no chat: *"liga a TV da sala"*, *"abre o YouTube na TV do quarto"*, *"apaga a luz da sala"*,
 *"aumenta 5 de volume"*. Tomadas e interruptores pedem o seu **Face ID** antes. Na primeira busca o iOS pergunta se
-o AXYON pode usar a **rede local**: permita (Ajustes → Privacidade → Rede Local → AXYON).
+o AXYON pode usar a **rede local**: permita (Ajustes → Privacidade e Segurança → Rede Local → AXYON).
 
 Ligar uma TV que está totalmente desligada pela rede nem sempre dá: o iOS não deixa apps mandarem o sinal de
 "acordar" para a rede toda. Deixe ligada nas TVs Samsung a opção **Ligar com o celular** (Configurações → Geral →
@@ -102,7 +104,8 @@ Rede → Configurações avançadas).
   ditado e leitura em voz alta.
 - **Casa**: os aparelhos que o iPhone controla sozinho e, com um computador pareado, a casa dele.
 - **Carteira**: total, o dia, desde a compra, cada posição com o seu preço teto e os ativos que você acompanha.
-- **Ajustes**: o cérebro, as permissões, o computador (opcional) e o resto dos ajustes do app.
+- **Ajustes**: o cérebro, as permissões, os alertas dos superpoderes, o computador (opcional) e o resto dos ajustes
+  do app.
 
 ## Com um computador (opcional)
 

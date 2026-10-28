@@ -13,6 +13,8 @@ option: paired, it adds its home, its agents (Claude Code, Codex…) and the por
    icon reads **AXYON**.
 3. On the iPhone: **Settings → General → VPN & Device Management** → trust your Apple Account. With a free account the
    app must be installed again every 7 days (Sideloadly does it again with the same file).
+4. On iOS 16 or later, the first time: **Settings → Privacy & Security → Developer Mode** → on (the iPhone restarts and
+   asks again: confirm).
 
 ## First use
 
