@@ -1153,7 +1153,8 @@ pub fn summary(store: &Store, market: &Market, today: Date) -> Summary {
         gain_pct: v.gain_pct,
         priced_on: v.priced_on,
         live_at: v.live_at,
-        classes: v.classes.iter().filter(|c| c.value > 0.0 || c.target.is_some()).map(|c| ClassLine { id: c.class.id().into(), label: c.label.clone(), weight: c.weight, target: c.target }).collect(),
+        // Only what is held: a class sold out is no bar, whatever its target.
+        classes: v.classes.iter().filter(|c| c.value > 0.0).map(|c| ClassLine { id: c.class.id().into(), label: c.label.clone(), weight: c.weight, target: c.target }).collect(),
         income: incomes.iter().map(|i| i.monthly).sum(),
         income_goal: p.income_goal,
         alerts,
@@ -1371,6 +1372,11 @@ mod tests {
         assert!(d.items.iter().any(|i| i.area == "study") && d.items.iter().any(|i| i.area == "english") && d.items.iter().any(|i| i.area == "training"));
         let sum = summary(&store, &market, today());
         assert!(sum.has_portfolio && sum.income > 0.0 && !sum.classes.is_empty());
+        // A class the user holds nothing of is no bar, even with a target set for it.
+        let mut sold = store.clone();
+        sold.portfolio.positions.retain(|p| p.class != AssetClass::Etf);
+        sold.portfolio.targets.insert(AssetClass::Etf, 0.1);
+        assert!(!summary(&sold, &market, today()).classes.iter().any(|c| c.id == AssetClass::Etf.id()));
         assert_eq!(sum.english_streak, 1);
         snapshot(&mut store, &market, today());
         assert_eq!(store.snapshots.len(), 1);

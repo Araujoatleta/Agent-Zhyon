@@ -11727,17 +11727,6 @@
    "ru": "{ticker}: на {pct}% ниже предельной цены ({method})",
    "id": "{ticker}: {pct}% di bawah harga plafonnya ({method})"
   },
-  "Opportunity: {ticker} is {pct}% below its ceiling ({method}: {ceiling}).": {
-   "zh-Hans": "机会：{ticker} 比上限价低 {pct}%（{method}：{ceiling}）。",
-   "hi": "अवसर: {ticker} अपनी अधिकतम कीमत से {pct}% नीचे है ({method}: {ceiling})।",
-   "es": "Oportunidad: {ticker} está {pct}% por debajo de su precio techo ({method}: {ceiling}).",
-   "ar": "فرصة: {ticker} أقل من سعر السقف بنسبة {pct}% ({method}: {ceiling}).",
-   "fr": "Opportunité : {ticker} est {pct} % sous son prix plafond ({method} : {ceiling}).",
-   "bn": "সুযোগ: {ticker} সর্বোচ্চ দামের চেয়ে {pct}% নিচে ({method}: {ceiling})।",
-   "pt-BR": "Oportunidade: {ticker} está {pct}% abaixo do preço teto ({method}: {ceiling}).",
-   "ru": "Возможность: {ticker} на {pct}% ниже предельной цены ({method}: {ceiling}).",
-   "id": "Peluang: {ticker} {pct}% di bawah harga plafonnya ({method}: {ceiling})."
-  },
   "projected Bazin": {
    "zh-Hans": "预测巴津法",
    "hi": "अनुमानित बाज़िन",
@@ -11969,17 +11958,6 @@
    "ru": "Пропущенные строки ({count})",
    "id": "Baris yang dilewati ({count})"
   },
-  "The first one": {
-   "zh-Hans": "第一个",
-   "hi": "पहला",
-   "es": "La primera",
-   "ar": "الأولى",
-   "fr": "La première",
-   "bn": "প্রথমটি",
-   "pt-BR": "A primeira",
-   "ru": "Первый",
-   "id": "Yang pertama"
-  },
   "gog's default": {
    "zh-Hans": "gog 的默认账户",
    "hi": "gog का डिफ़ॉल्ट",
@@ -12013,27 +11991,16 @@
    "ru": "Ваша Google Таблица",
    "id": "Google Sheet Anda"
   },
-  "Your portfolio comes from your own Google Sheet, read through gog with the sign-in your assistant's gog skill uses, read only. A header row names the columns: Ativo and Quantidade, and Preço médio and Classe if you like; a row without a quantity is left out. Read again every 10 minutes and with Refresh. Leave the link empty and save to stop.": {
-   "zh-Hans": "你的投资组合来自你自己的 Google 表格，通过 gog 以你的助手 gog 技能所用的登录只读读取。标题行为各列命名：Ativo 和 Quantidade，如需可加 Preço médio 和 Classe；没有数量的行会被略过。每 10 分钟及点击刷新时重新读取。清空链接并保存即可停止。",
-   "hi": "आपका पोर्टफ़ोलियो आपकी अपनी Google शीट से आता है, जिसे gog आपके असिस्टेंट की gog स्किल वाले साइन-इन से केवल पढ़ने के लिए पढ़ता है। एक हेडर पंक्ति कॉलम के नाम बताती है: Ativo और Quantidade, और चाहें तो Preço médio और Classe; बिना मात्रा वाली पंक्ति छोड़ दी जाती है। हर 10 मिनट में और रीफ़्रेश पर फिर से पढ़ी जाती है। रोकने के लिए लिंक खाली छोड़कर सहेजें।",
-   "es": "Tu cartera viene de tu propia hoja de Google, leída con gog con el mismo inicio de sesión que usa la skill gog de tu asistente, solo lectura. Una fila de encabezado nombra las columnas: Ativo y Quantidade, y Preço médio y Classe si quieres; una fila sin cantidad queda fuera. Se lee de nuevo cada 10 minutos y con Actualizar. Deja el enlace vacío y guarda para detenerlo.",
-   "ar": "تأتي محفظتك من جدول Google الخاص بك، ويقرؤه gog بتسجيل الدخول نفسه الذي تستخدمه مهارة gog لدى مساعدك، للقراءة فقط. يسمّي صف العناوين الأعمدة: Ativo وQuantidade، وPreço médio وClasse إن أردت؛ ويُستبعد الصف الذي بلا كمية. يُقرأ من جديد كل 10 دقائق وعند التحديث. اترك الرابط فارغًا واحفظ للإيقاف.",
-   "fr": "Votre portefeuille vient de votre propre feuille Google, lue par gog avec la connexion qu'utilise la compétence gog de votre assistant, en lecture seule. Une ligne d'en-tête nomme les colonnes : Ativo et Quantidade, et Preço médio et Classe si vous voulez ; une ligne sans quantité est ignorée. Relue toutes les 10 minutes et avec Actualiser. Laissez le lien vide et enregistrez pour arrêter.",
-   "bn": "আপনার পোর্টফোলিও আসে আপনার নিজের Google শিট থেকে, যা gog আপনার সহকারীর gog স্কিলের একই সাইন-ইন দিয়ে শুধু পড়ার জন্য পড়ে। একটি হেডার সারি কলামের নাম দেয়: Ativo ও Quantidade, আর চাইলে Preço médio ও Classe; পরিমাণ ছাড়া সারি বাদ পড়ে। প্রতি ১০ মিনিটে এবং রিফ্রেশে আবার পড়া হয়। থামাতে লিংক খালি রেখে সংরক্ষণ করুন।",
-   "pt-BR": "Sua carteira vem da sua própria planilha do Google, lida pelo gog com o mesmo login da skill gog do seu assistente, só leitura. Uma linha de cabeçalho nomeia as colunas: Ativo e Quantidade, e Preço médio e Classe se quiser; linha sem quantidade fica de fora. Lida de novo a cada 10 minutos e no Atualizar. Deixe o link vazio e salve para parar.",
-   "ru": "Ваш портфель берётся из вашей собственной Google Таблицы: gog читает её только для чтения, с тем же входом, что и навык gog вашего ассистента. Строка заголовков называет столбцы: Ativo и Quantidade, а при желании Preço médio и Classe; строка без количества пропускается. Перечитывается каждые 10 минут и по кнопке «Обновить». Оставьте ссылку пустой и сохраните, чтобы остановить.",
-   "id": "Portofolio Anda berasal dari Google Sheet Anda sendiri, dibaca lewat gog dengan login yang dipakai skill gog asisten Anda, hanya baca. Satu baris judul menamai kolom: Ativo dan Quantidade, serta Preço médio dan Classe bila mau; baris tanpa jumlah dilewati. Dibaca ulang setiap 10 menit dan saat Segarkan. Kosongkan tautan lalu simpan untuk berhenti."
-  },
-  "gog was not found on this computer: install it (github.com/openclaw/gogcli) and sign in with gog auth add, as your assistant's gog skill does.": {
-   "zh-Hans": "此电脑上未找到 gog：请安装（github.com/openclaw/gogcli），并像你的助手的 gog 技能那样用 gog auth add 登录。",
-   "hi": "इस कंप्यूटर पर gog नहीं मिला: इसे इंस्टॉल करें (github.com/openclaw/gogcli) और gog auth add से साइन इन करें, जैसे आपके असिस्टेंट की gog स्किल करती है।",
-   "es": "No se encontró gog en este equipo: instálalo (github.com/openclaw/gogcli) e inicia sesión con gog auth add, como hace la skill gog de tu asistente.",
-   "ar": "لم يُعثر على gog في هذا الحاسوب: ثبّته (github.com/openclaw/gogcli) وسجّل الدخول بالأمر gog auth add، كما تفعل مهارة gog لدى مساعدك.",
-   "fr": "gog est introuvable sur cet ordinateur : installez-le (github.com/openclaw/gogcli) et connectez-vous avec gog auth add, comme le fait la compétence gog de votre assistant.",
-   "bn": "এই কম্পিউটারে gog পাওয়া যায়নি: এটি ইনস্টল করুন (github.com/openclaw/gogcli) এবং gog auth add দিয়ে সাইন ইন করুন, যেমন আপনার সহকারীর gog স্কিল করে।",
-   "pt-BR": "O gog não foi encontrado neste computador: instale-o (github.com/openclaw/gogcli) e entre com gog auth add, como faz a skill gog do seu assistente.",
-   "ru": "gog не найден на этом компьютере: установите его (github.com/openclaw/gogcli) и войдите командой gog auth add, как делает навык gog вашего ассистента.",
-   "id": "gog tidak ditemukan di komputer ini: pasang (github.com/openclaw/gogcli) lalu masuk dengan gog auth add, seperti yang dilakukan skill gog asisten Anda."
+  "gog was not found on this computer, on its PATH, in Downloads or in WSL: put gog.exe (from gogcli's Windows ZIP, github.com/openclaw/gogcli) on the PATH and sign in with gog auth add, as your assistant's gog skill does.": {
+   "zh-Hans": "在此电脑的 PATH、下载文件夹和 WSL 中都未找到 gog：把 gog.exe（来自 gogcli 的 Windows ZIP，github.com/openclaw/gogcli）放到 PATH 中，并像你的助手的 gog 技能那样用 gog auth add 登录。",
+   "hi": "इस कंप्यूटर पर gog नहीं मिला, न PATH में, न Downloads में, न WSL में: gog.exe (gogcli के Windows ZIP से, github.com/openclaw/gogcli) को PATH में रखें और gog auth add से साइन इन करें, जैसे आपके असिस्टेंट की gog स्किल करती है।",
+   "es": "No se encontró gog en este equipo, ni en su PATH, ni en Descargas, ni en WSL: pon gog.exe (del ZIP de gogcli para Windows, github.com/openclaw/gogcli) en el PATH e inicia sesión con gog auth add, como hace la skill gog de tu asistente.",
+   "ar": "لم يُعثر على gog في هذا الحاسوب، لا في PATH ولا في التنزيلات ولا في WSL: ضع gog.exe (من ملف ZIP الخاص بـ gogcli لنظام Windows، github.com/openclaw/gogcli) في PATH وسجّل الدخول بالأمر gog auth add، كما تفعل مهارة gog لدى مساعدك.",
+   "fr": "gog est introuvable sur cet ordinateur, ni dans son PATH, ni dans Téléchargements, ni dans WSL : placez gog.exe (du ZIP Windows de gogcli, github.com/openclaw/gogcli) dans le PATH et connectez-vous avec gog auth add, comme le fait la compétence gog de votre assistant.",
+   "bn": "এই কম্পিউটারে gog পাওয়া যায়নি, PATH-এ, Downloads-এ বা WSL-এ কোথাও নয়: gog.exe (gogcli-এর Windows ZIP থেকে, github.com/openclaw/gogcli) PATH-এ রাখুন এবং gog auth add দিয়ে সাইন ইন করুন, যেমন আপনার সহকারীর gog স্কিল করে।",
+   "pt-BR": "O gog não foi encontrado neste computador, nem no PATH, nem em Downloads, nem no WSL: coloque o gog.exe (do ZIP do gogcli para Windows, github.com/openclaw/gogcli) no PATH e entre com gog auth add, como faz a skill gog do seu assistente.",
+   "ru": "gog не найден на этом компьютере — ни в PATH, ни в «Загрузках», ни в WSL: положите gog.exe (из Windows-архива gogcli, github.com/openclaw/gogcli) в PATH и войдите командой gog auth add, как делает навык gog вашего ассистента.",
+   "id": "gog tidak ditemukan di komputer ini, baik di PATH, di Downloads, maupun di WSL: taruh gog.exe (dari ZIP Windows gogcli, github.com/openclaw/gogcli) di PATH lalu masuk dengan gog auth add, seperti yang dilakukan skill gog asisten Anda."
   },
   "Sheet link or ID": {
    "zh-Hans": "表格链接或 ID",
@@ -12078,17 +12045,6 @@
    "pt-BR": "Lendo a planilha…",
    "ru": "Чтение таблицы…",
    "id": "Membaca sheet…"
-  },
-  "Sheet read at {time}: {count} positions": {
-   "zh-Hans": "表格已于 {time} 读取：{count} 个持仓",
-   "hi": "शीट {time} पर पढ़ी गई: {count} पोज़िशन",
-   "es": "Hoja leída a las {time}: {count} posiciones",
-   "ar": "قُرئ الجدول الساعة {time}: {count} مراكز",
-   "fr": "Feuille lue à {time} : {count} positions",
-   "bn": "শিট {time}-এ পড়া হয়েছে: {count}টি পজিশন",
-   "pt-BR": "Planilha lida às {time}: {count} posições",
-   "ru": "Таблица прочитана в {time}: позиций — {count}",
-   "id": "Sheet dibaca pukul {time}: {count} posisi"
   },
   "The sheet is read in a moment.": {
    "zh-Hans": "稍后即会读取表格。",
@@ -12210,6 +12166,281 @@
    "pt-BR": "Não achei um cabeçalho com o ativo e a quantidade: nomeie as colunas \"Ativo\" e \"Quantidade\" (e \"Preço médio\", \"Classe\" se quiser).",
    "ru": "Нет строки заголовков с активом и количеством: назовите столбцы «Ativo» и «Quantidade» (и при желании «Preço médio», «Classe»).",
    "id": "Tidak ada judul dengan aset dan jumlahnya: beri nama kolom \"Ativo\" dan \"Quantidade\" (serta \"Preço médio\", \"Classe\" bila mau)."
+  },
+  "The sheet could not be written: {error}": {
+   "zh-Hans": "无法写入表格：{error}",
+   "hi": "शीट में लिखा नहीं जा सका: {error}",
+   "es": "No se pudo escribir en la hoja: {error}",
+   "ar": "تعذّرت الكتابة في الجدول: {error}",
+   "fr": "Impossible d'écrire dans la feuille : {error}",
+   "bn": "শিটে লেখা যায়নি: {error}",
+   "pt-BR": "Não foi possível escrever na planilha: {error}",
+   "ru": "Не удалось записать в таблицу: {error}",
+   "id": "Sheet tidak dapat ditulis: {error}"
+  },
+  "AXYON's tab could not be made in the sheet: {error}": {
+   "zh-Hans": "无法在表格中创建 AXYON 工作表：{error}",
+   "hi": "शीट में AXYON का टैब नहीं बनाया जा सका: {error}",
+   "es": "No se pudo crear la pestaña de AXYON en la hoja: {error}",
+   "ar": "تعذّر إنشاء تبويب AXYON في الجدول: {error}",
+   "fr": "Impossible de créer l'onglet d'AXYON dans la feuille : {error}",
+   "bn": "শিটে AXYON-এর ট্যাব তৈরি করা যায়নি: {error}",
+   "pt-BR": "Não foi possível criar a aba do AXYON na planilha: {error}",
+   "ru": "Не удалось создать лист AXYON в таблице: {error}",
+   "id": "Tab AXYON tidak dapat dibuat di sheet: {error}"
+  },
+  "The spreadsheet has no tab named {tab}.": {
+   "zh-Hans": "该电子表格中没有名为 {tab} 的工作表。",
+   "hi": "स्प्रेडशीट में {tab} नाम का कोई टैब नहीं है।",
+   "es": "La hoja de cálculo no tiene ninguna pestaña llamada {tab}.",
+   "ar": "لا يحتوي الجدول على تبويب باسم {tab}.",
+   "fr": "Le classeur n'a aucun onglet nommé {tab}.",
+   "bn": "স্প্রেডশিটে {tab} নামে কোনো ট্যাব নেই।",
+   "pt-BR": "A planilha não tem nenhuma aba chamada {tab}.",
+   "ru": "В таблице нет листа с названием {tab}.",
+   "id": "Spreadsheet tidak punya tab bernama {tab}."
+  },
+  "{price} now · your ceiling {ceiling}": {
+   "zh-Hans": "现价 {price} · 你的上限价 {ceiling}",
+   "hi": "अभी {price} · आपकी अधिकतम कीमत {ceiling}",
+   "es": "{price} ahora · tu precio techo {ceiling}",
+   "ar": "{price} الآن · سعر السقف الذي حددته {ceiling}",
+   "fr": "{price} maintenant · votre prix plafond {ceiling}",
+   "bn": "এখন {price} · আপনার সর্বোচ্চ দাম {ceiling}",
+   "pt-BR": "{price} agora · seu preço teto {ceiling}",
+   "ru": "{price} сейчас · ваша предельная цена {ceiling}",
+   "id": "{price} sekarang · harga plafon Anda {ceiling}"
+  },
+  "{price} now · your position {money} today": {
+   "zh-Hans": "现价 {price} · 你的持仓今日 {money}",
+   "hi": "अभी {price} · आपकी पोज़िशन आज {money}",
+   "es": "{price} ahora · tu posición {money} hoy",
+   "ar": "{price} الآن · مركزك {money} اليوم",
+   "fr": "{price} maintenant · votre position {money} aujourd'hui",
+   "bn": "এখন {price} · আজ আপনার পজিশন {money}",
+   "pt-BR": "{price} agora · sua posição {money} hoje",
+   "ru": "{price} сейчас · ваша позиция {money} за сегодня",
+   "id": "{price} sekarang · posisi Anda {money} hari ini"
+  },
+  "{price} now": {
+   "zh-Hans": "现价 {price}",
+   "hi": "अभी {price}",
+   "es": "{price} ahora",
+   "ar": "{price} الآن",
+   "fr": "{price} maintenant",
+   "bn": "এখন {price}",
+   "pt-BR": "{price} agora",
+   "ru": "{price} сейчас",
+   "id": "{price} sekarang"
+  },
+  "{value} now · {money} today": {
+   "zh-Hans": "现值 {value} · 今日 {money}",
+   "hi": "अभी {value} · आज {money}",
+   "es": "{value} ahora · {money} hoy",
+   "ar": "{value} الآن · {money} اليوم",
+   "fr": "{value} maintenant · {money} aujourd'hui",
+   "bn": "এখন {value} · আজ {money}",
+   "pt-BR": "{value} agora · {money} hoje",
+   "ru": "{value} сейчас · {money} за сегодня",
+   "id": "{value} sekarang · {money} hari ini"
+  },
+  "{ticker} went below your ceiling": {
+   "zh-Hans": "{ticker} 跌破了你的上限价",
+   "hi": "{ticker} आपकी अधिकतम कीमत से नीचे आ गया",
+   "es": "{ticker} bajó de tu precio techo",
+   "ar": "{ticker} نزل تحت سعر السقف الذي حددته",
+   "fr": "{ticker} est passé sous votre prix plafond",
+   "bn": "{ticker} আপনার সর্বোচ্চ দামের নিচে নেমেছে",
+   "pt-BR": "{ticker} caiu abaixo do seu preço teto",
+   "ru": "{ticker} опустился ниже вашей предельной цены",
+   "id": "{ticker} turun di bawah harga plafon Anda"
+  },
+  "{ticker} went back above your ceiling": {
+   "zh-Hans": "{ticker} 回到了你的上限价之上",
+   "hi": "{ticker} फिर से आपकी अधिकतम कीमत से ऊपर चला गया",
+   "es": "{ticker} volvió a superar tu precio techo",
+   "ar": "{ticker} عاد فوق سعر السقف الذي حددته",
+   "fr": "{ticker} est repassé au-dessus de votre prix plafond",
+   "bn": "{ticker} আবার আপনার সর্বোচ্চ দামের ওপরে উঠেছে",
+   "pt-BR": "{ticker} voltou para cima do seu preço teto",
+   "ru": "{ticker} снова выше вашей предельной цены",
+   "id": "{ticker} kembali di atas harga plafon Anda"
+  },
+  "Your portfolio is up {pct}% today": {
+   "zh-Hans": "你的投资组合今天上涨 {pct}%",
+   "hi": "आपका पोर्टफ़ोलियो आज {pct}% ऊपर है",
+   "es": "Tu cartera sube un {pct}% hoy",
+   "ar": "محفظتك مرتفعة {pct}% اليوم",
+   "fr": "Votre portefeuille gagne {pct} % aujourd'hui",
+   "bn": "আজ আপনার পোর্টফোলিও {pct}% বেড়েছে",
+   "pt-BR": "Sua carteira sobe {pct}% hoje",
+   "ru": "Ваш портфель сегодня вырос на {pct}%",
+   "id": "Portofolio Anda naik {pct}% hari ini"
+  },
+  "Your portfolio is down {pct}% today": {
+   "zh-Hans": "你的投资组合今天下跌 {pct}%",
+   "hi": "आपका पोर्टफ़ोलियो आज {pct}% नीचे है",
+   "es": "Tu cartera baja un {pct}% hoy",
+   "ar": "محفظتك منخفضة {pct}% اليوم",
+   "fr": "Votre portefeuille perd {pct} % aujourd'hui",
+   "bn": "আজ আপনার পোর্টফোলিও {pct}% কমেছে",
+   "pt-BR": "Sua carteira cai {pct}% hoje",
+   "ru": "Ваш портфель сегодня упал на {pct}%",
+   "id": "Portofolio Anda turun {pct}% hari ini"
+  },
+  "{ticker} up {pct}% today": {
+   "zh-Hans": "{ticker} 今天上涨 {pct}%",
+   "hi": "{ticker} आज {pct}% ऊपर",
+   "es": "{ticker} sube un {pct}% hoy",
+   "ar": "{ticker} مرتفع {pct}% اليوم",
+   "fr": "{ticker} gagne {pct} % aujourd'hui",
+   "bn": "{ticker} আজ {pct}% বেড়েছে",
+   "pt-BR": "{ticker} sobe {pct}% hoje",
+   "ru": "{ticker} сегодня вырос на {pct}%",
+   "id": "{ticker} naik {pct}% hari ini"
+  },
+  "{ticker} down {pct}% today": {
+   "zh-Hans": "{ticker} 今天下跌 {pct}%",
+   "hi": "{ticker} आज {pct}% नीचे",
+   "es": "{ticker} baja un {pct}% hoy",
+   "ar": "{ticker} منخفض {pct}% اليوم",
+   "fr": "{ticker} perd {pct} % aujourd'hui",
+   "bn": "{ticker} আজ {pct}% কমেছে",
+   "pt-BR": "{ticker} cai {pct}% hoje",
+   "ru": "{ticker} сегодня упал на {pct}%",
+   "id": "{ticker} turun {pct}% hari ini"
+  },
+  "{ticker} is {pct}% below its ceiling": {
+   "zh-Hans": "{ticker} 比上限价低 {pct}%",
+   "hi": "{ticker} अपनी अधिकतम कीमत से {pct}% नीचे है",
+   "es": "{ticker} está {pct}% por debajo de su precio techo",
+   "ar": "{ticker} أقل من سعر السقف بنسبة {pct}%",
+   "fr": "{ticker} est {pct} % sous son prix plafond",
+   "bn": "{ticker} সর্বোচ্চ দামের চেয়ে {pct}% নিচে",
+   "pt-BR": "{ticker} está {pct}% abaixo do preço teto",
+   "ru": "{ticker} на {pct}% ниже предельной цены",
+   "id": "{ticker} {pct}% di bawah harga plafonnya"
+  },
+  "{price} now · {method}: {ceiling}": {
+   "zh-Hans": "现价 {price} · {method}：{ceiling}",
+   "hi": "अभी {price} · {method}: {ceiling}",
+   "es": "{price} ahora · {method}: {ceiling}",
+   "ar": "{price} الآن · {method}: {ceiling}",
+   "fr": "{price} maintenant · {method} : {ceiling}",
+   "bn": "এখন {price} · {method}: {ceiling}",
+   "pt-BR": "{price} agora · {method}: {ceiling}",
+   "ru": "{price} сейчас · {method}: {ceiling}",
+   "id": "{price} sekarang · {method}: {ceiling}"
+  },
+  "The {tab} tab, only read, at {time}: {count} positions": {
+   "zh-Hans": "工作表 {tab}（只读），{time} 读取：{count} 个持仓",
+   "hi": "{tab} टैब, केवल पढ़ा गया, {time} पर: {count} पोज़िशन",
+   "es": "La pestaña {tab}, solo lectura, a las {time}: {count} posiciones",
+   "ar": "تبويب {tab}، للقراءة فقط، الساعة {time}: {count} مراكز",
+   "fr": "L'onglet {tab}, en lecture seule, à {time} : {count} positions",
+   "bn": "{tab} ট্যাব, শুধু পড়া হয়, {time}-এ: {count}টি পজিশন",
+   "pt-BR": "A aba {tab}, só leitura, às {time}: {count} posições",
+   "ru": "Лист {tab}, только чтение, в {time}: позиций — {count}",
+   "id": "Tab {tab}, hanya dibaca, pukul {time}: {count} posisi"
+  },
+  "AXYON's tab, read at {time}: {count} positions, {watched} watched": {
+   "zh-Hans": "AXYON 工作表，{time} 读取：{count} 个持仓，{watched} 个关注",
+   "hi": "AXYON का टैब, {time} पर पढ़ा गया: {count} पोज़िशन, {watched} पर नज़र",
+   "es": "Pestaña de AXYON, leída a las {time}: {count} posiciones, {watched} en seguimiento",
+   "ar": "تبويب AXYON، قُرئ الساعة {time}: {count} مراكز، و{watched} قيد المتابعة",
+   "fr": "Onglet d'AXYON, lu à {time} : {count} positions, {watched} suivis",
+   "bn": "AXYON-এর ট্যাব, {time}-এ পড়া হয়েছে: {count}টি পজিশন, {watched}টি নজরে",
+   "pt-BR": "Aba do AXYON, lida às {time}: {count} posições, {watched} acompanhados",
+   "ru": "Лист AXYON, прочитан в {time}: позиций — {count}, под наблюдением — {watched}",
+   "id": "Tab AXYON, dibaca pukul {time}: {count} posisi, {watched} dipantau"
+  },
+  "written at {time}": {
+   "zh-Hans": "{time} 写入",
+   "hi": "{time} पर लिखा गया",
+   "es": "escrita a las {time}",
+   "ar": "كُتب الساعة {time}",
+   "fr": "écrit à {time}",
+   "bn": "{time}-এ লেখা হয়েছে",
+   "pt-BR": "escrita às {time}",
+   "ru": "записан в {time}",
+   "id": "ditulis pukul {time}"
+  },
+  "Why did my portfolio move so much today?": {
+   "zh-Hans": "我的投资组合今天为什么波动这么大？",
+   "hi": "आज मेरा पोर्टफ़ोलियो इतना क्यों हिला?",
+   "es": "¿Por qué se movió tanto mi cartera hoy?",
+   "ar": "لماذا تحركت محفظتي كثيرًا اليوم؟",
+   "fr": "Pourquoi mon portefeuille a-t-il autant bougé aujourd'hui ?",
+   "bn": "আজ আমার পোর্টফোলিও এত ওঠানামা করল কেন?",
+   "pt-BR": "Por que minha carteira se mexeu tanto hoje?",
+   "ru": "Почему мой портфель сегодня так сильно изменился?",
+   "id": "Kenapa portofolio saya bergerak begitu banyak hari ini?"
+  },
+  "Is it a good time to buy {ticker}?": {
+   "zh-Hans": "现在是买入 {ticker} 的好时机吗？",
+   "hi": "क्या यह {ticker} खरीदने का अच्छा समय है?",
+   "es": "¿Es buen momento para comprar {ticker}?",
+   "ar": "هل هذا وقت جيد لشراء {ticker}؟",
+   "fr": "Est-ce le bon moment pour acheter {ticker} ?",
+   "bn": "এখন কি {ticker} কেনার ভালো সময়?",
+   "pt-BR": "É uma boa hora para comprar {ticker}?",
+   "ru": "Сейчас хорошее время, чтобы купить {ticker}?",
+   "id": "Apakah ini saat yang baik untuk membeli {ticker}?"
+  },
+  "What is happening with {ticker} today?": {
+   "zh-Hans": "{ticker} 今天怎么了？",
+   "hi": "आज {ticker} के साथ क्या हो रहा है?",
+   "es": "¿Qué está pasando con {ticker} hoy?",
+   "ar": "ماذا يحدث مع {ticker} اليوم؟",
+   "fr": "Que se passe-t-il avec {ticker} aujourd'hui ?",
+   "bn": "আজ {ticker}-এর কী হচ্ছে?",
+   "pt-BR": "O que está acontecendo com {ticker} hoje?",
+   "ru": "Что сегодня происходит с {ticker}?",
+   "id": "Apa yang terjadi dengan {ticker} hari ini?"
+  },
+  "+{count} more": {
+   "zh-Hans": "还有 {count} 条",
+   "hi": "+{count} और",
+   "es": "+{count} más",
+   "ar": "+{count} أخرى",
+   "fr": "+{count} autres",
+   "bn": "আরও +{count}",
+   "pt-BR": "+{count} outros",
+   "ru": "ещё {count}",
+   "id": "+{count} lainnya"
+  },
+  "Ask AXYON": {
+   "zh-Hans": "问问 AXYON",
+   "hi": "AXYON से पूछें",
+   "es": "Preguntar a AXYON",
+   "ar": "اسأل AXYON",
+   "fr": "Demander à AXYON",
+   "bn": "AXYON-কে জিজ্ঞাসা করুন",
+   "pt-BR": "Perguntar ao AXYON",
+   "ru": "Спросить AXYON",
+   "id": "Tanya AXYON"
+  },
+  "AXYON (its own tab)": {
+   "zh-Hans": "AXYON（它自己的工作表）",
+   "hi": "AXYON (उसका अपना टैब)",
+   "es": "AXYON (su propia pestaña)",
+   "ar": "AXYON (تبويبه الخاص)",
+   "fr": "AXYON (son propre onglet)",
+   "bn": "AXYON (এর নিজস্ব ট্যাব)",
+   "pt-BR": "AXYON (a aba dele)",
+   "ru": "AXYON (его собственный лист)",
+   "id": "AXYON (tab miliknya sendiri)"
+  },
+  "AXYON keeps your portfolio in its own AXYON tab of your Google Sheet, made there the first time, through gog with the sign-in your assistant's gog skill uses. You both write it: your rows (Ativo, Classe, Quantidade, Preço médio, Meu teto; a ticker with your ceiling and no quantity is watched) are read back every 10 minutes and with Refresh, and what you ask AXYON in the chat (a buy, a sale, a ceiling) is written there at once. Beside them AXYON writes the price now, the result, its own ceilings and what to watch. Name another tab to have it only read. Your other tabs are never written. Leave the link empty and save to stop.": {
+   "zh-Hans": "AXYON 把你的投资组合保存在你的 Google 表格中它自己的 AXYON 工作表里（第一次时在那里创建），通过 gog，使用你助手的 gog 技能所用的登录。你们俩都会写它：你的行（Ativo、Classe、Quantidade、Preço médio、Meu teto；有你的上限价但没有数量的代码为关注）每 10 分钟和点击刷新时会被重新读取，你在聊天中让 AXYON 做的事（买入、卖出、上限价）会立即写入。在旁边，AXYON 写入当前价格、盈亏、它自己的上限价以及需要关注的事项。填写另一个工作表的名称，则只读取它。你的其他工作表永远不会被写入。将链接留空并保存即可停止。",
+   "hi": "AXYON आपका पोर्टफ़ोलियो आपकी Google शीट में अपने AXYON टैब में रखता है, जो पहली बार वहीं बनाया जाता है, gog के ज़रिए, उसी साइन-इन से जो आपके सहायक की gog स्किल इस्तेमाल करती है। आप दोनों इसमें लिखते हैं: आपकी पंक्तियाँ (Ativo, Classe, Quantidade, Preço médio, Meu teto; आपकी अधिकतम कीमत वाला लेकिन बिना मात्रा का टिकर नज़र में रहता है) हर 10 मिनट में और रिफ्रेश पर फिर से पढ़ी जाती हैं, और चैट में आप AXYON से जो कहते हैं (खरीद, बिक्री, अधिकतम कीमत) वह तुरंत वहाँ लिखा जाता है। उनके बगल में AXYON अभी की कीमत, नतीजा, अपनी अधिकतम कीमतें और ध्यान देने वाली बातें लिखता है। किसी दूसरे टैब का नाम दें ताकि उसे सिर्फ़ पढ़ा जाए। आपके दूसरे टैब में कभी नहीं लिखा जाता। रोकने के लिए लिंक खाली छोड़कर सहेजें।",
+   "es": "AXYON guarda tu cartera en su propia pestaña AXYON de tu hoja de Google, creada allí la primera vez, mediante gog con el inicio de sesión que usa la skill gog de tu asistente. Los dos escriben en ella: tus filas (Ativo, Classe, Quantidade, Preço médio, Meu teto; un ticker con tu precio techo y sin cantidad queda en seguimiento) se vuelven a leer cada 10 minutos y con Actualizar, y lo que le pidas a AXYON en el chat (una compra, una venta, un precio techo) se escribe allí al instante. Al lado, AXYON escribe el precio actual, el resultado, sus propios precios techo y lo que hay que vigilar. Indica otra pestaña para que solo se lea. Tus otras pestañas nunca se escriben. Deja el enlace vacío y guarda para detenerlo.",
+   "ar": "يحتفظ AXYON بمحفظتك في تبويب AXYON الخاص به داخل جدول Google الخاص بك، ويُنشئه هناك أول مرة، عبر gog بتسجيل الدخول الذي تستخدمه مهارة gog لدى مساعدك. يكتب فيه كلاكما: صفوفك (Ativo وClasse وQuantidade وPreço médio وMeu teto؛ الرمز الذي له سعر سقف بلا كمية يبقى قيد المتابعة) تُقرأ من جديد كل 10 دقائق وعند التحديث، وما تطلبه من AXYON في الدردشة (شراء أو بيع أو سعر سقف) يُكتب هناك فورًا. وبجانبها يكتب AXYON السعر الآن والنتيجة وأسعار السقف التي يحسبها وما يجب مراقبته. اكتب اسم تبويب آخر ليُقرأ فقط. لا يُكتب أبدًا في تبويباتك الأخرى. اترك الرابط فارغًا واحفظ للإيقاف.",
+   "fr": "AXYON tient votre portefeuille dans son propre onglet AXYON de votre feuille Google, créé la première fois, via gog avec la connexion qu'utilise la skill gog de votre assistant. Vous l'écrivez tous les deux : vos lignes (Ativo, Classe, Quantidade, Preço médio, Meu teto ; un ticker avec votre prix plafond et sans quantité est suivi) sont relues toutes les 10 minutes et avec Actualiser, et ce que vous demandez à AXYON dans le chat (un achat, une vente, un prix plafond) y est écrit aussitôt. À côté, AXYON écrit le cours actuel, le résultat, ses propres prix plafonds et ce qu'il faut surveiller. Indiquez un autre onglet pour qu'il soit seulement lu. Vos autres onglets ne sont jamais écrits. Laissez le lien vide et enregistrez pour arrêter.",
+   "bn": "AXYON আপনার পোর্টফোলিও আপনার Google শিটে তার নিজের AXYON ট্যাবে রাখে, প্রথমবার সেখানেই তৈরি করে, gog দিয়ে, আপনার সহকারীর gog স্কিল যে সাইন-ইন ব্যবহার করে সেটি দিয়ে। আপনারা দুজনেই এতে লেখেন: আপনার সারিগুলো (Ativo, Classe, Quantidade, Preço médio, Meu teto; আপনার সর্বোচ্চ দামসহ কিন্তু পরিমাণ ছাড়া টিকার নজরে থাকে) প্রতি ১০ মিনিটে এবং রিফ্রেশে আবার পড়া হয়, আর চ্যাটে আপনি AXYON-কে যা বলেন (কেনা, বেচা, সর্বোচ্চ দাম) তা সঙ্গে সঙ্গে সেখানে লেখা হয়। পাশে AXYON লেখে এখনকার দাম, ফলাফল, তার নিজের সর্বোচ্চ দাম আর কী নজরে রাখতে হবে। অন্য কোনো ট্যাবের নাম দিলে সেটি শুধু পড়া হবে। আপনার অন্য ট্যাবে কখনো লেখা হয় না। থামাতে লিংক খালি রেখে সংরক্ষণ করুন।",
+   "pt-BR": "O AXYON guarda a sua carteira na aba AXYON da sua planilha do Google, criada lá na primeira vez, pelo gog, com o login que a skill gog do seu assistente usa. Vocês dois escrevem nela: as suas linhas (Ativo, Classe, Quantidade, Preço médio, Meu teto; um ticker com o seu teto e sem quantidade fica em observação) são lidas de volta a cada 10 minutos e no Atualizar, e o que você pedir ao AXYON no chat (uma compra, uma venda, um teto) é escrito lá na hora. Ao lado, o AXYON escreve a cotação agora, o resultado, os tetos dele e o que observar. Indique outra aba para que ela seja só lida. As suas outras abas nunca são escritas. Deixe o link vazio e salve para parar.",
+   "ru": "AXYON ведёт ваш портфель на собственном листе AXYON вашей Google Таблицы (он создаётся там в первый раз) через gog со входом, который использует навык gog вашего ассистента. Пишете в него вы оба: ваши строки (Ativo, Classe, Quantidade, Preço médio, Meu teto; тикер с вашей предельной ценой и без количества — под наблюдением) перечитываются каждые 10 минут и по кнопке «Обновить», а то, о чём вы просите AXYON в чате (покупка, продажа, предельная цена), сразу записывается туда. Рядом AXYON пишет текущую цену, результат, свои предельные цены и то, за чем следить. Укажите другой лист, чтобы его только читали. В другие ваши листы ничего не записывается. Оставьте ссылку пустой и сохраните, чтобы остановить.",
+   "id": "AXYON menyimpan portofolio Anda di tab AXYON miliknya sendiri di Google Sheet Anda, dibuat di sana pertama kali, lewat gog dengan login yang dipakai skill gog asisten Anda. Kalian berdua menulisnya: baris Anda (Ativo, Classe, Quantidade, Preço médio, Meu teto; ticker dengan harga plafon Anda tanpa jumlah berarti dipantau) dibaca ulang setiap 10 menit dan saat Muat ulang, dan apa yang Anda minta ke AXYON di chat (beli, jual, harga plafon) langsung ditulis di sana. Di sebelahnya AXYON menulis harga sekarang, hasilnya, harga plafon versinya sendiri, dan apa yang perlu diperhatikan. Isi nama tab lain agar tab itu hanya dibaca. Tab Anda yang lain tidak pernah ditulis. Kosongkan tautan lalu simpan untuk berhenti."
   }
  }
 }

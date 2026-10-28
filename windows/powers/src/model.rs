@@ -497,6 +497,10 @@ pub struct Store {
     pub ceilings: Ceilings,
     /// The user's spreadsheet, when the portfolio comes from it (sheet.rs).
     pub sheet: crate::sheet::SheetLink,
+    /// AXYON's work in its tab of the spreadsheet (workspace.rs).
+    pub sheet_sync: crate::workspace::Sync,
+    /// The moments told today during the session (alerts.rs).
+    pub told_today: crate::alerts::Told,
 }
 
 /// The user's choices for ceiling prices (ceiling.rs).
@@ -596,6 +600,9 @@ pub struct LivePrice {
     pub price: f64,
     /// When it was, unix seconds.
     pub at: i64,
+    /// The previous session's close, as Google gave it with the price.
+    #[serde(default)]
+    pub previous: Option<f64>,
 }
 
 impl LivePrice {
@@ -626,13 +633,22 @@ impl Market {
         }
     }
 
-    /// Keeps `read` (ticker, price, unix seconds) as the session's prices, and lets go of those B3's closes made old.
-    pub fn keep_live(&mut self, read: impl IntoIterator<Item = (String, f64, i64)>) {
-        for (ticker, price, at) in read {
-            if price > 0.0 && price.is_finite() {
+    /// The day's change of a ticker during the session, percent: its price now against the previous session's close
+    /// (Google's, else B3's last).
+    pub fn day_change(&self, ticker: &str) -> Option<f64> {
+        let live = self.live_now(ticker)?;
+        let before = live.previous.filter(|p| *p > 0.0).or_else(|| self.close(ticker))?;
+        Some((live.price / before - 1.0) * 100.0)
+    }
+
+    /// Keeps `read` (each ticker's price, when it was and the previous close) as the session's prices, and lets go of
+    /// those B3's closes made old.
+    pub fn keep_live(&mut self, read: impl IntoIterator<Item = (String, LivePrice)>) {
+        for (ticker, live) in read {
+            if live.price > 0.0 && live.price.is_finite() {
                 let t = ticker.to_uppercase();
-                if self.live.get(&t).is_none_or(|l| l.at <= at) {
-                    self.live.insert(t, LivePrice { price, at });
+                if self.live.get(&t).is_none_or(|l| l.at <= live.at) {
+                    self.live.insert(t, live);
                 }
             }
         }
@@ -682,12 +698,17 @@ mod tests {
         assert_eq!(m.price("ggrc11"), Some(8.85));
         // 27/10 15:16 in Brasília (18:16 UTC).
         let at = 1_793_125_002;
-        m.keep_live([("GGRC11".to_string(), 8.69, at), ("TIMS3".to_string(), 18.78, at), ("BAD1".to_string(), 0.0, at)]);
+        let live = |t: &str, price: f64, at: i64| (t.to_string(), LivePrice { price, at, previous: None });
+        m.keep_live([live("GGRC11", 8.69, at), live("TIMS3", 18.78, at), live("BAD1", 0.0, at)]);
         assert_eq!(m.live["GGRC11"].day(), Date::new(2026, 10, 27).unwrap());
         assert_eq!((m.price("GGRC11"), m.close("GGRC11")), (Some(8.69), Some(8.85)));
         assert_eq!(m.price("TIMS3"), Some(18.78), "no close known: the session's price");
+        assert!((m.day_change("GGRC11").unwrap() - (8.69 / 8.85 - 1.0) * 100.0).abs() < 1e-9, "against B3's close");
+        assert_eq!(m.day_change("TIMS3"), None, "no close to say it against");
+        m.keep_live([("TIMS3".to_string(), LivePrice { price: 18.78, at, previous: Some(18.1) })]);
+        assert!((m.day_change("TIMS3").unwrap() - 3.756_906).abs() < 1e-5, "against Google's previous close");
         assert!(!m.live.contains_key("BAD1"));
-        m.keep_live([("GGRC11".to_string(), 8.60, at - 60)]);
+        m.keep_live([live("GGRC11", 8.60, at - 60)]);
         assert_eq!(m.price("GGRC11"), Some(8.69), "an older reading does not replace a newer one");
         // B3's file of the 27th: its close is the price again, and the session's goes.
         m.quotes.insert("GGRC11".into(), quote(27, 8.70));

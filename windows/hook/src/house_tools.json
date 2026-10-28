@@ -112,7 +112,7 @@
   {
     "name": "wealth_portfolio",
     "title": "Zheus: the portfolio",
-    "description": "The user's investment portfolio as AXYON keeps it (from their own Google Sheet when they linked one), valued during B3's session at Google Finance's price (some 15 minutes late) and otherwise at B3's last close: each holding (quantity, average price, value, gain), each class against the user's targets, the passive income a month with each holding's yield, and the economy (Selic, CDI, IPCA). Call it before talking about the user's investments. Read only.",
+    "description": "The user's investment portfolio as AXYON keeps it (in the AXYON tab of their Google Sheet when they linked one, where they edit it too), valued during B3's session at Google Finance's price (some 15 minutes late) and otherwise at B3's last close: each holding (quantity, average price, value, gain), each class against the user's targets, the passive income a month with each holding's yield, and the economy (Selic, CDI, IPCA). Call it before talking about the user's investments. Read only.",
     "inputSchema": {
       "type": "object",
       "properties": {}
@@ -121,7 +121,7 @@
   {
     "name": "wealth_update",
     "title": "Zheus: save the portfolio",
-    "description": "Save the user's portfolio, or its settings, in AXYON: a table or text the user pasted (from Investidor10 or their broker, or lines like \"150 GGRC11 a 9,20\": it replaces the list unless mode is merge), positions (merged by ticker), the targets per class, the passive income goal, the monthly contribution, the cash at the broker, tickers to remove, the CNPJ of a fund AXYON asks for. Only what the user said or pasted: never invent a position. AXYON keeps a copy of the list it replaces. This only changes AXYON's record: nothing is bought or sold. The answer shows the portfolio as it is now.",
+    "description": "Save the user's portfolio, or its settings, in AXYON: a table or text the user pasted (from Investidor10 or their broker, or lines like \"150 GGRC11 a 9,20\": it replaces the list unless mode is merge), positions (merged by ticker), the targets per class, the passive income goal, the monthly contribution, the cash at the broker, tickers to remove, the CNPJ of a fund AXYON asks for. Only what the user said or pasted: never invent a position. AXYON keeps a copy of the list it replaces. With the user's Google Sheet linked, the change is written to its AXYON tab at once. This only changes AXYON's record: nothing is bought or sold. The answer shows the portfolio as it is now.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -222,7 +222,7 @@
   {
     "name": "wealth_trade",
     "title": "Zheus: record a trade",
-    "description": "Record a trade the user tells you they made — a contribution or a sale, as they say it (\"on 21/10 at 14:30 I bought 10 GGRC11 at R$ 9,20\"). AXYON updates the position: its quantity, and its average price with the costs, the way the Receita counts it; a sale keeps the average and says what it made. The trade is kept for the month's taxes (wealth_audit) and the history of contributions. Several at once. Only trades the user says they made, with the figures they gave: never invent one, and do not record again what a pasted portfolio or an imported file already has. list: true shows the contributions month by month; undo_last: true undoes the last trade recorded here. This only changes AXYON's record: nothing is bought or sold.",
+    "description": "Record a trade the user tells you they made — a contribution or a sale, as they say it (\"on 21/10 at 14:30 I bought 10 GGRC11 at R$ 9,20\"). AXYON updates the position: its quantity, and its average price with the costs, the way the Receita counts it; a sale keeps the average and says what it made. The trade is kept for the month's taxes (wealth_audit) and the history of contributions. Several at once. Only trades the user says they made, with the figures they gave: never invent one, and do not record again what a pasted portfolio or an imported file already has. list: true shows the contributions month by month; undo_last: true undoes the last trade recorded here. With the user's Google Sheet linked, the position is written to its AXYON tab at once. This only changes AXYON's record: nothing is bought or sold.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -304,7 +304,7 @@
   {
     "name": "wealth_ceiling",
     "title": "Zheus: ceiling prices and opportunities",
-    "description": "Ceiling prices (\"preço teto\") of the user's shares and funds, or of one ticker, by classic methods worked out from the official data: Bazin (a year of dividends a share over the yield wanted: 6 % for shares; for funds the CDI after the 15 % income tax, unless the user chose another), projected Bazin (a fund's dividends at the pace of its last three months; a share's earnings grown as in the last year and paid out as then), Graham (√(22,5 × LPA × VPA)), Peter Lynch (LPA × (growth + DY)), and P/VP for funds. Each comes with what it was worked out from and how far the B3 close is above or below it, and the answer lists the opportunities: the close below a watched ceiling (the island and the morning briefing tell them by themselves). It also saves the user's choices: stock_yield, fund_yield (0 goes back to the CDI's), max_pvp, margin, the methods to watch, and their own ceiling for a ticker (ceiling: 0 removes it; a ticker with its own ceiling is watched even if not held). For a company the CVM does not cover, pass the eps, bvps, dps and growth the user gave. Rules of thumb on the user's own assumptions, never a recommendation: tell the user which method and figures each ceiling comes from.",
+    "description": "Ceiling prices (\"preço teto\") of the user's shares and funds, or of one ticker, by classic methods worked out from the official data: Bazin (a year of dividends a share over the yield wanted: 6 % for shares; for funds the CDI after the 15 % income tax, unless the user chose another), projected Bazin (a fund's dividends at the pace of its last three months; a share's earnings grown as in the last year and paid out as then), Graham (√(22,5 × LPA × VPA)), Peter Lynch (LPA × (growth + DY)), and P/VP for funds. Each comes with what it was worked out from and how far the B3 close is above or below it, and the answer lists the opportunities: the close below a watched ceiling (the island and the morning briefing tell them by themselves). It also saves the user's choices: stock_yield, fund_yield (0 goes back to the CDI's), max_pvp, margin, the methods to watch, and their own ceiling for a ticker (ceiling: 0 removes it; a ticker with its own ceiling is watched even if not held; with their Google Sheet linked it is written to the \"Meu teto\" column of its AXYON tab). For a company the CVM does not cover, pass the eps, bvps, dps and growth the user gave. Rules of thumb on the user's own assumptions, never a recommendation: tell the user which method and figures each ceiling comes from.",
     "inputSchema": {
       "type": "object",
       "properties": {

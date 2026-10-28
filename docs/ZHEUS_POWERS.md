@@ -76,7 +76,7 @@ And "What is my day?" — between 7 and 11, once a day, the island says it by it
 | Source | What | When |
 | --- | --- | --- |
 | Google Finance (its quote page) | each asset's price during the session (some 15 minutes late) | B3's trading days, 10:00–18:30 in Brasília: every 5 minutes, every minute while the ★ tab or Settings shows it, and before Zheus answers about the portfolio |
-| Your Google Sheet, through gog | your positions (asset, quantity, average price, class) | every 10 minutes, and with Refresh |
+| Your Google Sheet, through gog | AXYON's tab: your edits read back, AXYON's figures and the chat's changes written | every 10 minutes and after each reading of the prices, with Refresh, and around each change from the chat |
 | B3 (COTAHIST) | each asset's close | when B3 publishes the day (in the evening) |
 | CVM, the funds' monthly reports | VP per share, dividend yield, holders, segment | once a week |
 | FundosNet | notices, material facts, assemblies, offerings and dividend notices | once a day |
@@ -87,24 +87,54 @@ While the superpowers are on, Coucou wakes every half hour to see what is due; w
 question to Zheus waits about 20 seconds at most for what is due (and up to 40 for an asset you do not hold); the
 reading goes on behind it and the next question has the rest.
 
-### Your portfolio from your Google Sheet
+### Your portfolio in your Google Sheet: AXYON's tab
 
-Settings → Zheus' superpowers → **Your Google Sheet**: paste the sheet's link (or its ID), the tab to read (empty: the
-first one) and gog's account (empty: gog's default), then **Save and read**. AXYON reads it with
+Settings → Zheus' superpowers → **Your Google Sheet**: paste the spreadsheet's link (or its ID) and, if gog has several
+accounts, which one (empty: gog's default), then **Save and read**. AXYON works through
 [gog](https://github.com/openclaw/gogcli), the command your assistant's gog skill already uses, with gog's own sign-in
-and read only (`gog sheets get … --readonly`): AXYON never writes to the sheet and never sees the sign-in. A header row
-names the columns — **Ativo** (or Ticker, Código) and **Quantidade** (or Qtd, Cotas), and if you like **Preço médio**
-and **Classe**; for fixed income, a **Valor atual** (or Saldo) column. Each row with a B3 ticker and a quantity is a
-position, the same ticker twice is added up, a row without a quantity is left out (a watch list), and a total row is
-skipped. The sheet is the record: what it holds replaces the positions (a copy is kept first, only when they changed),
-while the targets, goals and history stay. A position changed in the chat lasts until the next reading: Zheus says so
-and points to the sheet.
+(AXYON never sees it).
+
+The first time, AXYON makes its own tab, **AXYON**, in the spreadsheet and fills it with the portfolio it knows. From
+then on that tab is the portfolio, and you both write it:
+
+| Columns | Who writes them |
+| --- | --- |
+| **Ativo**, **Classe**, **Quantidade**, **Preço médio**, **Meu teto** (A to E) | you, in the sheet; and AXYON, when you tell it in the chat (a buy, a sale, a ceiling, an asset added or removed) |
+| **Cotação**, **Dia %**, **Valor**, **Custo**, **Resultado**, **Resultado %**, **% da carteira**, **Teto AXYON**, **Método**, **Margem até o teto %**, **Aviso** (F to P) | AXYON: the price now, the day's change, the position's value, cost and result, its share of the portfolio, AXYON's own ceiling and the method, the margin to your ceiling (else AXYON's), and what to look at (🟢 below the ceiling, 🔴 above it, ⚡ a strong day, 📅 data-com, 💰 payment today) |
+| The summary (R and S) | AXYON: Patrimônio, Custo, Resultado, Renda passiva / mês, where the prices come from, and when it was written |
+
+- A row with a B3 ticker and a quantity is a position. A ticker with **Meu teto** and no quantity is watched: AXYON
+  prices it and tells you when it goes below your ceiling. Fixed income goes by its name, with Classe "Renda Fixa",
+  what was put in as **Preço médio** and its amount now in **Valor**.
+- Your edits are read back every 10 minutes, after each reading of the prices during the session (every 5 minutes)
+  and with Refresh. Deleting a row removes that asset; emptying the whole tab does not empty the portfolio (AXYON fills
+  it again: to sell everything, tell AXYON).
+- A change from the chat is written to the tab at once, after AXYON has read your latest edits. If the sheet cannot be
+  reached, the change is written as soon as it can be, before the tab is read again, so nothing you said is undone.
+- AXYON writes only the cells that changed, as values (never a formula), and only in its own tab: your other tabs are
+  never written. A copy of your data is kept before the sheet changes it.
+- To keep your own layout, name your tab in **Tab**: AXYON then only reads it (Ativo and Quantidade, or a list of
+  tickers with a **Preço teto** or **Meu teto**), and a change made in the chat lasts until the next reading.
 
 ### The price during the session
 
 During B3's session the portfolio, the ceilings and the opportunities use Google Finance's price (its quote page: no
 key, no account), shown on the ★ tab as "Google Finance at 15:16". Google gives B3's prices some 15 minutes late. In
 the evening B3's official close takes over again.
+
+### What AXYON tells you at once
+
+With each reading of the session's prices, AXYON tells you on the island, the moment it happens:
+
+- 🟢 an asset that goes below **your** ceiling (it was above it at the last close), or that is below one of its
+  ceilings by your margin (an opportunity, told once a week);
+- 🔴 an asset that goes back above your ceiling;
+- 📈 📉 a strong day for an asset you hold or watch, 3 % and then 6 % either way, with what your position made;
+- 📈 📉 a strong day for the whole portfolio, 2 % and then 4 %.
+
+Each is told once a day. The island opens on the ★ tab with the alert in place of the questions (**Ask AXYON** writes a
+question about it in the chat, for you to send), AXYON makes a face and a sound, the alert goes into the chat, and it
+is read aloud when you turned that on. The "Aviso" column of AXYON's tab says the same, all the time.
 
 ## Your data
 

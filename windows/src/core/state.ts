@@ -11,7 +11,7 @@ import type { ProviderId } from "./providers";
 import type { FileDiff } from "./diff";
 import type { HandsRequest, HandsStep } from "./hands";
 import type { ZheusStatus } from "./zheus";
-import type { PowersView } from "./powers";
+import type { PowersView, ShownAlert } from "./powers";
 import type { Bindings } from "./shortcuts";
 import type { ChatShelf } from "./bridge";
 import { DEFAULT_OUTFIT, type Outfit } from "../mochi/wardrobe";
@@ -328,6 +328,8 @@ class AppState {
   zheus: ZheusStatus | null = null;
   /** Zheus' superpowers as Rust last told them (src/island/powers.ts keeps it fresh); null until then. */
   powers: PowersView | null = null;
+  /** What AXYON told about the portfolio lately, newest first (src/island/powers.ts). */
+  powersAlerts: ShownAlert[] = [];
 
   lastActivity = performance.now();
 

@@ -1,9 +1,11 @@
 // Zheus' superpowers as the island, Settings and the TV mode show them (src-tauri/src/powers, coucou-powers): the
 // portfolio and its classes against the user's targets, the passive income against its goal, the alerts, the day's
-// lines (already in the user's language), the official data's last reading, and the content kit's charts turned into
-// PNG files. Pure functions here; the views draw them.
+// lines (already in the user's language), the official data's last reading, the user's sheet, what AXYON tells the
+// moment it happens, and the content kit's charts turned into PNG files. Pure functions here; the views draw them.
 
 import { t } from "../i18n/i18n";
+import type { BotEmoteName } from "./layout";
+import type { SoundName } from "./sound";
 
 export interface ClassLine {
   /** "acao", "fii", "etf", "bdr", "renda_fixa", "tesouro", "cripto", "outro". */
@@ -58,14 +60,42 @@ export interface SheetLink {
   account: string;
 }
 
-/** The last reading of the user's sheet. */
+/** The last round with the user's sheet. */
 export interface SheetState {
   running: boolean;
+  /** When it was last read, and when AXYON last wrote its tab ("15:20"). */
   at: string | null;
+  written: string | null;
+  tab: string;
+  /** AXYON's own tab (read and written), rather than one of the user's (only read). */
+  ours: boolean;
   positions: number;
+  /** Assets watched with the user's ceiling, not held. */
+  watched: number;
   problem: string | null;
   skipped: string[];
 }
+
+/** One thing AXYON tells about the portfolio the moment it happens (src-tauri/src/powers, tell). */
+export interface PowersAlert {
+  kind: "opportunity" | "into_zone" | "out_of_zone" | "up" | "down" | "portfolio_up" | "portfolio_down";
+  /** The asset; empty for the whole portfolio. */
+  ticker: string;
+  /** Its headline and what follows, in the user's language. */
+  title: string;
+  text: string;
+  tone: "good" | "bad" | "info";
+  /** When the price was, in Brasília ("15:16"), when it is the session's. */
+  at: string | null;
+}
+
+/** An alert as the island keeps it: when it came (ms). */
+export interface ShownAlert extends PowersAlert {
+  came: number;
+}
+
+/** How long an alert stays in the ★ tab. */
+export const ALERT_LASTS = 30 * 60_000;
 
 export interface PowersProfile {
   positions: number;
@@ -225,13 +255,60 @@ export function brDate(iso: string): string {
   return m ? `${m[3]}/${m[2]}` : iso;
 }
 
-/** The user's sheet's last reading, for Settings. */
+/** The user's sheet's last round, for Settings. */
 export function sheetLine(v: PowersView): string {
   const s = v.sheet;
   if (s.running) return t("Reading the sheet…");
   if (s.problem) return s.problem;
-  if (s.at) return t("Sheet read at {time}: {count} positions", { time: s.at, count: s.positions });
-  return t("The sheet is read in a moment.");
+  if (!s.at) return t("The sheet is read in a moment.");
+  if (!s.ours) return t("The {tab} tab, only read, at {time}: {count} positions", { tab: s.tab, time: s.at, count: s.positions });
+  const read = t("AXYON's tab, read at {time}: {count} positions, {watched} watched", { time: s.at, count: s.positions, watched: s.watched });
+  return s.written ? `${read} · ${t("written at {time}", { time: s.written })}` : read;
+}
+
+/** The sign before an alert, by its kind. */
+export function alertIcon(a: PowersAlert): string {
+  switch (a.kind) {
+    case "opportunity":
+    case "into_zone":
+      return "🟢";
+    case "out_of_zone":
+      return "🔴";
+    case "up":
+    case "portfolio_up":
+      return "📈";
+    default:
+      return "📉";
+  }
+}
+
+/** The alerts that came together, as one message in the chat. */
+export function alertsMessage(alerts: PowersAlert[]): string {
+  return alerts.map((a) => `${alertIcon(a)} ${a.title} — ${a.text}${a.at ? ` (${a.at})` : ""}`).join("\n");
+}
+
+/** AXYON's face and sound for alerts that came together: those of the first, the most important. */
+export function alertMood(a: PowersAlert): { emote: BotEmoteName; sound: SoundName } {
+  if (a.kind === "opportunity" || a.kind === "into_zone") return { emote: "proud", sound: "proud" };
+  if (a.tone === "good") return { emote: "happy", sound: "love" };
+  if (a.tone === "bad") return { emote: "surprised", sound: "gulp" };
+  return { emote: "wink", sound: "wink" };
+}
+
+/** The question an alert offers to ask AXYON (written in the chat for the user to send). */
+export function alertQuestion(a: PowersAlert): string {
+  if (!a.ticker) return t("Why did my portfolio move so much today?");
+  if (a.kind === "opportunity" || a.kind === "into_zone") return t("Is it a good time to buy {ticker}?", { ticker: a.ticker });
+  return t("What is happening with {ticker} today?", { ticker: a.ticker });
+}
+
+/** The alerts still shown at `now`, newest first, less those closed (by `alertKey`). */
+export function shownAlerts(list: ShownAlert[], now: number, closed: ReadonlySet<string> = new Set()): ShownAlert[] {
+  return list.filter((a) => now - a.came < ALERT_LASTS && !closed.has(alertKey(a)));
+}
+
+export function alertKey(a: ShownAlert): string {
+  return `${a.came}:${a.kind}:${a.ticker}`;
 }
 
 /** The session's prices: where they come from, and when they were last read. */

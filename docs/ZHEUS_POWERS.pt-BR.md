@@ -114,7 +114,7 @@ Os exemplos abaixo são frases que você pode mandar como estão, na ilha, no iP
 | Fonte | O quê | Quando |
 | --- | --- | --- |
 | Google Finance (a página de cotação) | o preço de cada ativo durante o pregão (uns 15 minutos de atraso) | nos dias de pregão da B3, das 10:00 às 18:30 de Brasília: a cada 5 minutos, a cada minuto com o ★ ou as Configurações abertos, e antes de o Zheus responder sobre a carteira |
-| A sua planilha do Google, pelo gog | as suas posições (ativo, quantidade, preço médio, classe) | a cada 10 minutos, e no Atualizar |
+| A sua planilha do Google, pelo gog | a aba do AXYON: as suas edições lidas de volta, os números do AXYON e as mudanças do chat escritos | a cada 10 minutos e depois de cada leitura dos preços, no Atualizar, e antes e depois de cada mudança pelo chat |
 | B3 (COTAHIST) | o fechamento de cada ativo | quando a B3 publica o dia (à noite) |
 | CVM, Informe Mensal dos FIIs | VP/cota, DY, cotistas, segmento | uma vez por semana |
 | FundosNet | comunicados, fatos relevantes, assembleias, ofertas e os avisos de rendimentos | uma vez por dia |
@@ -125,24 +125,56 @@ Com os superpoderes ligados, o Coucou acorda a cada meia hora para ver o que ven
 pergunta ao Zheus espera no máximo cerca de 20 segundos pelo que estiver vencendo (e até 40 segundos por um ativo que
 você não tem); a leitura continua por trás e a próxima pergunta já tem o resto.
 
-### A carteira vem da sua planilha do Google
+### A sua carteira na sua planilha do Google: a aba do AXYON
 
-Configurações → Superpoderes do Zheus → **Sua planilha do Google**: cole o link da planilha (ou o ID), a aba a ler
-(vazio: a primeira) e a conta do gog (vazio: a padrão do gog) e clique em **Salvar e ler**. O AXYON lê com o
+Configurações → Superpoderes do Zheus → **Sua planilha do Google**: cole o link da planilha (ou o ID) e, se o gog tiver
+várias contas, qual usar (vazio: a padrão do gog), e clique em **Salvar e ler**. O AXYON trabalha pelo
 [gog](https://github.com/openclaw/gogcli), o mesmo comando que a skill gog do seu assistente já usa, com o login do
-próprio gog e só leitura (`gog sheets get … --readonly`): o AXYON nunca escreve na planilha e nunca vê o login. Uma
-linha de cabeçalho nomeia as colunas — **Ativo** (ou Ticker, Código) e **Quantidade** (ou Qtd, Cotas) e, se quiser,
-**Preço médio** e **Classe**; para renda fixa, uma coluna **Valor atual** (ou Saldo). Cada linha com um ticker da B3 e
-uma quantidade é uma posição, o mesmo ticker duas vezes é somado, linha sem quantidade fica de fora (lista de
-observação) e linha de total é ignorada. A planilha manda: o que ela tem substitui as posições (com uma cópia guardada
-antes, só quando mudaram), e as metas, os objetivos e o histórico continuam. Uma posição alterada pelo chat vale até a
-próxima leitura: o Zheus avisa e aponta para a planilha.
+próprio gog (o AXYON nunca vê o login).
+
+Na primeira vez, o AXYON cria a aba dele, **AXYON**, na planilha e a preenche com a carteira que conhece. Daí em diante
+essa aba é a carteira, e vocês dois escrevem nela:
+
+| Colunas | Quem escreve |
+| --- | --- |
+| **Ativo**, **Classe**, **Quantidade**, **Preço médio**, **Meu teto** (A a E) | você, na planilha; e o AXYON, quando você pede no chat (uma compra, uma venda, um teto, um ativo novo ou removido) |
+| **Cotação**, **Dia %**, **Valor**, **Custo**, **Resultado**, **Resultado %**, **% da carteira**, **Teto AXYON**, **Método**, **Margem até o teto %**, **Aviso** (F a P) | o AXYON: a cotação agora, a variação do dia, o valor, o custo e o resultado da posição, o peso na carteira, o teto do AXYON e o método, a margem até o seu teto (ou o do AXYON) e o que observar (🟢 abaixo do teto, 🔴 acima, ⚡ dia forte, 📅 data-com, 💰 pagamento hoje) |
+| O resumo (R e S) | o AXYON: Patrimônio, Custo, Resultado, Renda passiva / mês, de onde vêm os preços e quando foi escrito |
+
+- Uma linha com ticker da B3 e quantidade é uma posição. Um ticker com **Meu teto** e sem quantidade fica em
+  observação: o AXYON cota e avisa quando ele cai abaixo do seu teto. Renda fixa vai pelo nome, com Classe "Renda
+  Fixa", o valor aplicado em **Preço médio** e o saldo de agora em **Valor**.
+- As suas edições são lidas de volta a cada 10 minutos, depois de cada leitura dos preços no pregão (a cada 5 minutos)
+  e no Atualizar. Apagar uma linha tira aquele ativo; esvaziar a aba inteira não zera a carteira (o AXYON preenche de
+  novo: para vender tudo, fale com o AXYON).
+- Uma mudança pelo chat é escrita na aba na hora, depois de o AXYON ler as suas últimas edições. Se a planilha não
+  responder, a mudança é escrita assim que der, antes de a aba ser lida de novo, então nada do que você disse se perde.
+- O AXYON escreve só as células que mudaram, como valores (nunca fórmula), e só na aba dele: as suas outras abas nunca
+  são escritas. Uma cópia dos seus dados é guardada antes de a planilha mudá-los.
+- Para manter o seu próprio layout, ponha o nome da sua aba em **Aba**: o AXYON passa a só ler essa aba (Ativo e
+  Quantidade, ou uma lista de tickers com **Preço teto** ou **Meu teto**), e uma mudança pelo chat vale até a próxima
+  leitura.
 
 ### O preço durante o pregão
 
 Durante o pregão da B3, a carteira, os preços-teto e as oportunidades usam o preço do Google Finance (a página de
 cotação: sem chave, sem conta), mostrado no ★ como "Google Finance às 15:16". O Google entrega as cotações da B3 com
 uns 15 minutos de atraso. À noite, o fechamento oficial da B3 volta a valer.
+
+### O que o AXYON avisa na hora
+
+A cada leitura dos preços do pregão, o AXYON avisa na ilha, no momento em que acontece:
+
+- 🟢 um ativo que cai abaixo do **seu** teto (estava acima no último fechamento), ou que está abaixo de um dos tetos
+  dele pela sua margem (uma oportunidade, avisada uma vez por semana);
+- 🔴 um ativo que volta para cima do seu teto;
+- 📈 📉 um dia forte de um ativo que você tem ou observa, 3 % e depois 6 % para cima ou para baixo, com quanto a sua
+  posição fez;
+- 📈 📉 um dia forte da carteira inteira, 2 % e depois 4 %.
+
+Cada aviso vem uma vez por dia. A ilha abre no ★ com o aviso no lugar das perguntas (**Perguntar ao AXYON** escreve uma
+pergunta sobre ele no chat, para você enviar), o AXYON faz uma cara e um som, o aviso entra no chat e é lido em voz
+alta se você ligou isso. A coluna "Aviso" da aba do AXYON diz o mesmo, o tempo todo.
 
 ## Os seus dados
 

@@ -220,6 +220,100 @@
   background: #f87171;
 }
 
+/* What AXYON just told, in place of the questions: its colour by its tone, a glow that comes once. */
+.powers-alert {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px 4px 10px;
+  border-radius: 999px;
+  background: rgba(52, 211, 153, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(52, 211, 153, 0.38), 0 0 18px rgba(52, 211, 153, 0.18);
+  animation: powers-alert-in 1.1s ease-out 2;
+}
+
+.powers-alert.bad {
+  background: rgba(248, 113, 113, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(248, 113, 113, 0.4), 0 0 18px rgba(248, 113, 113, 0.18);
+}
+
+.powers-alert.info {
+  background: rgba(96, 165, 250, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(96, 165, 250, 0.38), 0 0 18px rgba(96, 165, 250, 0.16);
+}
+
+@keyframes powers-alert-in {
+  0% {
+    filter: brightness(1.6);
+    transform: scale(0.97);
+  }
+  60% {
+    filter: brightness(1.15);
+    transform: scale(1.01);
+  }
+  100% {
+    filter: none;
+    transform: none;
+  }
+}
+
+.powers-alert-icon {
+  flex: 0 0 auto;
+  font-size: 13px;
+}
+
+.powers-alert-words {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font: 400 11px var(--font);
+  color: var(--dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.powers-alert-words b {
+  flex: 0 0 auto;
+  font-weight: 650;
+  color: var(--ink);
+}
+
+.powers-alert-words span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.powers-alert-close {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--dim);
+  cursor: pointer;
+}
+
+.powers-alert-close:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: var(--ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .powers-alert {
+    animation: none;
+  }
+}
+
 .powers-asks {
   display: flex;
   gap: 6px;

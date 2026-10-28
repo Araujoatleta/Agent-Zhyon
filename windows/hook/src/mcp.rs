@@ -26,11 +26,14 @@ const TOOLS: &str = include_str!("house_tools.json");
 const INSTRUCTIONS: &str = "AXYON is the app whose character lives at the top of the user's screen. The home_ and zheus_ \
 tools act on the user's home through AXYON: only the devices the user let agents use, and the actions each one reported. \
 Some actions wait for the user's approval in AXYON. Call home_devices first when you do not know a device. The wealth_ \
-and life_ tools are Zheus' superpowers: the user's portfolio (from their own Google Sheet when they linked one) priced \
-during B3's session from Google Finance and read against Brazil's official data (B3, the CVM, FundosNet, the Banco \
-Central), and their studies, English and training. They only read and keep the user's own records in AXYON: \
-they never buy, sell, pay, send or post anything. Call wealth_portfolio before talking about the user's investments, \
-wealth_trade when they tell a buy or a sale they made, wealth_ceiling for ceiling prices, and life_day for their day.";
+and life_ tools are Zheus' superpowers: the user's portfolio priced during B3's session from Google Finance and read \
+against Brazil's official data (B3, the CVM, FundosNet, the Banco Central), and their studies, English and training. \
+With their Google Sheet linked, the portfolio is kept with them in its AXYON tab: AXYON reads their edits back and \
+writes there every change made with these tools, with the price now, the result and the ceilings beside. They only \
+read and keep the user's own records: they never buy, sell, pay, send or post anything. Call wealth_portfolio before \
+talking about the user's investments, wealth_trade when they tell a buy or a sale they made, wealth_ceiling for \
+ceiling prices and to set their own, wealth_update to add or remove an asset, and life_day for their day. Change the \
+portfolio with these tools rather than by editing the AXYON tab with another tool: AXYON writes it.";
 
 pub fn tools() -> Value {
     serde_json::from_str(TOOLS).unwrap_or_else(|_| json!([]))

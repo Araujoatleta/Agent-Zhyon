@@ -8,6 +8,7 @@
 //! Pure Rust and plain data: the app (src-tauri/src/powers) keeps the files, schedules the refreshes and offers all
 //! of it to Zheus' brain as tools. Nothing here buys, sells, sends or publishes anything.
 
+pub mod alerts;
 pub mod audit;
 pub mod ceiling;
 pub mod company;
@@ -30,6 +31,7 @@ pub mod study;
 pub mod table;
 pub mod text;
 pub mod trades;
+pub mod workspace;
 pub mod xlsx;
 pub mod xml;
 pub mod zip;
