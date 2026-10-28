@@ -1,5 +1,6 @@
-"""A fake OpenAI-compatible model for the host's tests: it calls coucou_portfolio when asked about "carteira", and
-coucou_home about "casa", then answers "Feito: <what the tool returned>". It logs how many messages it saw."""
+"""A fake OpenAI-compatible model for the host's tests: it calls coucou_portfolio when asked about "carteira",
+coucou_home about "casa" and iphone_status about "iPhone", then answers "Feito: <what the tool returned>". It logs how
+many messages it saw."""
 import json
 import sys
 import time
@@ -40,6 +41,8 @@ class Model(BaseHTTPRequestHandler):
             call = {"id": "call_1", "type": "function", "function": {"name": "coucou_portfolio", "arguments": "{}"}}
         elif "coucou_home" in tools and "casa" in asked:
             call = {"id": "call_2", "type": "function", "function": {"name": "coucou_home", "arguments": "{}"}}
+        elif "iphone_status" in tools and "iphone" in asked.lower():
+            call = {"id": "call_3", "type": "function", "function": {"name": "iphone_status", "arguments": "{}"}}
         else:
             content = "ok"
         model = req.get("model", "fake-model")

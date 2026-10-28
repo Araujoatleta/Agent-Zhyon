@@ -9,6 +9,8 @@ import threading
 from typing import Any, Optional
 
 ANSWER_WAIT = 45.0
+# How long a request waits for the app's stream to be there.
+LISTENER_WAIT = 5.0
 MAX_WAITING = 32
 
 
@@ -23,9 +25,10 @@ class Bridge:
         self.listeners = 0
 
     def ask(self, kind: str, request: dict[str, Any], wait: float = ANSWER_WAIT) -> Any:
-        """Sends `request` to the app and waits for its answer (a JSON value)."""
+        """Sends `request` to the app and waits for its answer (a JSON value). An app that is not listening gets a
+        moment to come back (its stream reopens after a launch or a suspension), never the whole wait."""
         with self._lock:
-            if self.listeners == 0:
+            if not self._lock.wait_for(lambda: self.listeners > 0, timeout=min(LISTENER_WAIT, wait)):
                 return {"error": "The AXYON app is not listening right now."}
             if len(self._queue) >= MAX_WAITING:
                 return {"error": "Too many requests are waiting for the app."}
@@ -59,3 +62,4 @@ class Bridge:
     def listening(self, delta: int) -> None:
         with self._lock:
             self.listeners = max(0, self.listeners + delta)
+            self._lock.notify_all()

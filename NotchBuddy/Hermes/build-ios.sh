@@ -7,6 +7,7 @@
 #   build/app_packages                 its packages: pure Python, iOS wheels, and pydantic-core and jiter built here
 #                                      for arm64 iOS (they publish no iOS wheel)
 # Every .py is compiled to bytecode that never goes stale (the bundle is signed: nothing is written in it).
+# IOS_SDK=iphonesimulator builds the same for the Simulator (CI's test of Hermes inside iOS, tests/simulator.sh).
 set -euo pipefail
 cd "$(dirname "$0")"
 HERE="$(pwd)"
@@ -17,6 +18,15 @@ HERMES_COMMIT="$(sed -n 's/^pub const COMMIT: &str = "\([0-9a-f]\{40\}\)";$/\1/p
 IOS_TARGET=13.0
 PYDANTIC_CORE=2.46.4
 JITER=0.16.0
+IOS_SDK="${IOS_SDK:-iphoneos}"
+case "$IOS_SDK" in
+    iphoneos)
+        SLICE_NAME=ios-arm64 RUST_TARGET=aarch64-apple-ios WHEEL_PLATFORM=ios_13_0_arm64_iphoneos VT_PLATFORM=IOS ;;
+    iphonesimulator)
+        SLICE_NAME=ios-arm64_x86_64-simulator RUST_TARGET=aarch64-apple-ios-sim
+        WHEEL_PLATFORM=ios_13_0_arm64_iphonesimulator VT_PLATFORM=IOSSIMULATOR ;;
+    *) echo "IOS_SDK is iphoneos or iphonesimulator"; exit 1 ;;
+esac
 
 test -n "$HERMES_COMMIT" || { echo "Hermes' commit not found in hermes_setup.rs"; exit 1; }
 "$PYTHON" -c 'import sys; assert sys.version_info[:2] == (3, 14), sys.version' || { echo "$PYTHON is not Python 3.14"; exit 1; }
@@ -51,9 +61,9 @@ sys.exit("no Python 3.14 iOS support package among the releases")
     tar -xzf "$OUT/support.tar.gz" -C "$OUT/support"
     rm "$OUT/support.tar.gz"
 fi
-SLICE="$XCF/ios-arm64"
-test -d "$SLICE/Python.framework" || { echo "no device slice in the XCframework"; ls -R "$XCF" | head -50; exit 1; }
-SYSCONFIG="$(find "$XCF" -name '_sysconfigdata__ios_arm64-iphoneos.py' | head -1)"
+SLICE="$XCF/$SLICE_NAME"
+test -d "$SLICE/Python.framework" || { echo "no $SLICE_NAME slice in the XCframework"; ls -R "$XCF" | head -50; exit 1; }
+SYSCONFIG="$(find "$XCF" -name "_sysconfigdata__ios_arm64-$IOS_SDK.py" | head -1)"
 EXT_SUFFIX="$("$PYTHON" -c "import runpy, sys; print(runpy.run_path(sys.argv[1])['build_time_vars']['EXT_SUFFIX'])" "$SYSCONFIG")"
 echo "XCframework at $XCF, extension modules end in $EXT_SUFFIX"
 
@@ -84,11 +94,11 @@ rm -rf "$PKG" && mkdir -p "$PKG"
     --only-binary=:all: --platform any --implementation py --abi none --python-version 3.14 \
     -r "$HERE/requirements-pure.txt"
 "$PYTHON" -m pip install -q --disable-pip-version-check --no-compile --target "$PKG" --no-deps \
-    --only-binary=:all: --platform ios_13_0_arm64_iphoneos --implementation cp --abi cp314 --python-version 3.14 \
+    --only-binary=:all: --platform "$WHEEL_PLATFORM" --implementation cp --abi cp314 --python-version 3.14 \
     -r "$HERE/requirements-ios-wheels.txt"
 
-step "pydantic-core $PYDANTIC_CORE and jiter $JITER for arm64 iOS"
-rustup target add aarch64-apple-ios >/dev/null
+step "pydantic-core $PYDANTIC_CORE and jiter $JITER for $RUST_TARGET"
+rustup target add "$RUST_TARGET" >/dev/null
 RUST="$OUT/rust"
 mkdir -p "$RUST"
 cat > "$RUST/pyo3.cfg" <<CFG
@@ -106,9 +116,10 @@ export PYO3_CONFIG_FILE="$RUST/pyo3.cfg"
 export IPHONEOS_DEPLOYMENT_TARGET="$IOS_TARGET"
 # One target folder for both, which CI keeps between runs.
 export CARGO_TARGET_DIR="$RUST/target"
-BUILT="$CARGO_TARGET_DIR/aarch64-apple-ios/release"
+BUILT="$CARGO_TARGET_DIR/$RUST_TARGET/release"
 # Linked against Python.framework, which the app embeds, rather than left to look its symbols up at load.
-export CARGO_TARGET_AARCH64_APPLE_IOS_RUSTFLAGS="-C link-arg=-F$SLICE -C link-arg=-framework -C link-arg=Python"
+RUSTFLAGS_VAR="CARGO_TARGET_$(echo "$RUST_TARGET" | tr 'a-z-' 'A-Z_')_RUSTFLAGS"
+export "$RUSTFLAGS_VAR=-C link-arg=-F$SLICE -C link-arg=-framework -C link-arg=Python"
 
 sdist() {  # name version → the unpacked sdist's folder
     local name=$1 version=$2
@@ -131,14 +142,14 @@ dist_info() {  # package version → a minimal .dist-info, so importlib.metadata
 }
 
 PC="$(sdist pydantic-core "$PYDANTIC_CORE")"
-(cd "$PC" && cargo build --release --locked --target aarch64-apple-ios --lib)
+(cd "$PC" && cargo build --release --locked --target "$RUST_TARGET" --lib)
 mkdir -p "$PKG/pydantic_core"
 cp "$PC"/python/pydantic_core/*.py "$PC"/python/pydantic_core/*.pyi "$PC"/python/pydantic_core/py.typed "$PKG/pydantic_core/"
 cp "$BUILT/lib_pydantic_core.dylib" "$PKG/pydantic_core/_pydantic_core$EXT_SUFFIX"
 dist_info pydantic_core "$PYDANTIC_CORE"
 
 JT="$(sdist jiter "$JITER")"
-(cd "$JT" && cargo build --release --locked --target aarch64-apple-ios -p jiter-python)
+(cd "$JT" && cargo build --release --locked --target "$RUST_TARGET" -p jiter-python)
 mkdir -p "$PKG/jiter"
 cat > "$PKG/jiter/__init__.py" <<'PY'
 from .jiter import *
@@ -153,12 +164,12 @@ cp "$BUILT/libjiter_python.dylib" "$PKG/jiter/jiter$EXT_SUFFIX"
 dist_info jiter "$JITER"
 
 # ── Checks ───────────────────────────────────────────────────────────────────
-step "Every compiled module is arm64 iOS"
+step "Every compiled module is arm64 $VT_PLATFORM"
 bad=0
 while IFS= read -r so; do
     platform="$(xcrun vtool -show-build "$so" 2>/dev/null | awk '/platform/ {print $2; exit}')"
     arch="$(lipo -archs "$so" 2>/dev/null || true)"
-    if [ "$platform" != "IOS" ] || [ "$arch" != "arm64" ]; then
+    if [ "$platform" != "$VT_PLATFORM" ] || [[ " $arch " != *" arm64 "* ]]; then
         echo "  ✗ $so: platform '$platform', arch '$arch'"
         bad=1
     fi

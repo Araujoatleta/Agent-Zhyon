@@ -94,6 +94,12 @@ final class HermesEngine {
         state = .starting
         token = Self.randomToken()
         port = Self.freePort() ?? 47_830
+        #if targetEnvironment(simulator)
+        // CI's test of Hermes inside iOS (Hermes/tests/simulator.sh) knows where to knock. The Simulator only.
+        let environment = ProcessInfo.processInfo.environment
+        if let wanted = environment["AXYON_TEST_PORT"].flatMap(UInt16.init) { port = wanted }
+        if let wanted = environment["AXYON_TEST_TOKEN"], wanted.count >= 16 { token = wanted }
+        #endif
         let home = Self.home
         try? FileManager.default.createDirectory(at: home, withIntermediateDirectories: true)
         try? FileManager.default.removeItem(at: home.appendingPathComponent("host-error.txt"))

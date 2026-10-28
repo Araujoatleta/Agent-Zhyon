@@ -164,3 +164,79 @@ jobs:
           name: AXYON-iPhone-Hermes
           path: AXYON-iPhone-Hermes.ipa
           retention-days: 30
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+
+      # What the .ipa carries, as REA (github.com/morluto/rea) reads it without running it, with the app's own
+      # Info.plist and libraries. Informative only: it never fails the build.
+      - name: Inspect the .ipa (REA)
+        continue-on-error: true
+        timeout-minutes: 6
+        run: |
+          APP="build/Build/Products/Release-iphoneos/Coucou.app"
+          plutil -p "$APP/Info.plist" | grep -E "CFBundle(DisplayName|Identifier|ShortVersionString)|UsageDescription|NSAllowsLocalNetworking" || true
+          otool -L "$APP/Coucou" | head -40
+          nm "$APP/Coucou" 2>/dev/null | grep -E "axyon_python_(run|exec)" || echo "no axyon_python symbols"
+          du -sh "$APP/python" "$APP/app" "$APP/app_packages" "$APP/Frameworks"
+          npx -y rea-agents@6.8.0 inspect-artifact "$PWD/AXYON-iPhone-Hermes.ipa" --format md --token-limit 6000 || true
+
+  # Hermes started for real inside iOS, in the Simulator: the same app built for it, launched, its host ready, then an
+  # answer that takes a tool the app answers itself (NotchBuddy/Hermes/tests/simulator.sh).
+  hermes-simulator:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            NotchBuddy/Hermes/build/support
+            NotchBuddy/Hermes/build/rust/target
+          key: hermes-ios-sim-${{ hashFiles('NotchBuddy/Hermes/build-ios.sh', 'NotchBuddy/Hermes/requirements-*.txt') }}
+
+      - name: CPython, Hermes and its packages for the iOS Simulator
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PYTHON: python3.14
+          IOS_SDK: iphonesimulator
+        run: bash NotchBuddy/Hermes/build-ios.sh
+
+      - name: Generate project (with Hermes)
+        run: cd NotchBuddy && xcodegen --spec project-hermes.yml
+
+      # arm64 only: the Simulator of an Apple silicon Mac, and the slice the Rust modules are built for.
+      - name: Build the app for the Simulator
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project NotchBuddy/NotchBuddy.xcodeproj \
+            -scheme CoucouPhone \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build \
+            build \
+            ARCHS=arm64 \
+            CODE_SIGNING_ALLOWED=NO \
+            'SWIFT_ACTIVE_COMPILATION_CONDITIONS=$(inherited) SIDELOAD HERMES' 2>&1 | tee build.log | grep -E "error:|BUILD" || {
+              grep -E "error:" build.log | sort -u | head -30 | sed 's/^/::error::/'
+              exit 1
+            }
+
+      - name: Hermes inside iOS (start, health, an answer with the iPhone's own tool)
+        env:
+          PYTHON: python3.14
+        run: bash NotchBuddy/Hermes/tests/simulator.sh build/Build/Products/Release-iphonesimulator/Coucou.app

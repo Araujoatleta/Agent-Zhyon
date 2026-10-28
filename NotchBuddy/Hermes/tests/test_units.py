@@ -108,7 +108,21 @@ check("every schema says its name", all(s["name"] == n for n, (_, s, _) in regis
 
 print("The bridge")
 b = bridge.Bridge()
-check("no app listening: an error, at once", "not listening" in b.ask("iphone", {}, wait=0.1)["error"])
+t0 = time.time()
+check("no app listening: an error, after a moment only", "not listening" in b.ask("iphone", {}, wait=0.1)["error"]
+      and time.time() - t0 < 1)
+late = threading.Thread(target=lambda: (time.sleep(0.3), b.listening(+1)))
+late.start()
+asked = {}
+asking = threading.Thread(target=lambda: asked.update(answer=b.ask("iphone", {"action": "status"}, wait=3)))
+asking.start()
+request = b.next_request(2)
+check("an app that comes back a moment later still gets the request", request is not None
+      and b.answer(request["id"], {"ok": True}))
+asking.join()
+late.join()
+check("and its answer reaches the tool", asked.get("answer") == {"ok": True})
+b.listening(-1)
 b.listening(+1)
 got = {}
 
