@@ -22,6 +22,9 @@ targets:
       - path: Hermes/build/app_packages
         type: folder
         buildPhase: resources
+      # The permission prompts below in the user's language (pt-BR, es, fr).
+      - path: Hermes/InfoPlist.xcstrings
+        buildPhase: resources
     info:
       # Its own Info.plist, out of git: the committed InfoPhone.plist stays the App Store build's.
       path: Hermes/build/InfoPhone.plist
@@ -35,6 +38,12 @@ targets:
         NSContactsUsageDescription: "AXYON finds a person's phone or e-mail when you ask it to call or write to them; you send."
         NSLocationWhenInUseUsageDescription: "AXYON uses where you are when you ask it about places, the weather or the way."
         NSAppleMusicUsageDescription: "AXYON plays, pauses and skips music when you ask it to."
+        # project.yml's, said of AXYON: its home and computer, dictation, Face ID, the pairing code.
+        NSLocalNetworkUsageDescription: "AXYON reaches the TVs, boxes and Home Assistant on your Wi-Fi, and your computer when you pair one."
+        NSMicrophoneUsageDescription: "AXYON uses the microphone when you dictate a message to it."
+        NSSpeechRecognitionUsageDescription: "AXYON turns your voice into the text of a message."
+        NSFaceIDUsageDescription: "AXYON asks for Face ID before something that needs your yes, like turning on a plug or allowing an agent's request."
+        NSCameraUsageDescription: "AXYON uses the camera only to scan the pairing code of AXYON on your computer."
         # The superpowers' alerts with AXYON closed (Hermes/Swift/AXYONAlerts.swift), once the user turns them on;
         # added to project.yml's background modes.
         BGTaskSchedulerPermittedIdentifiers:

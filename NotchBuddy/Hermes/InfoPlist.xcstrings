@@ -1,0 +1,296 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "NSAppleMusicUsageDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON plays, pauses and skips music when you ask it to."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON reproduce, pausa y salta canciones cuando se lo pides."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON lance, met en pause et passe la musique quand vous le lui demandez."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O AXYON toca, pausa e pula músicas quando você pede."
+          }
+        }
+      }
+    },
+    "NSCalendarsFullAccessUsageDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON reads your calendar to plan your day, and adds the events you ask it to."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON lee tu calendario para planificar tu día y añade los eventos que le pidas."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON lit votre calendrier pour organiser votre journée et ajoute les événements que vous lui demandez."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O AXYON lê o seu calendário para planejar o seu dia e adiciona os eventos que você pedir."
+          }
+        }
+      }
+    },
+    "NSCameraUsageDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON uses the camera only to scan the pairing code of AXYON on your computer."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON usa la cámara solo para leer el código de enlace de AXYON en tu ordenador."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON n'utilise l'appareil photo que pour lire le code d'association d'AXYON sur votre ordinateur."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O AXYON usa a câmera só para ler o código de pareamento do AXYON no seu computador."
+          }
+        }
+      }
+    },
+    "NSContactsUsageDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON finds a person's phone or e-mail when you ask it to call or write to them; you send."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON busca el teléfono o el correo de alguien cuando le pides llamar o escribirle; quien envía eres tú."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON trouve le téléphone ou l'e-mail d'une personne quand vous lui demandez de l'appeler ou de lui écrire ; c'est vous qui envoyez."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O AXYON encontra o telefone ou o e-mail de alguém quando você pede para ligar ou escrever; quem envia é você."
+          }
+        }
+      }
+    },
+    "NSFaceIDUsageDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON asks for Face ID before something that needs your yes, like turning on a plug or allowing an agent's request."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON pide Face ID antes de lo que necesita tu sí, como encender un enchufe o permitir la petición de un agente."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON demande Face ID avant ce qui demande votre accord, comme allumer une prise ou autoriser la demande d'un agent."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O AXYON pede o Face ID antes do que precisa do seu sim, como ligar uma tomada ou permitir o pedido de um agente."
+          }
+        }
+      }
+    },
+    "NSLocalNetworkUsageDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON reaches the TVs, boxes and Home Assistant on your Wi-Fi, and your computer when you pair one."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON llega a los televisores, los aparatos y Home Assistant de tu Wi-Fi, y a tu ordenador cuando enlazas uno."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON joint les téléviseurs, les boîtiers et Home Assistant de votre Wi-Fi, et votre ordinateur quand vous en associez un."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O AXYON alcança as TVs, os aparelhos e o Home Assistant do seu Wi-Fi, e o seu computador quando você parear um."
+          }
+        }
+      }
+    },
+    "NSLocationWhenInUseUsageDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON uses where you are when you ask it about places, the weather or the way."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON usa dónde estás cuando le preguntas por lugares, el tiempo o el camino."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON utilise votre position quand vous lui demandez des lieux, la météo ou le chemin."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O AXYON usa onde você está quando você pergunta sobre lugares, o tempo ou o caminho."
+          }
+        }
+      }
+    },
+    "NSMicrophoneUsageDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON uses the microphone when you dictate a message to it."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON usa el micrófono cuando le dictas un mensaje."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON utilise le micro quand vous lui dictez un message."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O AXYON usa o microfone quando você dita uma mensagem."
+          }
+        }
+      }
+    },
+    "NSRemindersFullAccessUsageDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON adds, lists and completes the reminders you ask it to."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON añade, lista y completa los recordatorios que le pidas."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON ajoute, liste et termine les rappels que vous lui demandez."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O AXYON adiciona, lista e conclui os lembretes que você pedir."
+          }
+        }
+      }
+    },
+    "NSSpeechRecognitionUsageDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON turns your voice into the text of a message."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON convierte tu voz en el texto de un mensaje."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON transforme votre voix en texte d'un message."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O AXYON transforma a sua voz no texto de uma mensagem."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}
