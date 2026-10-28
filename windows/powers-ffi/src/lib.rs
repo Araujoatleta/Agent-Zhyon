@@ -20,7 +20,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use coucou_powers::date::{is_business_day, Date};
 use coucou_powers::model::{AssetClass, LivePrice, Market, Position, Store};
 use coucou_powers::sources::fetch::Http;
-use coucou_powers::{day, engine, refresh, sources, text};
+use coucou_powers::{alerts, ceiling, day, engine, refresh, sources, text};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use serde_json::{json, Value};
@@ -261,8 +261,9 @@ fn ensure_asset(st: &mut State, ticker: &str, today: Date, evening: bool) {
     st.save_market();
 }
 
-/// The session's prices of what is held and what has a ceiling, from Google Finance, one page after the other.
-fn read_live(st: &mut State) {
+/// The session's prices of what is held and what has a ceiling, from Google Finance, one page after the other, until
+/// `deadline`.
+fn read_live(st: &mut State, deadline: Instant) {
     let mut tickers = st.store.portfolio.tickers(None);
     for t in st.store.ceilings.manual.keys() {
         if !tickers.contains(t) {
@@ -270,7 +271,6 @@ fn read_live(st: &mut State) {
         }
     }
     tickers.truncate(LIVE_MOST);
-    let deadline = Instant::now() + LIVE_BUDGET;
     let mut got = Vec::new();
     for (i, ticker) in tickers.iter().enumerate() {
         if i > 0 {
@@ -329,7 +329,7 @@ fn run(st: &mut State, tool: &str, input: &Value, today: Date, evening: bool, re
         let budget = if needs_reading(&st.store, &st.market) { READ_BUDGET } else { QUICK_BUDGET };
         read_due(st, today, evening, budget);
         if session_open() && st.live_read.is_none_or(|t| t.elapsed() >= LIVE_EVERY) {
-            read_live(st);
+            read_live(st, Instant::now() + LIVE_BUDGET);
         }
     }
     if read {
@@ -420,6 +420,59 @@ fn run(st: &mut State, tool: &str, input: &Value, today: Date, evening: bool, re
     }
 }
 
+// ── What to tell ──────────────────────────────────────────────────────────────
+
+/// The most alerts at once, as on the computer.
+const MOST_ALERTS: usize = 8;
+
+/// What the session's prices and B3's closes make worth telling now, each once, as the computer's island tells it
+/// (src-tauri/src/powers/mod.rs, `tell`): an asset gone under the user's own ceiling or back above it, a strong day
+/// for an asset or the whole portfolio, an asset under one of its ceilings by the user's margin. The record of what
+/// was told is the store's.
+fn tell(st: &mut State, today: Date) -> Vec<Value> {
+    let before = (st.store.ceilings.told.clone(), st.store.told_today.clone());
+    let opportunities = ceiling::to_tell(&mut st.store, &st.market, today);
+    let moments = alerts::to_tell(&mut st.store, &st.market, today);
+    if (st.store.ceilings.told.clone(), st.store.told_today.clone()) != before {
+        st.save_store();
+    }
+    let mut out: Vec<(u8, Value)> = Vec::new();
+    for m in &moments {
+        let (rank, kind) = match m.kind {
+            alerts::Kind::IntoZone => (0, "into_zone"),
+            alerts::Kind::OutOfZone => (4, "out_of_zone"),
+            alerts::Kind::PortfolioUp => (2, "portfolio_up"),
+            alerts::Kind::PortfolioDown => (2, "portfolio_down"),
+            alerts::Kind::Up => (3, "up"),
+            alerts::Kind::Down => (3, "down"),
+        };
+        out.push((rank, json!({ "kind": kind, "ticker": m.ticker, "price": m.now, "day": m.day, "ceiling": m.ceiling, "money": m.money })));
+    }
+    for o in &opportunities {
+        // An asset just gone under the user's own ceiling is told by that, once.
+        if moments.iter().any(|m| m.kind == alerts::Kind::IntoZone && m.ticker == o.ticker) {
+            continue;
+        }
+        out.push((1, json!({ "kind": "opportunity", "ticker": o.ticker, "price": o.price, "ceiling": o.ceiling, "below": o.below, "method": o.method })));
+    }
+    out.sort_by_key(|(rank, _)| *rank);
+    out.into_iter().take(MOST_ALERTS).map(|(_, a)| a).collect()
+}
+
+/// A look for the app's background refresh: what is due read first (half of `budget`), the session's prices while B3
+/// trades (the rest), then what to tell. Nothing is read for a user with nothing held or watched.
+fn watch(st: &mut State, today: Date, evening: bool, budget: Duration) -> Vec<Value> {
+    if st.store.portfolio.positions.is_empty() && st.store.ceilings.manual.is_empty() {
+        return Vec::new();
+    }
+    let deadline = Instant::now() + budget;
+    read_due(st, today, evening, budget / 2);
+    if session_open() {
+        read_live(st, deadline);
+    }
+    tell(st, today)
+}
+
 /// One call, from the strings the app gives: the answer as JSON (`{"ok": …, "text": …}`).
 fn answer(tool: &str, input: &str, folder: &str, copy: &str, today: &str, evening: bool, read: bool) -> Value {
     let Some(today) = Date::parse(today.trim()) else {
@@ -429,6 +482,14 @@ fn answer(tool: &str, input: &str, folder: &str, copy: &str, today: &str, evenin
     if folder.trim().is_empty() {
         return json!({ "ok": false, "text": "No folder for the superpowers' files." });
     }
+    with_state(folder, copy, |st| {
+        let (ok, text) = run(st, tool, &input, today, evening, read);
+        json!({ "ok": ok, "text": text })
+    })
+}
+
+/// `job` on the state of `folder`, with the computer's copy taken first when a newer one came.
+fn with_state(folder: &str, copy: &str, job: impl FnOnce(&mut State) -> Value) -> Value {
     let folder = PathBuf::from(folder);
     let mut held = STATE.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
     if held.as_ref().is_none_or(|st| st.folder != folder) {
@@ -438,8 +499,18 @@ fn answer(tool: &str, input: &str, folder: &str, copy: &str, today: &str, evenin
     if !copy.trim().is_empty() {
         st.take_copy(Path::new(copy));
     }
-    let (ok, text) = run(st, tool, &input, today, evening, read);
-    json!({ "ok": ok, "text": text })
+    job(st)
+}
+
+/// What is worth telling now, from the strings the app gives (`{"ok": …, "alerts": […]}`).
+fn look(folder: &str, copy: &str, today: &str, evening: bool, budget: Duration) -> Value {
+    let Some(today) = Date::parse(today.trim()) else {
+        return json!({ "ok": false, "alerts": [] });
+    };
+    if folder.trim().is_empty() {
+        return json!({ "ok": false, "alerts": [] });
+    }
+    with_state(folder, copy, |st| json!({ "ok": true, "alerts": watch(st, today, evening, budget) }))
 }
 
 /// One of Hermes' wealth_ or life_ tools: `tool`, its `input` (a JSON object), the folder of the files, the
@@ -465,10 +536,27 @@ pub unsafe extern "C" fn axyon_powers_call(
     CString::new(out.to_string()).map(CString::into_raw).unwrap_or(std::ptr::null_mut())
 }
 
-/// Gives back an answer of `axyon_powers_call`.
+/// What is worth telling now, for the app's background refresh (at most `budget_ms` reading the sources):
+/// `{"ok": bool, "alerts": [...]}`, each alert's `kind` (into_zone, out_of_zone, up, down, portfolio_up,
+/// portfolio_down, opportunity), `ticker` ("" for the portfolio), `price` (for the portfolio, its value), `day`
+/// (percent), `ceiling`, `money` (what the user's position made today), `below` (percent) and `method`. Each is told
+/// once. To give back to `axyon_powers_free`.
 ///
 /// # Safety
-/// `text` is an answer of `axyon_powers_call`, given back once, or null.
+/// Each pointer is a NUL-terminated UTF-8 string or null.
+#[no_mangle]
+pub unsafe extern "C" fn axyon_powers_watch(folder: *const c_char, copy: *const c_char, today: *const c_char, evening: bool, budget_ms: u32) -> *mut c_char {
+    let owned = |p: *const c_char| if p.is_null() { String::new() } else { CStr::from_ptr(p).to_string_lossy().into_owned() };
+    let (folder, copy, today) = (owned(folder), owned(copy), owned(today));
+    let budget = Duration::from_millis(u64::from(budget_ms.clamp(1_000, 120_000)));
+    let out = std::panic::catch_unwind(|| look(&folder, &copy, &today, evening, budget)).unwrap_or_else(|_| json!({ "ok": false, "alerts": [] }));
+    CString::new(out.to_string()).map(CString::into_raw).unwrap_or(std::ptr::null_mut())
+}
+
+/// Gives back an answer of `axyon_powers_call` or `axyon_powers_watch`.
+///
+/// # Safety
+/// `text` is an answer of `axyon_powers_call` or `axyon_powers_watch`, given back once, or null.
 #[no_mangle]
 pub unsafe extern "C" fn axyon_powers_free(text: *mut c_char) {
     if !text.is_null() {
@@ -485,6 +573,58 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         dir
+    }
+
+    fn position(t: &str, class: AssetClass, quantity: f64) -> Position {
+        Position { ticker: t.into(), class, quantity, average_price: 10.0, subtype: String::new(), current_value: None, note: String::new() }
+    }
+
+    fn quote(t: &str, close: f64) -> coucou_powers::sources::b3::Quote {
+        coucou_powers::sources::b3::Quote {
+            ticker: t.into(),
+            date: Date::parse("2026-10-26").unwrap(),
+            open: close,
+            high: close,
+            low: close,
+            average: close,
+            close,
+            trades: 1,
+            volume: 1.0,
+            bdi: "02".into(),
+            kind: "ON".into(),
+            name: t.into(),
+            isin: String::new(),
+            market: 10,
+        }
+    }
+
+    #[test]
+    fn what_to_tell_comes_once_as_data_for_the_notifications() {
+        let dir = folder("tell");
+        let today = Date::parse("2026-10-27").unwrap();
+        // 27/10 15:16 in Brasília, during the session.
+        let at = 1_793_125_002;
+        let mut st = State::open(&dir);
+        st.store.portfolio.positions = vec![position("GGRC11", AssetClass::Fii, 150.0), position("TIMS3", AssetClass::Acao, 30.0)];
+        st.store.ceilings.manual.insert("GGRC11".into(), 8.80);
+        for (t, c) in [("GGRC11", 8.85), ("TIMS3", 18.1)] {
+            st.market.quotes.insert(t.into(), quote(t, c));
+        }
+        st.market.keep_live([("GGRC11".to_string(), LivePrice { price: 8.69, at, previous: None }), ("TIMS3".to_string(), LivePrice { price: 18.78, at, previous: None })]);
+        let told = tell(&mut st, today);
+        let kinds: Vec<&str> = told.iter().map(|a| a["kind"].as_str().unwrap()).collect();
+        assert_eq!(kinds, ["into_zone", "up"], "8,85 → 8,69 under the ceiling of 8,80; TIMS3 +3,8 %: {told:?}");
+        assert_eq!((told[0]["ticker"].as_str(), told[0]["price"].as_f64(), told[0]["ceiling"].as_f64()), (Some("GGRC11"), Some(8.69), Some(8.80)));
+        assert!((told[1]["money"].as_f64().unwrap() - 30.0 * (18.78 - 18.1)).abs() < 1e-6, "what the user's 30 shares made today");
+        assert!(tell(&mut st, today).is_empty(), "told once");
+        assert!(State::open(&dir).store.told_today.keys.contains(&"into:GGRC11".to_string()), "the record kept: not told again after a relaunch");
+        // Nothing held or watched: nothing read, nothing told.
+        let mut none = State::open(&folder("tell-none"));
+        assert!(watch(&mut none, today, false, Duration::from_secs(1)).is_empty());
+        let out = look(folder("tell-none").to_str().unwrap(), "", "2026-10-27", false, Duration::from_secs(1));
+        assert_eq!(out, json!({ "ok": true, "alerts": [] }));
+        assert_eq!(look("", "", "2026-10-27", false, Duration::from_secs(1))["ok"], json!(false));
+        let _ = std::fs::remove_dir_all(dir);
     }
 
     #[test]

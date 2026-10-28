@@ -63,6 +63,12 @@ O mesmo motor dos superpoderes do computador roda dentro do app, sem computador:
 Nada disso compra, vende, paga ou envia: o AXYON só registra e calcula. O kit de conteúdo do mês continua no
 computador.
 
+**Alertas com o AXYON fechado** (Ajustes → Superpoderes, desligados até você ligar): uma notificação quando um ativo
+cai abaixo do seu preço teto ou volta para cima dele, num dia forte de um ativo ou da carteira, e quando um ativo está
+abaixo do teto, cada coisa uma vez. Quem decide quando o AXYON pode olhar é o iOS (algumas vezes por dia, conforme você
+usa o iPhone, e só com **Ajustes → Geral → Atualização em 2º Plano** ligada para o AXYON); **Verificar agora** olha
+na hora. Só a B3, a CVM, o FundosNet, o Banco Central e o Google Finance são lidos; nada sobre você é enviado.
+
 Cada coisa que o iPhone protege (calendário, lembretes, contatos, localização, notificações) o iOS pergunta na
 primeira vez. **Ajustes → O que o AXYON pode usar** mostra o que está liberado.
 
@@ -119,3 +125,23 @@ Fora de casa, use o Tailscale nos dois ([IPHONE_PC.pt-BR.md](IPHONE_PC.pt-BR.md)
 - O iOS não deixa um app rodar outros programas: as ferramentas de terminal e de código do Hermes não existem no
   iPhone (no computador, sim).
 - Se o Hermes não iniciar, o início mostra o motivo; feche o AXYON no seletor de apps e abra de novo.
+
+## Se o app fechar sozinho ou o Hermes não iniciar: o REA
+
+O [REA](https://github.com/morluto/rea) lê o IPA e os relatórios de falha do iPhone sem executar nada. Num computador
+com o [Node.js](https://nodejs.org) 22 ou 24:
+
+1. **O que o IPA carrega** (Info.plist, frameworks, o Python, as permissões):
+   `npx -y rea-agents@latest inspect-artifact AXYON-iPhone-Hermes.ipa`
+2. **Um relatório de falha do iPhone**: no iPhone, **Ajustes → Privacidade e Segurança → Análise e Melhorias → Dados
+   de Análise**, procure um arquivo que começa com **Coucou** (o nome do programa do AXYON), toque nele e compartilhe
+   (AirDrop ou e-mail para você mesmo). No computador:
+   `npx -y rea-agents@latest inspect-apple-ips Coucou-2026-10-28-123456.ips --format md`
+   Ele mostra o tipo da falha, a thread que caiu e as funções em que ela estava.
+3. **Um nome de função Swift ilegível** (`$s5Coucou…`): `npx -y rea-agents@latest demangle-swift '$s5Coucou…'`.
+4. **As bibliotecas que o app carrega**: descompacte o IPA (é um .zip) e rode
+   `npx -y rea-agents@latest trace-dylib-resolution Payload/Coucou.app --format md`.
+
+O CI faz o passo 1 a cada build (o artefato **REA-evidence** traz tudo). Os textos do Hermes ao iniciar ficam também em
+**Ajustes → Privacidade e Segurança → Análise e Melhorias** (sysdiagnose) e, com o iPhone no cabo, no app Console do
+Mac, filtrando por **Coucou**.

@@ -461,18 +461,38 @@ enum HermesPowers {
 
     /// `{"ok": …, "text": …}`: the answer in English, for Hermes to tell.
     static func call(_ tool: String, input: Data) async -> Data {
+        let json = String(decoding: input, as: UTF8.self)
+        let answer = await run { files, copy, today, evening in
+            axyon_powers_call(tool, json, files, copy, today, evening)
+        }
+        return answer ?? Data(#"{"ok":false,"text":"The superpowers did not answer."}"#.utf8)
+    }
+
+    /// What is worth telling now (AXYONAlerts), the official sources read for `budget` seconds at most first: each
+    /// alert's kind, ticker, price, day, ceiling, money, below and method (windows/powers-ffi, `axyon_powers_watch`).
+    static func watch(budget: Double) async -> [[String: Any]] {
+        let milliseconds = UInt32(min(max(budget, 1), 120) * 1000)
+        let answer = await run { files, copy, today, evening in
+            axyon_powers_watch(files, copy, today, evening, milliseconds)
+        }
+        let object = answer.flatMap { (try? JSONSerialization.jsonObject(with: $0)) as? [String: Any] }
+        return object?["alerts"] as? [[String: Any]] ?? []
+    }
+
+    /// One call of the engine on its queue, with its folder, the computer's copy, the iPhone's date and whether its
+    /// evening has come (B3 publishes the day's quotes then); the answer it wrote, given back to it.
+    private static func run(_ call: @escaping @Sendable (String, String, String, Bool) -> UnsafeMutablePointer<CChar>?)
+        async -> Data? {
         let files = Self.folder.path
         let copy = HermesPortfolio.fileURL.path
         let now = Calendar.current.dateComponents([.year, .month, .day, .hour], from: .now)
         let today = String(format: "%04d-%02d-%02d", Int32(now.year ?? 0), Int32(now.month ?? 0), Int32(now.day ?? 0))
-        // B3 publishes the day's quotes in the evening.
         let evening = (now.hour ?? 0) >= 21
-        let json = String(decoding: input, as: UTF8.self)
         return await withCheckedContinuation { done in
             queue.async {
                 try? FileManager.default.createDirectory(atPath: files, withIntermediateDirectories: true)
-                guard let answer = axyon_powers_call(tool, json, files, copy, today, evening) else {
-                    done.resume(returning: Data(#"{"ok":false,"text":"The superpowers did not answer."}"#.utf8))
+                guard let answer = call(files, copy, today, evening) else {
+                    done.resume(returning: nil)
                     return
                 }
                 let out = Data(String(cString: answer).utf8)

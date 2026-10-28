@@ -30,11 +30,24 @@ struct CoucouPhoneApp: App {
                 PCLink.shared.appWentAway()
                 #if HERMES
                 HermesEngine.shared.appWentAway()
+                AXYONAlerts.schedule()
                 #endif
             default:
                 break
             }
         }
+        .axyonAlerts()
+    }
+}
+
+extension Scene {
+    /// The superpowers' looks with AXYON closed (Hermes/Swift/AXYONAlerts.swift), in the build that carries them.
+    func axyonAlerts() -> some Scene {
+        #if HERMES
+        backgroundTask(.appRefresh(AXYONAlerts.task)) { await AXYONAlerts.backgroundLook() }
+        #else
+        self
+        #endif
     }
 }
 

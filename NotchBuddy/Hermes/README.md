@@ -19,7 +19,7 @@ alone: none of this is compiled or copied into them.
 | `app/axyon_hermes/` | The host: Hermes behind a small HTTP API on 127.0.0.1, and AXYON's tools for it. |
 | `shims/psutil/` | An iOS stand-in for psutil (no other process can be seen on iOS). |
 | `bridge/` | The C that starts CPython (`axyon_python_run`) and runs a line in it (`axyon_python_exec`), and the superpowers' C interface (`AXYONPowers.h`, from `windows/powers-ffi`). |
-| `Swift/` | `HermesEngine` (starts and talks to the host), `HermesArms` (what Hermes asks of the iPhone, and `HermesPowers`, the superpowers' engine), `HermesWire` (its events and the conversation, tested on Linux), `AXYONStyle`, `AXYONViews` and `AXYONHouse` (the screens). |
+| `Swift/` | `HermesEngine` (starts and talks to the host), `HermesArms` (what Hermes asks of the iPhone, and `HermesPowers`, the superpowers' engine), `HermesWire` (its events and the conversation, tested on Linux), `AXYONStyle`, `AXYONViews` and `AXYONHouse` (the screens), `AXYONAlerts` (the superpowers' alerts with the app closed). |
 | `utils.sh`, `iOS-dylib-Info-template.plist` | CPython's own iOS install steps: every compiled module becomes a framework. |
 | `requirements-*.txt` | Hermes' packages: pure Python, and the three with iOS wheels on PyPI. |
 | `tests/` | `test_units.py` (the tools, no Hermes), `test_home.py` (the home against a simulated Samsung TV, ADB box and Home Assistant), `test_host.py` (the host end to end with Hermes, iOS limits emulated), `simulator.sh` (CI: the app in the iOS Simulator, Hermes started for real, answering with an iPhone tool and with a superpower the engine answers inside iOS). |
@@ -97,6 +97,10 @@ iPhone never shares the computer's.
   and ceilings a paired computer gives (`windows/src-tauri/src/powers/mod.rs`, `phone_copy`; capability `portfolio`
   of the phone link) replace the iPhone's at each newer copy: the computer and its sheet stay the record when there
   is one. The content kit stays on the computer.
+- The alerts with AXYON closed (`Swift/AXYONAlerts.swift`, opt-in in Settings): a background app refresh
+  (`fr.louisraille.Coucou.powers-watch`, at iOS's pace) asks the engine what is worth telling
+  (`axyon_powers_watch`: the computer's `ceiling::to_tell` and `alerts::to_tell`, the sources read for 20 seconds at
+  most first) and each alert becomes a notification in the user's language, once.
 - `coucou_quote` (`coucou.py`): B3 prices read now from Google Finance.
 - `home_devices`, `home_control` (`home.py`): the home this iPhone drives itself on the Wi-Fi, no computer: Samsung
   TVs (REST on 8001, the remote over TLS on 8002, which asks once on the TV and then knows AXYON by its token; the

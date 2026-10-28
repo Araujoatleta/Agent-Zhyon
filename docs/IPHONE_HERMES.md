@@ -58,6 +58,11 @@ The computer's own superpowers engine runs inside the app, with no computer:
 None of it buys, sells, pays or sends: AXYON only records and works things out. The month's content kit stays on the
 computer.
 
+**Alerts with AXYON closed** (Settings → Superpowers, off until you turn them on): a notification when an asset goes
+under your ceiling or back above it, on a strong day for an asset or the portfolio, and when an asset is under its
+ceiling, each once. iOS decides when AXYON may look (a few times a day, as you use the iPhone, and only with
+**Settings → General → Background App Refresh** on for AXYON); **Look now** looks at once. Only B3, the CVM, FundosNet, the Banco Central and Google Finance are read; nothing about you is sent.
+
 iOS asks the first time for each thing it protects; **Settings → What AXYON may use on this iPhone** shows what is
 allowed.
 
@@ -84,3 +89,21 @@ Tailscale on both ([IPHONE_PC.md](IPHONE_PC.md)).
 iOS suspends an app soon after it leaves the screen: Hermes thinks while AXYON is open, and an answer under way gets
 the half minute iOS grants to end, then a notification brings it. iOS lets no app run other programs: Hermes'
 terminal and code tools are not on the iPhone.
+
+## When the app closes by itself or Hermes does not start: REA
+
+[REA](https://github.com/morluto/rea) reads the IPA and the iPhone's crash reports without running anything. On a
+computer with [Node.js](https://nodejs.org) 22 or 24:
+
+1. **What the IPA carries** (Info.plist, frameworks, Python, permissions):
+   `npx -y rea-agents@latest inspect-artifact AXYON-iPhone-Hermes.ipa`
+2. **An iPhone crash report**: on the iPhone, **Settings → Privacy & Security → Analytics & Improvements → Analytics
+   Data**, find a file starting with **Coucou** (AXYON's program name), tap it and share it (AirDrop, or an e-mail to
+   yourself). On the computer: `npx -y rea-agents@latest inspect-apple-ips Coucou-2026-10-28-123456.ips --format md`
+   shows the kind of crash, the thread that stopped and the functions it was in.
+3. **An unreadable Swift name** (`$s5Coucou…`): `npx -y rea-agents@latest demangle-swift '$s5Coucou…'`.
+4. **The libraries the app loads**: unzip the IPA (it is a .zip) and run
+   `npx -y rea-agents@latest trace-dylib-resolution Payload/Coucou.app --format md`.
+
+CI does step 1 on every build (the **REA-evidence** artifact has all of it). What Hermes says as it starts is also in a
+sysdiagnose and, with the iPhone on a cable, in the Mac's Console app, filtered on **Coucou**.

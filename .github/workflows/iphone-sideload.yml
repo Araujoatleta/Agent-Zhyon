@@ -202,6 +202,8 @@ jobs:
           # A summary here; the whole evidence is the REA-evidence artifact.
           npx -y rea-agents@6.8.0 inspect-artifact "$PWD/AXYON-iPhone-Hermes.ipa" --detail summary \
             --evidence_output "$RUNNER_TEMP/rea-evidence" --format md --token-limit 4000 || true
+          # Each library the app and its frameworks load, and whether dyld finds it in the bundle.
+          npx -y rea-agents@6.8.0 trace-dylib-resolution "$PWD/$APP" --architecture arm64 --format md --token-limit 3000 || true
 
       - uses: actions/upload-artifact@v7
         continue-on-error: true

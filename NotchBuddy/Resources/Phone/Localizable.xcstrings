@@ -89,6 +89,28 @@
         }
       }
     },
+    "%@ down %@ today": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ baja un %@ hoy"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ perd %@ aujourd'hui"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ cai %@ hoje"
+          }
+        }
+      }
+    },
     "%@ has no key or server address for that brain yet: add it there, in Settings → Hermes Agent.": {
       "localizations": {
         "es": {
@@ -111,6 +133,28 @@
         }
       }
     },
+    "%@ is %@ below its ceiling": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ está %@ por debajo de su precio techo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ est %@ sous son prix plafond"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ está %@ abaixo do preço teto"
+          }
+        }
+      }
+    },
     "%@ is still busy with the assistant. Try again in a moment.": {
       "localizations": {
         "es": {
@@ -129,6 +173,182 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@ ainda está ocupado com o assistente. Tente de novo em instantes."
+          }
+        }
+      }
+    },
+    "%@ now": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ahora"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ maintenant"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ agora"
+          }
+        }
+      }
+    },
+    "%@ now · %@ today": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ahora · %@ hoy"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ maintenant · %@ aujourd'hui"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ agora · %@ hoje"
+          }
+        }
+      }
+    },
+    "%@ now · %@: %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ahora · %@: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ maintenant · %@ : %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ agora · %@: %@"
+          }
+        }
+      }
+    },
+    "%@ now · your ceiling %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ahora · tu precio techo %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ maintenant · votre prix plafond %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ agora · seu preço teto %@"
+          }
+        }
+      }
+    },
+    "%@ now · your position %@ today": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ahora · tu posición %@ hoy"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ maintenant · votre position %@ aujourd'hui"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ agora · sua posição %@ hoje"
+          }
+        }
+      }
+    },
+    "%@ up %@ today": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ sube un %@ hoy"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ gagne %@ aujourd'hui"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ sobe %@ hoje"
+          }
+        }
+      }
+    },
+    "%@ went back above your ceiling": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ volvió a superar tu precio techo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ est repassé au-dessus de votre prix plafond"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ voltou para cima do seu preço teto"
+          }
+        }
+      }
+    },
+    "%@ went below your ceiling": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ bajó de tu precio techo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ est passé sous votre prix plafond"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ caiu abaixo do seu preço teto"
           }
         }
       }
@@ -283,6 +503,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Uma tarefa em segundo plano terminou"
+          }
+        }
+      }
+    },
+    "A notification when an asset goes under your ceiling or back above it, on a strong day for an asset or your portfolio, and when one is under its ceiling. iOS decides when AXYON may look, a few times a day. Only B3, the CVM, FundosNet, the Banco Central and Google Finance are read; nothing about you is sent.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Una notificación cuando un activo baja de tu precio techo o vuelve a superarlo, en un día fuerte de un activo o de tu cartera, y cuando uno está por debajo de su techo. iOS decide cuándo puede mirar AXYON, unas cuantas veces al día. Solo se leen la B3, la CVM, FundosNet, el Banco Central y Google Finance; no se envía nada sobre ti."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Une notification quand un actif passe sous votre prix plafond ou repasse au-dessus, lors d'une forte journée d'un actif ou de votre portefeuille, et quand l'un d'eux est sous son plafond. iOS décide quand AXYON peut regarder, quelques fois par jour. Seuls la B3, la CVM, FundosNet, le Banco Central et Google Finance sont lus ; rien sur vous n'est envoyé."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uma notificação quando um ativo fica abaixo do seu preço teto ou volta para cima dele, num dia forte de um ativo ou da sua carteira, e quando um deles está abaixo do teto. O iOS decide quando o AXYON pode olhar, algumas vezes por dia. Só a B3, a CVM, o FundosNet, o Banco Central e o Google Finance são lidos; nada sobre você é enviado."
           }
         }
       }
@@ -789,6 +1031,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "Agentes no computador"
+          }
+        }
+      }
+    },
+    "Alerts sent: %lld": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alertas enviadas: %lld"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alertes envoyées : %lld"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alertas enviados: %lld"
+          }
+        }
+      }
+    },
+    "Alerts with AXYON closed": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alertas con AXYON cerrado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alertes avec AXYON fermé"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alertas com o AXYON fechado"
           }
         }
       }
@@ -5215,6 +5501,28 @@
         }
       }
     },
+    "Look now": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revisar ahora"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vérifier maintenant"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verificar agora"
+          }
+        }
+      }
+    },
     "Look on this Wi-Fi": {
       "localizations": {
         "es": {
@@ -6465,6 +6773,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nada no seu calendário hoje."
+          }
+        }
+      }
+    },
+    "Nothing to tell right now.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nada que avisar ahora."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rien à signaler pour l'instant."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nada para avisar agora."
           }
         }
       }
@@ -9835,6 +10165,28 @@
         }
       }
     },
+    "Superpowers": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Superpoderes"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Superpouvoirs"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Superpoderes"
+          }
+        }
+      }
+    },
     "Superpowers: money": {
       "localizations": {
         "es": {
@@ -12035,6 +12387,50 @@
         }
       }
     },
+    "Your portfolio is down %@ today": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu cartera baja un %@ hoy"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre portefeuille perd %@ aujourd'hui"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua carteira cai %@ hoje"
+          }
+        }
+      }
+    },
+    "Your portfolio is up %@ today": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu cartera sube un %@ hoy"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre portefeuille gagne %@ aujourd'hui"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua carteira sobe %@ hoje"
+          }
+        }
+      }
+    },
     "Your portfolio, here": {
       "localizations": {
         "es": {
@@ -12201,6 +12597,28 @@
         }
       }
     },
+    "projected Bazin": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bazin proyectado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bazin projeté"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bazin projetivo"
+          }
+        }
+      }
+    },
     "turn": {
       "localizations": {
         "es": {
@@ -12285,6 +12703,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "seu computador"
+          }
+        }
+      }
+    },
+    "your own ceiling": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "tu propio precio techo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "votre propre prix plafond"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "seu próprio preço teto"
           }
         }
       }

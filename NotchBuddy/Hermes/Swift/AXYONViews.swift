@@ -1116,6 +1116,10 @@ struct AXYONSettingsView: View {
     let link: PhoneLink
     @Environment(HermesEngine.self) private var engine
     @State private var permissions = AXYONPermissions()
+    @AppStorage(AXYONAlerts.enabledKey) private var alertsOn = false
+    @State private var looking = false
+    /// How many alerts the last look by hand sent.
+    @State private var looked: Int?
 
     var body: some View {
         let pc = PCLink.shared
@@ -1175,6 +1179,46 @@ struct AXYONSettingsView: View {
                 Text("What AXYON may use on this iPhone")
             } footer: {
                 Text("AXYON asks the first time it needs each one. Messages, e-mails and calls always wait for your tap.")
+            }
+            .listRowBackground(GlassRowBackground())
+
+            Section {
+                Toggle(isOn: $alertsOn) {
+                    Label("Alerts with AXYON closed", systemImage: "bell.badge.fill")
+                }
+                .tint(AXYONPalette.up)
+                .onChange(of: alertsOn) { _, on in
+                    looked = nil
+                    if on { Task { await permissions.askNotifications() } }
+                    AXYONAlerts.schedule()
+                }
+                if alertsOn {
+                    Button {
+                        looking = true
+                        Task {
+                            looked = await AXYONAlerts.look()
+                            looking = false
+                        }
+                    } label: {
+                        HStack {
+                            Label("Look now", systemImage: "arrow.clockwise")
+                            Spacer()
+                            if looking {
+                                ProgressView().controlSize(.small)
+                            } else if let looked {
+                                Text(looked == 0 ? String(localized: "Nothing to tell right now.")
+                                                 : String(localized: "Alerts sent: \(looked)"))
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                    .disabled(looking)
+                }
+            } header: {
+                Text("Superpowers")
+            } footer: {
+                Text("A notification when an asset goes under your ceiling or back above it, on a strong day for an asset or your portfolio, and when one is under its ceiling. iOS decides when AXYON may look, a few times a day. Only B3, the CVM, FundosNet, the Banco Central and Google Finance are read; nothing about you is sent.")
             }
             .listRowBackground(GlassRowBackground())
 

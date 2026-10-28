@@ -35,6 +35,12 @@ targets:
         NSContactsUsageDescription: "AXYON finds a person's phone or e-mail when you ask it to call or write to them; you send."
         NSLocationWhenInUseUsageDescription: "AXYON uses where you are when you ask it about places, the weather or the way."
         NSAppleMusicUsageDescription: "AXYON plays, pauses and skips music when you ask it to."
+        # The superpowers' alerts with AXYON closed (Hermes/Swift/AXYONAlerts.swift), once the user turns them on;
+        # added to project.yml's background modes.
+        BGTaskSchedulerPermittedIdentifiers:
+          - fr.louisraille.Coucou.powers-watch
+        UIBackgroundModes:
+          - fetch
     settings:
       base:
         INFOPLIST_FILE: Hermes/build/InfoPhone.plist
