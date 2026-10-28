@@ -100,7 +100,8 @@ iPhone never shares the computer's.
 - The alerts with AXYON closed (`Swift/AXYONAlerts.swift`, opt-in in Settings): a background app refresh
   (`fr.louisraille.Coucou.powers-watch`, at iOS's pace) asks the engine what is worth telling
   (`axyon_powers_watch`: the computer's `ceiling::to_tell` and `alerts::to_tell`, the sources read for 20 seconds at
-  most first) and each alert becomes a notification in the user's language, once.
+  most first) and each alert becomes a notification in the user's language, once; between 7 and 11, once a day, the
+  day's briefing (`engine::day_plan`, as the computer's `brief`) comes as one more.
 - `coucou_quote` (`coucou.py`): B3 prices read now from Google Finance.
 - `home_devices`, `home_control` (`home.py`): the home this iPhone drives itself on the Wi-Fi, no computer: Samsung
   TVs (REST on 8001, the remote over TLS on 8002, which asks once on the TV and then knows AXYON by its token; the

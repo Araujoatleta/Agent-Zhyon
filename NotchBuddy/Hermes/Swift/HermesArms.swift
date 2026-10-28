@@ -468,15 +468,15 @@ enum HermesPowers {
         return answer ?? Data(#"{"ok":false,"text":"The superpowers did not answer."}"#.utf8)
     }
 
-    /// What is worth telling now (AXYONAlerts), the official sources read for `budget` seconds at most first: each
-    /// alert's kind, ticker, price, day, ceiling, money, below and method (windows/powers-ffi, `axyon_powers_watch`).
-    static func watch(budget: Double) async -> [[String: Any]] {
+    /// What is worth telling now (AXYONAlerts), the official sources read for `budget` seconds at most first:
+    /// `alerts` (each one's kind, ticker, price, day, ceiling, money, below and method) and, in the `morning`, once a
+    /// day, the `day`'s items (windows/powers-ffi, `axyon_powers_watch`).
+    static func watch(budget: Double, morning: Bool) async -> [String: Any] {
         let milliseconds = UInt32(min(max(budget, 1), 120) * 1000)
         let answer = await run { files, copy, today, evening in
-            axyon_powers_watch(files, copy, today, evening, milliseconds)
+            axyon_powers_watch(files, copy, today, evening, morning, milliseconds)
         }
-        let object = answer.flatMap { (try? JSONSerialization.jsonObject(with: $0)) as? [String: Any] }
-        return object?["alerts"] as? [[String: Any]] ?? []
+        return answer.flatMap { (try? JSONSerialization.jsonObject(with: $0)) as? [String: Any] } ?? [:]
     }
 
     /// One call of the engine on its queue, with its folder, the computer's copy, the iPhone's date and whether its

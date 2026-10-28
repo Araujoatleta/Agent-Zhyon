@@ -1225,7 +1225,7 @@ struct AXYONSettingsView: View {
             } header: {
                 Text("Superpowers")
             } footer: {
-                Text("A notification when an asset goes under your ceiling or back above it, on a strong day for an asset or your portfolio, and when one is under its ceiling. iOS decides when AXYON may look, a few times a day. Only B3, the CVM, FundosNet, the Banco Central and Google Finance are read; nothing about you is sent.")
+                Text("A notification when an asset goes under your ceiling or back above it, on a strong day for an asset or your portfolio, and when one is under its ceiling; in the morning, your day. iOS decides when AXYON may look, a few times a day. Only B3, the CVM, FundosNet, the Banco Central and Google Finance are read; nothing about you is sent.")
             }
             .listRowBackground(GlassRowBackground())
 

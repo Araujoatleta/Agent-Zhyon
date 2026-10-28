@@ -62,7 +62,8 @@ computer.
 
 **Alerts with AXYON closed** (Settings → Superpowers, off until you turn them on): a notification when an asset goes
 under your ceiling or back above it, on a strong day for an asset or the portfolio, and when an asset is under its
-ceiling, each once. iOS decides when AXYON may look (a few times a day, as you use the iPhone, and only with
+ceiling, each once; and in the morning, once, **your day** (record dates and payments, a DARF, decisions to look at
+again, studies, training and the English lesson). iOS decides when AXYON may look (a few times a day, as you use the iPhone, and only with
 **Settings → General → Background App Refresh** on for AXYON); **Look now** looks at once. Only B3, the CVM, FundosNet, the Banco Central and Google Finance are read; nothing about you is sent.
 
 iOS asks the first time for each thing it protects; **Settings → What AXYON may use on this iPhone** shows what is

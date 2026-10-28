@@ -507,24 +507,24 @@
         }
       }
     },
-    "A notification when an asset goes under your ceiling or back above it, on a strong day for an asset or your portfolio, and when one is under its ceiling. iOS decides when AXYON may look, a few times a day. Only B3, the CVM, FundosNet, the Banco Central and Google Finance are read; nothing about you is sent.": {
+    "A notification when an asset goes under your ceiling or back above it, on a strong day for an asset or your portfolio, and when one is under its ceiling; in the morning, your day. iOS decides when AXYON may look, a few times a day. Only B3, the CVM, FundosNet, the Banco Central and Google Finance are read; nothing about you is sent.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Una notificación cuando un activo baja de tu precio techo o vuelve a superarlo, en un día fuerte de un activo o de tu cartera, y cuando uno está por debajo de su techo. iOS decide cuándo puede mirar AXYON, unas cuantas veces al día. Solo se leen la B3, la CVM, FundosNet, el Banco Central y Google Finance; no se envía nada sobre ti."
+            "value": "Una notificación cuando un activo baja de tu precio techo o vuelve a superarlo, en un día fuerte de un activo o de tu cartera, y cuando uno está por debajo de su techo; por la mañana, tu día. iOS decide cuándo puede mirar AXYON, unas cuantas veces al día. Solo se leen la B3, la CVM, FundosNet, el Banco Central y Google Finance; no se envía nada sobre ti."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Une notification quand un actif passe sous votre prix plafond ou repasse au-dessus, lors d'une forte journée d'un actif ou de votre portefeuille, et quand l'un d'eux est sous son plafond. iOS décide quand AXYON peut regarder, quelques fois par jour. Seuls la B3, la CVM, FundosNet, le Banco Central et Google Finance sont lus ; rien sur vous n'est envoyé."
+            "value": "Une notification quand un actif passe sous votre prix plafond ou repasse au-dessus, lors d'une forte journée d'un actif ou de votre portefeuille, et quand l'un d'eux est sous son plafond ; le matin, votre journée. iOS décide quand AXYON peut regarder, quelques fois par jour. Seuls la B3, la CVM, FundosNet, le Banco Central et Google Finance sont lus ; rien sur vous n'est envoyé."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Uma notificação quando um ativo fica abaixo do seu preço teto ou volta para cima dele, num dia forte de um ativo ou da sua carteira, e quando um deles está abaixo do teto. O iOS decide quando o AXYON pode olhar, algumas vezes por dia. Só a B3, a CVM, o FundosNet, o Banco Central e o Google Finance são lidos; nada sobre você é enviado."
+            "value": "Uma notificação quando um ativo fica abaixo do seu preço teto ou volta para cima dele, num dia forte de um ativo ou da sua carteira, e quando um deles está abaixo do teto; de manhã, o seu dia. O iOS decide quando o AXYON pode olhar, algumas vezes por dia. Só a B3, a CVM, o FundosNet, o Banco Central e o Google Finance são lidos; nada sobre você é enviado."
           }
         }
       }
@@ -3323,6 +3323,28 @@
         }
       }
     },
+    "DARF of %@ due %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DARF de %@, vence el %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DARF de %@, à payer le %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DARF de %@, vence em %@"
+          }
+        }
+      }
+    },
     "Decisions you took": {
       "localizations": {
         "es": {
@@ -3671,6 +3693,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "Inglês"
+          }
+        }
+      }
+    },
+    "English: %@'s results": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inglés: los resultados de %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anglais : les résultats de %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inglês: os resultados da %@"
+          }
+        }
+      }
+    },
+    "English: %@'s results and %@ cards": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inglés: los resultados de %@ y %@ tarjetas"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anglais : les résultats de %@ et %@ cartes"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inglês: os resultados da %@ e %@ cartões"
           }
         }
       }
@@ -4265,6 +4331,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Bom dia"
+          }
+        }
+      }
+    },
+    "Good morning! Today:": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¡Buenos días! Hoy:"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bonjour ! Aujourd'hui :"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bom dia! Hoje:"
           }
         }
       }
@@ -5563,6 +5651,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Procurar de novo"
+          }
+        }
+      }
+    },
+    "Look again at your decision: %@ %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revisa tu decisión: %@ %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revois ta décision : %@ %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reveja sua decisão: %@ %@"
           }
         }
       }
@@ -8845,6 +8955,28 @@
         }
       }
     },
+    "Review: %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Repasar: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réviser : %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revisar: %@"
+          }
+        }
+      }
+    },
     "Room (optional)": {
       "localizations": {
         "es": {
@@ -10209,6 +10341,28 @@
         }
       }
     },
+    "Study: %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Estudiar: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Étudier : %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Estudar: %@"
+          }
+        }
+      }
+    },
     "Summarize this text: ": {
       "localizations": {
         "es": {
@@ -11305,6 +11459,72 @@
           "stringUnit": {
             "state": "translated",
             "value": "Total agora"
+          }
+        }
+      }
+    },
+    "Training: %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entrenamiento: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entraînement : %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Treino: %@"
+          }
+        }
+      }
+    },
+    "Training: %@, light": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entrenamiento: %@, suave"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entraînement : %@, léger"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Treino: %@, leve"
+          }
+        }
+      }
+    },
+    "Training: rest or a walk today": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entrenamiento: hoy descanso o un paseo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entraînement : repos ou marche aujourd'hui"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Treino: hoje descanso ou uma caminhada"
           }
         }
       }
@@ -12585,6 +12805,138 @@
         }
       }
     },
+    "amortization": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "amortización"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "amortissement"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "amortização"
+          }
+        }
+      }
+    },
+    "assembly: your vote": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "asamblea: tu voto"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "assemblée : ton vote"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "assembleia: seu voto"
+          }
+        }
+      }
+    },
+    "avoid": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "evitar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "éviter"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "evitar"
+          }
+        }
+      }
+    },
+    "buy": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "comprar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "acheter"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "comprar"
+          }
+        }
+      }
+    },
+    "data-com": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "fecha de corte"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "date de détachement"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "data-com"
+          }
+        }
+      }
+    },
+    "dividend paid": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "pago de dividendo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "dividende versé"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "pagamento de rendimento"
+          }
+        }
+      }
+    },
     "file": {
       "localizations": {
         "es": {
@@ -12625,6 +12977,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "arquivos"
+          }
+        }
+      }
+    },
+    "hold": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "mantener"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "garder"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "manter"
           }
         }
       }
@@ -12729,6 +13103,94 @@
         }
       }
     },
+    "manager's report": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "informe del gestor"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "rapport du gérant"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "relatório gerencial"
+          }
+        }
+      }
+    },
+    "material fact": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "hecho relevante"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "fait important"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "fato relevante"
+          }
+        }
+      }
+    },
+    "notice to holders": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "aviso a los cuotistas"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "avis aux porteurs"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "aviso aos cotistas"
+          }
+        }
+      }
+    },
+    "offering: your decision": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "oferta: tu decisión"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "émission : ta décision"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "oferta: sua decisão"
+          }
+        }
+      }
+    },
     "projected Bazin": {
       "localizations": {
         "es": {
@@ -12747,6 +13209,94 @@
           "stringUnit": {
             "state": "translated",
             "value": "Bazin projetivo"
+          }
+        }
+      }
+    },
+    "sell": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "vender"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "vendre"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "vender"
+          }
+        }
+      }
+    },
+    "soon": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "pronto"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "bientôt"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "em breve"
+          }
+        }
+      }
+    },
+    "today": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "hoy"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "aujourd'hui"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "hoje"
+          }
+        }
+      }
+    },
+    "tomorrow": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "mañana"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "demain"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "amanhã"
           }
         }
       }

@@ -6,8 +6,9 @@ import UserNotifications
 /// the user turns them on). iOS wakes the app now and then for a background refresh, at its own pace (a few times a
 /// day); the engine reads what is due and says what is worth telling (HermesPowers.watch), and each thing comes as a
 /// notification, once: an asset gone under the user's own ceiling or back above it, a strong day for an asset or for
-/// the whole portfolio, an asset under one of its ceilings. Only the official sources the superpowers read are
-/// contacted, and nothing about the user is sent.
+/// the whole portfolio, an asset under one of its ceilings; and in the morning, once, the day (its record dates and
+/// payments, a DARF, the decisions to look at again, the studies, the training, the English lesson). Only the
+/// official sources the superpowers read are contacted, and nothing about the user is sent.
 enum AXYONAlerts {
     /// The background refresh's name (BGTaskSchedulerPermittedIdentifiers, project-hermes.yml).
     static let task = "fr.louisraille.Coucou.powers-watch"
@@ -38,15 +39,93 @@ enum AXYONAlerts {
         await look(budget: backgroundBudget)
     }
 
-    /// One look: what is worth telling, as notifications. How many there were.
+    /// One look: what is worth telling, as notifications, and the day's briefing between 7 and 11. How many
+    /// notifications there were.
     @discardableResult
     static func look(budget: Double = backgroundBudget) async -> Int {
         guard enabled else { return 0 }
-        let alerts = await HermesPowers.watch(budget: budget)
+        let morning = (7..<11).contains(Calendar.current.component(.hour, from: .now))
+        let found = await HermesPowers.watch(budget: budget, morning: morning)
+        let alerts = found["alerts"] as? [[String: Any]] ?? []
         for alert in alerts {
             await post(alert)
         }
-        return alerts.count
+        let day = (found["day"] as? [[String: Any]] ?? []).map(line).filter { !$0.isEmpty }
+        if !day.isEmpty {
+            await brief(day)
+        }
+        return alerts.count + (day.isEmpty ? 0 : 1)
+    }
+
+    /// The morning's briefing, as the computer's island says it.
+    private static func brief(_ lines: [String]) async {
+        let content = UNMutableNotificationContent()
+        content.title = String(localized: "Good morning! Today:")
+        content.body = lines.prefix(8).map { "• " + $0 }.joined(separator: "\n")
+        content.sound = .default
+        content.threadIdentifier = "axyon-day"
+        let request = UNNotificationRequest(identifier: "axyon-day", content: content, trigger: nil)
+        try? await UNUserNotificationCenter.current().add(request)
+    }
+
+    /// A day's item in the user's language (src-tauri/src/powers/mod.rs, `line`).
+    private static func line(_ item: [String: Any]) -> String {
+        let vars = item["vars"] as? [String: String] ?? [:]
+        let v = { (key: String) in vars[key] ?? "" }
+        let amount = vars["amount"].flatMap(Double.init).map(AXYONMoney.text)
+        let code = item["code"] as? String ?? ""
+        switch code {
+        case "record", "payment", "amortization", "assembly", "offering", "material_fact", "notice", "report":
+            let what: String
+            switch code {
+            case "record": what = String(localized: "data-com")
+            case "payment": what = String(localized: "dividend paid")
+            case "amortization": what = String(localized: "amortization")
+            case "assembly": what = String(localized: "assembly: your vote")
+            case "offering": what = String(localized: "offering: your decision")
+            case "material_fact": what = String(localized: "material fact")
+            case "notice": what = String(localized: "notice to holders")
+            default: what = String(localized: "manager's report")
+            }
+            let when: String
+            switch v("when") {
+            case "today": when = String(localized: "today")
+            case "tomorrow": when = String(localized: "tomorrow")
+            default: when = String(localized: "soon")
+            }
+            return ([v("ticker"), what, when] + (amount.map { [$0] } ?? [])).joined(separator: " · ")
+        case "darf":
+            let due = v("due").split(separator: "-")
+            let date = due.count == 3 ? "\(due[2])/\(due[1])/\(due[0])" : v("due")
+            return String(localized: "DARF of \(amount ?? "") due \(date)")
+        case "decision":
+            let parts = v("what").split(separator: " ", maxSplits: 1).map(String.init)
+            let ticker = parts.count == 2 ? parts[1] : v("what")
+            let verb: String
+            switch parts.count == 2 ? parts[0] : "" {
+            case "buy": verb = String(localized: "buy")
+            case "sell": verb = String(localized: "sell")
+            case "hold": verb = String(localized: "hold")
+            default: verb = String(localized: "avoid")
+            }
+            return String(localized: "Look again at your decision: \(verb) \(ticker)")
+        case "study":
+            return String(localized: "Study: \(v("subjects"))")
+        case "study_review":
+            return String(localized: "Review: \(v("subjects"))")
+        case "training":
+            return String(localized: "Training: \(v("session"))")
+        case "training_light":
+            return String(localized: "Training: \(v("session")), light")
+        case "rest":
+            return String(localized: "Training: rest or a walk today")
+        case "english":
+            let cards = Int(v("cards")) ?? 0
+            return cards == 0 ? String(localized: "English: \(v("company"))'s results")
+                : String(localized: "English: \(v("company"))'s results and \(String(cards)) cards")
+        default:
+            return item["title"] as? String ?? ""
+        }
     }
 
     /// One alert as the computer's island says it, in the user's language.

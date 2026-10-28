@@ -459,18 +459,38 @@ fn tell(st: &mut State, today: Date) -> Vec<Value> {
     out.into_iter().take(MOST_ALERTS).map(|(_, a)| a).collect()
 }
 
-/// A look for the app's background refresh: what is due read first (half of `budget`), the session's prices while B3
-/// trades (the rest), then what to tell. Nothing is read for a user with nothing held or watched.
-fn watch(st: &mut State, today: Date, evening: bool, budget: Duration) -> Vec<Value> {
-    if st.store.portfolio.positions.is_empty() && st.store.ceilings.manual.is_empty() {
+/// The morning's briefing, once a day (`powers-briefed.txt` keeps the day it was given): the day's items as the
+/// computer's island says them (src-tauri/src/powers/mod.rs, `brief`), without the opportunities, told on their own.
+fn briefing(st: &State, today: Date) -> Vec<Value> {
+    let mark = st.folder.join("powers-briefed.txt");
+    if std::fs::read_to_string(&mark).is_ok_and(|d| d.trim() == today.to_string()) {
         return Vec::new();
     }
-    let deadline = Instant::now() + budget;
-    read_due(st, today, evening, budget / 2);
-    if session_open() {
-        read_live(st, deadline);
+    let items = engine::day_plan(&st.store, &st.market, today)
+        .items
+        .into_iter()
+        .filter(|i| i.code != "opportunity")
+        .map(|i| json!({ "code": i.code, "vars": i.vars, "title": i.title, "urgent": i.urgent }))
+        .collect();
+    let _ = std::fs::write(mark, today.to_string());
+    items
+}
+
+/// A look for the app's background refresh: what is due read first (half of `budget`), the session's prices while B3
+/// trades (the rest), then what to tell; in the `morning`, the day's briefing too. Nothing is read for a user with
+/// nothing held or watched.
+fn watch(st: &mut State, today: Date, evening: bool, morning: bool, budget: Duration) -> Value {
+    let mut alerts = Vec::new();
+    if !st.store.portfolio.positions.is_empty() || !st.store.ceilings.manual.is_empty() {
+        let deadline = Instant::now() + budget;
+        read_due(st, today, evening, budget / 2);
+        if session_open() {
+            read_live(st, deadline);
+        }
+        alerts = tell(st, today);
     }
-    tell(st, today)
+    let day = if morning { briefing(st, today) } else { Vec::new() };
+    json!({ "ok": true, "alerts": alerts, "day": day })
 }
 
 /// One call, from the strings the app gives: the answer as JSON (`{"ok": …, "text": …}`).
@@ -502,15 +522,15 @@ fn with_state(folder: &str, copy: &str, job: impl FnOnce(&mut State) -> Value) -
     job(st)
 }
 
-/// What is worth telling now, from the strings the app gives (`{"ok": …, "alerts": […]}`).
-fn look(folder: &str, copy: &str, today: &str, evening: bool, budget: Duration) -> Value {
+/// What is worth telling now, from the strings the app gives (`{"ok": …, "alerts": […], "day": […]}`).
+fn look(folder: &str, copy: &str, today: &str, evening: bool, morning: bool, budget: Duration) -> Value {
     let Some(today) = Date::parse(today.trim()) else {
-        return json!({ "ok": false, "alerts": [] });
+        return json!({ "ok": false, "alerts": [], "day": [] });
     };
     if folder.trim().is_empty() {
-        return json!({ "ok": false, "alerts": [] });
+        return json!({ "ok": false, "alerts": [], "day": [] });
     }
-    with_state(folder, copy, |st| json!({ "ok": true, "alerts": watch(st, today, evening, budget) }))
+    with_state(folder, copy, |st| watch(st, today, evening, morning, budget))
 }
 
 /// One of Hermes' wealth_ or life_ tools: `tool`, its `input` (a JSON object), the folder of the files, the
@@ -537,19 +557,20 @@ pub unsafe extern "C" fn axyon_powers_call(
 }
 
 /// What is worth telling now, for the app's background refresh (at most `budget_ms` reading the sources):
-/// `{"ok": bool, "alerts": [...]}`, each alert's `kind` (into_zone, out_of_zone, up, down, portfolio_up,
+/// `{"ok": bool, "alerts": [...], "day": [...]}`, each alert's `kind` (into_zone, out_of_zone, up, down, portfolio_up,
 /// portfolio_down, opportunity), `ticker` ("" for the portfolio), `price` (for the portfolio, its value), `day`
-/// (percent), `ceiling`, `money` (what the user's position made today), `below` (percent) and `method`. Each is told
-/// once. To give back to `axyon_powers_free`.
+/// (percent), `ceiling`, `money` (what the user's position made today), `below` (percent) and `method`, each told
+/// once; in the `morning`, once a day, the day's items (`code`, `vars`, `title`, `urgent`: engine::day_plan). To give
+/// back to `axyon_powers_free`.
 ///
 /// # Safety
 /// Each pointer is a NUL-terminated UTF-8 string or null.
 #[no_mangle]
-pub unsafe extern "C" fn axyon_powers_watch(folder: *const c_char, copy: *const c_char, today: *const c_char, evening: bool, budget_ms: u32) -> *mut c_char {
+pub unsafe extern "C" fn axyon_powers_watch(folder: *const c_char, copy: *const c_char, today: *const c_char, evening: bool, morning: bool, budget_ms: u32) -> *mut c_char {
     let owned = |p: *const c_char| if p.is_null() { String::new() } else { CStr::from_ptr(p).to_string_lossy().into_owned() };
     let (folder, copy, today) = (owned(folder), owned(copy), owned(today));
     let budget = Duration::from_millis(u64::from(budget_ms.clamp(1_000, 120_000)));
-    let out = std::panic::catch_unwind(|| look(&folder, &copy, &today, evening, budget)).unwrap_or_else(|_| json!({ "ok": false, "alerts": [] }));
+    let out = std::panic::catch_unwind(|| look(&folder, &copy, &today, evening, morning, budget)).unwrap_or_else(|_| json!({ "ok": false, "alerts": [], "day": [] }));
     CString::new(out.to_string()).map(CString::into_raw).unwrap_or(std::ptr::null_mut())
 }
 
@@ -620,10 +641,27 @@ mod tests {
         assert!(State::open(&dir).store.told_today.keys.contains(&"into:GGRC11".to_string()), "the record kept: not told again after a relaunch");
         // Nothing held or watched: nothing read, nothing told.
         let mut none = State::open(&folder("tell-none"));
-        assert!(watch(&mut none, today, false, Duration::from_secs(1)).is_empty());
-        let out = look(folder("tell-none").to_str().unwrap(), "", "2026-10-27", false, Duration::from_secs(1));
-        assert_eq!(out, json!({ "ok": true, "alerts": [] }));
-        assert_eq!(look("", "", "2026-10-27", false, Duration::from_secs(1))["ok"], json!(false));
+        assert_eq!(watch(&mut none, today, false, false, Duration::from_secs(1)), json!({ "ok": true, "alerts": [], "day": [] }));
+        let out = look(folder("tell-none").to_str().unwrap(), "", "2026-10-27", false, false, Duration::from_secs(1));
+        assert_eq!(out, json!({ "ok": true, "alerts": [], "day": [] }));
+        assert_eq!(look("", "", "2026-10-27", false, false, Duration::from_secs(1))["ok"], json!(false));
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn the_mornings_briefing_comes_once_a_day() {
+        let dir = folder("brief");
+        let today = Date::parse("2026-10-28").unwrap();
+        let mut st = State::open(&dir);
+        st.store.english.level = "B1".into();
+        st.store.english.minutes_per_day = 15;
+        let first = watch(&mut st, today, false, true, Duration::from_secs(1));
+        let day = first["day"].as_array().unwrap();
+        assert!(day.iter().any(|i| i["code"] == "english"), "the English lesson is in the day: {first}");
+        assert!(day.iter().all(|i| i["code"] != "opportunity"), "opportunities are told on their own");
+        assert_eq!(watch(&mut st, today, false, true, Duration::from_secs(1))["day"], json!([]), "once a day");
+        assert_eq!(watch(&mut st, today.add_days(1), false, false, Duration::from_secs(1))["day"], json!([]), "only in the morning");
+        assert!(!watch(&mut st, today.add_days(1), false, true, Duration::from_secs(1))["day"].as_array().unwrap().is_empty(), "the next morning again");
         let _ = std::fs::remove_dir_all(dir);
     }
 

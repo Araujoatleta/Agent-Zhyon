@@ -14,10 +14,12 @@ char *axyon_powers_call(const char *tool, const char *input, const char *folder,
                         bool evening);
 
 /// What is worth telling now, for the app's background refresh (AXYONAlerts.swift), each thing once: the official
-/// sources read for at most `budget_ms` first. Returns `{"ok": bool, "alerts": [...]}`, each alert's `kind`
-/// (into_zone, out_of_zone, up, down, portfolio_up, portfolio_down, opportunity), `ticker` ("" for the portfolio),
-/// `price`, `day` (percent), `ceiling`, `money`, `below` (percent) and `method`; to give back to `axyon_powers_free`.
-char *axyon_powers_watch(const char *folder, const char *copy, const char *today, bool evening, unsigned int budget_ms);
+/// sources read for at most `budget_ms` first. Returns `{"ok": bool, "alerts": [...], "day": [...]}`, each alert's
+/// `kind` (into_zone, out_of_zone, up, down, portfolio_up, portfolio_down, opportunity), `ticker` ("" for the
+/// portfolio), `price`, `day` (percent), `ceiling`, `money`, `below` (percent) and `method`; in the `morning`, once a
+/// day, the day's items (`code`, `vars`, `title`, `urgent`). To give back to `axyon_powers_free`.
+char *axyon_powers_watch(const char *folder, const char *copy, const char *today, bool evening, bool morning,
+                         unsigned int budget_ms);
 
 /// Gives back an answer of `axyon_powers_call` or `axyon_powers_watch`.
 void axyon_powers_free(char *text);

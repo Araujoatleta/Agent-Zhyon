@@ -67,7 +67,8 @@ computador.
 
 **Alertas com o AXYON fechado** (Ajustes → Superpoderes, desligados até você ligar): uma notificação quando um ativo
 cai abaixo do seu preço teto ou volta para cima dele, num dia forte de um ativo ou da carteira, e quando um ativo está
-abaixo do teto, cada coisa uma vez. Quem decide quando o AXYON pode olhar é o iOS (algumas vezes por dia, conforme você
+abaixo do teto, cada coisa uma vez; e de manhã, uma vez, **o seu dia** (data-com e pagamentos, DARF, decisões para
+rever, estudos, treino e a aula de inglês). Quem decide quando o AXYON pode olhar é o iOS (algumas vezes por dia, conforme você
 usa o iPhone, e só com **Ajustes → Geral → Atualização em 2º Plano** ligada para o AXYON); **Verificar agora** olha
 na hora. Só a B3, a CVM, o FundosNet, o Banco Central e o Google Finance são lidos; nada sobre você é enviado.
 
