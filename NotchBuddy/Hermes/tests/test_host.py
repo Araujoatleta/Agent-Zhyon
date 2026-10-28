@@ -112,6 +112,15 @@ def main():
         check("no key written to Hermes' config", "fake-key" not in config)
         check("unknown brain refused", call("POST", "/v1/settings", {"provider": "nope"})[0] == 400)
 
+        print("The iPhone's own home")
+        code, house = call("GET", "/v1/home")
+        check("no device yet", code == 200 and house.get("devices") == [])
+        code, refused = call("POST", "/v1/home/devices", {"driver": "samsung", "host": "8.8.8.8"})
+        check("a device off the local network is refused, in words", code == 422
+              and "local network" in refused.get("error", ""))
+        code, scan = call("POST", "/v1/home/scan", {"address": "8.8.8.8"})
+        check("no scan off the home's Wi-Fi", code == 200 and "Wi-Fi" in scan.get("error", ""))
+
         print("A run with Coucou's portfolio")
         code, r = call("POST", "/v1/runs", {"session": "axyon-test", "message": "qual é a minha carteira?"})
         check("run started", code == 202 and r.get("run_id", "").startswith("run_"))

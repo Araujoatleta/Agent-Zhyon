@@ -353,6 +353,28 @@
         }
       }
     },
+    "AXYON looks for Samsung TVs, Android devices with network debugging on, and Home Assistant. iOS asks once to let it use the local network.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON busca televisores Samsung, dispositivos Android con la depuración de red activada y Home Assistant. iOS pide una vez permiso para usar la red local."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON cherche les téléviseurs Samsung, les appareils Android avec le débogage réseau activé et Home Assistant. iOS demande une fois de le laisser utiliser le réseau local."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O AXYON procura TVs Samsung, aparelhos Android com a depuração de rede ligada e o Home Assistant. O iOS pede uma vez para deixá-lo usar a rede local."
+          }
+        }
+      }
+    },
     "AXYON works on its own. Pair a computer to reach it too.": {
       "localizations": {
         "es": {
@@ -507,6 +529,72 @@
         }
       }
     },
+    "Add": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Añadir"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajouter"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adicionar"
+          }
+        }
+      }
+    },
+    "Add a device": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Añadir un dispositivo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajouter un appareil"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adicionar aparelho"
+          }
+        }
+      }
+    },
+    "Add and pair": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Añadir y emparejar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajouter et jumeler"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adicionar e parear"
+          }
+        }
+      }
+    },
     "Add its key in Coucou's Settings on your Mac and keep the iPhone switch on (Settings → General → iPhone). What the Mac sees shows up here: no key is stored on your iPhone.": {
       "localizations": {
         "es": {
@@ -551,6 +639,72 @@
         }
       }
     },
+    "Add your Samsung TV, your Android TV or box, or your Home Assistant: AXYON reaches them from this iPhone on your Wi-Fi, with no computer. Then ask in the chat: “turn on the living room TV”.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Añade tu televisor Samsung, tu Android TV o tu TV box, o tu Home Assistant: AXYON los alcanza desde este iPhone en tu Wi-Fi, sin ordenador. Luego pide en el chat: “enciende la tele del salón”."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajoutez votre téléviseur Samsung, votre Android TV ou box, ou votre Home Assistant : AXYON les atteint depuis cet iPhone sur votre Wi-Fi, sans ordinateur. Puis demandez dans le chat : « allume la télé du salon »."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adicione a sua TV Samsung, a sua Android TV ou TV box, ou o seu Home Assistant: o AXYON fala com eles por este iPhone, no seu Wi-Fi, sem computador. Depois peça no chat: “liga a TV da sala”."
+          }
+        }
+      }
+    },
+    "Added": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Añadido"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajouté"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adicionado"
+          }
+        }
+      }
+    },
+    "Added.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Añadido."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajouté."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adicionado."
+          }
+        }
+      }
+    },
     "Address": {
       "localizations": {
         "es": {
@@ -569,6 +723,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Endereço"
+          }
+        }
+      }
+    },
+    "Address (192.168.0.20)": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dirección (192.168.0.20)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adresse (192.168.0.20)"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Endereço (192.168.0.20)"
           }
         }
       }
@@ -679,6 +855,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Permitir"
+          }
+        }
+      }
+    },
+    "Allow AXYON to %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permitir a AXYON: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Autoriser AXYON : %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permitir que o AXYON: %@"
           }
         }
       }
@@ -811,6 +1009,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Permitido, enviado para %@"
+          }
+        }
+      }
+    },
+    "Android TV or box": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Android TV o TV box"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Android TV ou box"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Android TV ou TV box"
           }
         }
       }
@@ -1365,6 +1585,28 @@
         }
       }
     },
+    "By its address": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por su dirección"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Par son adresse"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pelo endereço"
+          }
+        }
+      }
+    },
     "Calendar": {
       "localizations": {
         "es": {
@@ -1673,6 +1915,50 @@
         }
       }
     },
+    "Channel +": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Canal +"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chaîne +"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Canal +"
+          }
+        }
+      }
+    },
+    "Channel −": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Canal −"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chaîne −"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Canal −"
+          }
+        }
+      }
+    },
     "Channels": {
       "localizations": {
         "es": {
@@ -1959,6 +2245,28 @@
         }
       }
     },
+    "Close": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cerrar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fermer"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fechar"
+          }
+        }
+      }
+    },
     "Close AXYON from the app switcher and open it again.": {
       "localizations": {
         "es": {
@@ -2109,6 +2417,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "Conecte %@ no seu Mac"
+          }
+        }
+      }
+    },
+    "Connect Home Assistant": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conectar Home Assistant"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connecter Home Assistant"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conectar o Home Assistant"
+          }
+        }
+      }
+    },
+    "Connect the iPhone to your home's Wi-Fi to look for devices.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conecta el iPhone al Wi-Fi de casa para buscar dispositivos."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connectez l'iPhone au Wi-Fi de la maison pour chercher des appareils."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conecte o iPhone ao Wi-Fi de casa para procurar aparelhos."
           }
         }
       }
@@ -2861,6 +3213,28 @@
         }
       }
     },
+    "Disconnect Home Assistant": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desconectar Home Assistant"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Déconnecter Home Assistant"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desconectar o Home Assistant"
+          }
+        }
+      }
+    },
     "Do it for me": {
       "localizations": {
         "es": {
@@ -2901,6 +3275,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "OK"
+          }
+        }
+      }
+    },
+    "Done.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hecho."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fait."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feito."
           }
         }
       }
@@ -4115,6 +4511,50 @@
         }
       }
     },
+    "Home Assistant": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Home Assistant"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Home Assistant"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Home Assistant"
+          }
+        }
+      }
+    },
+    "Home Assistant connected: %lld devices.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Home Assistant conectado: %lld dispositivos."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Home Assistant connecté : %lld appareils."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Home Assistant conectado: %lld aparelhos."
+          }
+        }
+      }
+    },
     "How is my portfolio doing today?": {
       "localizations": {
         "es": {
@@ -4199,6 +4639,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Centenas de modelos, alguns grátis"
+          }
+        }
+      }
+    },
+    "In Home Assistant: your profile → Security → Long-lived access tokens → Create token. The token stays in this iPhone's Keychain; AXYON never acts on locks or alarms.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En Home Assistant: tu perfil → Seguridad → Tokens de acceso de larga duración → Crear token. El token se queda en el llavero de este iPhone; AXYON nunca actúa sobre cerraduras ni alarmas."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dans Home Assistant : votre profil → Sécurité → Jetons d'accès longue durée → Créer un jeton. Le jeton reste dans le trousseau de cet iPhone ; AXYON n'agit jamais sur les serrures ni les alarmes."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No Home Assistant: seu perfil → Segurança → Tokens de acesso de longa duração → Criar token. O token fica nas Chaves deste iPhone; o AXYON nunca mexe em fechaduras nem alarmes."
           }
         }
       }
@@ -4467,6 +4929,28 @@
         }
       }
     },
+    "Kind": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tipo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Type"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tipo"
+          }
+        }
+      }
+    },
     "LM Studio (on your computer)": {
       "localizations": {
         "es": {
@@ -4665,6 +5149,28 @@
         }
       }
     },
+    "Long-lived access token": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Token de acceso de larga duración"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jeton d'accès longue durée"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Token de acesso de longa duração"
+          }
+        }
+      }
+    },
     "Look": {
       "localizations": {
         "es": {
@@ -4683,6 +5189,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "Aparência"
+          }
+        }
+      }
+    },
+    "Look again": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscar de nuevo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chercher à nouveau"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Procurar de novo"
+          }
+        }
+      }
+    },
+    "Look on this Wi-Fi": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscar en este Wi-Fi"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chercher sur ce Wi-Fi"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Procurar neste Wi-Fi"
           }
         }
       }
@@ -5237,6 +5787,28 @@
         }
       }
     },
+    "Name (optional)": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nombre (opcional)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nom (facultatif)"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nome (opcional)"
+          }
+        }
+      }
+    },
     "Name and tone": {
       "localizations": {
         "es": {
@@ -5677,6 +6249,28 @@
         }
       }
     },
+    "Not answering": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No responde"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ne répond pas"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não responde"
+          }
+        }
+      }
+    },
     "Not connected": {
       "localizations": {
         "es": {
@@ -5721,6 +6315,28 @@
         }
       }
     },
+    "Not done.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se hizo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pas fait."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi feito."
+          }
+        }
+      }
+    },
     "Not paired": {
       "localizations": {
         "es": {
@@ -5739,6 +6355,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Não pareado"
+          }
+        }
+      }
+    },
+    "Not paired yet": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aún sin emparejar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pas encore jumelé"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ainda não pareado"
           }
         }
       }
@@ -5783,6 +6421,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sem sessão iniciada"
+          }
+        }
+      }
+    },
+    "Nothing found: is the device on, on this Wi-Fi? Or add it by its address.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se encontró nada: ¿está el dispositivo encendido y en este Wi-Fi? O añádelo por su dirección."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rien trouvé : l'appareil est-il allumé, sur ce Wi-Fi ? Ou ajoutez-le par son adresse."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nada encontrado: o aparelho está ligado, neste Wi-Fi? Ou adicione pelo endereço."
           }
         }
       }
@@ -6183,6 +6843,28 @@
         }
       }
     },
+    "On the TV, allow AXYON…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En el televisor, permite AXYON…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sur le téléviseur, autorisez AXYON…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Na TV, permita o AXYON…"
+          }
+        }
+      }
+    },
     "On the computer: Coucou Settings → Phone (Android and iPhone) → turn it on and show the pairing code. Same Wi-Fi as this iPhone.": {
       "localizations": {
         "es": {
@@ -6223,6 +6905,72 @@
           "stringUnit": {
             "state": "translated",
             "value": "No computador: Coucou → Configurações → Celular (Android e iPhone) → ative o link e mostre o código de pareamento, depois escaneie aqui. Ou copie o link lá e cole aqui. (O app Câmera do iPhone não abre códigos do Coucou.)"
+          }
+        }
+      }
+    },
+    "On the device, accept “Allow USB debugging?”…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En el dispositivo, acepta “¿Permitir depuración USB?”…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sur l'appareil, acceptez « Autoriser le débogage USB ? »…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No aparelho, aceite “Permitir depuração USB?”…"
+          }
+        }
+      }
+    },
+    "On the device: Settings → About → tap Build 7 times, then Developer options → turn on USB debugging and network debugging (ADB over the network, port 5555). It asks once to allow this iPhone.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En el dispositivo: Ajustes → Acerca de → toca 7 veces en Compilación, luego Opciones de desarrollador → activa la depuración USB y la depuración de red (ADB por la red, puerto 5555). Pide una vez permitir este iPhone."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sur l'appareil : Paramètres → À propos → touchez 7 fois Build, puis Options pour les développeurs → activez le débogage USB et le débogage réseau (ADB par le réseau, port 5555). Il demande une fois d'autoriser cet iPhone."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No aparelho: Configurações → Sobre → toque 7 vezes em Versão/Build, depois Opções do desenvolvedor → ligue a depuração USB e a depuração de rede (ADB pela rede, porta 5555). Ele pede uma vez para permitir este iPhone."
+          }
+        }
+      }
+    },
+    "On this iPhone's Wi-Fi": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En el Wi-Fi de este iPhone"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sur le Wi-Fi de cet iPhone"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No Wi-Fi deste iPhone"
           }
         }
       }
@@ -6887,6 +7635,28 @@
         }
       }
     },
+    "Play / pause": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reproducir / pausa"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lecture / pause"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tocar / pausar"
+          }
+        }
+      }
+    },
     "Playful": {
       "localizations": {
         "es": {
@@ -7547,6 +8317,28 @@
         }
       }
     },
+    "Remove from AXYON": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quitar de AXYON"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retirer d'AXYON"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remover do AXYON"
+          }
+        }
+      }
+    },
     "Requests reach the iPhone while Coucou is open, and for about half a minute after you leave it: iOS then pauses the app, and only Apple's push could wake it, which a direct link has not. Coucou connects again as soon as you open it.": {
       "localizations": {
         "es": {
@@ -7631,6 +8423,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Revisar"
+          }
+        }
+      }
+    },
+    "Room (optional)": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Habitación (opcional)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pièce (facultatif)"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cômodo (opcional)"
           }
         }
       }
@@ -7873,6 +8687,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mesma Conta Apple"
+          }
+        }
+      }
+    },
+    "Samsung TV": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Televisor Samsung"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Téléviseur Samsung"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TV Samsung"
           }
         }
       }
@@ -9043,6 +9879,28 @@
         }
       }
     },
+    "Switch": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alternar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Basculer"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alternar"
+          }
+        }
+      }
+    },
     "System": {
       "localizations": {
         "es": {
@@ -9083,6 +9941,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "HOJE"
+          }
+        }
+      }
+    },
+    "Tap Pair, then accept AXYON on the TV when it asks.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toca Emparejar y acepta AXYON en el televisor cuando lo pida."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Touchez Jumeler, puis acceptez AXYON sur le téléviseur quand il le demande."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toque em Parear e aceite o AXYON na TV quando ela perguntar."
+          }
+        }
+      }
+    },
+    "Tap Pair, then on the device accept “Allow USB debugging?” (tick “Always allow”).": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toca Emparejar y, en el dispositivo, acepta “¿Permitir depuración USB?” (marca “Permitir siempre”)."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Touchez Jumeler, puis sur l'appareil acceptez « Autoriser le débogage USB ? » (cochez « Toujours autoriser »)."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toque em Parear e, no aparelho, aceite “Permitir depuração USB?” (marque “Sempre permitir”)."
           }
         }
       }
@@ -9171,6 +10073,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "O ícone da Tela de Início segue a sua escolha; os ícones escuros e coloridos seguem o estilo da Tela de Início. O índice do Spotlight fica neste iPhone."
+          }
+        }
+      }
+    },
+    "The TV on and on the same Wi-Fi. It asks once, on its screen, to allow AXYON.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El televisor encendido y en el mismo Wi-Fi. Pide una vez, en su pantalla, permitir AXYON."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le téléviseur allumé et sur le même Wi-Fi. Il demande une fois, à l'écran, d'autoriser AXYON."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A TV ligada e no mesmo Wi-Fi. Ela pede uma vez, na tela, para permitir o AXYON."
           }
         }
       }
@@ -9461,6 +10385,28 @@
         }
       }
     },
+    "This device is no longer in AXYON's home.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este dispositivo ya no está en la casa de AXYON."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cet appareil n'est plus dans la maison d'AXYON."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este aparelho não está mais na casa do AXYON."
+          }
+        }
+      }
+    },
     "This device isn't shared with the phone any more.": {
       "localizations": {
         "es": {
@@ -9501,6 +10447,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Este aparelho ou rotina não está mais compartilhado com o celular."
+          }
+        }
+      }
+    },
+    "This iPhone": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este iPhone"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cet iPhone"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este iPhone"
           }
         }
       }
@@ -10121,6 +11089,28 @@
         }
       }
     },
+    "Use": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Utiliser"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usar"
+          }
+        }
+      }
+    },
     "Use this brain": {
       "localizations": {
         "es": {
@@ -10187,6 +11177,28 @@
         }
       }
     },
+    "Vol. %lld": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vol. %lld"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vol. %lld"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vol. %lld"
+          }
+        }
+      }
+    },
     "Volume": {
       "localizations": {
         "es": {
@@ -10231,6 +11243,28 @@
         }
       }
     },
+    "Volume +": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volumen +"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volume +"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volume +"
+          }
+        }
+      }
+    },
     "Volume down": {
       "localizations": {
         "es": {
@@ -10271,6 +11305,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Aumentar volume"
+          }
+        }
+      }
+    },
+    "Volume −": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volumen −"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volume −"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volume −"
           }
         }
       }

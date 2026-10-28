@@ -33,6 +33,7 @@ import sys
 import threading
 import time
 import traceback
+import urllib.parse
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Optional
@@ -116,6 +117,7 @@ class Host:
         self.db = None
         self.auth: dict[str, Any] = {"state": "idle"}
         self.coucou = None
+        self.house = None  # the iPhone's own home (home.py)
         from .bridge import Bridge
 
         self.bridge = Bridge()
@@ -131,11 +133,14 @@ class Host:
             from tools.registry import registry
 
             from .coucou import Coucou
+            from .home import Home
             from .iphone import IPhone
             from .web import Web
 
             self.coucou = Coucou(self.portfolio_file, bridge=self.bridge)
             self.coucou.register(registry)
+            self.house = Home(self.home, bridge=self.bridge)
+            self.house.register(registry)
             IPhone(self.bridge).register(registry)
             Web().register(registry)
             model = self._model_config()
@@ -403,6 +408,38 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(line.encode("utf-8"))
         self.wfile.flush()
 
+    # ── The iPhone's own home ────────────────────────────────────────────────
+
+    def _home(self, work):
+        from .home import HomeError
+
+        try:
+            return self._send(200, work())
+        except HomeError as exc:
+            return self._send(422, {"error": str(exc)})
+
+    def _home_post(self, path, body):
+        house = self.host.house
+        parts = [urllib.parse.unquote(p) for p in path.split("/")[3:]]
+        if parts == ["scan"]:
+            return self._home(lambda: house.scan(str(body.get("address") or ""), int(body.get("prefix") or 24)))
+        if parts == ["devices"]:
+            return self._home(lambda: house.add(body))
+        if parts == ["assistant"]:
+            return self._home(lambda: house.set_assistant(str(body.get("url") or "")))
+        if parts == ["assistant", "remove"]:
+            return self._home(lambda: (house.remove_assistant(), {"ok": True})[1])
+        if len(parts) == 3 and parts[0] == "devices":
+            device, what = parts[1], parts[2]
+            if what == "pair":
+                return self._home(lambda: house.pair(device))
+            if what == "remove":
+                return self._home(lambda: {"ok": house.remove(device)})
+            if what == "action":
+                # A tap in the app is the owner's own: nothing more to confirm.
+                return self._home(lambda: house.act(device, str(body.get("action") or ""), body.get("value")))
+        return self._send(404, {"error": "not found"})
+
     # ── Routes ───────────────────────────────────────────────────────────────
 
     def do_GET(self):
@@ -421,6 +458,10 @@ class Handler(BaseHTTPRequestHandler):
             if not h.ready or h.coucou is None:
                 return self._send(503, {"error": h.problem or "Hermes is starting"})
             return self._send(200, json.loads(h.coucou.portfolio({})))
+        if path == "/v1/home":
+            if not h.ready or h.house is None:
+                return self._send(503, {"error": h.problem or "Hermes is starting"})
+            return self._home(lambda: h.house.overview(states="quick=1" not in self.path))
         if path.startswith("/v1/runs/") and path.endswith("/events"):
             run = h.runs.get(path.split("/")[3])
             if run is None:
@@ -492,6 +533,10 @@ class Handler(BaseHTTPRequestHandler):
             if path.startswith("/v1/bridge/"):
                 ok = h.bridge.answer(path.split("/")[3], body.get("answer"))
                 return self._send(200 if ok else 404, {"ok": ok})
+            if path.startswith("/v1/home"):
+                if not h.ready or h.house is None:
+                    return self._send(503, {"error": h.problem or "Hermes is starting"})
+                return self._home_post(path, body)
         except ValueError as exc:
             return self._send(400, {"error": str(exc)})
         except Exception as exc:

@@ -21,7 +21,7 @@ alone: none of this is compiled or copied into them.
 | `Swift/` | `HermesEngine` (starts and talks to the host), `HermesArms` (what Hermes asks of the iPhone), `HermesWire` (its events and the conversation, tested on Linux), `AXYONStyle` and `AXYONViews` (the screens). |
 | `utils.sh`, `iOS-dylib-Info-template.plist` | CPython's own iOS install steps: every compiled module becomes a framework. |
 | `requirements-*.txt` | Hermes' packages: pure Python, and the three with iOS wheels on PyPI. |
-| `tests/` | `test_units.py` (the tools, no Hermes), `test_host.py` (the host end to end with Hermes, iOS limits emulated). |
+| `tests/` | `test_units.py` (the tools, no Hermes), `test_home.py` (the home against a simulated Samsung TV, ADB box and Home Assistant), `test_host.py` (the host end to end with Hermes, iOS limits emulated), `simulator.sh` (CI: the app in the iOS Simulator, Hermes started for real and answering with an iPhone tool). |
 
 ## Build
 
@@ -70,6 +70,7 @@ The API (bearer token on every call):
 | `POST /v1/auth/chatgpt/start`, `GET /v1/auth/chatgpt` | The ChatGPT sign-in, as `hermes auth add openai-codex` runs it: a code to type on OpenAI's page. |
 | `GET /v1/portfolio` | The portfolio with prices read now. |
 | `GET /v1/bridge`, `POST /v1/bridge/<id>` | What Hermes asks of the iPhone, and the app's answer. |
+| `GET /v1/home`, `POST /v1/home/scan`, `/v1/home/devices`, `/v1/home/devices/<id>/pair`, `…/action`, `…/remove`, `/v1/home/assistant` | The iPhone's own home. |
 
 Keys stay in the iPhone's Keychain (`WhenUnlockedThisDeviceOnly`, not in backups) and reach Hermes in memory at each
 start; nothing writes them to disk. The ChatGPT sign-in is the iPhone's own: refresh tokens are single-use, so the
@@ -85,6 +86,14 @@ iPhone never shares the computer's.
 - `coucou_portfolio`, `coucou_quote` (`coucou.py`): the copy of the portfolio a paired computer gives the iPhone
   (positions, the user's ceilings, last prices, the notes of AXYON's tab: `windows/src-tauri/src/powers/mod.rs`,
   `phone_copy`; capability `portfolio` of the phone link), with B3 prices read now from Google Finance.
+- `home_devices`, `home_control` (`home.py`): the home this iPhone drives itself on the Wi-Fi, no computer: Samsung
+  TVs (REST on 8001, the remote over TLS on 8002, which asks once on the TV and then knows AXYON by its token; the
+  TV's certificate pinned on first contact), Android TVs and boxes over ADB on 5555 (an RSA-2048 key made on the
+  iPhone, kept in its Keychain, offered once: "Allow USB debugging?"; then only the commands of a fixed list: keys,
+  the device's own apps, its state), and the user's Home Assistant (a long-lived token pasted in the app, in the
+  Keychain; only the services of `ACTIONS`: never a lock or an alarm). Plugs and switches ask the owner's Face ID
+  before Hermes acts on them. Only local addresses (or the tailnet) are contacted, and a Home Assistant over https.
+  The app's Home tab adds them (a scan of the Wi-Fi it is on, or an address), pairs them and drives them.
 - `coucou_home`, `coucou_home_action`: the paired computer's home, through the phone link (a device that asks first
   waits for Face ID there).
 - Hermes' own `memory`, `skills`, `todo`, `clarify`, `session_search` and `vision`.
@@ -100,6 +109,7 @@ not there.
 
 ```
 python3 tests/test_units.py                                   # the tools, quotes, portfolio, web, bridge
+python3 tests/test_home.py                                    # the home (needs websockets and openssl)
 HERMES_SRC=…/hermes-agent PYTHON=…/venv/bin/python python3 tests/test_host.py   # the host with Hermes, end to end
 bash ../../scripts/test-pc-link.sh                            # HermesWire.swift with the phone link's wire
 ```

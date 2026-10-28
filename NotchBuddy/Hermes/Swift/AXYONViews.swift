@@ -1102,41 +1102,7 @@ struct AXYONWalletView: View {
     }
 }
 
-// MARK: - The home
-
-struct AXYONHouseView: View {
-    var body: some View {
-        let pc = PCLink.shared
-        Group {
-            if pc.isPaired, pc.offers("home") {
-                PCHomeView()
-            } else {
-                ScrollView {
-                    VStack(spacing: 16) {
-                        VStack(spacing: 14) {
-                            Image(systemName: "house.and.flag.fill")
-                                .font(.system(size: 44))
-                                .foregroundStyle(AXYONPalette.violet)
-                                .shadow(color: AXYONPalette.violet.opacity(0.6), radius: 12)
-                            Text("Your home, from the iPhone").font(.title3.weight(.semibold))
-                            Text("Ask AXYON in the chat to turn a device on or off. With a computer paired, its home shows here too, at home or through Tailscale.")
-                                .font(.callout)
-                                .foregroundStyle(AXYONPalette.dim)
-                                .multilineTextAlignment(.center)
-                        }
-                        .padding(28)
-                        .frame(maxWidth: .infinity)
-                        .axyonCard(glow: AXYONPalette.violet)
-                    }
-                    .padding(16)
-                    .padding(.top, 30)
-                }
-                .axyonBackdrop()
-            }
-        }
-        .navigationTitle("Home")
-    }
-}
+// The home is AXYONHouse.swift.
 
 // MARK: - Settings
 

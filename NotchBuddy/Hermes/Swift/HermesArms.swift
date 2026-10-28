@@ -23,6 +23,7 @@ enum HermesArms {
         case "iphone": return await iphone(r)
         case "home": return data(home())
         case "homeAction": return data(await homeAction(r))
+        case "secret": return data(secret(r))
         default: return data(["error": "The app does not know \(kind)."])
         }
     }
@@ -45,6 +46,11 @@ enum HermesArms {
         case "speak":
             MochiVoice.shared.say(r["text"] as? String ?? "", language: Locale.preferredLanguages.first ?? "pt-BR")
             return data(["ok": true])
+        case "confirm":
+            // A plug or a switch of the home, before Hermes acts on it: the owner's Face ID.
+            let what = String((r["text"] as? String ?? "").prefix(150))
+            let ok = await OwnerCheck.confirm(reason: String(localized: "Allow AXYON to \(what)"))
+            return data(["ok": ok])
         default:
             return data(["error": "No such iPhone action: \(action)."])
         }
@@ -395,6 +401,22 @@ enum HermesArms {
         if !result.message.isEmpty { out["message"] = result.message }
         if !result.detail.isEmpty { out["detail"] = result.detail }
         return out
+    }
+
+    // MARK: The home's tokens and key
+
+    /// The tokens and the ADB key of the iPhone's own home (home.py), in their own Keychain service: the brains' keys
+    /// are never reachable from here.
+    private static func secret(_ r: [String: Any]) -> [String: Any] {
+        guard let name = r["name"] as? String, name.hasPrefix("home."), name.count <= 100 else {
+            return ["error": "Not a secret of the home."]
+        }
+        if r["do"] as? String == "set" {
+            let value = r["value"] as? String ?? ""
+            HermesKeychain.set(name, value.isEmpty ? nil : value, service: HermesKeychain.homeService)
+            return ["ok": true]
+        }
+        return ["value": HermesKeychain.get(name, service: HermesKeychain.homeService) ?? ""]
     }
 
     // MARK: Dates

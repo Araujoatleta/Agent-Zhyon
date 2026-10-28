@@ -47,6 +47,9 @@ final class HermesEngine {
     private(set) var portfolioLoading = false
     /// What Hermes is doing now, for the orb.
     private(set) var acting = false
+    /// The devices this iPhone drives itself (Hermes/app/axyon_hermes/home.py), as last read.
+    private(set) var house: HermesHouse?
+    private(set) var houseLoading = false
 
     @ObservationIgnored private var port: UInt16 = 0
     @ObservationIgnored private var token = ""
@@ -390,6 +393,105 @@ final class HermesEngine {
         if state == .ready { Task { await refreshPortfolio() } }
     }
 
+    // MARK: The iPhone's own home
+
+    func refreshHouse(quick: Bool = false) async {
+        guard state == .ready else { return }
+        houseLoading = true
+        defer { houseLoading = false }
+        if let object = try? await call("GET", quick ? "/v1/home?quick=1" : "/v1/home", timeout: 30) {
+            house = HermesHouse(json: object)
+        }
+    }
+
+    /// An action from the Home tab: the owner's own tap. nil once done, else why not, in words.
+    func houseAction(_ device: HermesDevice, _ action: String, value: Any? = nil) async -> String? {
+        var body: [String: Any] = ["action": action]
+        if let value { body["value"] = value }
+        do {
+            let object = try await call("POST", "/v1/home/devices/\(Self.segment(device.id))/action", body, timeout: 40)
+            if object["ok"] as? Bool == false {
+                return object["message"] as? String ?? object["error"] as? String ?? String(localized: "Not done.")
+            }
+            return nil
+        } catch {
+            return Self.describe(error)
+        }
+    }
+
+    /// Adds a TV or a box at `host`, then pairs it: the device asks on its own screen (up to a minute).
+    func addDevice(driver: String, host: String, name: String, room: String) async throws -> String {
+        let added = try await call("POST", "/v1/home/devices",
+                                   ["driver": driver, "host": host, "name": name, "room": room], timeout: 30)
+        guard let id = added["id"] as? String else { throw HermesError.broken }
+        await refreshHouse(quick: true)
+        let paired = try await call("POST", "/v1/home/devices/\(Self.segment(id))/pair", [:], timeout: 100)
+        await refreshHouse(quick: true)
+        return paired["message"] as? String ?? ""
+    }
+
+    func pairDevice(_ id: String) async throws -> String {
+        let paired = try await call("POST", "/v1/home/devices/\(Self.segment(id))/pair", [:], timeout: 100)
+        await refreshHouse(quick: true)
+        return paired["message"] as? String ?? ""
+    }
+
+    func removeDevice(_ id: String) async {
+        _ = try? await call("POST", "/v1/home/devices/\(Self.segment(id))/remove", [:])
+        await refreshHouse(quick: true)
+    }
+
+    /// The TVs, boxes and Home Assistants on this iPhone's Wi-Fi.
+    func scanHouse() async throws -> (found: [HermesFound], problem: String?) {
+        guard let (address, prefix) = Self.wifiAddress() else {
+            return ([], String(localized: "Connect the iPhone to your home's Wi-Fi to look for devices."))
+        }
+        let object = try await call("POST", "/v1/home/scan", ["address": address, "prefix": prefix], timeout: 60)
+        return (HermesFound.list(object), object["error"] as? String)
+    }
+
+    /// The user's Home Assistant: its token into the Keychain first (Hermes reads it from there), then its address.
+    @discardableResult
+    func setAssistant(url: String, token: String) async throws -> Int {
+        let token = token.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !token.isEmpty { HermesKeychain.set("home.ha.token", token, service: HermesKeychain.homeService) }
+        let object = try await call("POST", "/v1/home/assistant", ["url": url], timeout: 30)
+        await refreshHouse()
+        return object["entities"] as? Int ?? 0
+    }
+
+    func removeAssistant() async {
+        _ = try? await call("POST", "/v1/home/assistant/remove", [:])
+        await refreshHouse(quick: true)
+    }
+
+    nonisolated private static func segment(_ id: String) -> String {
+        var allowed = CharacterSet.urlPathAllowed
+        allowed.remove(charactersIn: "/?#")
+        return id.addingPercentEncoding(withAllowedCharacters: allowed) ?? id
+    }
+
+    /// This iPhone's address and prefix on its Wi-Fi (en0): a scan looks there, never on the cellular network.
+    nonisolated static func wifiAddress() -> (String, Int)? {
+        var list: UnsafeMutablePointer<ifaddrs>?
+        guard getifaddrs(&list) == 0, let first = list else { return nil }
+        defer { freeifaddrs(list) }
+        for pointer in sequence(first: first, next: { $0.pointee.ifa_next }) {
+            let entry = pointer.pointee
+            guard String(cString: entry.ifa_name) == "en0", let address = entry.ifa_addr, let mask = entry.ifa_netmask,
+                  address.pointee.sa_family == UInt8(AF_INET) else { continue }
+            let size = Int(NI_MAXHOST)
+            var host = [CChar](repeating: 0, count: size)
+            guard getnameinfo(address, socklen_t(address.pointee.sa_len), &host, socklen_t(size), nil, 0,
+                              NI_NUMERICHOST) == 0 else { continue }
+            let bits = mask.withMemoryRebound(to: sockaddr_in.self, capacity: 1) {
+                UInt32(bigEndian: $0.pointee.sin_addr.s_addr).nonzeroBitCount
+            }
+            return (String(decoding: host.prefix { $0 != 0 }.map { UInt8(bitPattern: $0) }, as: UTF8.self), bits)
+        }
+        return nil
+    }
+
     // MARK: The bridge: what Hermes asks of the iPhone
 
     private func listenToBridge() {
@@ -522,11 +624,13 @@ enum HermesError: Error {
     case refused(String)
 }
 
-/// The brains' keys, in this iPhone's Keychain only (not in backups, not in iCloud Keychain).
+/// The brains' keys, in this iPhone's Keychain only (not in backups, not in iCloud Keychain). The home's tokens and
+/// key (`home.`…, home.py) are in a service of their own, the only one the bridge reaches.
 enum HermesKeychain {
-    private static let service = "fr.louisraille.Coucou.hermes"
+    static let service = "fr.louisraille.Coucou.hermes"
+    static let homeService = "fr.louisraille.Coucou.hermes.home"
 
-    static func get(_ name: String) -> String? {
+    static func get(_ name: String, service: String = HermesKeychain.service) -> String? {
         let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
                                     kSecAttrService as String: service, kSecAttrAccount as String: name,
                                     kSecReturnData as String: true, kSecMatchLimit as String: kSecMatchLimitOne]
@@ -537,7 +641,7 @@ enum HermesKeychain {
         return String(data: data, encoding: .utf8)
     }
 
-    static func set(_ name: String, _ value: String?) {
+    static func set(_ name: String, _ value: String?, service: String = HermesKeychain.service) {
         let lookup: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
                                      kSecAttrService as String: service, kSecAttrAccount as String: name]
         SecItemDelete(lookup as CFDictionary)

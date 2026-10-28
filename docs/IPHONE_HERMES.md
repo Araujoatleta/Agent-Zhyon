@@ -35,11 +35,21 @@ option: paired, it adds its home, its agents (Claude Code, Codex…) and the por
 - **Apps and links**, **the iPhone's state** (battery, storage, where it is), the **flashlight**, **music**, reading
   aloud, the clipboard.
 - **The web**: a search and reading a page, no key, no account.
+- **The home**: the TVs, boxes and Home Assistant the iPhone reaches itself (below).
 - **The portfolio**: B3 prices from Google Finance (about 15 minutes late), with the positions a paired computer gave.
 - **Memory**: Hermes remembers what you tell it and past conversations, as on the computer.
 
 iOS asks the first time for each thing it protects; **Settings → What AXYON may use on this iPhone** shows what is
 allowed.
+
+## The home straight from the iPhone (no computer)
+
+**Home → +** adds the devices the iPhone drives itself on the home's Wi-Fi: a **Samsung TV** (Tizen, 2016 on; it asks
+once on its screen to allow AXYON), an **Android TV or box** (Android 4.4 too: turn on USB debugging and network
+debugging on port 5555 in its Developer options; it asks once "Allow USB debugging?"; the key stays in the
+iPhone's Keychain), and **Home Assistant** (its address and a long-lived access token; lights, switches, players,
+covers, scenes and scripts, never locks or alarms). Then ask in the chat: *"turn on the living room TV"*. Plugs and
+switches ask for Face ID first. The first scan makes iOS ask for the local network: allow it.
 
 ## With a computer (optional)
 

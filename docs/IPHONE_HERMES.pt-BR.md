@@ -48,13 +48,35 @@ Peça normalmente, por texto ou voz (o microfone do chat; uma pausa envia):
 Cada coisa que o iPhone protege (calendário, lembretes, contatos, localização, notificações) o iOS pergunta na
 primeira vez. **Ajustes → O que o AXYON pode usar** mostra o que está liberado.
 
+## A casa direto pelo iPhone (sem computador)
+
+Na aba **Casa → +** você adiciona os aparelhos que o próprio iPhone controla pelo Wi-Fi de casa:
+
+- **TV Samsung** (Tizen, desde 2016): **Procurar neste Wi-Fi** ou digite o endereço da TV. Na primeira vez a TV pergunta
+  na tela se permite o **AXYON**: aceite. Depois: ligar/desligar, volume, canais, abrir apps, setas do controle.
+- **Android TV ou TV box** (inclusive Android 4.4): no aparelho, **Configurações → Sobre → toque 7 vezes em
+  Versão/Build**, depois **Opções do desenvolvedor → Depuração USB** e **Depuração de rede/ADB pela rede (porta 5555)**.
+  Adicione pelo endereço; o aparelho pergunta **“Permitir depuração USB?”**: marque **Sempre permitir** e aceite. A
+  chave fica nas Chaves do iPhone.
+- **Home Assistant**: o endereço (ex.: `http://homeassistant.local:8123`) e um **token de longa duração** (no Home
+  Assistant: seu perfil → Segurança → Tokens de acesso de longa duração → Criar token). Luzes, tomadas, players,
+  cortinas, cenas e scripts aparecem sozinhos. Fechaduras e alarmes nunca.
+
+Depois é só pedir no chat: *"liga a TV da sala"*, *"abre o YouTube na TV do quarto"*, *"apaga a luz da sala"*,
+*"aumenta 5 de volume"*. Tomadas e interruptores pedem o seu **Face ID** antes. Na primeira busca o iOS pergunta se
+o AXYON pode usar a **rede local**: permita (Ajustes → Privacidade → Rede Local → AXYON).
+
+Ligar uma TV que está totalmente desligada pela rede nem sempre dá: o iOS não deixa apps mandarem o sinal de
+"acordar" para a rede toda. Deixe ligada nas TVs Samsung a opção **Ligar com o celular** (Configurações → Geral →
+Rede → Configurações avançadas).
+
 ## As telas
 
 - **AXYON**: o orbe do Hermes (a cor diz o que ele está fazendo), atalhos *Faça por mim*, a carteira, o seu dia, os
   agentes do computador (com Permitir/Negar pelo Face ID) e o computador.
 - **Chat**: a conversa com o Hermes, com cada passo que ele dá (lendo a carteira, agendando, pesquisando…), parar,
   ditado e leitura em voz alta.
-- **Casa**: a casa do computador pareado, quando há um.
+- **Casa**: os aparelhos que o iPhone controla sozinho e, com um computador pareado, a casa dele.
 - **Carteira**: total, o dia, desde a compra, cada posição com o seu preço teto e os ativos que você acompanha.
 - **Ajustes**: o cérebro, as permissões, o computador (opcional) e o resto dos ajustes do app.
 

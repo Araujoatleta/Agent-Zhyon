@@ -120,6 +120,128 @@ struct HermesSignIn: Equatable, Sendable {
     }
 }
 
+/// A number of a JSON object as JSONSerialization gives it, on Apple's platforms and on Linux alike.
+enum HermesJSON {
+    static func int(_ value: Any?) -> Int? {
+        if let n = value as? Int { return n }
+        if let d = value as? Double, d.isFinite { return Int(d.rounded()) }
+        return nil
+    }
+}
+
+/// One device the iPhone drives itself (`GET /v1/home`, axyon_hermes/home.py): a TV, an Android box, or an entity
+/// of the user's Home Assistant.
+struct HermesDevice: Equatable, Sendable, Identifiable {
+    var id: String
+    var name: String
+    var room: String
+    /// tv, light, switch, fan, cover, scene, routine, climate.
+    var kind: String
+    /// "Samsung TV", "Android", "Home Assistant".
+    var source: String
+    /// The actions it takes (`turn_on`, `volume_up`…): nothing else is offered for it.
+    var can: [String]
+    var apps: [String]
+    var paired: Bool
+    var asksFirst: Bool
+    /// nil: it does not say (or did not answer quickly).
+    var online: Bool?
+    var on: Bool?
+    var volume: Int?
+    var brightness: Int?
+
+    init(id: String, name: String, room: String = "", kind: String = "tv", source: String = "", can: [String] = [],
+         apps: [String] = [], paired: Bool = true, asksFirst: Bool = false, online: Bool? = nil, on: Bool? = nil,
+         volume: Int? = nil, brightness: Int? = nil) {
+        self.id = id
+        self.name = name
+        self.room = room
+        self.kind = kind
+        self.source = source
+        self.can = can
+        self.apps = apps
+        self.paired = paired
+        self.asksFirst = asksFirst
+        self.online = online
+        self.on = on
+        self.volume = volume
+        self.brightness = brightness
+    }
+
+    init?(json o: [String: Any]) {
+        guard let id = o["id"] as? String, !id.isEmpty else { return nil }
+        let state = o["state"] as? [String: Any] ?? [:]
+        self.init(id: id, name: o["name"] as? String ?? id, room: o["room"] as? String ?? "",
+                  kind: o["kind"] as? String ?? "", source: o["source"] as? String ?? "",
+                  can: (o["can"] as? [Any] ?? []).compactMap { $0 as? String },
+                  apps: (o["apps"] as? [Any] ?? []).compactMap { $0 as? String },
+                  paired: o["paired"] as? Bool ?? true, asksFirst: o["asksFirst"] as? Bool ?? false,
+                  online: state["online"] as? Bool, on: state["on"] as? Bool,
+                  volume: HermesJSON.int(state["volume"]), brightness: HermesJSON.int(state["brightness"]))
+    }
+
+    /// A Home Assistant entity (its actions go through the user's Home Assistant).
+    var fromAssistant: Bool { id.hasPrefix("ha:") }
+    func can(_ action: String) -> Bool { can.contains(action) }
+}
+
+/// The iPhone's own home as the host reports it: its devices and, when set, the user's Home Assistant.
+struct HermesHouse: Equatable, Sendable {
+    var devices: [HermesDevice] = []
+    var assistantURL: String?
+    var assistantConnected = false
+    var assistantProblem: String?
+
+    init(devices: [HermesDevice] = [], assistantURL: String? = nil, assistantConnected: Bool = false,
+         assistantProblem: String? = nil) {
+        self.devices = devices
+        self.assistantURL = assistantURL
+        self.assistantConnected = assistantConnected
+        self.assistantProblem = assistantProblem
+    }
+
+    init(json o: [String: Any]) {
+        devices = (o["devices"] as? [Any] ?? []).compactMap { ($0 as? [String: Any]).flatMap(HermesDevice.init(json:)) }
+        if let assistant = o["homeAssistant"] as? [String: Any] {
+            assistantURL = assistant["url"] as? String
+            assistantConnected = assistant["connected"] as? Bool ?? false
+            assistantProblem = assistant["problem"] as? String
+        }
+    }
+
+    /// The TVs and boxes the iPhone reaches itself, then the Home Assistant entities.
+    var own: [HermesDevice] { devices.filter { !$0.fromAssistant } }
+    var assistant: [HermesDevice] { devices.filter(\.fromAssistant) }
+}
+
+/// What a scan of the iPhone's Wi-Fi found (`POST /v1/home/scan`).
+struct HermesFound: Equatable, Sendable, Identifiable {
+    /// samsung, android or homeassistant.
+    var driver: String
+    var host: String
+    var port: Int?
+    var name: String
+    var model: String
+    var url: String
+    var added: Bool
+    var id: String { "\(driver):\(host):\(port ?? 0)" }
+
+    init?(json o: [String: Any]) {
+        guard let driver = o["driver"] as? String, let host = o["host"] as? String else { return nil }
+        self.driver = driver
+        self.host = host
+        port = HermesJSON.int(o["port"])
+        name = o["name"] as? String ?? host
+        model = o["model"] as? String ?? ""
+        url = o["url"] as? String ?? ""
+        added = o["added"] as? Bool ?? false
+    }
+
+    static func list(_ o: [String: Any]) -> [HermesFound] {
+        (o["found"] as? [Any] ?? []).compactMap { ($0 as? [String: Any]).flatMap(HermesFound.init(json:)) }
+    }
+}
+
 /// The conversation with Hermes on this iPhone as the AXYON tab shows it, in the chat's own entries (PCChatEntry, so
 /// the bubbles are the computer chat's), and the Hermes session it belongs to.
 struct HermesConversation: Equatable, Sendable, Codable {

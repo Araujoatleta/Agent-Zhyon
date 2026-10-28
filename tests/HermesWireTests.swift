@@ -1,7 +1,8 @@
 import Foundation
 
-// Hermes inside the iPhone (NotchBuddy/Sources/Phone/HermesWire.swift): the events of an answer as the host writes
-// them (NotchBuddy/Hermes/app/axyon_hermes/host.py), the brains, and the conversation they fill in.
+// Hermes inside the iPhone (NotchBuddy/Hermes/Swift/HermesWire.swift): the events of an answer as the host writes
+// them (NotchBuddy/Hermes/app/axyon_hermes/host.py), the brains, the conversation they fill in, and the iPhone's own
+// home as the host reports it (home.py).
 // Foundation only: runs on macOS and Linux (scripts/test-pc-link.sh).
 
 @main
@@ -78,6 +79,30 @@ enum HermesWireTests {
         var many = HermesConversation(session: "s")
         for i in 0..<70 { _ = many.ask("m\(i)") }
         checkEqual("the newest 100 kept", many.entries.count, HermesConversation.kept)
+
+        print("\nThe iPhone's own home")
+        let reported: [String: Any] = [
+            "devices": [
+                ["id": "samsung:192.168.0.12", "name": "TV da sala", "room": "Sala", "kind": "tv", "source": "Samsung TV",
+                 "paired": true, "can": ["turn_on", "turn_off", "volume_up"], "apps": ["YouTube", "Netflix"],
+                 "state": ["online": true, "on": true]],
+                ["id": "ha:light.sala", "name": "Luz da sala", "kind": "light", "source": "Home Assistant",
+                 "can": ["set_brightness", "turn_off", "turn_on"], "asksFirst": false,
+                 "state": ["online": true, "on": true, "brightness": 50.0]],
+                ["name": "no id"],
+            ],
+            "homeAssistant": ["url": "http://192.168.0.5:8123", "connected": true],
+        ]
+        let house = HermesHouse(json: reported)
+        checkEqual("its devices, one without an id left out", house.devices.map(\.id), ["samsung:192.168.0.12", "ha:light.sala"])
+        check("the TV: its apps, what it can do, on", house.own.first?.apps == ["YouTube", "Netflix"]
+              && house.own.first?.can("volume_up") == true && house.own.first?.on == true)
+        checkEqual("the light from Home Assistant, at half", house.assistant.first?.brightness, 50)
+        check("Home Assistant connected", house.assistantConnected && house.assistantURL == "http://192.168.0.5:8123")
+        let found = HermesFound.list(["found": [["driver": "android", "host": "192.168.0.20", "port": 5555, "name": "Android (ADB)"],
+                                                ["driver": "samsung", "host": "192.168.0.12", "name": "TV", "added": true],
+                                                ["host": "no driver"]]])
+        check("what a scan found", found.count == 2 && found[0].port == 5555 && found[1].added)
 
         print(failures == 0 ? "\nAll Hermes wire tests passed." : "\n\(failures) failed.")
         if failures > 0 { exit(1) }
