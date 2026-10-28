@@ -169,14 +169,17 @@ dist_info jiter "$JITER"
 # links in (project-hermes.yml), and the tools the computer gives Hermes, which powers.py reads.
 step "AXYON's superpowers for $RUST_TARGET"
 WIN="$HERE/../../windows"
-# Its symbols are what the app calls: the workspace's release profile strips the programs it builds, not this.
-(cd "$WIN" && CARGO_PROFILE_RELEASE_STRIP=false cargo build --release --locked --target "$RUST_TARGET" -p coucou-powers-ffi)
+# Machine code throughout, symbols kept: the workspace's release profile links its programs with LTO, which for a
+# crate that is also an rlib (for its tests) leaves LLVM bitcode in the archive, which Xcode's linker cannot read; the
+# app's own linker drops what it does not use.
+(cd "$WIN" && CARGO_PROFILE_RELEASE_LTO=false CARGO_PROFILE_RELEASE_STRIP=false \
+    cargo build --release --locked --target "$RUST_TARGET" -p coucou-powers-ffi)
 mkdir -p "$OUT/powers"
 cp "$BUILT/libcoucou_powers_ffi.a" "$OUT/powers/"
 # nm's own status is left out: it may stop on a member that is not an object and still list the others.
 symbols="$(nm -g "$OUT/powers/libcoucou_powers_ffi.a" 2>/dev/null || true)"
-grep -E " T _axyon_powers_[a-z]+$" <<<"$symbols" \
-    || { echo "axyon_powers_call is not in libcoucou_powers_ffi.a"; head -40 <<<"$symbols"; exit 1; }
+grep -E "^[0-9a-f]+ T _axyon_powers_(call|watch|free)$" <<<"$symbols" \
+    || { echo "axyon_powers_call is not in libcoucou_powers_ffi.a as machine code:"; grep axyon_powers <<<"$symbols" | head; exit 1; }
 cp "$WIN/hook/src/house_tools.json" "$APP/axyon_hermes/house_tools.json"
 ls -l "$OUT/powers/libcoucou_powers_ffi.a"
 
