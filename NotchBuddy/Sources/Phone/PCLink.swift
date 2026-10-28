@@ -301,7 +301,13 @@ final class PCLink {
             PCLinkStore.save(computer)
         }
         Self.receive(on: chosen, generation: generation, link: self)
-        send(.hello(token: token, device: UIDevice.current.name, caps: PCWire.capabilities))
+        // A build with Hermes inside also keeps the computer's portfolio, for Hermes to work with the computer off.
+        #if HERMES
+        let caps = PCWire.capabilities + [PCWire.portfolioCapability]
+        #else
+        let caps = PCWire.capabilities
+        #endif
+        send(.hello(token: token, device: UIDevice.current.name, caps: caps))
     }
 
     /// Why no way worked, in words. Away from home the local address may be another device's (a café's Wi-Fi), so
@@ -501,6 +507,12 @@ final class PCLink {
             refreshHome()
             finishWaiters(true)
         }
+        #if HERMES
+        // The computer stopped giving the portfolio (its superpowers are off): the copy here goes too.
+        if case .welcome(_, _, let caps) = message, !caps.contains(PCWire.portfolioCapability) {
+            HermesPortfolio.keep(nil)
+        }
+        #endif
         if case .chatModels(let list) = message, !list.contains(where: { $0.id == chatModel }), let first = list.first {
             setChatModel(first.id)
         }
@@ -516,6 +528,10 @@ final class PCLink {
             }
         case .chatDone, .chatError:
             saveChat()
+        #if HERMES
+        case .portfolio(let copy):
+            HermesPortfolio.keep(copy)
+        #endif
         default:
             break
         }

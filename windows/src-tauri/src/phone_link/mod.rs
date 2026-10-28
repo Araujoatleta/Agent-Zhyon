@@ -149,6 +149,11 @@ impl server::Features for TauriFeatures {
         let s = s.settings.lock().unwrap();
         s.home_enabled && s.phone_home
     }
+    fn portfolio(&self) -> bool {
+        // The phone already reaches the portfolio through the chat; the copy lets AXYON on it work with this computer
+        // off. Only while the superpowers are on.
+        self.app.state::<Shared>().settings.lock().unwrap().powers_enabled
+    }
 }
 
 /// Zheus from the phone: the calls Settings → Hermes Agent makes (hermes_setup.rs). What the phone sent is never
@@ -467,6 +472,7 @@ impl PhoneLink {
                 drop(running);
                 self.sync_relay();
                 self.watch_tailnet(port);
+                portfolio_changed(&self.app);
                 self.sync_remote();
                 Ok(())
             }
@@ -527,6 +533,29 @@ impl PhoneLink {
             r.handle.stop();
             log::line("phone link: stopped");
         }
+    }
+}
+
+/// The portfolio's copy stays under this: a phone reads lines of 64 KiB at most.
+const COPY_LIMIT: usize = 60 * 1024;
+
+/// The portfolio changed (powers::changed), or the link started: the phones that keep a copy are sent the new one;
+/// with the superpowers off, they are told to forget theirs.
+pub fn portfolio_changed(app: &AppHandle) {
+    let Some(link) = app.try_state::<PhoneLink>() else { return };
+    let copy = crate::powers::phone_copy(app).unwrap_or_else(|| serde_json::json!({ "type": "portfolio", "off": true }));
+    let mut line = copy.to_string();
+    if line.len() > COPY_LIMIT {
+        // A phone closes a link whose line is too long for it: the positions alone, then.
+        line = serde_json::json!({ "type": "portfolio", "positions": copy["positions"], "ceilings": copy["ceilings"] }).to_string();
+        if line.len() > COPY_LIMIT {
+            return;
+        }
+    }
+    let told = link.hub.set_portfolio(line);
+    if told > 0 {
+        // How many phones, never what: the portfolio stays out of the log.
+        log::line(format!("phone link: the portfolio's copy sent to {told} phone(s)"));
     }
 }
 

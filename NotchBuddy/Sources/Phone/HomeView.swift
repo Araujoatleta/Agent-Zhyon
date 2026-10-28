@@ -16,14 +16,100 @@ struct HomeView: View {
     @State private var tab: CoucouTab = .agents
     @State private var agentsPath: [String] = []
     @State private var servicesPath: [String] = []
-    @State private var introDone = false
+    #if HERMES
+    /// Hermes inside this iPhone (NotchBuddy/Hermes/README.md): AXYON's own tabs, a computer one option among others.
+    @State private var axyonTab: AXYONTab = .start
+    @State private var axyonPath: [String] = []
+    #endif
+    @State private var introDone = HomeView.hermesInside
     /// A pairing link opened from the Camera (the QR code of a Windows or Linux computer), waiting for a yes.
     @State private var pairing: PCPairing?
     @AppStorage("onboardingDone") private var onboardingDone = false
 
     private var computerLayout: Bool { CoucouTab.computerLayout }
 
+    /// This build carries Hermes: it needs no computer, so no pairing guide and no intro flying to a session's tile.
+    private static let hermesInside: Bool = {
+        #if HERMES
+        return true
+        #else
+        return false
+        #endif
+    }()
+
     var body: some View {
+        tabs
+        // A widget tile was tapped: open that Mochi. Or the Camera read a computer's pairing code.
+        .onOpenURL { url in
+            if let id = SharedSession.sessionId(from: url) {
+                open(id)
+            } else if let found = PCPairing.parse(url.absoluteString) {
+                if onboardingDone {
+                    pairing = found
+                } else {
+                    // The first-launch guide is up: it closes, then the pairing sheet opens.
+                    onboardingDone = true
+                    Task {
+                        try? await Task.sleep(for: .milliseconds(700))
+                        pairing = found
+                    }
+                }
+            }
+        }
+        .sheet(item: $pairing) { found in
+            PCPairingConfirm(pairing: found, pc: PCLink.shared)
+        }
+        // A notification, Siri, Spotlight or the Control Center asked for a session.
+        .onChange(of: link.openPillId) { _, id in
+            guard let id else { return }
+            open(id)
+            link.openPillId = nil
+        }
+        .onContinueUserActivity(SpotlightIndex.activityType) { activity in
+            if let id = SpotlightIndex.pillId(from: activity) { open(id) }
+        }
+        .sheet(isPresented: Binding(get: { link.reviewFingerprint != nil },
+                                    set: { if !$0 { link.reviewFingerprint = nil } })) {
+            if let fingerprint = link.reviewFingerprint {
+                ReviewSheet(link: link, fingerprint: fingerprint)
+            }
+        }
+        // First launch: how to connect the Mac (or, in a build without iCloud, the Windows or Linux computer).
+        .fullScreenCover(isPresented: Binding(get: { !onboardingDone && !Self.hermesInside },
+                                              set: { if !$0 { onboardingDone = true } })) {
+            if PhoneLink.cloudAvailable {
+                OnboardingView()
+            } else {
+                PCOnboardingView(pc: PCLink.shared)
+            }
+        }
+        // The opening: Mochi alone while the app loads, then he flies to his tile.
+        .overlay {
+            if !introDone {
+                IntroView(ready: link.firstSyncDone) { introDone = true }
+                    .transition(.identity)
+            }
+        }
+        .onAppear {
+            // The first launch opens on the setup guide instead; with Hermes inside, on AXYON right away.
+            if !onboardingDone || Self.hermesInside {
+                introDone = true
+                IntroLanding.shared.landed = true
+            }
+        }
+        // Hermes' violet for every control, sheets included.
+        .tint(CoucouPalette.accent)
+    }
+
+    @ViewBuilder private var tabs: some View {
+        #if HERMES
+        AXYONTabs(link: link, tab: $axyonTab, startPath: $axyonPath)
+        #else
+        coucouTabs
+        #endif
+    }
+
+    private var coucouTabs: some View {
         // The app opens on the agents (where the intro's Mochi lands), in both layouts.
         TabView(selection: $tab) {
             if computerLayout {
@@ -64,68 +150,16 @@ struct HomeView: View {
         .coucouMinimizingTabBar()
         // Pairing or forgetting the computer changes the tabs: back to the agents, which both layouts have.
         .onChange(of: computerLayout) { tab = .agents }
-        // A widget tile was tapped: open that Mochi. Or the Camera read a computer's pairing code.
-        .onOpenURL { url in
-            if let id = SharedSession.sessionId(from: url) {
-                open(id)
-            } else if let found = PCPairing.parse(url.absoluteString) {
-                if onboardingDone {
-                    pairing = found
-                } else {
-                    // The first-launch guide is up: it closes, then the pairing sheet opens.
-                    onboardingDone = true
-                    Task {
-                        try? await Task.sleep(for: .milliseconds(700))
-                        pairing = found
-                    }
-                }
-            }
-        }
-        .sheet(item: $pairing) { found in
-            PCPairingConfirm(pairing: found, pc: PCLink.shared)
-        }
-        // A notification, Siri, Spotlight or the Control Center asked for a session.
-        .onChange(of: link.openPillId) { _, id in
-            guard let id else { return }
-            open(id)
-            link.openPillId = nil
-        }
-        .onContinueUserActivity(SpotlightIndex.activityType) { activity in
-            if let id = SpotlightIndex.pillId(from: activity) { open(id) }
-        }
-        .sheet(isPresented: Binding(get: { link.reviewFingerprint != nil },
-                                    set: { if !$0 { link.reviewFingerprint = nil } })) {
-            if let fingerprint = link.reviewFingerprint {
-                ReviewSheet(link: link, fingerprint: fingerprint)
-            }
-        }
-        // First launch: how to connect the Mac (or, in a build without iCloud, the Windows or Linux computer).
-        .fullScreenCover(isPresented: Binding(get: { !onboardingDone }, set: { if !$0 { onboardingDone = true } })) {
-            if PhoneLink.cloudAvailable {
-                OnboardingView()
-            } else {
-                PCOnboardingView(pc: PCLink.shared)
-            }
-        }
-        // The opening: Mochi alone while the app loads, then he flies to his tile.
-        .overlay {
-            if !introDone {
-                IntroView(ready: link.firstSyncDone) { introDone = true }
-                    .transition(.identity)
-            }
-        }
-        .onAppear {
-            // The first launch opens on the setup guide instead.
-            if !onboardingDone {
-                introDone = true
-                IntroLanding.shared.landed = true
-            }
-        }
-        // Hermes' violet for every control, sheets included.
-        .tint(CoucouPalette.accent)
     }
 
     private func open(_ id: String) {
+        #if HERMES
+        // The computer's agent sessions open from AXYON's start screen.
+        if PillCatalog.isSession(id) {
+            axyonTab = .start
+            axyonPath = [id]
+        }
+        #else
         if PillCatalog.isSession(id) {
             tab = .agents
             agentsPath = [id]
@@ -133,6 +167,7 @@ struct HomeView: View {
             tab = .services
             servicesPath = [id]
         }
+        #endif
     }
 }
 

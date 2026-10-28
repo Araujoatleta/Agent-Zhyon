@@ -1,5 +1,8 @@
 # Build artefacts
 NotchBuddy/build/
+# What Hermes/build-ios.sh downloads and builds for the iPhone (CPython, Hermes, packages)
+NotchBuddy/Hermes/build/
+NotchBuddy/Hermes/**/__pycache__/
 NotchBuddy/NotchBuddy.xcodeproj/project.xcworkspace/xcuserdata/
 NotchBuddy/NotchBuddy.xcodeproj/xcuserdata/
 NotchBuddy/NotchBuddy.xcodeproj/xcshareddata/

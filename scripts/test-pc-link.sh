@@ -6,3 +6,7 @@ trap 'rm -rf "$TEST_DIR"' EXIT
 swiftc NotchBuddy/Sources/Phone/PCLinkWire.swift \
     tests/PCLinkWireTests.swift -o "$TEST_DIR/pc-link-tests"
 "$TEST_DIR/pc-link-tests"
+# Hermes inside the iPhone: the events of an answer and the conversation they fill in.
+swiftc NotchBuddy/Sources/Phone/PCLinkWire.swift NotchBuddy/Hermes/Swift/HermesWire.swift \
+    tests/HermesWireTests.swift -o "$TEST_DIR/hermes-wire-tests"
+"$TEST_DIR/hermes-wire-tests"

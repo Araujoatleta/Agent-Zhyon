@@ -276,6 +276,13 @@ enum PCLinkWireTests {
             check("others are not Tailscale's", !PCRemote.isTailnet("100.128.0.1:47821") && !PCRemote.isTailnet("100.63.0.1:47821")
                 && !PCRemote.isTailnet("198.51.100.7:47822") && !PCRemote.isTailnet("[2804::1]:47821") && !PCRemote.isTailnet("nonsense"))
 
+            // The portfolio's copy, for Hermes on this iPhone (windows/src-tauri/src/powers/mod.rs, phone_copy).
+            let copyLine = Data(#"{"type":"portfolio","positions":[{"ticker":"GARE11","class":"fii","quantity":204.0}],"ceilings":{"GARE11":8.0}}"#.utf8)
+            checkEqual("the portfolio's copy, kept as it came", PCIncoming.decode(copyLine), .portfolio(copyLine))
+            checkEqual("superpowers off: forget it", line(#"{"type":"portfolio","off":true}"#), .portfolio(nil))
+            checkEqual("no positions: not a copy", line(#"{"type":"portfolio"}"#), .other)
+            check("only a Hermes build asks for it", !PCWire.capabilities.contains(PCWire.portfolioCapability))
+
             var model = PCLinkModel()
             let effects = model.apply(.remote(["198.51.100.7:47822"]), now: t0)
             check("the screens' state is not touched", effects.isEmpty && model == PCLinkModel())

@@ -430,6 +430,9 @@ struct Sub {
     assistant: bool,
     /// The phone asked for `home` and both switches were on when it connected: it is sent the house after each action.
     home: bool,
+    /// The phone asked for `portfolio` while the superpowers were on: it keeps a copy of the portfolio, sent again
+    /// whenever it changes.
+    portfolio: bool,
     /// When this phone asked for a diff lately (ms), to keep it from flooding the island.
     diff_asks: Vec<u64>,
 }
@@ -451,6 +454,8 @@ pub struct Caps {
     pub assistant: bool,
     /// Mochi's home from the phone (home.rs).
     pub home: bool,
+    /// A copy of the portfolio, for AXYON on the phone (powers::phone_copy).
+    pub portfolio: bool,
 }
 
 #[derive(Default)]
@@ -473,6 +478,8 @@ struct Inner {
     remote: Option<Vec<String>>,
     /// The last `assistant` line sent to every phone that has the capability (assistant.rs).
     assistant: Option<Arc<str>>,
+    /// The portfolio's last copy (`portfolio` line), for the phones that keep one. None: none made yet.
+    portfolio: Option<Arc<str>>,
     subs: Vec<Sub>,
     next_sub: u64,
 }
@@ -580,7 +587,7 @@ impl Hub {
 
     /// Like [`subscribe`], for a phone that may also have been offered `answers` and `prefs`.
     pub fn subscribe_with(&self, tx: mpsc::Sender<Out>, now: u64, caps: Caps) -> (u64, Arc<AtomicBool>) {
-        let Caps { details, answers, prefs, diffs, usage, relay, services, remote, assistant, home } = caps;
+        let Caps { details, answers, prefs, diffs, usage, relay, services, remote, assistant, home, portfolio } = caps;
         let mut inner = self.inner.lock().unwrap();
         expire(&mut inner, now);
         let id = inner.next_sub;
@@ -615,6 +622,11 @@ impl Hub {
                 let _ = tx.try_send(Out::Line(remote_line(endpoints)));
             }
         }
+        if portfolio {
+            if let Some(line) = &inner.portfolio {
+                let _ = tx.try_send(Out::Line(line.clone()));
+            }
+        }
         let evicted = Arc::new(AtomicBool::new(false));
         inner.subs.push(Sub {
             id,
@@ -630,6 +642,7 @@ impl Hub {
             remote,
             assistant,
             home,
+            portfolio,
             diff_asks: Vec::new(),
         });
         (id, evicted)
@@ -646,6 +659,31 @@ impl Hub {
         let mut told = 0;
         self.inner.lock().unwrap().subs.retain(|s| {
             if !s.relay {
+                return true;
+            }
+            let kept = s.tx.try_send(Out::Line(line.clone())).is_ok();
+            if kept {
+                told += 1;
+            } else {
+                s.evicted.store(true, Ordering::SeqCst);
+            }
+            kept
+        });
+        told
+    }
+
+    /// The portfolio's copy changed (powers::phone_copy): the phones that keep one are sent it, unless it is the same
+    /// as the last. Returns how many were told.
+    pub fn set_portfolio(&self, line: String) -> usize {
+        let mut inner = self.inner.lock().unwrap();
+        if inner.portfolio.as_deref() == Some(line.as_str()) {
+            return 0;
+        }
+        let line: Arc<str> = line.into();
+        inner.portfolio = Some(line.clone());
+        let mut told = 0;
+        inner.subs.retain(|s| {
+            if !s.portfolio {
                 return true;
             }
             let kept = s.tx.try_send(Out::Line(line.clone())).is_ok();
@@ -1923,6 +1961,26 @@ mod tests {
         assert!(drain(&mut later).contains(&serde_json::json!({ "type": "remote", "endpoints": endpoints })));
         assert_eq!(hub.set_remote(Some(Vec::new())), 2);
         assert_eq!(drain(&mut early), vec![serde_json::json!({ "type": "remote", "endpoints": [] })]);
+    }
+
+    #[test]
+    fn the_portfolios_copy_goes_to_the_phones_that_keep_one_once_per_change() {
+        let (hub, _) = hub();
+        let (_, mut keeper) = sub_with(&hub, Caps { portfolio: true, ..Caps::default() });
+        let (_, mut other) = sub_with(&hub, Caps::default());
+        drain(&mut keeper);
+        drain(&mut other);
+        let copy = serde_json::json!({ "type": "portfolio", "positions": [{ "ticker": "GARE11", "quantity": 204.0 }] });
+        assert_eq!(hub.set_portfolio(copy.to_string()), 1);
+        assert_eq!(drain(&mut keeper), vec![copy.clone()]);
+        assert!(drain(&mut other).is_empty(), "a phone that did not ask is never sent it");
+        assert_eq!(hub.set_portfolio(copy.to_string()), 0, "the same copy again: nothing to say");
+        // A phone that connects later has it at once; with the superpowers off, it is told to forget it.
+        let (_, mut later) = sub_with(&hub, Caps { portfolio: true, ..Caps::default() });
+        assert!(drain(&mut later).contains(&copy));
+        let off = serde_json::json!({ "type": "portfolio", "off": true });
+        assert_eq!(hub.set_portfolio(off.to_string()), 2);
+        assert_eq!(drain(&mut keeper), vec![off]);
     }
 
     #[test]

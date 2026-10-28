@@ -3,20 +3,25 @@ name: iPhone (sideload)
 # Coucou for iPhone without iCloud (compiled with SIDELOAD), unsigned, as an .ipa to install with a free Apple Account
 # through Sideloadly or AltStore. That build talks only to Coucou on Windows or Linux, over the local network
 # (PCLink, docs/IPHONE_PC.md): a free account has no iCloud and no push. Nothing is signed or published here;
-# the .ipa is an artifact of the run.
+# the .ipa is an artifact of the run. A second job builds AXYON with Hermes inside the iPhone (NotchBuddy/Hermes):
+# that one works with no computer at all.
 
 on:
   push:
     paths:
       - 'NotchBuddy/**'
       - 'tests/PCLinkWireTests.swift'
+      - 'tests/HermesWireTests.swift'
       - 'scripts/test-pc-link.sh'
+      - 'windows/src-tauri/src/hermes_setup.rs'
       - '.github/workflows/iphone-sideload.yml'
   pull_request:
     paths:
       - 'NotchBuddy/**'
       - 'tests/PCLinkWireTests.swift'
+      - 'tests/HermesWireTests.swift'
       - 'scripts/test-pc-link.sh'
+      - 'windows/src-tauri/src/hermes_setup.rs'
       - '.github/workflows/iphone-sideload.yml'
   workflow_dispatch:
 
@@ -77,4 +82,85 @@ jobs:
         with:
           name: Coucou-iPhone-sideload
           path: Coucou-iPhone-sideload.ipa
+          retention-days: 30
+
+  # AXYON with Hermes inside the iPhone (NotchBuddy/Hermes/README.md): the same unsigned app compiled with HERMES,
+  # carrying CPython 3.14 for iOS, Hermes Agent, its packages (pydantic-core and jiter built here for arm64 iOS) and
+  # AXYON's own screens. It needs no computer; one paired still adds its home, agents and portfolio.
+  ipa-hermes:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      # CPython for iOS and the Rust builds: the slow part, kept between runs.
+      - uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            NotchBuddy/Hermes/build/support
+            NotchBuddy/Hermes/build/rust/target
+          key: hermes-ios-${{ hashFiles('NotchBuddy/Hermes/build-ios.sh', 'NotchBuddy/Hermes/requirements-*.txt') }}
+
+      - name: Hermes' own pieces (quotes, portfolio, web, iPhone tools, bridge)
+        run: python3.14 NotchBuddy/Hermes/tests/test_units.py
+
+      - name: Hermes wire tests (Swift)
+        run: bash scripts/test-pc-link.sh
+
+      - name: CPython, Hermes and its packages for iOS
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PYTHON: python3.14
+        run: bash NotchBuddy/Hermes/build-ios.sh
+
+      - name: Generate project (with Hermes)
+        run: cd NotchBuddy && xcodegen --spec project-hermes.yml
+
+      - name: Build the iPhone app with Hermes inside (unsigned, without iCloud)
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project NotchBuddy/NotchBuddy.xcodeproj \
+            -scheme CoucouPhone \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            'SWIFT_ACTIVE_COMPILATION_CONDITIONS=$(inherited) SIDELOAD HERMES' 2>&1 | tee build.log || {
+              grep -E "error:" build.log | sort -u | head -30 | sed 's/^/::error::/'
+              exit 1
+            }
+
+      - name: Package the .ipa
+        run: |
+          APP="build/Build/Products/Release-iphoneos/Coucou.app"
+          test -d "$APP"
+          # What Hermes needs at run time is there: the standard library, Hermes, the host, the compiled modules.
+          test -f "$APP/python/lib/python3.14/os.py"
+          test -f "$APP/app/run_agent.py"
+          test -f "$APP/app/axyon_hermes/host.py"
+          test -d "$APP/Frameworks/Python.framework"
+          ls "$APP/Frameworks" | wc -l
+          test -z "$(find "$APP" -name '*.so' | head -1)" || { echo "::error::a .so is left outside Frameworks"; find "$APP" -name '*.so' | head; exit 1; }
+          mkdir Payload
+          cp -R "$APP" Payload/
+          zip -qry AXYON-iPhone-Hermes.ipa Payload
+          ls -l AXYON-iPhone-Hermes.ipa
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: AXYON-iPhone-Hermes
+          path: AXYON-iPhone-Hermes.ipa
           retention-days: 30

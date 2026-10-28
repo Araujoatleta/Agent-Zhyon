@@ -1480,9 +1480,87 @@ pub fn view(app: &AppHandle) -> View {
     }
 }
 
-/// Every window redraws from the new view.
+/// Every window redraws from the new view, and the paired phones get the portfolio's new copy.
 fn changed(app: &AppHandle) {
     let _ = app.emit("powers-changed", view(app));
+    crate::phone_link::portfolio_changed(app);
+}
+
+// ── The phones' copy ──────────────────────────────────────────────────────────
+
+/// The most positions (and prices) a phone is given, and the most notes: with the notes' length below, the copy stays
+/// well under the 64 KiB a phone reads in one line.
+const PHONE_MOST: usize = 120;
+const PHONE_NOTES: usize = 30;
+const PHONE_NOTE_CHARS: usize = 160;
+
+/// The portfolio as the paired phones keep it, for AXYON on the iPhone to work with the computer off
+/// (docs/IPHONE_PC.md): the positions, the user's own ceilings, the last price known of each asset and the notes of
+/// AXYON's tab. None while the superpowers are off: the phones are told to forget their copy.
+pub fn phone_copy(app: &AppHandle) -> Option<Value> {
+    enabled(app).then(|| read(app, phone_copy_of))
+}
+
+fn phone_copy_of(s: &Store, m: &Market) -> Value {
+    let p = &s.portfolio;
+    let mut tickers: Vec<String> = p.tickers(None).iter().map(|t| t.to_uppercase()).collect();
+    for t in s.ceilings.manual.keys() {
+        if !tickers.contains(&t.to_uppercase()) {
+            tickers.push(t.to_uppercase());
+        }
+    }
+    let prices: serde_json::Map<String, Value> = tickers
+        .iter()
+        .take(PHONE_MOST)
+        .filter_map(|t| {
+            let live = m.live_now(t);
+            let close = m.quotes.get(t).filter(|q| q.close > 0.0);
+            let price = m.price(t)?;
+            Some((
+                t.clone(),
+                json!({
+                    "price": price,
+                    "at": live.map(|l| l.at),
+                    "previousClose": live.and_then(|l| l.previous),
+                    "close": close.map(|q| q.close),
+                    "closeDay": close.map(|q| q.date.to_string()),
+                }),
+            ))
+        })
+        .collect();
+    let positions: Vec<Value> = p
+        .positions
+        .iter()
+        .take(PHONE_MOST)
+        .map(|x| {
+            json!({
+                "ticker": x.ticker,
+                "class": x.class.id(),
+                "subtype": x.subtype,
+                "quantity": x.quantity,
+                "averagePrice": x.average_price,
+                "currentValue": x.current_value,
+                "note": x.note.chars().take(PHONE_NOTE_CHARS).collect::<String>(),
+            })
+        })
+        .collect();
+    let notes: Vec<Value> = s
+        .sheet_sync
+        .notes
+        .iter()
+        .take(PHONE_NOTES)
+        .map(|n| json!({ "ticker": n.ticker, "text": n.text.chars().take(PHONE_NOTE_CHARS).collect::<String>() }))
+        .collect();
+    json!({
+        "type": "portfolio",
+        "positions": positions,
+        "ceilings": s.ceilings.manual,
+        "prices": prices,
+        "cash": p.cash,
+        "source": p.source,
+        "updated": p.updated.map(|d| d.to_string()),
+        "notes": notes,
+    })
 }
 
 // ── What the chat adds to the user's message ──────────────────────────────────
@@ -1815,6 +1893,25 @@ mod tests {
         store.ceilings.manual.insert("TAEE11".into(), 40.0);
         store.ceilings.manual.insert("GGRC11".into(), 10.0);
         assert_eq!(live_tickers(&store), ["GGRC11", "TAEE11"], "what B3 does not quote is not asked for");
+    }
+
+    #[test]
+    fn the_phones_copy_has_the_positions_the_users_ceilings_and_the_last_prices() {
+        let mut store = Store::default();
+        store.portfolio.positions.push(coucou_powers::model::Position { ticker: "GARE11".into(), class: AssetClass::Fii, quantity: 204.0, average_price: 8.95, subtype: "tijolo".into(), current_value: None, note: String::new() });
+        store.portfolio.positions.push(coucou_powers::model::Position { ticker: "RDB Nubank".into(), class: AssetClass::RendaFixa, quantity: 1.0, average_price: 100.0, subtype: "pos".into(), current_value: Some(104.5), note: String::new() });
+        store.ceilings.manual.insert("GARE11".into(), 8.0);
+        store.ceilings.manual.insert("KNSC11".into(), 9.0);
+        let mut market = Market::default();
+        market.keep_live([("GARE11".to_string(), LivePrice { price: 8.31, at: 1_793_125_002, previous: Some(8.4) })]);
+        let copy = phone_copy_of(&store, &market);
+        assert_eq!(copy["type"], "portfolio");
+        assert_eq!(copy["positions"][0], json!({ "ticker": "GARE11", "class": "fii", "subtype": "tijolo", "quantity": 204.0, "averagePrice": 8.95, "currentValue": null, "note": "" }));
+        assert_eq!(copy["positions"][1]["currentValue"], 104.5);
+        assert_eq!(copy["ceilings"], json!({ "GARE11": 8.0, "KNSC11": 9.0 }));
+        assert_eq!(copy["prices"]["GARE11"], json!({ "price": 8.31, "at": 1_793_125_002, "previousClose": 8.4, "close": null, "closeDay": null }));
+        assert!(copy["prices"].get("KNSC11").is_none(), "no price known: none given");
+        assert!(copy["prices"].get("RDB NUBANK").is_none(), "what B3 does not quote has no price");
     }
 
     use super::*;
