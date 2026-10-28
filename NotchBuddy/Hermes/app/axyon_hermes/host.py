@@ -32,6 +32,7 @@ import logging
 import os
 import select
 import socket
+import socketserver
 import sys
 import threading
 import time
@@ -567,11 +568,21 @@ class Handler(BaseHTTPRequestHandler):
         return self._send(404, {"error": "not found"})
 
 
+class LoopbackServer(ThreadingHTTPServer):
+    """http.server's own, without the lookup of the address' full name it makes once it has the port and before it
+    listens (a reverse DNS query, which can hang inside iOS and leave the port refusing every call): a server on
+    127.0.0.1 needs no name."""
+
+    daemon_threads = True
+
+    def server_bind(self) -> None:
+        socketserver.TCPServer.server_bind(self)
+        self.server_name, self.server_port = "127.0.0.1", self.server_address[1]
+
+
 def serve(host: Host, port: int) -> ThreadingHTTPServer:
     Handler.host = host
-    server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
-    server.daemon_threads = True
-    return server
+    return LoopbackServer(("127.0.0.1", port), Handler)
 
 
 # The server answering now, its port and host: revive() replaces the server, never the host (Hermes stays loaded).

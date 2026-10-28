@@ -172,6 +172,24 @@ check("a refusal as an error the model reads", json.loads(refused) == {"error": 
 away = powers.Powers(PowersBridge({"error": "The AXYON app is not listening right now."})).call("life_day", {})
 check("the app away: its error", "not listening" in json.loads(away)["error"])
 
+print("The host's server")
+from axyon_hermes import host as host_module  # noqa: E402
+import socket  # noqa: E402
+
+looked_up = []
+real_getfqdn = socket.getfqdn
+socket.getfqdn = lambda *a: looked_up.append(a) or "x"
+try:
+    server = host_module.serve(host_module.Host(tempfile.mkdtemp(), "t" * 32, ""), 0)
+    port = server.server_address[1]
+    check("it listens on 127.0.0.1 at once, with no name looked up (that can hang inside iOS)",
+          not looked_up and server.server_name == "127.0.0.1" and port > 0)
+    with socket.create_connection(("127.0.0.1", port), timeout=2):
+        check("and takes a connection", True)
+    server.server_close()
+finally:
+    socket.getfqdn = real_getfqdn
+
 print("The bridge")
 b = bridge.Bridge()
 t0 = time.time()
