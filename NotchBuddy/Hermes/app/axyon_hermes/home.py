@@ -236,12 +236,18 @@ class SamsungRemote:
             context.check_hostname = False
             context.verify_mode = ssl.CERT_NONE  # self-signed: the pin below is the check
         wait = PAIR_WAIT if pairing else OPEN_WAIT
-        try:
-            ws = connect(samsung_remote_url(ip, port, secure, token), ssl=context, proxy=None, open_timeout=TIMEOUT,
-                         close_timeout=1, ping_interval=None, max_size=2 ** 20, compression=None,
-                         user_agent_header=None)
-        except Exception as e:
-            raise HomeError(f"The TV did not answer: is it on and on the same Wi-Fi? ({e})") from None
+        ws = None
+        for attempt in (1, 2):
+            # A TV just out of standby sometimes lets the first connection hang: once more, then it is said.
+            try:
+                ws = connect(samsung_remote_url(ip, port, secure, token), ssl=context, proxy=None,
+                             open_timeout=TIMEOUT, close_timeout=1, ping_interval=None, max_size=2 ** 20,
+                             compression=None, user_agent_header=None)
+                break
+            except Exception as e:
+                if attempt == 2:
+                    raise HomeError(f"The TV did not answer: is it on and on the same Wi-Fi? ({e})") from None
+                time.sleep(0.5)
         seen = None
         if secure:
             try:
