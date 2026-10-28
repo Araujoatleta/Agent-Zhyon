@@ -1,7 +1,9 @@
 """The iPhone app's start of Python, on a computer: bridge/AXYONPython.c as the app runs it (HermesEngine.start), built
 against a Python 3.14 with Hermes' dependencies and run on a bundle laid out as the app's (python, app, app_packages:
 build-ios.sh), with links instead of copies. Its host must listen and Hermes become ready, and a start that fails must
-say why, at once. Needs Hermes' checkout and a C compiler: `HERMES_SRC=… PYTHON=… python3 test_embedded.py`."""
+say why, at once. Needs Hermes' checkout and a C compiler: `HERMES_SRC=… PYTHON=… python3 test_embedded.py`.
+APP_PACKAGES=… takes a folder of packages instead of that Python's own: the app's list (requirements-pure.txt,
+requirements-ios-wheels.txt, pydantic-core and jiter) installed there for this computer, so nothing else is found."""
 import json
 import os
 import secrets
@@ -63,7 +65,7 @@ def bundle(config, hermes_src, work, name, with_app=True):
     resources = os.path.join(work, name)
     os.makedirs(resources)
     os.symlink(config["prefix"], os.path.join(resources, "python"))
-    os.symlink(config["packages"], os.path.join(resources, "app_packages"))
+    os.symlink(os.environ.get("APP_PACKAGES") or config["packages"], os.path.join(resources, "app_packages"))
     if not with_app:
         return resources
     app = os.path.join(resources, "app")

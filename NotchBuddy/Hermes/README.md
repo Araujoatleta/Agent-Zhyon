@@ -138,3 +138,13 @@ bash ../../scripts/test-pc-link.sh                            # HermesWire.swift
 `test_embedded.py` builds `bridge/AXYONPython.c` with `tests/embedded_main.c` against that Python and starts it as the
 app does, on a bundle laid out as the app's (with links), isolated from the computer's environment: the host must
 listen and Hermes become ready, and a start that fails must end at once with its traceback where the app shows it.
+
+Both take `APP_PACKAGES`, a folder with only the packages the app carries, installed for the computer, so a package
+Hermes needs and the app lacks fails here rather than on an iPhone (test_host.py then wants a `PYTHON` with no packages
+of its own, such as the one uv installs):
+
+```
+uv pip install --python …/python3.14 --target /tmp/app-packages --no-deps \
+    -r requirements-pure.txt -r requirements-ios-wheels.txt pydantic-core==2.46.4 jiter==0.16.0
+APP_PACKAGES=/tmp/app-packages HERMES_SRC=… PYTHON=…/python3.14 python3 tests/test_host.py
+```

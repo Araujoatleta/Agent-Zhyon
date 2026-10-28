@@ -1,7 +1,8 @@
 """The host as the app uses it, end to end, against a fake model (fake_model.py): settings, a run with the
 superpowers' portfolio tool (the app's side of the bridge answering for the engine), the session remembered, the
 bridge, and the token. Needs Hermes' checkout and a Python 3.14 with its dependencies:
-`HERMES_SRC=… PYTHON=… python3 test_host.py`."""
+`HERMES_SRC=… PYTHON=… python3 test_host.py`. With APP_PACKAGES=… (the app's own list installed in a folder, as for
+test_embedded.py) and a PYTHON without them, only what the iPhone carries is found."""
 import json
 import os
 import secrets
@@ -50,9 +51,11 @@ def main():
                                   "currentValue": 104.5}],
                    "ceilings": {"GARE11": 8.0, "KNSC11": 9.0},
                    "prices": {"GARE11": {"price": 8.31, "close": 8.31, "closeDay": "2026-10-27"}}}, f)
+    packages = [os.environ["APP_PACKAGES"]] if os.environ.get("APP_PACKAGES") else []
     env = dict(os.environ, AXYON_HERMES_HOME=os.path.join(work, "hermes"), AXYON_HOST_PORT=str(host_port),
                AXYON_HOST_TOKEN=token, AXYON_PORTFOLIO=portfolio,
-               PYTHONPATH=os.pathsep.join([os.path.join(ROOT, "shims"), os.path.join(ROOT, "app"), hermes_src]))
+               PYTHONPATH=os.pathsep.join([os.path.join(ROOT, "shims"), os.path.join(ROOT, "app"), hermes_src]
+                                          + packages))
     host = subprocess.Popen([python, os.path.join(HERE, "ios_like.py")], env=env,
                             stdout=open(os.path.join(work, "host.log"), "w"), stderr=subprocess.STDOUT)
     base = f"http://127.0.0.1:{host_port}"
