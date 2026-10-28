@@ -191,6 +191,7 @@ jobs:
   # answer that takes a tool the app answers itself (NotchBuddy/Hermes/tests/simulator.sh).
   hermes-simulator:
     runs-on: macos-latest
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v7
         with:
@@ -242,6 +243,7 @@ jobs:
             }
 
       - name: Hermes inside iOS (start, health, an answer with the iPhone's own tool)
+        timeout-minutes: 18
         env:
           PYTHON: python3.14
         run: bash NotchBuddy/Hermes/tests/simulator.sh build/Build/Products/Release-iphonesimulator/Coucou.app

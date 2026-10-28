@@ -55,11 +55,22 @@ fail() {
     exit 1
 }
 
+say() { echo "[$(date +%H:%M:%S)] $*"; }
+
+say "Booting the Simulator"
 xcrun simctl boot "$DEVICE" 2>/dev/null || true
-xcrun simctl bootstatus "$DEVICE" -b >/dev/null
+booted=""
+for _ in $(seq 1 120); do
+    if xcrun simctl list devices | grep "$DEVICE" | grep -q "(Booted)"; then booted=1; break; fi
+    sleep 3
+done
+[ -n "$booted" ] || fail "the Simulator did not boot in 6 minutes"
+# Its first boot finishes setting itself up after it says Booted.
+sleep 20
+say "Installing and launching AXYON"
 xcrun simctl install "$DEVICE" "$APP"
 SIMCTL_CHILD_AXYON_TEST_PORT="$PORT" SIMCTL_CHILD_AXYON_TEST_TOKEN="$TOKEN" \
-    xcrun simctl launch "$DEVICE" "$BUNDLE"
+    xcrun simctl launch "$DEVICE" "$BUNDLE" || fail "the app did not launch"
 
 call() {  # method path [json body]
     if [ $# -ge 3 ]; then
@@ -70,11 +81,12 @@ call() {  # method path [json body]
     fi
 }
 
-echo "Waiting for Hermes to be ready inside iOS…"
+say "Waiting for Hermes to be ready inside iOS…"
 started=$(date +%s)
 ready=""
-for _ in $(seq 1 150); do
-    health="$(call GET /health 2>/dev/null || true)"
+for i in $(seq 1 150); do
+    health="$(curl -sS --max-time 5 -H "Authorization: Bearer $TOKEN" "$URL/health" 2>&1 || true)"
+    if [ $((i % 10)) = 0 ]; then say "still waiting: ${health:0:200}"; fi
     state="$(printf '%s' "$health" | "$PYTHON" -c '
 import json, sys
 try:
@@ -90,7 +102,7 @@ print("ready" if h.get("ready") else ("problem: " + h["problem"]) if h.get("prob
     sleep 2
 done
 [ -n "$ready" ] || fail "Hermes was not ready inside iOS after 5 minutes (last answer: ${health:-none})"
-echo "Hermes ready inside iOS in $(( $(date +%s) - started ))s: $health"
+say "Hermes ready inside iOS in $(( $(date +%s) - started ))s: $health"
 
 echo "The brain: the local stand-in model"
 call POST /v1/settings "{\"provider\":\"custom\",\"model\":\"fake-model\",\"baseUrl\":\"http://127.0.0.1:$MODEL_PORT/v1\",\"keys\":{\"OPENAI_API_KEY\":\"not-a-real-key\"}}"
