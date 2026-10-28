@@ -310,8 +310,16 @@ final class PCLink {
         let reasons = failures.map(\.reason)
         if reasons.contains(LinkEvent.noLocalNetwork) { return LinkEvent.noLocalNetwork }
         if !reasons.isEmpty, reasons.allSatisfy({ $0 == LinkEvent.otherCertificate }) { return LinkEvent.otherCertificate }
+        let tailnet = computer?.remote.contains(where: PCRemote.isTailnet) ?? false
         if plan.contains(where: { $0.outside }) {
+            if tailnet {
+                return String(localized: "\(name) can't be reached, at home or through Tailscale. Is Tailscale on, on this iPhone and on the computer, and the computer awake with the app running?")
+            }
             return "\(name) can't be reached, at home or over the internet. Is it awake, with Coucou running?"
+        }
+        if !onLocalNetwork {
+            // Away from home, and the computer gave no way in yet.
+            return String(localized: "Away from home, \(name) can be reached through Tailscale (free): install it on the computer and on this iPhone with the same account, then open this app once at home.")
         }
         return failures.first?.reason ?? LinkEvent.unreachable
     }

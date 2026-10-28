@@ -132,6 +132,24 @@ What to expect, since the sideload build has no Apple push:
 - While Coucou is closed, a request reaches you through **ntfy** (above).
 - When nothing is working or waiting any more, Mochi shows the work done and leaves the island half a minute later.
 
+## Away from home through Tailscale (works behind any router)
+
+When the provider uses **CGNAT** or the router opens no port, the direct way below cannot work. **Tailscale** (free
+for personal use) can: it makes a private network of your own between the computer and the iPhone, through any
+cellular network or Wi-Fi. The app does not talk to Tailscale: it only sees that the computer has a **100.x.y.z**
+address and gives it to the iPhone, as it gives the router's.
+
+1. On the computer: install Tailscale (tailscale.com/download) and sign in.
+2. On the iPhone: install **Tailscale** from the App Store and sign in with **the same account**. Leave its VPN on.
+3. Open the app on the iPhone **once at home**, on the Wi-Fi: it learns the computer's Tailscale address. On the
+   computer, **Settings → Phone** says *"Tailscale is on here (100.x.y.z)…"*.
+4. That is all: away from home, the iPhone tries the home network, then the Tailscale address.
+
+If it does not connect: Tailscale must be on **on both**, the computer awake and the app running. If Windows asked
+about the firewall, the app must be allowed on **private networks** (Tailscale's network is a private one). The link
+is the same as at home: TLS with the certificate pinned by the QR code and the pairing code; only devices on your
+tailnet reach it.
+
 ## Away from home, directly (no one's server)
 
 The iPhone can reach the computer from anywhere (cellular, the Wi-Fi at work) with **no server in between**: no

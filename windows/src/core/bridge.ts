@@ -72,6 +72,8 @@ export interface PhoneLinkStatus {
   error: string | null;
   /** The relay connection ("Away from home Wi-Fi"). */
   relayState: PhoneRelayState;
+  /** This computer's Tailscale address(es), when Tailscale runs here: the phones come through it away from home. */
+  tailnet: string[];
 }
 
 export type PhoneRelayState = "off" | "connecting" | "waiting" | "linked" | "accessRefused" | "unreachable" | "roomTaken" | "tooMany";

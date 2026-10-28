@@ -12639,6 +12639,28 @@
    "pt-BR": "Pelo gog, com o login dele",
    "ru": "Через gog, с его собственным входом",
    "id": "Lewat gog, dengan login miliknya"
+  },
+  "Tailscale is on here ({address}): with Tailscale on in the iPhone too, AXYON reaches this computer from anywhere, on 4G, 5G or another Wi-Fi. The iPhone learns this address the next time it connects here.": {
+   "zh-Hans": "这台电脑上的 Tailscale 已开启（{address}）：iPhone 上也开启 Tailscale 后，AXYON 在任何地方都能连到这台电脑，无论是 4G、5G 还是其他 Wi-Fi。iPhone 下次在这里连接时会记住这个地址。",
+   "hi": "यहाँ Tailscale चालू है ({address}): iPhone में भी Tailscale चालू हो तो AXYON कहीं से भी इस कंप्यूटर तक पहुँचता है, 4G, 5G या किसी दूसरे Wi-Fi पर। iPhone अगली बार यहाँ कनेक्ट होने पर यह पता सीख लेता है।",
+   "es": "Tailscale está activo aquí ({address}): con Tailscale activo también en el iPhone, AXYON llega a este equipo desde cualquier lugar, en 4G, 5G u otra Wi-Fi. El iPhone aprende esta dirección la próxima vez que se conecte aquí.",
+   "ar": "Tailscale يعمل هنا ({address}): مع تشغيل Tailscale على iPhone أيضًا، يصل AXYON إلى هذا الكمبيوتر من أي مكان، عبر 4G أو 5G أو شبكة Wi-Fi أخرى. يتعلّم iPhone هذا العنوان في المرة القادمة التي يتصل فيها هنا.",
+   "fr": "Tailscale est actif ici ({address}) : avec Tailscale actif aussi sur l'iPhone, AXYON joint cet ordinateur de partout, en 4G, en 5G ou sur un autre Wi-Fi. L'iPhone apprend cette adresse la prochaine fois qu'il se connecte ici.",
+   "bn": "এখানে Tailscale চালু আছে ({address}): iPhone-এও Tailscale চালু থাকলে AXYON যেকোনো জায়গা থেকে এই কম্পিউটারে পৌঁছায়, 4G, 5G বা অন্য Wi-Fi-তে। পরের বার এখানে কানেক্ট হলে iPhone এই ঠিকানাটি শিখে নেয়।",
+   "pt-BR": "O Tailscale está ligado aqui ({address}): com o Tailscale ligado no iPhone também, o AXYON chega a este computador de qualquer lugar, no 4G, no 5G ou em outro Wi-Fi. O iPhone aprende este endereço na próxima vez que se conectar aqui.",
+   "ru": "Здесь включён Tailscale ({address}): если Tailscale включён и на iPhone, AXYON доберётся до этого компьютера откуда угодно — через 4G, 5G или другой Wi-Fi. iPhone запомнит этот адрес, когда в следующий раз подключится здесь.",
+   "id": "Tailscale aktif di sini ({address}): dengan Tailscale aktif juga di iPhone, AXYON menjangkau komputer ini dari mana saja, lewat 4G, 5G, atau Wi-Fi lain. iPhone mempelajari alamat ini saat berikutnya terhubung di sini."
+  },
+  "Away from home on any network (4G, 5G, another Wi-Fi), even when your router cannot be opened: install Tailscale (free) on this computer and on the iPhone, signed in with the same account. AXYON finds the address by itself.": {
+   "zh-Hans": "在外面用任何网络（4G、5G、其他 Wi-Fi）都能连，即使路由器无法开放端口：在这台电脑和 iPhone 上安装 Tailscale（免费），并用同一个账户登录。AXYON 会自己找到地址。",
+   "hi": "घर से बाहर किसी भी नेटवर्क पर (4G, 5G, दूसरा Wi-Fi), तब भी जब आपका राउटर खोला न जा सके: इस कंप्यूटर और iPhone पर Tailscale (मुफ़्त) इंस्टॉल करें, एक ही खाते से साइन इन करके। AXYON पता खुद ढूँढ लेता है।",
+   "es": "Fuera de casa en cualquier red (4G, 5G, otra Wi-Fi), aunque no se pueda abrir tu router: instala Tailscale (gratis) en este equipo y en el iPhone, con la misma cuenta. AXYON encuentra la dirección solo.",
+   "ar": "خارج المنزل على أي شبكة (4G أو 5G أو Wi-Fi أخرى)، حتى عندما لا يمكن فتح جهاز التوجيه: ثبّت Tailscale (مجانًا) على هذا الكمبيوتر وعلى iPhone، مسجّلًا الدخول بالحساب نفسه. يجد AXYON العنوان بنفسه.",
+   "fr": "Hors de chez vous sur n'importe quel réseau (4G, 5G, un autre Wi-Fi), même quand votre routeur ne peut pas être ouvert : installez Tailscale (gratuit) sur cet ordinateur et sur l'iPhone, avec le même compte. AXYON trouve l'adresse tout seul.",
+   "bn": "বাড়ির বাইরে যেকোনো নেটওয়ার্কে (4G, 5G, অন্য Wi-Fi), এমনকি রাউটার খোলা না গেলেও: এই কম্পিউটারে ও iPhone-এ Tailscale (বিনামূল্যে) ইনস্টল করুন, একই অ্যাকাউন্টে সাইন ইন করে। AXYON নিজেই ঠিকানা খুঁজে নেয়।",
+   "pt-BR": "Fora de casa em qualquer rede (4G, 5G, outro Wi-Fi), mesmo quando o seu roteador não pode ser aberto: instale o Tailscale (grátis) neste computador e no iPhone, entrando com a mesma conta. O AXYON acha o endereço sozinho.",
+   "ru": "Вне дома в любой сети (4G, 5G, другой Wi-Fi), даже если роутер нельзя открыть: установите Tailscale (бесплатно) на этот компьютер и на iPhone, войдя в одну и ту же учётную запись. AXYON сам найдёт адрес.",
+   "id": "Di luar rumah di jaringan apa pun (4G, 5G, Wi-Fi lain), bahkan saat router Anda tidak bisa dibuka: pasang Tailscale (gratis) di komputer ini dan di iPhone, masuk dengan akun yang sama. AXYON menemukan alamatnya sendiri."
   }
  }
 }

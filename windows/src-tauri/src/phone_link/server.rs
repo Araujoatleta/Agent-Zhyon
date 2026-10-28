@@ -253,7 +253,8 @@ pub fn serve_more(listener: TcpListener, acceptor: TlsAcceptor, shared: Arc<Shar
 /// A place for a caller: the local network's pool, or the internet's while the user's switch is on. None: closed
 /// before any byte is read.
 pub(super) fn ticket_for(shared: &Shared, ip: IpAddr) -> Option<Ticket> {
-    if is_local(ip) {
+    // A phone on the user's Tailscale network, while this computer is on it too: as near as the local network.
+    if is_local(ip) || (super::remote::is_tailnet(ip) && !super::remote::tailnet_v4().is_empty()) {
         shared.admission.admit(ip)
     } else if shared.features.remote() {
         shared.admission.admit_outside(ip)

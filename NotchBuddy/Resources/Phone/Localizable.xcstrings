@@ -45,6 +45,28 @@
         }
       }
     },
+    "%@ can't be reached, at home or through Tailscale. Is Tailscale on, on this iPhone and on the computer, and the computer awake with the app running?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se puede alcanzar %@, ni en casa ni por Tailscale. ¿Está Tailscale activado en este iPhone y en el ordenador, y el ordenador despierto con la app abierta?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ est injoignable, à la maison comme par Tailscale. Tailscale est-il activé sur cet iPhone et sur l'ordinateur, et l'ordinateur réveillé avec l'app ouverte ?"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível alcançar %@, nem em casa nem pelo Tailscale. O Tailscale está ligado neste iPhone e no computador, e o computador está acordado com o app aberto?"
+          }
+        }
+      }
+    },
     "%@ didn't answer in time.": {
       "localizations": {
         "es": {
@@ -943,6 +965,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Fora de casa"
+          }
+        }
+      }
+    },
+    "Away from home, %@ can be reached through Tailscale (free): install it on the computer and on this iPhone with the same account, then open this app once at home.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fuera de casa, %@ se alcanza por Tailscale (gratis): instálalo en el ordenador y en este iPhone con la misma cuenta, y abre esta app una vez en casa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hors de chez vous, %@ se joint par Tailscale (gratuit) : installez-le sur l'ordinateur et sur cet iPhone avec le même compte, puis ouvrez cette app une fois à la maison."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fora de casa, %@ é alcançado pelo Tailscale (grátis): instale no computador e neste iPhone com a mesma conta, depois abra este app uma vez em casa."
           }
         }
       }

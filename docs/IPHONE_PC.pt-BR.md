@@ -165,6 +165,24 @@ iPhone)** no PC, desligado até você ligar:
 Ligar ou desligar um desses interruptores reconecta o iPhone uma vez, para ele ficar sabendo; enquanto um deles
 estiver desligado, o iPhone diz qual ligar.
 
+### Fora de casa pelo Tailscale (funciona atrás de qualquer roteador)
+
+Se a sua operadora usa **CGNAT** ou o roteador não abre porta, o caminho direto abaixo não tem como funcionar. O
+**Tailscale** (grátis para uso pessoal) resolve: ele cria uma rede privada só sua entre o PC e o iPhone, que passa por
+qualquer 4G, 5G ou Wi-Fi. O AXYON não fala com o Tailscale: ele só percebe que o PC tem um endereço **100.x.y.z** e
+passa esse endereço ao iPhone, como já faz com os do roteador.
+
+1. No PC: instale o Tailscale (tailscale.com/download) e entre com uma conta (Google, Microsoft…).
+2. No iPhone: instale o **Tailscale** da App Store e entre com **a mesma conta**. Deixe a VPN dele ligada.
+3. Abra o app no iPhone **uma vez em casa**, no Wi-Fi: ele aprende o endereço do Tailscale do PC. Em
+   **Configurações → Celular** no PC aparece *"O Tailscale está ligado aqui (100.x.y.z)…"*.
+4. Pronto: na rua, no 4G/5G ou em outro Wi-Fi, o iPhone tenta a rede de casa e depois o endereço do Tailscale.
+
+Se não conectar: confira se o Tailscale está ligado **nos dois**, o PC acordado e o AXYON aberto. Se o Windows
+perguntou sobre o firewall, o AXYON precisa estar permitido em **redes privadas** (a rede do Tailscale é privada).
+O link continua o mesmo de casa: TLS com o certificado fixado no QR code e o código de pareamento; só quem está na sua
+rede do Tailscale chega até ele.
+
 ### Fora de casa, direto no PC (sem servidor de ninguém)
 
 O iPhone pode falar com o PC de qualquer lugar (4G, o Wi-Fi do trabalho) **sem nenhum servidor no meio**: nada de

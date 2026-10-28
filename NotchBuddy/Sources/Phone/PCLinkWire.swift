@@ -99,6 +99,13 @@ enum PCRemote {
         return (String(host), port)
     }
 
+    /// A Tailscale address (100.64.0.0/10): reached only while Tailscale is on, on this iPhone too.
+    static func isTailnet(_ endpoint: String) -> Bool {
+        guard let host = parse(endpoint)?.host, !host.contains(":") else { return false }
+        let parts = host.split(separator: ".").compactMap { Int($0) }
+        return parts.count == 4 && parts[0] == 100 && (64...127).contains(parts[1])
+    }
+
     /// The well-formed ones, each once, in the computer's order, at most six.
     static func clean(_ list: [String]) -> [String] {
         var kept: [String] = []

@@ -139,6 +139,43 @@ pub fn global_v6(all: impl IntoIterator<Item = Ipv6Addr>) -> Vec<Ipv6Addr> {
     out
 }
 
+/// A Tailscale address: 100.64.0.0/10 (the shared address space Tailscale gives each device) or fd7a:115c:a1e0::/48.
+pub fn is_tailnet(ip: IpAddr) -> bool {
+    match ip {
+        IpAddr::V4(v4) => {
+            let o = v4.octets();
+            o[0] == 100 && (o[1] & 0xc0) == 64
+        }
+        IpAddr::V6(v6) => {
+            let s = v6.segments();
+            s[0] == 0xfd7a && s[1] == 0x115c && s[2] == 0xa1e0
+        }
+    }
+}
+
+/// This computer's IPv4 addresses on a Tailscale network: on an interface that is up and named for Tailscale
+/// ("Tailscale" on Windows, tailscale0 on Linux), so an internet provider's own 100.64/10 address is not taken for one.
+pub fn tailnet_v4() -> Vec<Ipv4Addr> {
+    tailnet_of(if_addrs::get_if_addrs().unwrap_or_default().into_iter().filter(|i| i.is_oper_up()).map(|i| (i.name.clone(), i.ip())))
+}
+
+pub fn tailnet_of(interfaces: impl IntoIterator<Item = (String, IpAddr)>) -> Vec<Ipv4Addr> {
+    interfaces
+        .into_iter()
+        .filter(|(name, _)| name.to_ascii_lowercase().contains("tailscale"))
+        .filter_map(|(_, ip)| match ip {
+            IpAddr::V4(v4) if is_tailnet(ip) => Some(v4),
+            _ => None,
+        })
+        .collect()
+}
+
+/// Where a paired phone with Tailscale on finds this computer from anywhere ("100.101.102.103:47821"): whatever the
+/// network it is on (4G, 5G, another Wi-Fi), through Tailscale's own way between the two, with no router to open.
+pub fn tailnet_endpoints(port: u16) -> Vec<String> {
+    tailnet_v4().into_iter().map(|ip| format!("{ip}:{port}")).collect()
+}
+
 /// This computer's own internet (IPv6) addresses, on the interfaces that are up.
 pub fn local_v6() -> Vec<Ipv6Addr> {
     let interfaces = if_addrs::get_if_addrs().unwrap_or_default();
@@ -485,6 +522,25 @@ mod tests {
         assert!(classify_v4("192.168.1.10".parse().unwrap()).unwrap_err().contains("private"));
         assert!(classify_v4("0.0.0.0".parse().unwrap()).is_err());
         assert!(classify_v4("100.128.0.1".parse().unwrap()).is_ok(), "just past the shared range");
+    }
+
+    #[test]
+    fn tailscale_addresses_are_known_by_their_range_and_their_interface() {
+        for yes in ["100.64.0.1", "100.101.102.103", "100.127.255.254", "fd7a:115c:a1e0::1"] {
+            assert!(is_tailnet(yes.parse().unwrap()), "{yes}");
+        }
+        for no in ["100.63.255.255", "100.128.0.1", "192.168.0.10", "fd7a:115c:a1e1::1", "2804::1"] {
+            assert!(!is_tailnet(no.parse().unwrap()), "{no}");
+        }
+        let interfaces = vec![
+            ("Wi-Fi".to_string(), "192.168.0.10".parse().unwrap()),
+            ("Tailscale".to_string(), "100.101.102.103".parse().unwrap()),
+            ("Tailscale".to_string(), "fd7a:115c:a1e0::9".parse().unwrap()),
+            // A 4G modem's own address from the provider's shared range: not Tailscale.
+            ("Celular".to_string(), "100.70.1.2".parse().unwrap()),
+            ("tailscale0".to_string(), "100.100.1.1".parse().unwrap()),
+        ];
+        assert_eq!(tailnet_of(interfaces), vec!["100.101.102.103".parse::<Ipv4Addr>().unwrap(), "100.100.1.1".parse().unwrap()]);
     }
 
     #[test]
