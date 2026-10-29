@@ -27,6 +27,19 @@ def check(label, ok):
         failures += 1
 
 
+def tiny_png():
+    """A real 2×2 PNG, as a photo the user sends."""
+    import struct
+    import zlib
+
+    def chunk(kind, data):
+        return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF)
+
+    rows = b"".join(b"\x00" + b"\xff\x80\x00" * 2 for _ in range(2))
+    return (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", 2, 2, 8, 2, 0, 0, 0))
+            + chunk(b"IDAT", zlib.compress(rows)) + chunk(b"IEND", b""))
+
+
 def free_port():
     s = socket.socket()
     s.bind(("127.0.0.1", 0))
@@ -52,6 +65,11 @@ def main():
                    "ceilings": {"GARE11": 8.0, "KNSC11": 9.0},
                    "prices": {"GARE11": {"price": 8.31, "close": 8.31, "closeDay": "2026-10-27"}}}, f)
     packages = [os.environ["APP_PACKAGES"]] if os.environ.get("APP_PACKAGES") else []
+    # The stand-in model sees, as the user's brain does (it is in no catalog of models that see: Hermes would turn
+    # photos into descriptions for it).
+    os.makedirs(os.path.join(work, "hermes"))
+    with open(os.path.join(work, "hermes", "config.yaml"), "w") as f:
+        f.write("model:\n  provider: openai-codex\n  supports_vision: true\ntools:\n  tool_search:\n    enabled: \"off\"\n")
     env = dict(os.environ, AXYON_HERMES_HOME=os.path.join(work, "hermes"), AXYON_HOST_PORT=str(host_port),
                AXYON_HOST_TOKEN=token, AXYON_PORTFOLIO=portfolio,
                PYTHONPATH=os.pathsep.join([os.path.join(ROOT, "shims"), os.path.join(ROOT, "app"), hermes_src]
@@ -103,6 +121,8 @@ def main():
             print(open(os.path.join(work, "host.log")).read()[-3000:])
             return
         check("python is 3.14", health.get("python", "").startswith("3.14"))
+        check("ChatGPT's image maker set with ChatGPT as the brain",
+              "image_gen:\n  provider: openai-codex" in open(os.path.join(work, "hermes", "config.yaml")).read())
         check("no token: refused", call("GET", "/health", auth=False)[0] == 401)
         check("a web page: refused", call("GET", "/health", headers={"Origin": "https://evil.example"})[0] == 401)
 
@@ -179,6 +199,69 @@ def main():
         t.join(timeout=10)
         check("Hermes asked the app", bool(got) and got[0]["kind"] == "home")
         check("and the answer reached the model", any("tv1" in (e.get("text") or "") for e in evs3 if e["type"] == "done"))
+
+        print("Files the user sends")
+        inbox = os.path.join(work, "hermes", "inbox")
+        os.makedirs(inbox, exist_ok=True)
+        statement = os.path.join(inbox, "extrato.txt")
+        with open(statement, "w") as f:
+            f.write("Extrato de outubro: aporte de R$ 500 em BTLG11")
+        photo = os.path.join(inbox, "print.png")
+        with open(photo, "wb") as f:
+            f.write(tiny_png())
+        code, r5 = call("POST", "/v1/runs", {"session": "axyon-files", "message": "O que é isso?", "attachments": [
+            {"path": statement, "name": "extrato.txt"}, {"path": photo, "name": "print.png", "kind": "image"}]})
+        done5 = [e for e in events(r5["run_id"]) if e["type"] == "done"]
+        said5 = done5[0]["text"] if done5 else ""
+        check("the photo reached the model as an image", "Vi 1 imagem" in said5)
+        if "Vi 1 imagem" not in said5:
+            print("   ", said5[:300], [l[:160] for l in open(os.path.join(work, "model.log")).read().splitlines()[-3:]])
+        check("the document's text in the message", "1 documento(s): Extrato de outubro" in said5)
+        check("a file outside Hermes' inbox is refused", call("POST", "/v1/runs", {
+            "session": "axyon-files", "message": "x", "attachments": [{"path": os.path.join(work, "hermes", "config.yaml")}]})[0] == 400)
+        check("a photo alone is a message", call("POST", "/v1/runs", {
+            "session": "axyon-files-2", "message": "", "attachments": [{"path": photo, "kind": "image"}]})[0] == 202)
+
+        print("Google")
+        code, account = call("GET", "/v1/google")
+        check("not connected yet, with how to", code == 200 and account["connected"] is False
+              and "console.cloud.google.com" in account.get("next", ""))
+        seen = open(os.path.join(work, "model.log")).read()
+        check("the model has Gmail, Sheets, Drive, Calendar and the account", all(
+            t in seen for t in ("'gmail'", "'google_sheets'", "'google_drive'", "'google_calendar'", "'google_account'")))
+        check("and every tool iOS allows: files sent, alerts, cron, delegation", all(
+            t in seen for t in ("'iphone_files'", "'iphone_alerts'", "'cronjob_manage'", "'delegate_task'")))
+        check("images made only with a brain that has an image maker", "'image_generate'" not in seen)
+        check("but none iOS forbids", not any(t in seen for t in ("'terminal'", "'execute_code'", "'browser_navigate'", "'computer_use'")))
+        try:
+            urllib.request.urlopen(f"{base}/?state=not-waiting&code=x", timeout=10)
+            stranger = 200
+        except urllib.error.HTTPError as e:
+            stranger = e.code
+        check("Google's page coming back with another sign-in's state is refused", stranger == 400)
+        code, made = call("POST", "/v1/google/connect", {})
+        check("no client yet: Settings is told how to make one", code == 422 and "Desktop app" in made["error"])
+
+        print("Scheduled tasks")
+        app4, asked4 = app_answering({"ok": True})
+        code, r6 = call("POST", "/v1/runs", {"session": "axyon-cron", "message": "agenda a cotação do BTLG11 a cada 5 minutos"})
+        evs6 = events(r6["run_id"])
+        check("made with Hermes' own cronjob tool", any(e.get("name") == "cronjob_manage" for e in evs6 if e["type"] == "tool"))
+        code, listed = call("GET", "/v1/cron")
+        jobs = listed.get("jobs") or []
+        check("listed for Settings", code == 200 and jobs and jobs[0]["name"] == "Cotação BTLG11" and jobs[0]["enabled"])
+        stored = os.path.join(work, "hermes", "cron", "jobs.json")
+        with open(stored) as f:
+            data = json.load(f)
+        data["jobs"][0]["next_run_at"] = time.strftime("%Y-%m-%dT%H:%M:%S+00:00", time.gmtime(time.time() - 30))
+        with open(stored, "w") as f:
+            json.dump(data, f)
+        code, ticked = call("POST", "/v1/cron/tick", {})
+        app4.join(timeout=60)
+        check("the due task ran at the app's tick", code == 200)
+        check("its answer came to the iPhone as a notification", bool(asked4) and asked4[0]["kind"] == "iphone"
+              and asked4[0]["request"]["action"] == "notify" and asked4[0]["request"]["title"] == "Cotação BTLG11")
+        check("and Hermes counts it done", (call("GET", "/v1/cron")[1]["jobs"][0].get("status") or "") == "ok")
     finally:
         host.terminate()
         model.terminate()

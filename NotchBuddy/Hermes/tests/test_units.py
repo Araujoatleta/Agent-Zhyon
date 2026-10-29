@@ -132,7 +132,8 @@ class FakeRegistry:
 
 
 iphone.IPhone(fake).register(FakeRegistry())
-check("twelve iPhone tools, in Coucou's toolset", len(registered) == 12 and all(t == "coucou" for t, _, _ in registered.values()))
+check("thirteen iPhone tools (the alerts too), in Coucou's toolset", len(registered) == 13 and "iphone_alerts" in registered
+      and all(t == "coucou" for t, _, _ in registered.values()))
 out = registered["iphone_notify"][2]({"title": "Água", "in_seconds": 60, "body": None})
 check("the action and its arguments go to the app", fake.asked[-1] == ("iphone", {"action": "notify", "title": "Água", "inSeconds": 60}))
 check("the app's answer to the model", json.loads(out) == {"ok": True})
@@ -246,6 +247,284 @@ check("a stream the app closed leaves the request to its new one",
       b.ask("iphone", {"x": 2}, wait=3) == {"by": "the new stream"} and old_stream.get("ended"))
 for t in threads:
     t.join()
+
+print("The files the user sends")
+from axyon_hermes import attachments  # noqa: E402
+
+home = tempfile.mkdtemp(prefix="axyon-inbox-")
+box = attachments.inbox(home)
+os.makedirs(box)
+outside = os.path.join(home, "config.yaml")
+with open(outside, "w") as f:
+    f.write("model: secret")
+receipt = os.path.join(box, "nota.pdf")
+with open(receipt, "wb") as f:
+    f.write(b"%PDF-1.7 not read here")
+with open(receipt + ".txt.extracted", "w") as f:
+    f.write("Nota fiscal 123\nTotal: R$ 89,90")
+sheet = os.path.join(box, "gastos.csv")
+with open(sheet, "w") as f:
+    f.write("data,valor\n2026-10-01,12.5\n" + "x" * 70_000)
+photo = os.path.join(box, "foto.jpg")
+with open(photo, "wb") as f:
+    f.write(b"\xff\xd8\xff\xe0 jpeg")
+song = os.path.join(box, "musica.mp3")
+with open(song, "wb") as f:
+    f.write(b"ID3")
+items = attachments.accept(home, [
+    {"path": receipt, "name": "nota.pdf", "kind": "file", "text": receipt + ".txt.extracted"},
+    {"path": sheet, "name": "gastos.csv"}, {"path": photo, "name": "foto.jpg", "kind": "image"},
+    {"path": song, "name": "musica.mp3"}])
+check("the app's files in the inbox are taken, a photo as one", [i["kind"] for i in items] == ["file", "file", "image", "file"])
+
+
+def refused(raw):
+    try:
+        attachments.accept(home, raw)
+    except ValueError:
+        return True
+    return False
+
+
+check("a file outside the inbox is refused", refused([{"path": outside}]))
+check("a path climbing out of it too", refused([{"path": os.path.join(box, "..", "config.yaml")}]))
+check("a missing file too", refused([{"path": os.path.join(box, "nada.pdf")}]))
+turn = attachments.compose("Quanto gastei?", items, native=False, describe=lambda p: f"[described {os.path.basename(p)}]")
+check("a PDF's text, as the app read it, in the turn", "Nota fiscal 123" in turn and "nota.pdf" in turn)
+check("a long document cut, with how to read on", "read the rest with iphone_files" in turn and len(turn) < 75_000)
+check("a file with no text said so, with its path", "musica.mp3" in turn and "cannot be read on the iPhone" in turn)
+check("a photo described for a brain that does not see, first", turn.startswith("[described foto.jpg]"))
+check("the user's words last", turn.rstrip().endswith("Quanto gastei?"))
+check("only documents: no description asked", "described" not in attachments.compose("", items[:1], native=False, describe=lambda p: "[described]"))
+files = attachments.Files(home)
+listed = files.call({"do": "list"})["files"]
+check("the files listed, without the PDF's text beside it", {f["name"] for f in listed} == {"nota.pdf", "gastos.csv", "foto.jpg", "musica.mp3"})
+check("a PDF read again through the app's text", "Total: R$ 89,90" in files.call({"do": "read", "path": receipt})["text"])
+first = files.call({"do": "read", "path": sheet})
+check("a long file read in parts", first["next_offset"] == 20_000 and "next_offset" not in files.call({"do": "read", "path": sheet, "offset": 60_000}))
+check("a photo is for vision_analyze", "vision_analyze" in files.call({"do": "read", "path": photo})["error"])
+check("Hermes cannot read outside the inbox", "No such file" in files.call({"do": "read", "path": outside})["error"])
+
+print("Google, signed in on the iPhone")
+import base64  # noqa: E402
+import hashlib  # noqa: E402
+import urllib.parse  # noqa: E402
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer  # noqa: E402
+
+from axyon_hermes import google  # noqa: E402
+
+seen = {"challenge": "", "sent": [], "drafts": [], "revoked": [], "auth": [], "writes": [], "events": []}
+ACCESS = {"live": "at-1"}
+
+
+class FakeGoogle(BaseHTTPRequestHandler):
+    def log_message(self, *a):
+        pass
+
+    def _out(self, code, obj=None, raw=None):
+        body = raw if raw is not None else json.dumps(obj or {}).encode()
+        self.send_response(code)
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _in(self):
+        data = self.rfile.read(int(self.headers.get("Content-Length") or 0))
+        if self.headers.get("Content-Type", "").startswith("application/x-www-form-urlencoded"):
+            return {k: v[0] for k, v in urllib.parse.parse_qs(data.decode()).items()}
+        return json.loads(data or b"{}")
+
+    def _authed(self):
+        seen["auth"].append(self.headers.get("Authorization"))
+        if self.headers.get("Authorization") != "Bearer " + ACCESS["live"]:
+            self._out(401, {"error": {"message": "Invalid Credentials"}})
+            return False
+        return True
+
+    def do_POST(self):
+        path = urllib.parse.urlparse(self.path).path
+        body = self._in()
+        if path == "/token":
+            if body["grant_type"] == "authorization_code":
+                challenge = base64.urlsafe_b64encode(hashlib.sha256(body["code_verifier"].encode()).digest()).rstrip(b"=").decode()
+                ok = (body["code"] == "good-code" and challenge == seen["challenge"] and body["client_secret"] == "s3cret"
+                      and body["redirect_uri"].startswith("http://127.0.0.1:"))
+                return self._out(200, {"access_token": "at-1", "refresh_token": "rt-1", "expires_in": 3600,
+                                       "scope": " ".join(google.SERVICES["email"] + google.SERVICES["sheets"])}) if ok else \
+                    self._out(400, {"error": "invalid_grant", "error_description": "Bad Request"})
+            if body["grant_type"] == "refresh_token" and body["refresh_token"] == "rt-1":
+                ACCESS["live"] = "at-2"
+                return self._out(200, {"access_token": "at-2", "expires_in": 3600})
+            return self._out(400, {"error": "invalid_grant"})
+        if path == "/revoke":
+            seen["revoked"].append(body.get("token"))
+            return self._out(200, {})
+        if not self._authed():
+            return
+        if path == "/gmail/messages/send":
+            seen["sent"].append(body)
+            return self._out(200, {"id": "sent-1"})
+        if path == "/gmail/drafts":
+            seen["drafts"].append(body)
+            return self._out(200, {"id": "draft-1"})
+        if path.startswith("/sheets/") and path.endswith(":append"):
+            seen["writes"].append(("append", path, body))
+            return self._out(200, {"updates": {"updatedRange": "Aportes!A8:C8", "updatedRows": 1}})
+        if path == "/calendar/calendars/primary/events":
+            seen["events"].append(body)
+            return self._out(200, {"id": "ev-1", "htmlLink": "https://calendar.google.com/ev-1"})
+        self._out(404, {})
+
+    def do_PUT(self):
+        body = self._in()
+        if not self._authed():
+            return
+        seen["writes"].append(("write", urllib.parse.unquote(urllib.parse.urlparse(self.path).path), body))
+        self._out(200, {"updatedRange": body["range"], "updatedCells": 2})
+
+    def do_GET(self):
+        url = urllib.parse.urlparse(self.path)
+        path, query = url.path, urllib.parse.parse_qs(url.query)
+        if not self._authed():
+            return
+        if path == "/gmail/profile":
+            return self._out(200, {"emailAddress": "dono@example.com"})
+        if path == "/gmail/messages":
+            return self._out(200, {"messages": [{"id": "m1", "threadId": "t1"}]})
+        if path == "/gmail/messages/m1":
+            headers = [{"name": "From", "value": "Gestora <ri@fii.com.br>"}, {"name": "Subject", "value": "Relatório BTLG11"},
+                       {"name": "Date", "value": "Tue, 28 Oct 2026 10:00:00 -0300"},
+                       {"name": "Message-ID", "value": "<abc@fii.com.br>"}]
+            if query.get("format") == ["full"]:
+                text = base64.urlsafe_b64encode("Rendimento de R$ 0,78 por cota.".encode()).decode()
+                return self._out(200, {"id": "m1", "threadId": "t1", "payload": {"headers": headers, "mimeType": "multipart/mixed", "parts": [
+                    {"mimeType": "text/plain", "body": {"data": text}},
+                    {"mimeType": "application/pdf", "filename": "relatorio.pdf", "body": {"size": 1200}}]}})
+            return self._out(200, {"id": "m1", "threadId": "t1", "snippet": "Rendimento &amp; mais", "labelIds": ["UNREAD"],
+                                   "payload": {"headers": headers}})
+        if path.startswith("/sheets/") and "/values/" in path:
+            return self._out(200, {"range": urllib.parse.unquote(path.split("/values/")[1]), "values": [["BTLG11", "101,50"]]})
+        if path.startswith("/sheets/"):
+            return self._out(200, {"properties": {"title": "Carteira"},
+                                   "sheets": [{"properties": {"title": "AXYON", "gridProperties": {"rowCount": 100, "columnCount": 8}}}]})
+        if path == "/drive/files":
+            seen["drive_q"] = query.get("q", [""])[0]
+            return self._out(200, {"files": [{"id": "doc1234567890", "name": "Plano 2027"}]})
+        if path == "/drive/files/doc1234567890":
+            return self._out(200, {"id": "doc1234567890", "name": "Plano 2027", "mimeType": "application/vnd.google-apps.document"})
+        if path == "/drive/files/doc1234567890/export":
+            return self._out(200, raw="Meta: 1000 cotas de BTLG11".encode())
+        if path == "/drive/files/pdf1234567890" and query.get("alt") == ["media"]:
+            return self._out(200, raw=b"%PDF-1.7 binary")
+        if path == "/drive/files/pdf1234567890":
+            return self._out(200, {"id": "pdf1234567890", "name": "informe.pdf", "mimeType": "application/pdf", "size": "15"})
+        if path == "/calendar/calendars/primary/events":
+            return self._out(200, {"items": [{"id": "e1", "summary": "Assembleia BTLG11", "start": {"dateTime": "2026-11-03T10:00:00-03:00"},
+                                              "end": {"dateTime": "2026-11-03T11:00:00-03:00"}}]})
+        self._out(404, {})
+
+
+fake = ThreadingHTTPServer(("127.0.0.1", 0), FakeGoogle)
+threading.Thread(target=fake.serve_forever, daemon=True).start()
+root = f"http://127.0.0.1:{fake.server_address[1]}"
+
+
+class Asked:
+    """The app's side of the bridge, for the e-mail card and the PDF's text."""
+    def __init__(self, send):
+        self.send, self.asked = send, []
+
+    def ask(self, kind, request, wait=None):
+        self.asked.append((kind, request))
+        if request.get("action") == "pdf_text":
+            return {"text": "Informe de rendimentos 2026"}
+        return {"send": self.send}
+
+
+ghome = tempfile.mkdtemp(prefix="axyon-google-")
+os.makedirs(os.path.join(ghome, "inbox"))
+g = google.Google(ghome, bridge=Asked(False), port=lambda: 47830,
+                  endpoints={k: root + "/" + k for k in ("auth", "token", "revoke", "gmail", "sheets", "drive", "calendar")})
+first = g.status()
+check("no client yet: the steps to make one, with Google Cloud's links", not first["connected"] and "console.cloud.google.com" in first["next"])
+check("connecting without a client says the same", "Desktop app" in json.loads(g.account_tool({"do": "connect"}))["error"])
+client_json = os.path.join(ghome, "inbox", "client_secret.json")
+with open(client_json, "w") as f:
+    json.dump({"installed": {"client_id": "123-abc.apps.googleusercontent.com", "client_secret": "s3cret"}}, f)
+check("a JSON outside the chat's files is refused", "error" in json.loads(g.account_tool({"do": "client", "path": "/etc/passwd"})))
+check("a client ID that is not Google's is refused", "error" in json.loads(g.account_tool({"do": "client", "client_id": "x", "client_secret": "y"})))
+check("the client from the JSON the user sent", json.loads(g.account_tool({"do": "client", "path": client_json}))["ok"] and g.client()["client_secret"] == "s3cret")
+link = json.loads(g.account_tool({"do": "connect", "services": ["email", "sheets"]}))
+params = urllib.parse.parse_qs(urllib.parse.urlparse(link["url"]).query)
+seen["challenge"] = params["code_challenge"][0]
+check("a link to Google's page, PKCE, offline, back to this host on 127.0.0.1",
+      link["url"].startswith(root + "/auth?") and params["redirect_uri"] == ["http://127.0.0.1:47830/"]
+      and params["code_challenge_method"] == ["S256"] and params["access_type"] == ["offline"]
+      and "gmail.send" in params["scope"][0] and "drive" not in params["scope"][0])
+code, page = g.callback("state=someone-else&code=good-code")
+check("a browser coming back with another state is refused", code == 400 and not g.status()["connected"])
+code, page = g.callback(urllib.parse.urlencode({"state": params["state"][0], "code": "good-code", "scope": "x"}))
+done = g.status()
+check("Google's browser coming back finishes it alone", code == 200 and "connected to Google" in page and done["connected"])
+check("the account and services known", done["account"] == "dono@example.com" and set(done["services"]) == {"email", "sheets"})
+check("the token kept where Hermes' skill keeps it, for the user only",
+      json.load(open(os.path.join(ghome, "google_token.json")))["refresh_token"] == "rt-1"
+      and oct(os.stat(os.path.join(ghome, "google_token.json")).st_mode & 0o777) == "0o600")
+again = json.loads(g.account_tool({"do": "connect"}))
+again_params = urllib.parse.parse_qs(urllib.parse.urlparse(again["url"]).query)
+seen["challenge"] = again_params["code_challenge"][0]
+check("an address from an older link is refused",
+      "older link" in json.loads(g.account_tool({"do": "finish", "pasted": f"http://127.0.0.1:47830/?state={params['state'][0]}&code=good-code"}))["error"])
+pasted = json.loads(g.account_tool({"do": "finish", "pasted": f"http://127.0.0.1:47830/?state={again_params['state'][0]}&code=good-code&scope=x"}))
+check("the address pasted in the chat finishes it too", pasted.get("ok") and pasted["connected"])
+found = json.loads(g.gmail_tool({"do": "search", "query": "from:ri@fii.com.br newer_than:7d"}))["messages"]
+check("Gmail searched, with who, what and the unread", found[0]["subject"] == "Relatório BTLG11" and found[0]["unread"] and found[0]["snippet"] == "Rendimento & mais")
+mail = json.loads(g.gmail_tool({"do": "read", "id": "m1"}))
+check("an e-mail read with its text and attachments", "R$ 0,78" in mail["body"] and mail["attachments"][0]["name"] == "relatorio.pdf")
+check("a draft saved in Gmail", json.loads(g.gmail_tool({"do": "draft", "to": "a@b.com", "subject": "Oi", "body": "Teste"}))["draft"] == "draft-1")
+refused = json.loads(g.gmail_tool({"do": "send", "to": "a@b.com", "subject": "Oi", "body": "Teste"}))
+check("no tap on Send in AXYON: nothing sent", refused["sent"] is False and not seen["sent"] and g.bridge.asked[-1][1]["action"] == "mail")
+g.bridge = Asked(True)
+sent = json.loads(g.gmail_tool({"do": "send", "to": "a@b.com", "subject": "Oi", "body": "Teste"}))
+raw = base64.urlsafe_b64decode(seen["sent"][-1]["raw"] + "===").decode()
+check("the user's tap sends it, as shown", sent["sent"] and "To: a@b.com" in raw and "Subject: Oi" in raw
+      and g.bridge.asked[-1][1]["subject"] == "Oi")
+json.loads(g.gmail_tool({"do": "reply", "id": "m1", "body": "Obrigado"}))
+import email  # noqa: E402
+import email.policy  # noqa: E402
+
+reply = email.message_from_bytes(base64.urlsafe_b64decode(seen["sent"][-1]["raw"] + "==="), policy=email.policy.default)
+check("a reply in its thread, to who wrote", seen["sent"][-1]["threadId"] == "t1" and reply["In-Reply-To"] == "<abc@fii.com.br>"
+      and reply["Subject"] == "Re: Relatório BTLG11" and "ri@fii.com.br" in reply["To"])
+sheet_link = "https://docs.google.com/spreadsheets/d/1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789_-xyz/edit#gid=0"
+check("a spreadsheet's id from its link", google.spreadsheet_id(sheet_link) == "1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789_-xyz")
+check("its tabs", json.loads(g.sheets_tool({"do": "tabs", "spreadsheet": sheet_link}))["tabs"][0]["title"] == "AXYON")
+check("cells read", json.loads(g.sheets_tool({"do": "read", "spreadsheet": sheet_link, "range": "AXYON!A1:B2"}))["values"] == [["BTLG11", "101,50"]])
+json.loads(g.sheets_tool({"do": "write", "spreadsheet": sheet_link, "range": "AXYON!B2", "values": [["102,10"]]}))
+check("cells written as the user would type them", seen["writes"][-1][0] == "write" and "AXYON!B2" in seen["writes"][-1][1]
+      and seen["writes"][-1][2]["values"] == [["102,10"]])
+check("a row appended", json.loads(g.sheets_tool({"do": "append", "spreadsheet": sheet_link, "range": "Aportes!A:C",
+                                                  "values": [["2026-10-29", "BTLG11", 10]]}))["rows"] == 1)
+check("Drive searched by a file's name", json.loads(g.drive_tool({"do": "search", "query": "Plano"}))["files"][0]["name"] == "Plano 2027"
+      and seen["drive_q"] == "name contains 'Plano' and trashed = false")
+check("a Doc read as text", "1000 cotas" in json.loads(g.drive_tool({"do": "read", "id": "https://docs.google.com/document/d/doc1234567890/edit"}))["text"])
+pdf = json.loads(g.drive_tool({"do": "read", "id": "pdf1234567890"}))
+check("a PDF from Drive read by the iPhone, kept for iphone_files", pdf["text"] == "Informe de rendimentos 2026"
+      and os.path.exists(pdf["path"] + ".txt.extracted") and pdf["path"].startswith(os.path.join(ghome, "inbox")))
+check("the calendar's events", json.loads(g.calendar_tool({"do": "list"}))["events"][0]["title"] == "Assembleia BTLG11")
+json.loads(g.calendar_tool({"do": "add", "title": "Aporte", "start": "2026-11-05T09:00"}))
+check("an event added, an hour long by default, in the iPhone's time zone",
+      seen["events"][-1]["summary"] == "Aporte" and seen["events"][-1]["start"]["dateTime"].startswith("2026-11-05T09:00:00")
+      and seen["events"][-1]["end"]["dateTime"].startswith("2026-11-05T10:00:00"))
+ACCESS["live"] = "at-rotated"
+token = json.load(open(os.path.join(ghome, "google_token.json")))
+token["token"], token["expiry"] = "at-1", "2020-01-01T00:00:00Z"
+json.dump(token, open(os.path.join(ghome, "google_token.json"), "w"))
+check("an expired sign-in refreshed by itself", json.loads(g.gmail_tool({"do": "search", "query": ""}))["messages"] and seen["auth"][-1] == "Bearer at-2")
+check("disconnected: revoked at Google and forgotten", json.loads(g.account_tool({"do": "disconnect"}))["ok"]
+      and seen["revoked"] == ["rt-1"] and not os.path.exists(os.path.join(ghome, "google_token.json")))
+check("then every tool says to connect", "not connected" in json.loads(g.gmail_tool({"do": "search", "query": ""}))["error"])
+fake.shutdown()
 
 print("All unit tests passed." if not failures else f"{failures} failed.")
 sys.exit(1 if failures else 0)

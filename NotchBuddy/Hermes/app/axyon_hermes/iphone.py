@@ -71,6 +71,13 @@ TOOLS = [
         {"do": {"type": "string", "enum": ["play", "pause", "next", "previous", "now"]}}, ["do"])),
     ("iphone_speak", "speak", _schema(
         "iphone_speak", "Says a short text aloud on the iPhone.", {"text": _S}, ["text"])),
+    ("iphone_alerts", "alerts", _schema(
+        "iphone_alerts",
+        "The superpowers' alerts with AXYON closed, from the official data: an asset going under the user's own "
+        "ceiling or back above it, a strong day for an asset or the portfolio, an asset under one of its ceilings, "
+        "and the morning's day. `do`=status, on, off, or look (check now and notify what is worth it). iOS decides "
+        "when it checks with AXYON closed (a few times a day; Background App Refresh must be on).",
+        {"do": {"type": "string", "enum": ["status", "on", "off", "look"]}}, ["do"])),
 ]
 
 # The model's argument names that the app reads under another name.

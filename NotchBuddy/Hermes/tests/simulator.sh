@@ -171,6 +171,57 @@ test -s "$POWERS" || fail "the superpowers kept nothing in the app's folder"
 grep -q '"streakDays":1' "$POWERS" || { head -c 600 "$POWERS"; fail "the English streak was not kept"; }
 echo "Kept in the app's folder: $(wc -c < "$POWERS" | tr -d ' ') bytes"
 
+echo "A document sent from the chat, read inside iOS"
+INBOX="$(data_dir)/Library/Application Support/Hermes/inbox"
+mkdir -p "$INBOX"
+printf 'Extrato de outubro: aporte de R$ 500 em BTLG11' > "$INBOX/extrato.txt"
+run="$(call POST /v1/runs "{\"session\":\"ci-simulator-files\",\"message\":\"O que é isso?\",\"attachments\":[{\"path\":\"$INBOX/extrato.txt\",\"name\":\"extrato.txt\"}]}" \
+    | "$PYTHON" -c 'import json,sys; print(json.load(sys.stdin)["run_id"])')" || fail "the run with a file did not start"
+events="$(curl -sS --max-time 180 -H "Authorization: Bearer $TOKEN" "$URL/v1/runs/$run/events" || true)"
+printf '%s' "$events" | "$PYTHON" -c '
+import json, sys
+done = [json.loads(l[6:]) for l in sys.stdin.read().splitlines() if l.startswith("data: ") and "\"done\"" in l]
+assert done and "1 documento(s): Extrato de outubro" in done[0]["text"], done
+print("The document reached Hermes:", done[0]["text"][:200])
+' || fail "the document did not reach Hermes"
+
+echo "Google: not connected yet, and says how"
+google="$(call GET /v1/google)" || fail "Google's status did not answer"
+printf '%s' "$google" | "$PYTHON" -c '
+import json, sys
+g = json.load(sys.stdin)
+assert g["connected"] is False and "console.cloud.google.com" in g["next"], g
+print("Google:", {k: g[k] for k in ("client", "connected")})
+' || fail "Google's status was not the one expected"
+
+echo "A scheduled task, run at the app's tick inside iOS"
+run="$(call POST /v1/runs '{"session":"ci-simulator-cron","message":"agenda a cotação do BTLG11 a cada 5 minutos"}' \
+    | "$PYTHON" -c 'import json,sys; print(json.load(sys.stdin)["run_id"])')" || fail "the scheduling run did not start"
+events="$(curl -sS --max-time 180 -H "Authorization: Bearer $TOKEN" "$URL/v1/runs/$run/events" || true)"
+case "$events" in
+    *'"name": "cronjob_manage"'*) ;;
+    *) echo "${events:0:600}"; fail "Hermes' cronjob tool was not used" ;;
+esac
+JOBS="$(data_dir)/Library/Application Support/Hermes/cron/jobs.json"
+test -s "$JOBS" || fail "no task kept in Hermes' cron"
+"$PYTHON" - "$JOBS" <<'PY'
+import json, sys, time
+path = sys.argv[1]
+data = json.load(open(path))
+data["jobs"][0]["next_run_at"] = time.strftime("%Y-%m-%dT%H:%M:%S+00:00", time.gmtime(time.time() - 30))
+json.dump(data, open(path, "w"))
+PY
+ticked="$(call POST /v1/cron/tick '{}')" || fail "the tick did not answer"
+echo "Tick: $ticked"
+tasks="$(call GET /v1/cron)" || fail "the tasks did not answer"
+# Its notification needs a permission no one grants in CI: "delivery_failed" is the task done, its notice refused.
+printf '%s' "$tasks" | "$PYTHON" -c '
+import json, sys
+jobs = json.load(sys.stdin)["jobs"]
+assert jobs and jobs[0]["name"] == "Cotação BTLG11" and jobs[0]["status"] in ("ok", "delivery_failed"), jobs
+print("The task ran inside iOS:", jobs[0]["name"], jobs[0]["status"], "next", jobs[0]["next"])
+' || fail "the task did not run"
+
 echo "The portfolio and the brain's settings answer"
 # Kept whole first: a curl cut short by head would fail the step under pipefail.
 settings="$(call GET /v1/settings)" || fail "the settings did not answer"

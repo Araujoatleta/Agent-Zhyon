@@ -9,9 +9,11 @@ The app starts this in its embedded Python with, in the environment:
 
 and talks to it with:
   GET  /health                       ready or not, the brain, and why not when it is not
-  POST /v1/runs {session, message}   answers one message in a session of the app's (Hermes remembers it)
-  GET  /v1/runs/<id>/events          the answer as it is written: `delta`, `tool`, `tool_done`, then `done` or
-                                     `error` (server-sent events, a keepalive every 10 s)
+  POST /v1/runs {session, message, attachments}
+                                     answers one message in a session of the app's (Hermes remembers it), with
+                                     the files the user sent ([{path, name, kind, text}], in Hermes' inbox/)
+  GET  /v1/runs/<id>/events          the answer as it is written: `delta`, `tool`, `tool_done`, the `images` it
+                                     made, then `done` or `error` (server-sent events, a keepalive every 10 s)
   POST /v1/runs/<id>/stop            stops it
   GET  /v1/settings                  the brain: provider, model, and whether it can sign in
   POST /v1/settings {provider, model, baseUrl, keys}
@@ -20,8 +22,15 @@ and talks to it with:
   GET  /v1/auth/chatgpt              where that sign-in is
   GET  /v1/bridge                    what Hermes asks of the app (server-sent), answered with
   POST /v1/bridge/<id>               the app's answer
+  GET  /v1/google                    the user's Google account (google.py): connected, as whom, what is next
+  POST /v1/google/client {path | clientId, clientSecret}, /v1/google/connect {services},
+       /v1/google/finish {pasted}, /v1/google/disconnect
+                                     its sign-in, from Settings
+  GET  /?state=…&code=…              Google's page sending the browser back: the one request without the token,
+                                     taken only for the sign-in AXYON is waiting for (its own random state)
+  GET  /v1/cron                      Hermes' scheduled tasks; POST /v1/cron/tick runs the due ones now (scheduled.py)
 
-Nothing else is served, no request without the token or from a web page (an Origin header) is answered.
+Nothing else is served, no other request without the token or from a web page (an Origin header) is answered.
 """
 
 from __future__ import annotations
@@ -67,8 +76,24 @@ SOUL_MARK = "<!-- AXYON on the iPhone wrote this file -->"
 SOUL = """# Personality
 You are AXYON, the user's personal assistant. You live inside their iPhone: Hermes is your engine and the iPhone is
 your body. You act through it: notifications and reminders, the calendar, contacts, apps and links, their Shortcuts,
-the devices of their home, the web, and your superpowers: their investments (the portfolio against B3's and the CVM's
-official data, funds, ceilings, taxes, the decision journal) and their studies, English and training.
+the devices of their home, the web, the photos and files they send you, their Google account, the tasks you schedule,
+and your superpowers: their investments (the portfolio against B3's and the CVM's official data, funds, ceilings,
+taxes, the decision journal) and their studies, English and training.
+
+## On this iPhone
+- Photos and files the user sends come with their message: a photo to see, a PDF's or a document's text. iphone_files
+  reads them again; vision_analyze looks at a photo again.
+- Google (Gmail, Sheets, Drive, Docs, Calendar): google_account connects it with a link the user opens (never ask for
+  their password), then gmail, google_sheets, google_drive and google_calendar. An e-mail is sent only when the user
+  taps Send in AXYON.
+- Scheduled tasks: cronjob runs a prompt at a time or on a schedule, and its answer comes as a notification on the
+  iPhone ([SILENT] keeps quiet, so "tell me only if…" works). They run on time while AXYON is open; with AXYON
+  closed, iOS wakes it a few times a day and a task that came due runs then. Say so when the timing matters.
+- Alerts on the portfolio with AXYON closed (an asset under the user's ceiling or back above it, strong days, assets
+  under a ceiling, the morning's day): iphone_alerts turns them on; iOS picks when they are checked.
+- iOS gives an app no terminal, no other programs, no hidden browser and no hand on other apps' screens: running code,
+  browsing for the user or computer use are not possible here. Their Shortcuts (iphone_shortcut) do much of that, and
+  a paired computer's AXYON does the rest.
 
 ## Style
 - Direct and warm. Short paragraphs, lists when they help, no filler.
@@ -83,10 +108,12 @@ official data, funds, ceilings, taxes, the decision journal) and their studies, 
 
 
 class Run:
-    def __init__(self, session: str, message: str):
+    def __init__(self, session: str, message: str, attachments: Optional[list[dict[str, Any]]] = None):
         self.id = "run_" + uuid.uuid4().hex[:16]
         self.session = session
         self.message = message
+        # The files the user sent with it (attachments.accept): in Hermes' inbox.
+        self.attachments = attachments or []
         self.events: list[dict[str, Any]] = []
         self.cond = threading.Condition()
         self.finished = False
@@ -123,6 +150,8 @@ class Host:
         self.auth: dict[str, Any] = {"state": "idle"}
         self.coucou = None
         self.house = None  # the iPhone's own home (home.py)
+        self.google = None  # the user's Google account (google.py)
+        self.scheduled = None  # Hermes' cron on the iPhone (scheduled.py)
         from .bridge import Bridge
 
         self.bridge = Bridge()
@@ -141,10 +170,13 @@ class Host:
             import run_agent  # noqa: F401  (Hermes' agent, and with it its tools)
             from tools.registry import registry
 
+            from .attachments import Files
             from .coucou import Coucou
+            from .google import Google
             from .home import Home
             from .iphone import IPhone
             from .powers import Powers
+            from .scheduled import Scheduled
             from .web import Web
 
             self.coucou = Coucou(self.portfolio_file, bridge=self.bridge, powers_dir=os.environ.get("AXYON_POWERS", ""))
@@ -154,7 +186,20 @@ class Host:
             IPhone(self.bridge).register(registry)
             Powers(self.bridge).register(registry)
             Web().register(registry)
+            Files(self.home).register(registry)
+            self.google = Google(self.home, bridge=self.bridge)
+            self.google.register(registry)
+            self.scheduled = Scheduled(self.bridge)
+            self.scheduled.install()
             model = self._model_config()
+            try:
+                from hermes_cli.config import load_config, save_config
+
+                config = load_config()
+                if _match_image_maker(config, model.get("provider") or "openai-codex"):
+                    save_config(config)
+            except Exception:
+                log.exception("the image maker could not be set")
             if model.get("provider") == "custom" and model.get("base_url"):
                 # The address the user typed for their OpenAI-compatible brain: its key may go there.
                 os.environ.setdefault("OPENAI_BASE_URL", str(model["base_url"]))
@@ -170,6 +215,7 @@ class Host:
                 version = ""
             self.version = str(version or "")
             self.ready = True
+            self.scheduled.start()
             log.info("Hermes ready in %.1fs", time.time() - t0)
             os.write(2, f"AXYON: Hermes ready in {time.time() - t0:.1f}s\n".encode())
         except BaseException as exc:  # a module's SystemExit too: the app must hear why
@@ -245,6 +291,7 @@ class Host:
             else:
                 model.pop("base_url", None)
             config["model"] = model
+            _match_image_maker(config, provider)
             save_config(config)
         return self.settings()
 
@@ -290,8 +337,8 @@ class Host:
 
     # ── Runs ─────────────────────────────────────────────────────────────────
 
-    def start_run(self, session: str, message: str) -> Run:
-        run = Run(session, message)
+    def start_run(self, session: str, message: str, attachments: Optional[list[dict[str, Any]]] = None) -> Run:
+        run = Run(session, message, attachments)
         with self.lock:
             self.runs[run.id] = run
             for old in sorted(self.runs.values(), key=lambda r: r.started)[:-RUNS_KEPT]:
@@ -341,10 +388,14 @@ class Host:
                 session_id=run.session, session_db=self.db,
                 stream_delta_callback=on_delta, tool_progress_callback=on_tool)
             run.agent = agent
-            result = agent.run_conversation(user_message=run.message, conversation_history=history,
-                                            task_id=run.session)
+            message, kept = self._with_attachments(run, runtime, model)
+            result = agent.run_conversation(user_message=message, conversation_history=history,
+                                            task_id=run.session, **({"persist_user_message": kept} if kept else {}))
             if not isinstance(result, dict):
                 result = {}
+            made = self._made_images(run.started)
+            if made:
+                run.put("images", paths=made)
             if result.get("failed"):
                 run.put("error", message=str(result.get("error") or "Hermes could not answer."))
             elif result.get("interrupted"):
@@ -354,6 +405,41 @@ class Host:
         except Exception as exc:
             log.error("run %s failed:\n%s", run.id, traceback.format_exc())
             run.put("error", message=_said(exc))
+
+    def _made_images(self, since: float) -> list[str]:
+        """The images Hermes made during a run (its image_gen tools keep them in cache/generated/images), relative to
+        its home, for the chat to show under the answer."""
+        folder = os.path.join(self.home, "cache", "generated", "images")
+        try:
+            names = sorted(os.listdir(folder))
+        except OSError:
+            return []
+        return [os.path.join("cache", "generated", "images", name) for name in names
+                if name.lower().endswith((".png", ".jpg", ".jpeg", ".webp"))
+                and os.path.getmtime(os.path.join(folder, name)) >= since - 1]
+
+    def _with_attachments(self, run: Run, runtime: dict[str, Any], model: str) -> tuple[Any, Optional[str]]:
+        """The turn with the files the user sent (attachments.compose), and the shorter one the session keeps: their
+        names and where they are, which iphone_files reads again, rather than their whole text or the photos."""
+        if not run.attachments:
+            return run.message, None
+        from . import attachments
+
+        native = False
+        if any(item["kind"] == "image" for item in run.attachments):
+            try:
+                from agent.image_routing import decide_image_input_mode
+                from hermes_cli.config import load_config
+
+                native = decide_image_input_mode(
+                    runtime.get("provider") or "", model, load_config(),
+                    requested_provider=runtime.get("requested_provider") or "") == "native"
+            except Exception:
+                native = False
+        message = attachments.compose(run.message, run.attachments, native=native,
+                                      describe=attachments.describe_with_vision)
+        sent = "; ".join(f"'{item['name']}' at {item['path']}" for item in run.attachments)
+        return message, "\n\n".join(p for p in (run.message, f"[The user sent: {sent}]") if p)
 
     def stop_run(self, run_id: str) -> bool:
         run = self.runs.get(run_id)
@@ -366,6 +452,20 @@ class Host:
             except Exception:
                 pass
         return True
+
+
+def _match_image_maker(config: dict[str, Any], provider: str) -> bool:
+    """image_gen's provider set to the brain's own image maker (ios.IMAGE_MAKERS), or taken away; whether it
+    changed."""
+    image_gen = dict(config.get("image_gen") or {})
+    before = image_gen.get("provider")
+    maker = ios.IMAGE_MAKERS.get(provider)
+    if maker:
+        image_gen["provider"] = maker
+    else:
+        image_gen.pop("provider", None)
+    config["image_gen"] = image_gen
+    return image_gen.get("provider") != before
 
 
 def _said(exc: BaseException) -> str:
@@ -395,6 +495,15 @@ class Handler(BaseHTTPRequestHandler):
         body = json.dumps(obj, ensure_ascii=False).encode("utf-8")
         self.send_response(code)
         self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _send_page(self, code: int, page: str) -> None:
+        body = page.encode("utf-8")
+        self.send_response(code)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
         self.end_headers()
@@ -463,13 +572,38 @@ class Handler(BaseHTTPRequestHandler):
                 return self._home(lambda: house.act(device, str(body.get("action") or ""), body.get("value")))
         return self._send(404, {"error": "not found"})
 
+    def _post_more(self, path: str, body: dict[str, Any]):
+        """The Settings' Google account, and the tick the app asks for when iOS wakes it."""
+        from .google import GoogleError
+
+        h = self.host
+        try:
+            if path == "/v1/google/client":
+                return self._send(200, h.google.set_client(str(body.get("path") or ""), str(body.get("clientId") or ""),
+                                                           str(body.get("clientSecret") or "")))
+            if path == "/v1/google/connect":
+                return self._send(200, h.google.connect(body.get("services")))
+            if path == "/v1/google/finish":
+                return self._send(200, h.google.finish(str(body.get("pasted") or "")))
+            if path == "/v1/google/disconnect":
+                return self._send(200, h.google.disconnect())
+        except GoogleError as exc:
+            return self._send(422, {"error": str(exc)})
+        if path == "/v1/cron/tick":
+            return self._send(200, {"ran": h.scheduled.tick(wait=60)})
+        return self._send(404, {"error": "not found"})
+
     # ── Routes ───────────────────────────────────────────────────────────────
 
     def do_GET(self):
+        h = self.host
+        path, _, query = self.path.partition("?")
+        if path == "/" and "state=" in query and h.google is not None:
+            # Google's sign-in page sending the browser back: it carries no token, but only the sign-in AXYON is
+            # waiting for (its own random state) is taken.
+            return self._send_page(*h.google.callback(query))
         if not self._allowed():
             return self._send(401, {"error": "unauthorized"})
-        h = self.host
-        path = self.path.split("?")[0]
         if path == "/health":
             return self._send(200, {"ok": True, "protocol": PROTOCOL, "ready": h.ready, "problem": h.problem,
                                     "hermes": h.version, "python": sys.version.split()[0]})
@@ -485,6 +619,14 @@ class Handler(BaseHTTPRequestHandler):
             if not h.ready or h.house is None:
                 return self._send(503, {"error": h.problem or "Hermes is starting"})
             return self._home(lambda: h.house.overview(states="quick=1" not in self.path))
+        if path == "/v1/google":
+            if not h.ready or h.google is None:
+                return self._send(503, {"error": h.problem or "Hermes is starting"})
+            return self._send(200, h.google.status())
+        if path == "/v1/cron":
+            if not h.ready or h.scheduled is None:
+                return self._send(503, {"error": h.problem or "Hermes is starting"})
+            return self._send(200, h.scheduled.overview())
         if path.startswith("/v1/runs/") and path.endswith("/events"):
             run = h.runs.get(path.split("/")[3])
             if run is None:
@@ -538,9 +680,12 @@ class Handler(BaseHTTPRequestHandler):
                     return self._send(503, {"error": h.problem or "Hermes is starting"})
                 message = str(body.get("message") or "").strip()
                 session = str(body.get("session") or "").strip()[:80] or "axyon-iphone"
-                if not message:
+                from .attachments import accept
+
+                files = accept(h.home, body.get("attachments"))
+                if not message and not files:
                     return self._send(400, {"error": "empty message"})
-                run = h.start_run(session, message[:MAX_MESSAGE])
+                run = h.start_run(session, message[:MAX_MESSAGE], files)
                 return self._send(202, {"run_id": run.id})
             if path.startswith("/v1/runs/") and path.endswith("/stop"):
                 ok = h.stop_run(path.split("/")[3])
@@ -560,6 +705,10 @@ class Handler(BaseHTTPRequestHandler):
                 if not h.ready or h.house is None:
                     return self._send(503, {"error": h.problem or "Hermes is starting"})
                 return self._home_post(path, body)
+            if path.startswith("/v1/google/") or path == "/v1/cron/tick":
+                if not h.ready or h.google is None:
+                    return self._send(503, {"error": h.problem or "Hermes is starting"})
+                return self._post_more(path, body)
         except ValueError as exc:
             return self._send(400, {"error": str(exc)})
         except Exception as exc:

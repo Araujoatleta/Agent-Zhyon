@@ -11,9 +11,16 @@ from __future__ import annotations
 import os
 import sys
 
-# Toolsets that need nothing but Python and the network: Coucou's arms, then Hermes' own memory, skills, to-dos,
-# questions back to the user, its past sessions and image reading.
-TOOLSETS = ["coucou", "memory", "skills", "todo", "clarify", "session_search", "vision"]
+# Toolsets that need nothing but Python and the network: Coucou's arms and the user's Google account, then Hermes' own
+# memory, skills, to-dos, questions back to the user, its past sessions, image reading and making, scheduled tasks
+# (scheduled.py runs their clock) and helpers it delegates to. A terminal, files through a shell, code and a browser
+# need programs iOS does not let an app run.
+TOOLSETS = ["coucou", "google", "memory", "skills", "todo", "clarify", "session_search", "vision", "image_gen",
+            "cronjob", "delegation"]
+
+# The image maker that goes with each brain (Hermes' image_gen plugins): the user's ChatGPT subscription, or
+# OpenRouter's key. The other brains have none of their own.
+IMAGE_MAKERS = {"openai-codex": "openai-codex", "openrouter": "openrouter"}
 
 
 def on_ios() -> bool:
@@ -35,6 +42,9 @@ def prepare(home: str) -> None:
         pass
     # No terminal of its own: a command never runs here, whatever a model asks.
     os.environ.setdefault("TERMINAL_ENV", "local")
+    # Someone answers in the app, as in Hermes' gateway, which sets this for its whole process: it is what offers
+    # the cronjob tool (tools/cronjob_tools.py). It also says commands ask first, and there are none here.
+    os.environ.setdefault("HERMES_EXEC_ASK", "1")
     os.environ.setdefault("NO_COLOR", "1")
     os.environ.setdefault("PYTHONIOENCODING", "utf-8")
     if on_ios():

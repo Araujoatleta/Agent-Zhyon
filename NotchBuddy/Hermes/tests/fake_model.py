@@ -1,6 +1,8 @@
 """A fake OpenAI-compatible model for the host's tests: it calls wealth_portfolio when asked about "carteira",
-life_english (15 minutes logged) about "inglês", coucou_home about "casa" and iphone_status about "iPhone", then answers
-"Feito: <what the tool returned>". It logs how many messages it saw."""
+life_english (15 minutes logged) about "inglês", coucou_home about "casa", iphone_status about "iPhone" and cronjob_manage
+(a task every 5 minutes) about "agenda", then answers "Feito: <what the tool returned>". Sent files are counted: it
+answers "Vi <images> imagem(ns) e <documents> documento(s): <the documents' first words>". It logs how many messages it
+saw."""
 import json
 import sys
 import time
@@ -32,11 +34,21 @@ class Model(BaseHTTPRequestHandler):
         asked = json.dumps(users[-1].get("content") if users else "", ensure_ascii=False)
         last = msgs[-1] if msgs else {}
         if tools:
-            sys.stderr.write(f"msgs={len(msgs)} tools={tools}\n")
+            content = users[-1].get("content") if users else ""
+            parts = [p.get("type") for p in content if isinstance(p, dict)] if isinstance(content, list) else ["str"]
+            sys.stderr.write(f"msgs={len(msgs)} parts={parts} tools={tools}\n")
             sys.stderr.flush()
         call = None
+        said = users[-1].get("content") if users else ""
+        images = sum(1 for p in said if isinstance(p, dict) and p.get("type") == "image_url") if isinstance(said, list) else 0
+        flat = json.dumps(said, ensure_ascii=False)
+        documents = flat.count("[The user sent a document")
         if last.get("role") == "tool":
             content = "Feito: " + str(last.get("content"))[:400]
+        elif last.get("role") == "user" and (images or documents or "The user sent a photo" in flat):
+            first = flat.split("Its text follows.]\\n")[1][:40] if "Its text follows.]\\n" in flat else ""
+            photo = images or flat.count("The user sent a photo")
+            content = f"Vi {photo} imagem(ns) e {documents} documento(s): {first}"
         elif "wealth_portfolio" in tools and "carteira" in asked:
             call = {"id": "call_1", "type": "function", "function": {"name": "wealth_portfolio", "arguments": "{}"}}
         elif "life_english" in tools and "ingl" in asked.lower():
@@ -46,6 +58,10 @@ class Model(BaseHTTPRequestHandler):
             call = {"id": "call_2", "type": "function", "function": {"name": "coucou_home", "arguments": "{}"}}
         elif "iphone_status" in tools and "iphone" in asked.lower():
             call = {"id": "call_3", "type": "function", "function": {"name": "iphone_status", "arguments": "{}"}}
+        elif "cronjob_manage" in tools and "agenda" in asked.lower():
+            call = {"id": "call_5", "type": "function", "function": {"name": "cronjob_manage", "arguments": json.dumps(
+                {"action": "create", "schedule": "every 5m", "name": "Cotação BTLG11",
+                 "prompt": "Diga como está o BTLG11"})}}
         else:
             content = "ok"
         model = req.get("model", "fake-model")
