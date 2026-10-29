@@ -44,6 +44,8 @@ const DECISION_TIMEOUT: Duration = Duration::from_secs(108);
 /// see for nearly two minutes.
 const ACK_TIMEOUT: Duration = Duration::from_millis(800);
 const MAX_PAYLOAD: usize = 1 << 20;
+/// How long an answer written back waits for the relay to read it and hang up, before the connection is dropped.
+const HANG_UP_GRACE: Duration = Duration::from_secs(5);
 /// What `coucou-hook --mcp` calls its relayed calls (hook/src/mcp.rs).
 const MCP_EVENT: &str = "CoucouMcp";
 
@@ -220,6 +222,7 @@ async fn handle(app: AppHandle, mut pipe: impl Relay) {
         let answer = crate::agent::mcp::answer(&app, payload).await;
         let _ = pipe.write_all(format!("{answer}\n").as_bytes()).await;
         let _ = pipe.flush().await;
+        wait_for_hang_up(&mut pipe).await;
         pipe.finish();
         return;
     }
@@ -257,8 +260,24 @@ async fn handle(app: AppHandle, mut pipe: impl Relay) {
     if let Some(d) = decision {
         let _ = pipe.write_all(format!("{d}\n").as_bytes()).await;
         let _ = pipe.flush().await;
+        wait_for_hang_up(&mut pipe).await;
     }
     pipe.finish();
+}
+
+/// Waits, `HANG_UP_GRACE` at most, for the relay to close its end once it read our line. On Windows `finish`
+/// disconnects the pipe, and a disconnect throws away what the relay has not read yet: a long answer (a superpower's
+/// portfolio runs to several KB) reached coucou-hook cut, unreadable, and the agent was told AXYON did not answer.
+async fn wait_for_hang_up(pipe: &mut impl Relay) {
+    let mut sink = [0u8; 256];
+    let _ = tokio::time::timeout(HANG_UP_GRACE, async {
+        while let Ok(n) = pipe.read(&mut sink).await {
+            if n == 0 {
+                break;
+            }
+        }
+    })
+    .await;
 }
 
 /// Finds, once per session, the window it runs in — see session_window.rs.

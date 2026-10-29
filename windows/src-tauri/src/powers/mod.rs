@@ -1475,7 +1475,7 @@ pub fn view(app: &AppHandle) -> View {
         live: held(&app.state::<Powers>().live).clone(),
         sheet_link: read(app, |s, _| s.sheet.clone()),
         sheet: held(&app.state::<Powers>().sheet).clone(),
-        gog: sheet::way().is_some(),
+        gog: !sheet::way_name().is_empty(),
         way: sheet::way_name().into(),
     }
 }

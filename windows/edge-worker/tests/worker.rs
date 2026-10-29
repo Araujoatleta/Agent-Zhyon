@@ -1,7 +1,9 @@
+#[cfg(windows)]
+use coucou_edge_worker::SingleInstanceGuard;
 use coucou_edge_worker::{
     advertised_capabilities, backoff_delay, bound_evidence, build_ws_request, credential_service,
-    endpoint_url, validate_server_url, CuaAction, CuaBridge, IdempotencyLedger,
-    SingleInstanceGuard, StoredIdentity, TaskLifecycle, WorkerConfig,
+    endpoint_url, validate_server_url, CuaAction, CuaBridge, IdempotencyLedger, StoredIdentity,
+    TaskLifecycle, WorkerConfig,
 };
 use serde_json::json;
 use std::fs;
