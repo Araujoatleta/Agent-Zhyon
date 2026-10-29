@@ -2947,3 +2947,12 @@ mod home_link_tests {
         });
     }
 }
+
+#[test]
+fn tailscales_ways_come_first_then_the_routers_each_once() {
+    let tailnet = vec!["100.101.102.103:47821".to_string()];
+    let router = vec!["[2804:14c::10]:47821".to_string(), "198.51.100.7:47821".to_string(), "100.101.102.103:47821".to_string()];
+    assert_eq!(super::ways_of(&tailnet, Some(&router)), ["100.101.102.103:47821", "[2804:14c::10]:47821", "198.51.100.7:47821"]);
+    assert_eq!(super::ways_of(&tailnet, None), ["100.101.102.103:47821"], "the router not known yet: Tailscale's alone");
+    assert!(super::ways_of(&[], Some(&[])).is_empty());
+}

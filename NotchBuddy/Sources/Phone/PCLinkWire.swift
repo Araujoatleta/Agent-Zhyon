@@ -17,6 +17,8 @@ enum PCWire {
     /// What this iPhone understands. The computer offers each one only while its own switch is on.
     static let capabilities = ["chat", "agent", "details", "answers", "remote", "prefs", "usage", "diffs", "services",
                                "assistant", "home"]
+    /// Asked for only by a build that carries Hermes: it keeps the portfolio the computer gives (HermesPortfolio).
+    static let portfolioCapability = "portfolio"
     static let maxLineBytes = 64 * 1024
     /// An approval is offered for 2 minutes at most (the computer gives up at 115 s).
     static let approvalLifetime: TimeInterval = 120
@@ -97,6 +99,13 @@ enum PCRemote {
         }
         guard portText.allSatisfy(\.isNumber), let port = UInt16(portText), port > 0 else { return nil }
         return (String(host), port)
+    }
+
+    /// A Tailscale address (100.64.0.0/10): reached only while Tailscale is on, on this iPhone too.
+    static func isTailnet(_ endpoint: String) -> Bool {
+        guard let host = parse(endpoint)?.host, !host.contains(":") else { return false }
+        let parts = host.split(separator: ".").compactMap { Int($0) }
+        return parts.count == 4 && parts[0] == 100 && (64...127).contains(parts[1])
     }
 
     /// The well-formed ones, each once, in the computer's order, at most six.
@@ -784,6 +793,9 @@ enum PCIncoming: Equatable, Sendable {
     case diff(PCDiffPart)
     /// The cards of the services the user ticked; empty takes them away.
     case services([PCServiceCard])
+    /// The portfolio's copy, the computer's line as it came (windows/src-tauri/src/powers/mod.rs, phone_copy); nil:
+    /// the superpowers are off there, the copy is forgotten.
+    case portfolio(Data?)
     /// Anything this iPhone does not use.
     case other
 
@@ -834,6 +846,10 @@ enum PCIncoming: Equatable, Sendable {
         case "remote":
             guard let list = object["endpoints"] as? [Any] else { return .other }
             return .remote(PCRemote.clean(list.compactMap { $0 as? String }))
+        case "portfolio":
+            if object["off"] as? Bool == true { return .portfolio(nil) }
+            guard object["positions"] is [Any] else { return .other }
+            return .portfolio(line)
         case "assistant":
             return .assistant(assistant(object))
         case "assistantResult":
@@ -1377,7 +1393,7 @@ struct PCLinkModel: Equatable, Sendable {
         case .diff(let part):
             merge(part)
             return []
-        case .error, .pong, .remote, .other:
+        case .error, .pong, .remote, .portfolio, .other:
             return []
         }
     }

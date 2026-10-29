@@ -68,6 +68,20 @@ fn routines_text(routines: &[RoutineInfo]) -> String {
     out
 }
 
+/// `call` in a task of its own: one that stops on something unexpected (written down by crash.rs) is answered as an
+/// error, instead of a connection closed without a word, which the relay could only tell as "no answer in time".
+pub async fn answer(app: &AppHandle, payload: Value) -> Value {
+    let calling = app.clone();
+    let name = payload["name"].as_str().unwrap_or("").to_string();
+    match tauri::async_runtime::spawn(async move { call(&calling, &payload).await }).await {
+        Ok(answer) => answer,
+        Err(_) => {
+            log::line(format!("mcp: {name} stopped on a panic"));
+            reply("AXYON stopped on an unexpected error while answering this (it is written down in its log). Try once more; if it happens again, tell the user.", true)
+        }
+    }
+}
+
 /// One call relayed by coucou-hook --mcp: `{"name", "arguments", "client"}`. The answer is an MCP tool result.
 pub async fn call(app: &AppHandle, payload: &Value) -> Value {
     let settings = app.state::<Shared>().settings.lock().unwrap().clone();

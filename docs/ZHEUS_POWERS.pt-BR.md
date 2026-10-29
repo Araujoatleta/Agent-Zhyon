@@ -122,18 +122,30 @@ Os exemplos abaixo são frases que você pode mandar como estão, na ilha, no iP
 | Banco Central (SGS e Focus) | Selic, CDI, IPCA, dólar e as expectativas | uma vez por dia |
 
 Com os superpoderes ligados, o Coucou acorda a cada meia hora para ver o que venceu; se nada venceu, nada é lido. Uma
-pergunta ao Zheus espera no máximo cerca de 20 segundos pelo que estiver vencendo (e até 40 segundos por um ativo que
-você não tem); a leitura continua por trás e a próxima pergunta já tem o resto.
+pergunta ao Zheus é respondida na hora com o que o AXYON tem, enquanto o que venceu é lido por trás; ela só espera
+(cerca de 20 segundos no máximo) quando falta uma cotação ou os números da economia, e até 40 segundos por um ativo que
+você não tem. As leituras rodam fora das threads que atendem o AXYON Core, então uma chamada é sempre atendida na hora.
 
 ### A sua carteira na sua planilha do Google: a aba do AXYON
 
-Configurações → Superpoderes do Zheus → **Sua planilha do Google**: cole o link da planilha (ou o ID) e, se o gog tiver
-várias contas, qual usar (vazio: a padrão do gog), e clique em **Salvar e ler**. O AXYON trabalha pelo
-[gog](https://github.com/openclaw/gogcli), o mesmo comando que a skill gog do seu assistente já usa, com o login do
-próprio gog (o AXYON nunca vê o login).
+Configurações → Superpoderes do Zheus → **Sua planilha do Google**: cole o link da planilha (ou o ID) e clique em
+**Salvar e ler**. O AXYON chega à planilha por um de dois caminhos, mostrado embaixo do cartão:
 
-Na primeira vez, o AXYON cria a aba dele, **AXYON**, na planilha e a preenche com a carteira que conhece. Daí em diante
-essa aba é a carteira, e vocês dois escrevem nela:
+- **O login Google do AXYON Core** — o que a skill google-workspace dele guarda (`google_token.json` na pasta do
+  Hermes, criado quando você entrou no Google por lá). O AXYON lê esse arquivo quando precisa, pega com ele um token de
+  acesso novo do Google, só na memória (nunca escreve nada de volta), e chama a API do Sheets só para esta planilha. Se
+  o AXYON Core ainda não estiver conectado ao Google, peça a ele para configurar a skill google-workspace.
+- **O [gog](https://github.com/openclaw/gogcli)**, quando ele estiver no computador, com o login do próprio gog (o
+  AXYON nunca vê o login); o campo de conta do gog escolhe uma das contas dele.
+
+Na primeira vez, o AXYON cria a aba dele, **AXYON**, na planilha. Ele lê as suas outras abas uma vez, só lendo: os
+tetos delas (uma coluna **Preço teto** ou **Meu teto**) viram os seus no AXYON, os ativos que elas listam são os da
+carteira (uma linha com **Status** Vendido ou Zerado fica de fora), e uma posição com quantidade lá substitui a do
+AXYON. Depois ele preenche a aba dele, e o que não bate ganha uma nota no **Aviso** da linha: um ativo que o AXYON tinha
+e as suas abas não listam ("se vendeu, apague esta linha"), um ativo que as suas abas listam sem quantidade ("preencha
+a Quantidade"). A nota some quando você mexe na linha, apaga a linha, ou depois de duas semanas; a ilha avisa que a
+aba está pronta e lista as notas, e o AXYON Core fica sabendo também. Daí em diante essa aba é a carteira, e vocês dois
+escrevem nela:
 
 | Colunas | Quem escreve |
 | --- | --- |

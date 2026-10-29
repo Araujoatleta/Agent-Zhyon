@@ -63,6 +63,7 @@ export function phoneSection(on: boolean, makeToggle: Toggle, settings: Settings
       h("div", { class: "hint", text: t("If Windows asks about the firewall, allow Coucou on private networks. The phone and this computer must be on the same Wi-Fi.") }),
       h("div", { class: "hint", text: t("Your phone finds this computer again by itself when the network changes. It is announced on your local network only while this switch is on. Some hotspots and guest networks block this.") }),
       ...(SHOW_RELAY_SETTINGS ? [relayBlock(makeToggle, () => void refreshPairing())] : []),
+      h("div", { class: "hint", text: tailnetLine(status) }),
       remoteBlock(makeToggle),
       detailsBlock(makeToggle),
       answersBlock(makeToggle),
@@ -667,6 +668,14 @@ function pushBlock(makeToggle: Toggle): HTMLElement {
     more,
     note,
   );
+}
+
+/** Away from home through Tailscale (src-tauri/src/phone_link/remote.rs): the way that works on any network. */
+export function tailnetLine(status: PhoneLinkStatus): string {
+  if (status.tailnet?.length) {
+    return t("Tailscale is on here ({address}): with Tailscale on in the iPhone too, AXYON reaches this computer from anywhere, on 4G, 5G or another Wi-Fi. The iPhone learns this address the next time it connects here.", { address: status.tailnet.join(", ") });
+  }
+  return t("Away from home on any network (4G, 5G, another Wi-Fi), even when your router cannot be opened: install Tailscale (free) on this computer and on the iPhone, signed in with the same account. AXYON finds the address by itself.");
 }
 
 /** What Settings says about "away from home, directly", line by line (src-tauri/src/phone_link/remote.rs). */

@@ -21,13 +21,33 @@ struct CoucouPhoneApp: App {
             switch phase {
             case .active:
                 PCLink.shared.appBecameActive()
+                #if HERMES
+                // Hermes inside the iPhone starts with the app, and listens again after a suspension.
+                HermesEngine.shared.appBecameActive()
+                #endif
                 Task { await PhoneLink.shared.refresh() }
             case .background:
                 PCLink.shared.appWentAway()
+                #if HERMES
+                HermesEngine.shared.appWentAway()
+                AXYONAlerts.schedule()
+                #endif
             default:
                 break
             }
         }
+        .axyonAlerts()
+    }
+}
+
+extension Scene {
+    /// The superpowers' looks with AXYON closed (Hermes/Swift/AXYONAlerts.swift), in the build that carries them.
+    func axyonAlerts() -> some Scene {
+        #if HERMES
+        backgroundTask(.appRefresh(AXYONAlerts.task)) { await AXYONAlerts.backgroundLook() }
+        #else
+        self
+        #endif
     }
 }
 

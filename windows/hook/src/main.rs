@@ -26,7 +26,7 @@
 
 use std::io::{Read, Write};
 use std::sync::mpsc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use serde_json::{Map, Value};
 
@@ -380,7 +380,30 @@ fn launch(app: &std::path::Path) -> bool {
 
 /// Connect, send, and — for a permission request — wait for the island's word.
 fn talk(payload: &str, waits_for_answer: bool) -> Option<String> {
-    let mut pipe = connect()?;
+    talk_on(connect()?, payload, waits_for_answer)
+}
+
+/// How long an MCP call keeps trying to reach a Coucou that is open but busy: no agent is held up by it (the assistant
+/// waits for its tool anyway), unlike a hook.
+const PATIENT_CONNECT: Duration = Duration::from_secs(15);
+
+/// `talk` for an MCP call: the pipe is tried again for a while when Coucou does not take it at once (busy reading, or
+/// between two of its pipe's instances), instead of giving up after a hook's 300 ms.
+fn talk_patiently(payload: &str) -> Option<String> {
+    let deadline = Instant::now() + PATIENT_CONNECT;
+    let pipe = loop {
+        if let Some(pipe) = connect() {
+            break pipe;
+        }
+        if Instant::now() >= deadline {
+            return None;
+        }
+        std::thread::sleep(Duration::from_millis(250));
+    };
+    talk_on(pipe, payload, true)
+}
+
+fn talk_on<P: Read + Write>(mut pipe: P, payload: &str, waits_for_answer: bool) -> Option<String> {
 
     if pipe.write_all(payload.as_bytes()).is_err() {
         return None;

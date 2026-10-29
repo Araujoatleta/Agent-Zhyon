@@ -149,6 +149,11 @@ impl server::Features for TauriFeatures {
         let s = s.settings.lock().unwrap();
         s.home_enabled && s.phone_home
     }
+    fn portfolio(&self) -> bool {
+        // The phone already reaches the portfolio through the chat; the copy lets AXYON on it work with this computer
+        // off. Only while the superpowers are on.
+        self.app.state::<Shared>().settings.lock().unwrap().powers_enabled
+    }
 }
 
 /// Zheus from the phone: the calls Settings → Hermes Agent makes (hermes_setup.rs). What the phone sent is never
@@ -269,6 +274,11 @@ pub struct PhoneLink {
     remote: Mutex<Option<Remote>>,
     /// The last one switched off, still closing the router's port: a new start waits for it.
     remote_closing: Mutex<Option<tauri::async_runtime::JoinHandle<()>>>,
+    /// Where the phones find this computer through Tailscale ("100.x.y.z:port"), when it runs here: given to them with
+    /// the router's ways in, whether "away from home, directly" is on or not.
+    tailnet: Arc<Mutex<Vec<String>>>,
+    /// The router's ways in, as last found (none while "away from home, directly" is off or not known yet).
+    router_ways: Arc<Mutex<Option<Vec<String>>>>,
     /// Notifications with Coucou closed (push.rs): which requests were pushed, and when.
     pusher: push::Pusher,
 }
@@ -287,6 +297,8 @@ impl PhoneLink {
             error: Mutex::new(None),
             relay: Mutex::new(None),
             remote: Mutex::new(None),
+            tailnet: Arc::new(Mutex::new(Vec::new())),
+            router_ways: Arc::new(Mutex::new(None)),
             remote_closing: Mutex::new(None),
             pusher: push::Pusher::default(),
         }
@@ -363,13 +375,19 @@ impl PhoneLink {
         let on = self.app.state::<Shared>().settings.lock().unwrap().phone_remote;
         let running = self.running.lock().unwrap().as_ref().map(|r| (r.shared.clone(), r.port, server::tls_acceptor(&r.identity)));
         let Some((shared, port, acceptor)) = running.filter(|_| on) else {
-            // Off: the phones forget where they were told to try; the old task closes the port on the router.
-            self.hub.set_remote(Some(Vec::new()));
+            // Off: the phones forget the router's ways in (Tailscale's stay); the old task closes the port on the router.
+            *self.router_ways.lock().unwrap() = Some(Vec::new());
+            publish_ways(&self.hub, &self.router_ways, &self.tailnet);
             *self.remote_closing.lock().unwrap() = previous;
             return;
         };
         // Not known until the router has answered: a phone connecting meanwhile keeps what it knew.
-        self.hub.set_remote(None);
+        *self.router_ways.lock().unwrap() = None;
+        if self.tailnet.lock().unwrap().is_empty() {
+            self.hub.set_remote(None);
+        } else {
+            publish_ways(&self.hub, &self.router_ways, &self.tailnet);
+        }
         let (v6, v6_error) = match (acceptor, listen_v6(port)) {
             (Ok(acceptor), Ok(listener)) => {
                 let started = tauri::async_runtime::block_on(async move {
@@ -386,16 +404,40 @@ impl PhoneLink {
         if let Some(e) = &v6_error {
             log::line(format!("phone link: no IPv6 way in: {e}"));
         }
-        let (app, hub) = (self.app.clone(), self.hub.clone());
+        let (app, hub, router_ways, tailnet) = (self.app.clone(), self.hub.clone(), self.router_ways.clone(), self.tailnet.clone());
         let checker = remote::start(port, v6.is_some(), previous, move |reach| {
             let endpoints = reach.endpoints();
-            let told = hub.set_remote(Some(endpoints.clone()));
+            *router_ways.lock().unwrap() = Some(endpoints.clone());
+            let told = publish_ways(&hub, &router_ways, &tailnet);
             // How many ways in, never which: the home's addresses stay out of the log.
             log::line(format!("phone link: away from home, directly: {} way(s) in, {told} phone(s) told", endpoints.len()));
             let _ = app.emit("phone-remote-changed", ());
         });
         log::line("phone link: away from home, directly: asking the router");
         *self.remote.lock().unwrap() = Some(Remote { checker, v6, v6_error });
+    }
+
+    /// While the link runs: this computer's Tailscale address, looked at every half minute (Tailscale may start after
+    /// AXYON, or stop), and the phones told when it changes.
+    fn watch_tailnet(&self, port: u16) {
+        let (app, hub, router_ways, tailnet) = (self.app.clone(), self.hub.clone(), self.router_ways.clone(), self.tailnet.clone());
+        tauri::async_runtime::spawn(async move {
+            loop {
+                let running_port = app.try_state::<PhoneLink>().and_then(|l| l.running.lock().unwrap().as_ref().map(|r| r.port));
+                if running_port != Some(port) {
+                    return;
+                }
+                let now = remote::tailnet_endpoints(port);
+                let changed = *tailnet.lock().unwrap() != now;
+                if changed {
+                    log::line(format!("phone link: Tailscale {}", if now.is_empty() { "gone" } else { "here: phones away from home can come through it" }));
+                    *tailnet.lock().unwrap() = now;
+                    publish_ways(&hub, &router_ways, &tailnet);
+                    let _ = app.emit("phone-remote-changed", ());
+                }
+                tokio::time::sleep(Duration::from_secs(30)).await;
+            }
+        });
     }
 
     /// The app is quitting: the router's port is closed before the process ends (a few seconds at most).
@@ -424,10 +466,13 @@ impl PhoneLink {
                     Ok(()) => log::line("phone link: announced on the local network"),
                     Err(e) => log::line(format!("phone link: not announced on the local network: {e}")),
                 }
+                let port = r.port;
                 *running = Some(r);
                 *self.error.lock().unwrap() = None;
                 drop(running);
                 self.sync_relay();
+                self.watch_tailnet(port);
+                portfolio_changed(&self.app);
                 self.sync_remote();
                 Ok(())
             }
@@ -491,6 +536,45 @@ impl PhoneLink {
     }
 }
 
+/// The portfolio's copy stays under this: a phone reads lines of 64 KiB at most.
+const COPY_LIMIT: usize = 60 * 1024;
+
+/// The portfolio changed (powers::changed), or the link started: the phones that keep a copy are sent the new one;
+/// with the superpowers off, they are told to forget theirs.
+pub fn portfolio_changed(app: &AppHandle) {
+    let Some(link) = app.try_state::<PhoneLink>() else { return };
+    let copy = crate::powers::phone_copy(app).unwrap_or_else(|| serde_json::json!({ "type": "portfolio", "off": true }));
+    let mut line = copy.to_string();
+    if line.len() > COPY_LIMIT {
+        // A phone closes a link whose line is too long for it: the positions alone, then.
+        line = serde_json::json!({ "type": "portfolio", "positions": copy["positions"], "ceilings": copy["ceilings"] }).to_string();
+        if line.len() > COPY_LIMIT {
+            return;
+        }
+    }
+    let told = link.hub.set_portfolio(line);
+    if told > 0 {
+        // How many phones, never what: the portfolio stays out of the log.
+        log::line(format!("phone link: the portfolio's copy sent to {told} phone(s)"));
+    }
+}
+
+/// The phones told where to try away from home: Tailscale's ways first (they get through any router, CGNAT
+/// included, and a phone keeps six at most), then the router's (when known). How many phones.
+fn publish_ways(hub: &Hub, router: &Mutex<Option<Vec<String>>>, tailnet: &Mutex<Vec<String>>) -> usize {
+    hub.set_remote(Some(ways_of(&tailnet.lock().unwrap(), router.lock().unwrap().as_deref())))
+}
+
+fn ways_of(tailnet: &[String], router: Option<&[String]>) -> Vec<String> {
+    let mut ways = tailnet.to_vec();
+    for w in router.unwrap_or_default() {
+        if !ways.contains(w) {
+            ways.push(w.clone());
+        }
+    }
+    ways
+}
+
 // ── Commands ──────────────────────────────────────────────────────────────────
 
 #[derive(Serialize)]
@@ -506,6 +590,8 @@ pub struct Status {
     pub error: Option<String>,
     /// The relay connection ("Away from home Wi-Fi"); `off` when it is not switched on.
     pub relay_state: relay_client::State,
+    /// This computer's Tailscale address(es), when Tailscale runs here: the phones come through it away from home.
+    pub tailnet: Vec<String>,
 }
 
 #[derive(Serialize)]
@@ -531,6 +617,7 @@ fn status_of(link: &PhoneLink, enabled: bool) -> Status {
         clients: link.hub.clients(),
         error: link.error.lock().unwrap().clone(),
         relay_state: link.relay.lock().unwrap().as_ref().map_or(relay_client::State::Off, |h| h.state()),
+        tailnet: remote::tailnet_v4().iter().map(|ip| ip.to_string()).collect(),
     }
 }
 

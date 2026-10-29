@@ -272,6 +272,16 @@ enum PCLinkWireTests {
             check("host and port of an IPv4 one", PCRemote.parse("198.51.100.7:47822").map { $0.host == "198.51.100.7" && $0.port == 47822 } == true)
             check("a name is never taken", PCRemote.parse("evil.example:443") == nil)
             check("an IPv6 without brackets is not taken", PCRemote.parse("2804::1:47821") == nil)
+            check("a Tailscale address is known", PCRemote.isTailnet("100.101.102.103:47821") && PCRemote.isTailnet("100.64.0.1:1"))
+            check("others are not Tailscale's", !PCRemote.isTailnet("100.128.0.1:47821") && !PCRemote.isTailnet("100.63.0.1:47821")
+                && !PCRemote.isTailnet("198.51.100.7:47822") && !PCRemote.isTailnet("[2804::1]:47821") && !PCRemote.isTailnet("nonsense"))
+
+            // The portfolio's copy, for Hermes on this iPhone (windows/src-tauri/src/powers/mod.rs, phone_copy).
+            let copyLine = Data(#"{"type":"portfolio","positions":[{"ticker":"GARE11","class":"fii","quantity":204.0}],"ceilings":{"GARE11":8.0}}"#.utf8)
+            checkEqual("the portfolio's copy, kept as it came", PCIncoming.decode(copyLine), .portfolio(copyLine))
+            checkEqual("superpowers off: forget it", line(#"{"type":"portfolio","off":true}"#), .portfolio(nil))
+            checkEqual("no positions: not a copy", line(#"{"type":"portfolio"}"#), .other)
+            check("only a Hermes build asks for it", !PCWire.capabilities.contains(PCWire.portfolioCapability))
 
             var model = PCLinkModel()
             let effects = model.apply(.remote(["198.51.100.7:47822"]), now: t0)

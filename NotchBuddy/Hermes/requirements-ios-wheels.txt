@@ -1,0 +1,6 @@
+# Hermes' compiled packages that publish iOS wheels (cp314, ios_13_0_arm64_iphoneos). pydantic-core and jiter have
+# none: build-ios.sh builds them. The others Hermes lists (cryptography, psutil, watchfiles, httptools, pillow-heif,
+# resvg-py, firecrawl-anydoc, nemo-relay) are left out: an iPhone has no use for them, or shims/ stands in.
+charset-normalizer==3.5.1
+markupsafe==3.0.4
+pillow==12.3.0

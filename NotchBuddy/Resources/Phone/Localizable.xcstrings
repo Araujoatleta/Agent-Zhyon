@@ -45,6 +45,28 @@
         }
       }
     },
+    "%@ can't be reached, at home or through Tailscale. Is Tailscale on, on this iPhone and on the computer, and the computer awake with the app running?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se puede alcanzar %@, ni en casa ni por Tailscale. ¿Está Tailscale activado en este iPhone y en el ordenador, y el ordenador despierto con la app abierta?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ est injoignable, à la maison comme par Tailscale. Tailscale est-il activé sur cet iPhone et sur l'ordinateur, et l'ordinateur réveillé avec l'app ouverte ?"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível alcançar %@, nem em casa nem pelo Tailscale. O Tailscale está ligado neste iPhone e no computador, e o computador está acordado com o app aberto?"
+          }
+        }
+      }
+    },
     "%@ didn't answer in time.": {
       "localizations": {
         "es": {
@@ -63,6 +85,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@ não respondeu a tempo."
+          }
+        }
+      }
+    },
+    "%@ down %@ today": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ baja un %@ hoy"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ perd %@ aujourd'hui"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ cai %@ hoje"
           }
         }
       }
@@ -89,6 +133,28 @@
         }
       }
     },
+    "%@ is %@ below its ceiling": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ está %@ por debajo de su precio techo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ est %@ sous son prix plafond"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ está %@ abaixo do preço teto"
+          }
+        }
+      }
+    },
     "%@ is still busy with the assistant. Try again in a moment.": {
       "localizations": {
         "es": {
@@ -107,6 +173,182 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@ ainda está ocupado com o assistente. Tente de novo em instantes."
+          }
+        }
+      }
+    },
+    "%@ now": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ahora"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ maintenant"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ agora"
+          }
+        }
+      }
+    },
+    "%@ now · %@ today": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ahora · %@ hoy"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ maintenant · %@ aujourd'hui"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ agora · %@ hoje"
+          }
+        }
+      }
+    },
+    "%@ now · %@: %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ahora · %@: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ maintenant · %@ : %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ agora · %@: %@"
+          }
+        }
+      }
+    },
+    "%@ now · your ceiling %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ahora · tu precio techo %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ maintenant · votre prix plafond %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ agora · seu preço teto %@"
+          }
+        }
+      }
+    },
+    "%@ now · your position %@ today": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ahora · tu posición %@ hoy"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ maintenant · votre position %@ aujourd'hui"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ agora · sua posição %@ hoje"
+          }
+        }
+      }
+    },
+    "%@ up %@ today": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ sube un %@ hoy"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ gagne %@ aujourd'hui"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ sobe %@ hoje"
+          }
+        }
+      }
+    },
+    "%@ went back above your ceiling": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ volvió a superar tu precio techo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ est repassé au-dessus de votre prix plafond"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ voltou para cima do seu preço teto"
+          }
+        }
+      }
+    },
+    "%@ went below your ceiling": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ bajó de tu precio techo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ est passé sous votre prix plafond"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ caiu abaixo do seu preço teto"
           }
         }
       }
@@ -265,6 +507,50 @@
         }
       }
     },
+    "A helper at work": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un ayudante trabajando"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un assistant au travail"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Um ajudante trabalhando"
+          }
+        }
+      }
+    },
+    "A notification when an asset goes under your ceiling or back above it, on a strong day for an asset or your portfolio, and when one is under its ceiling; in the morning, your day. iOS decides when AXYON may look, a few times a day. Only B3, the CVM, FundosNet, the Banco Central and Google Finance are read; nothing about you is sent.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Una notificación cuando un activo baja de tu precio techo o vuelve a superarlo, en un día fuerte de un activo o de tu cartera, y cuando uno está por debajo de su techo; por la mañana, tu día. iOS decide cuándo puede mirar AXYON, unas cuantas veces al día. Solo se leen la B3, la CVM, FundosNet, el Banco Central y Google Finance; no se envía nada sobre ti."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Une notification quand un actif passe sous votre prix plafond ou repasse au-dessus, lors d'une forte journée d'un actif ou de votre portefeuille, et quand l'un d'eux est sous son plafond ; le matin, votre journée. iOS décide quand AXYON peut regarder, quelques fois par jour. Seuls la B3, la CVM, FundosNet, le Banco Central et Google Finance sont lus ; rien sur vous n'est envoyé."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uma notificação quando um ativo fica abaixo do seu preço teto ou volta para cima dele, num dia forte de um ativo ou da sua carteira, e quando um deles está abaixo do teto; de manhã, o seu dia. O iOS decide quando o AXYON pode olhar, algumas vezes por dia. Só a B3, a CVM, o FundosNet, o Banco Central e o Google Finance são lidos; nada sobre você é enviado."
+          }
+        }
+      }
+    },
     "A permission": {
       "localizations": {
         "es": {
@@ -283,6 +569,204 @@
           "stringUnit": {
             "state": "translated",
             "value": "Uma permissão"
+          }
+        }
+      }
+    },
+    "A question for you": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Una pregunta para ti"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Une question pour vous"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uma pergunta para você"
+          }
+        }
+      }
+    },
+    "AXYON asks the first time it needs each one. Messages, e-mails and calls always wait for your tap.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON lo pide la primera vez que necesita cada uno. Los mensajes, correos y llamadas siempre esperan tu toque."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON demande la première fois qu'il en a besoin. Messages, e-mails et appels attendent toujours votre geste."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O AXYON pede na primeira vez que precisa de cada um. Mensagens, e-mails e ligações sempre esperam o seu toque."
+          }
+        }
+      }
+    },
+    "AXYON looks for Samsung TVs, Android devices with network debugging on, and Home Assistant. iOS asks once to let it use the local network.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON busca televisores Samsung, dispositivos Android con la depuración de red activada y Home Assistant. iOS pide una vez permiso para usar la red local."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON cherche les téléviseurs Samsung, les appareils Android avec le débogage réseau activé et Home Assistant. iOS demande une fois de le laisser utiliser le réseau local."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O AXYON procura TVs Samsung, aparelhos Android com a depuração de rede ligada e o Home Assistant. O iOS pede uma vez para deixá-lo usar a rede local."
+          }
+        }
+      }
+    },
+    "AXYON works on its own. Pair a computer to reach it too.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON funciona solo. Empareja un ordenador para llegar también a él."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON fonctionne tout seul. Jumelez un ordinateur pour l'atteindre aussi."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O AXYON funciona sozinho. Pareie um computador para alcançá-lo também."
+          }
+        }
+      }
+    },
+    "AXYON works without one. A paired computer adds its own home, agents and chat, at home or through Tailscale.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON funciona sin ordenador. Uno emparejado añade su casa, sus agentes y su chat, en casa o a través de Tailscale."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON fonctionne sans ordinateur. Un ordinateur jumelé ajoute sa maison, ses agents et son chat, à la maison ou via Tailscale."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O AXYON funciona sem computador. Um computador pareado acrescenta a casa, os agentes e o chat dele, em casa ou pelo Tailscale."
+          }
+        }
+      }
+    },
+    "AXYON's brain": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El cerebro de AXYON"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le cerveau d'AXYON"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O cérebro do AXYON"
+          }
+        }
+      }
+    },
+    "AXYON, inside your iPhone": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON, dentro de tu iPhone"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON, dans votre iPhone"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON, dentro do seu iPhone"
+          }
+        }
+      }
+    },
+    "Account": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cuenta"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compte"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conta"
+          }
+        }
+      }
+    },
+    "Acting in the home": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actuando en la casa"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agit dans la maison"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agindo na casa"
           }
         }
       }
@@ -331,6 +815,72 @@
         }
       }
     },
+    "Add": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Añadir"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajouter"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adicionar"
+          }
+        }
+      }
+    },
+    "Add a device": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Añadir un dispositivo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajouter un appareil"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adicionar aparelho"
+          }
+        }
+      }
+    },
+    "Add and pair": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Añadir y emparejar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajouter et jumeler"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adicionar e parear"
+          }
+        }
+      }
+    },
     "Add its key in Coucou's Settings on your Mac and keep the iPhone switch on (Settings → General → iPhone). What the Mac sees shows up here: no key is stored on your iPhone.": {
       "localizations": {
         "es": {
@@ -375,6 +925,72 @@
         }
       }
     },
+    "Add your Samsung TV, your Android TV or box, or your Home Assistant: AXYON reaches them from this iPhone on your Wi-Fi, with no computer. Then ask in the chat: “turn on the living room TV”.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Añade tu televisor Samsung, tu Android TV o tu TV box, o tu Home Assistant: AXYON los alcanza desde este iPhone en tu Wi-Fi, sin ordenador. Luego pide en el chat: “enciende la tele del salón”."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajoutez votre téléviseur Samsung, votre Android TV ou box, ou votre Home Assistant : AXYON les atteint depuis cet iPhone sur votre Wi-Fi, sans ordinateur. Puis demandez dans le chat : « allume la télé du salon »."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adicione a sua TV Samsung, a sua Android TV ou TV box, ou o seu Home Assistant: o AXYON fala com eles por este iPhone, no seu Wi-Fi, sem computador. Depois peça no chat: “liga a TV da sala”."
+          }
+        }
+      }
+    },
+    "Added": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Añadido"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajouté"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adicionado"
+          }
+        }
+      }
+    },
+    "Added.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Añadido."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajouté."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adicionado."
+          }
+        }
+      }
+    },
     "Address": {
       "localizations": {
         "es": {
@@ -397,6 +1013,28 @@
         }
       }
     },
+    "Address (192.168.0.20)": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dirección (192.168.0.20)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adresse (192.168.0.20)"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Endereço (192.168.0.20)"
+          }
+        }
+      }
+    },
     "Agents": {
       "localizations": {
         "es": {
@@ -415,6 +1053,94 @@
           "stringUnit": {
             "state": "translated",
             "value": "Agentes"
+          }
+        }
+      }
+    },
+    "Agents on the computer": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agentes en el ordenador"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agents sur l'ordinateur"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agentes no computador"
+          }
+        }
+      }
+    },
+    "Alerts sent: %lld": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alertas enviadas: %lld"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alertes envoyées : %lld"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alertas enviados: %lld"
+          }
+        }
+      }
+    },
+    "Alerts with AXYON closed": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alertas con AXYON cerrado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alertes avec AXYON fermé"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alertas com o AXYON fechado"
+          }
+        }
+      }
+    },
+    "All day": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todo el día"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toute la journée"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dia inteiro"
           }
         }
       }
@@ -459,6 +1185,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Permitir"
+          }
+        }
+      }
+    },
+    "Allow AXYON to %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permitir a AXYON: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Autoriser AXYON : %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permitir que o AXYON: %@"
           }
         }
       }
@@ -591,6 +1339,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "Permitido, enviado para %@"
+          }
+        }
+      }
+    },
+    "Android TV or box": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Android TV o TV box"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Android TV ou box"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Android TV ou TV box"
+          }
+        }
+      }
+    },
+    "Another OpenAI-compatible": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Otro compatible con OpenAI"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un autre compatible OpenAI"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Outro compatível com OpenAI"
           }
         }
       }
@@ -793,6 +1585,72 @@
         }
       }
     },
+    "Ask AXYON anything…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pídele lo que quieras a AXYON…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Demandez n'importe quoi à AXYON…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Peça qualquer coisa ao AXYON…"
+          }
+        }
+      }
+    },
+    "Ask AXYON in the chat to turn a device on or off. With a computer paired, its home shows here too, at home or through Tailscale.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pídele a AXYON en el chat que encienda o apague un aparato. Con un ordenador emparejado, su casa también aparece aquí, en casa o a través de Tailscale."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Demandez à AXYON dans le chat d'allumer ou d'éteindre un appareil. Avec un ordinateur jumelé, sa maison s'affiche ici aussi, à la maison ou via Tailscale."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Peça no chat para o AXYON ligar ou desligar um aparelho. Com um computador pareado, a casa dele aparece aqui também, em casa ou pelo Tailscale."
+          }
+        }
+      }
+    },
+    "Ask AXYON in the chat: “what is new in my Gmail?”, “read my sheet's AXYON tab”, “add this to my spreadsheet”, “find my 2027 plan in Drive”. An e-mail goes only when you tap Send.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pídele a AXYON en el chat: “¿qué hay de nuevo en mi Gmail?”, “lee la pestaña AXYON de mi hoja”, “añade esto a mi hoja de cálculo”, “busca mi plan 2027 en Drive”. Un correo solo sale cuando tocas Enviar."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Demandez à AXYON dans la conversation : « quoi de neuf dans mon Gmail ? », « lis l'onglet AXYON de ma feuille », « ajoute ceci à ma feuille de calcul », « trouve mon plan 2027 dans Drive ». Un e-mail ne part que quand vous touchez Envoyer."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Peça ao AXYON no chat: “o que tem de novo no meu Gmail?”, “lê a aba AXYON da minha planilha”, “adiciona isso na minha planilha”, “acha o meu plano 2027 no Drive”. Um e-mail só sai quando você toca em Enviar."
+          }
+        }
+      }
+    },
     "Ask Mochi to do something on %@: look through a folder, change a file, run the tests…": {
       "localizations": {
         "es": {
@@ -925,6 +1783,28 @@
         }
       }
     },
+    "Attach a photo or a file": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adjuntar una foto o un archivo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Joindre une photo ou un fichier"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anexar uma foto ou um arquivo"
+          }
+        }
+      }
+    },
     "Away from home": {
       "localizations": {
         "es": {
@@ -943,6 +1823,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Fora de casa"
+          }
+        }
+      }
+    },
+    "Away from home, %@ can be reached through Tailscale (free): install it on the computer and on this iPhone with the same account, then open this app once at home.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fuera de casa, %@ se alcanza por Tailscale (gratis): instálalo en el ordenador y en este iPhone con la misma cuenta, y abre esta app una vez en casa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hors de chez vous, %@ se joint par Tailscale (gratuit) : installez-le sur l'ordinateur et sur cet iPhone avec le même compte, puis ouvrez cette app une fois à la maison."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fora de casa, %@ é alcançado pelo Tailscale (grátis): instale no computador e neste iPhone com a mesma conta, depois abra este app uma vez em casa."
           }
         }
       }
@@ -1057,6 +1959,50 @@
         }
       }
     },
+    "By its address": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por su dirección"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Par son adresse"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pelo endereço"
+          }
+        }
+      }
+    },
+    "Calendar": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Calendario"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Calendrier"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Calendário"
+          }
+        }
+      }
+    },
     "Calm, courteous and quietly witty, like a seasoned butler who is also an engineer: the next step anticipated and offered in one line.": {
       "localizations": {
         "es": {
@@ -1075,6 +2021,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Calmo, cortês e discretamente espirituoso, como um mordomo experiente que também é engenheiro: antecipa o próximo passo e o oferece em uma linha."
+          }
+        }
+      }
+    },
+    "Camera": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cámara"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Appareil photo"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Câmera"
           }
         }
       }
@@ -1185,6 +2153,72 @@
           "stringUnit": {
             "state": "translated",
             "value": "Cancelar login"
+          }
+        }
+      }
+    },
+    "Cc: %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cc: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cc : %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cc: %@"
+          }
+        }
+      }
+    },
+    "Ceiling %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Techo %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plafond %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Teto %@"
+          }
+        }
+      }
+    },
+    "Ceilings": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Precio techo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plafonds"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preço teto"
           }
         }
       }
@@ -1321,6 +2355,50 @@
         }
       }
     },
+    "Channel +": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Canal +"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chaîne +"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Canal +"
+          }
+        }
+      }
+    },
+    "Channel −": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Canal −"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chaîne −"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Canal −"
+          }
+        }
+      }
+    },
     "Channels": {
       "localizations": {
         "es": {
@@ -1431,6 +2509,28 @@
         }
       }
     },
+    "Chat with the computer's AXYON": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chatear con el AXYON del ordenador"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Discuter avec l'AXYON de l'ordinateur"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conversar com o AXYON do computador"
+          }
+        }
+      }
+    },
     "ChatGPT": {
       "localizations": {
         "es": {
@@ -1475,6 +2575,50 @@
         }
       }
     },
+    "Choose AXYON's brain to start": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elige el cerebro de AXYON para empezar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choisissez le cerveau d'AXYON pour commencer"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolha o cérebro do AXYON para começar"
+          }
+        }
+      }
+    },
+    "Choose the client's JSON file": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elegir el archivo JSON del cliente"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choisir le fichier JSON du client"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolher o arquivo JSON do cliente"
+          }
+        }
+      }
+    },
     "Claude waits about 2 minutes, then asks in the terminal.": {
       "localizations": {
         "es": {
@@ -1515,6 +2659,138 @@
           "stringUnit": {
             "state": "translated",
             "value": "Resposta do Claude"
+          }
+        }
+      }
+    },
+    "Claude, with your API key": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude, con tu clave de API"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude, avec votre clé d'API"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude, com a sua chave de API"
+          }
+        }
+      }
+    },
+    "Client ID": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ID de cliente"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ID client"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ID do cliente"
+          }
+        }
+      }
+    },
+    "Client secret": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Secreto del cliente"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Code secret du client"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chave secreta do cliente"
+          }
+        }
+      }
+    },
+    "Clipboard": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Portapapeles"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Presse-papiers"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Área de transferência"
+          }
+        }
+      }
+    },
+    "Close": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cerrar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fermer"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fechar"
+          }
+        }
+      }
+    },
+    "Close AXYON from the app switcher and open it again.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cierra AXYON desde el selector de apps y vuelve a abrirlo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fermez AXYON depuis le sélecteur d'apps et rouvrez-le."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feche o AXYON no seletor de apps e abra de novo."
           }
         }
       }
@@ -1607,6 +2883,28 @@
         }
       }
     },
+    "Computer (optional)": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ordenador (opcional)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ordinateur (facultatif)"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Computador (opcional)"
+          }
+        }
+      }
+    },
     "Connect %@ on your Mac": {
       "localizations": {
         "es": {
@@ -1625,6 +2923,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "Conecte %@ no seu Mac"
+          }
+        }
+      }
+    },
+    "Connect Home Assistant": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conectar Home Assistant"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connecter Home Assistant"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conectar o Home Assistant"
+          }
+        }
+      }
+    },
+    "Connect the iPhone to your home's Wi-Fi to look for devices.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conecta el iPhone al Wi-Fi de casa para buscar dispositivos."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connectez l'iPhone au Wi-Fi de la maison pour chercher des appareils."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conecte o iPhone ao Wi-Fi de casa para procurar aparelhos."
           }
         }
       }
@@ -1735,6 +3077,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "Conexão"
+          }
+        }
+      }
+    },
+    "Connections": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conexiones"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connexions"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conexões"
+          }
+        }
+      }
+    },
+    "Contacts": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contactos"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contacts"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contatos"
           }
         }
       }
@@ -2157,6 +3543,28 @@
         }
       }
     },
+    "DARF of %@ due %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DARF de %@, vence el %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DARF de %@, à payer le %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DARF de %@, vence em %@"
+          }
+        }
+      }
+    },
     "Decisions you took": {
       "localizations": {
         "es": {
@@ -2355,6 +3763,72 @@
         }
       }
     },
+    "Disconnect Google": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desconectar Google"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Déconnecter Google"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desconectar o Google"
+          }
+        }
+      }
+    },
+    "Disconnect Home Assistant": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desconectar Home Assistant"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Déconnecter Home Assistant"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desconectar o Home Assistant"
+          }
+        }
+      }
+    },
+    "Do it for me": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hazlo por mí"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Faites-le pour moi"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Faça por mim"
+          }
+        }
+      }
+    },
     "Done": {
       "localizations": {
         "es": {
@@ -2373,6 +3847,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "OK"
+          }
+        }
+      }
+    },
+    "Done.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hecho."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fait."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feito."
           }
         }
       }
@@ -2399,6 +3895,28 @@
         }
       }
     },
+    "Each task's answer comes as a notification. They run on time while AXYON is open; with AXYON closed, iOS wakes it a few times a day and a task that came due runs then. To change or remove one, ask AXYON in the chat.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La respuesta de cada tarea llega como notificación. Se ejecutan a tiempo con AXYON abierto; con AXYON cerrado, iOS lo despierta algunas veces al día y la tarea pendiente se ejecuta entonces. Para cambiar o quitar una, pídeselo a AXYON en el chat."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La réponse de chaque tâche arrive en notification. Elles s'exécutent à l'heure quand AXYON est ouvert ; AXYON fermé, iOS le réveille quelques fois par jour et une tâche échue s'exécute alors. Pour en modifier ou en retirer une, demandez à AXYON dans la conversation."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A resposta de cada tarefa chega como notificação. Elas rodam na hora com o AXYON aberto; com o AXYON fechado, o iOS acorda o app algumas vezes por dia e a tarefa que venceu roda nessa hora. Para mudar ou tirar uma, peça ao AXYON no chat."
+          }
+        }
+      }
+    },
     "Earlier turns": {
       "localizations": {
         "es": {
@@ -2417,6 +3935,72 @@
           "stringUnit": {
             "state": "translated",
             "value": "Turnos anteriores"
+          }
+        }
+      }
+    },
+    "English": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inglés"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anglais"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inglês"
+          }
+        }
+      }
+    },
+    "English: %@'s results": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inglés: los resultados de %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anglais : les résultats de %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inglês: os resultados da %@"
+          }
+        }
+      }
+    },
+    "English: %@'s results and %@ cards": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inglés: los resultados de %@ y %@ tarjetas"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anglais : les résultats de %@ et %@ cartes"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inglês: os resultados da %@ e %@ cartões"
           }
         }
       }
@@ -2531,6 +4115,28 @@
         }
       }
     },
+    "Files": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Archivos"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fichiers"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arquivos"
+          }
+        }
+      }
+    },
     "Files an agent changed": {
       "localizations": {
         "es": {
@@ -2641,6 +4247,28 @@
         }
       }
     },
+    "Finish": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Terminar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Terminer"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Concluir"
+          }
+        }
+      }
+    },
     "Fix the errors": {
       "localizations": {
         "es": {
@@ -2663,6 +4291,28 @@
         }
       }
     },
+    "Flashlight": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Linterna"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lampe torche"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lanterna"
+          }
+        }
+      }
+    },
     "Forget this computer": {
       "localizations": {
         "es": {
@@ -2681,6 +4331,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Esquecer este computador"
+          }
+        }
+      }
+    },
+    "Free key, generous limits": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clave gratis, límites generosos"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clé gratuite, limites généreuses"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chave grátis, limites generosos"
           }
         }
       }
@@ -2773,6 +4445,72 @@
         }
       }
     },
+    "Get a free key from Google AI Studio": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conseguir una clave gratis en Google AI Studio"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Obtenir une clé gratuite sur Google AI Studio"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pegar uma chave grátis no Google AI Studio"
+          }
+        }
+      }
+    },
+    "Get a key": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conseguir una clave"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Obtenir une clé"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pegar uma chave"
+          }
+        }
+      }
+    },
+    "Give Hermes a brain": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dale un cerebro a Hermes"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Donnez un cerveau à Hermes"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dê um cérebro ao Hermes"
+          }
+        }
+      }
+    },
     "Give me three ideas for ": {
       "localizations": {
         "es": {
@@ -2791,6 +4529,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "Me dê três ideias para "
+          }
+        }
+      }
+    },
+    "Give me today's English lesson.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dame la clase de inglés de hoy."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Donne-moi la leçon d'anglais du jour."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Me dá a aula de inglês de hoje."
+          }
+        }
+      }
+    },
+    "Gmail, Sheets, Drive, Docs and Calendar with your own Google sign-in, and the tasks AXYON runs for you on a schedule.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gmail, Hojas de cálculo, Drive, Documentos y Calendario con tu propio inicio de sesión de Google, y las tareas que AXYON ejecuta por ti en horarios programados."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gmail, Sheets, Drive, Docs et Agenda avec votre propre connexion Google, et les tâches qu'AXYON exécute pour vous à heures fixes."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gmail, Planilhas, Drive, Documentos e Agenda com o seu próprio login do Google, e as tarefas que o AXYON roda para você em horários marcados."
           }
         }
       }
@@ -2817,6 +4599,138 @@
         }
       }
     },
+    "Good afternoon": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buenas tardes"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bon après-midi"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Boa tarde"
+          }
+        }
+      }
+    },
+    "Good evening": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buenas noches"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bonsoir"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Boa noite"
+          }
+        }
+      }
+    },
+    "Good morning": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buenos días"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bonjour"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bom dia"
+          }
+        }
+      }
+    },
+    "Good morning! Today:": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¡Buenos días! Hoy:"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bonjour ! Aujourd'hui :"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bom dia! Hoje:"
+          }
+        }
+      }
+    },
+    "Google": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Google"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Google"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Google"
+          }
+        }
+      }
+    },
+    "Google Calendar": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Google Calendar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Google Agenda"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Google Agenda"
+          }
+        }
+      }
+    },
     "Google Gemini (API key)": {
       "localizations": {
         "es": {
@@ -2835,6 +4749,72 @@
           "stringUnit": {
             "state": "translated",
             "value": "Google Gemini (chave de API)"
+          }
+        }
+      }
+    },
+    "Google Sheets": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hojas de cálculo de Google"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Google Sheets"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Google Planilhas"
+          }
+        }
+      }
+    },
+    "Google account": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cuenta de Google"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compte Google"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conta Google"
+          }
+        }
+      }
+    },
+    "Google's own page opens here: sign in and allow. If Google says the app is not verified, tap Advanced, then go to your app.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La propia página de Google se abre aquí: inicia sesión y permite. Si Google dice que la app no está verificada, toca Avanzado y luego ve a tu app."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La page de Google s'ouvre ici : connectez-vous et autorisez. Si Google dit que l'application n'est pas validée, touchez Paramètres avancés, puis accédez à votre application."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A própria página do Google abre aqui: entre e permita. Se o Google disser que o app não foi verificado, toque em Avançado e depois em ir para o seu app."
           }
         }
       }
@@ -2901,6 +4881,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Verde"
+          }
+        }
+      }
+    },
+    "Hermes": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hermes"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hermes"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hermes"
           }
         }
       }
@@ -2993,6 +4995,270 @@
         }
       }
     },
+    "Hermes could not start": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hermes no pudo arrancar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hermes n'a pas pu démarrer"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Hermes não conseguiu iniciar"
+          }
+        }
+      }
+    },
+    "Hermes did not answer inside the app.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hermes no respondió dentro de la app."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hermes n'a pas répondu dans l'app."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Hermes não respondeu dentro do app."
+          }
+        }
+      }
+    },
+    "Hermes did not start": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hermes no arrancó"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hermes n'a pas démarré"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Hermes não iniciou"
+          }
+        }
+      }
+    },
+    "Hermes did not start in time.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hermes no arrancó a tiempo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hermes n'a pas démarré à temps."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Hermes não iniciou a tempo."
+          }
+        }
+      }
+    },
+    "Hermes inside the iPhone": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hermes dentro del iPhone"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hermes dans l'iPhone"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hermes dentro do iPhone"
+          }
+        }
+      }
+    },
+    "Hermes inside the iPhone · %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hermes dentro del iPhone · %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hermes dans l'iPhone · %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hermes dentro do iPhone · %@"
+          }
+        }
+      }
+    },
+    "Hermes inside this iPhone": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hermes dentro de este iPhone"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hermes dans cet iPhone"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hermes dentro deste iPhone"
+          }
+        }
+      }
+    },
+    "Hermes is asleep": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hermes está dormido"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hermes dort"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Hermes está dormindo"
+          }
+        }
+      }
+    },
+    "Hermes is ready": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hermes está listo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hermes est prêt"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Hermes está pronto"
+          }
+        }
+      }
+    },
+    "Hermes is ready: choose its brain": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hermes está listo: elige su cerebro"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hermes est prêt : choisissez son cerveau"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Hermes está pronto: escolha o cérebro dele"
+          }
+        }
+      }
+    },
+    "Hermes is still starting: a moment.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hermes todavía está arrancando: un momento."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hermes démarre encore : un instant."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Hermes ainda está iniciando: um instante."
+          }
+        }
+      }
+    },
+    "Hermes is waking up inside the iPhone…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hermes se está despertando dentro del iPhone…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hermes se réveille dans l'iPhone…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Hermes está acordando dentro do iPhone…"
+          }
+        }
+      }
+    },
     "Hermes isn't installed on the computer": {
       "localizations": {
         "es": {
@@ -3011,6 +5277,72 @@
           "stringUnit": {
             "state": "translated",
             "value": "O Hermes não está instalado no computador"
+          }
+        }
+      }
+    },
+    "Hermes runs here: ask it to remind you, plan your day, look at your portfolio, turn on the TV, run a shortcut or search the web.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hermes funciona aquí: pídele que te recuerde algo, planifique tu día, mire tu cartera, encienda la tele, ejecute un atajo o busque en la web."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hermes tourne ici : demandez-lui un rappel, d'organiser votre journée, de regarder votre portefeuille, d'allumer la télé, de lancer un raccourci ou de chercher sur le web."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Hermes roda aqui: peça para ele te lembrar, planejar o seu dia, olhar a sua carteira, ligar a TV, rodar um atalho ou pesquisar na web."
+          }
+        }
+      }
+    },
+    "Hermes runs on this iPhone and thinks with the brain chosen here. Keys stay in this iPhone's Keychain.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hermes funciona en este iPhone y piensa con el cerebro elegido aquí. Las claves se quedan en el llavero de este iPhone."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hermes tourne sur cet iPhone et pense avec le cerveau choisi ici. Les clés restent dans le trousseau de cet iPhone."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Hermes roda neste iPhone e pensa com o cérebro escolhido aqui. As chaves ficam nas Chaves (Keychain) deste iPhone."
+          }
+        }
+      }
+    },
+    "Hermes' own choice": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lo elige Hermes"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Au choix de Hermes"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolha do próprio Hermes"
           }
         }
       }
@@ -3059,6 +5391,72 @@
         }
       }
     },
+    "Home Assistant": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Home Assistant"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Home Assistant"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Home Assistant"
+          }
+        }
+      }
+    },
+    "Home Assistant connected: %lld devices.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Home Assistant conectado: %lld dispositivos."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Home Assistant connecté : %lld appareils."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Home Assistant conectado: %lld aparelhos."
+          }
+        }
+      }
+    },
+    "How is my portfolio doing today?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Cómo va mi cartera hoy?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comment va mon portefeuille aujourd'hui ?"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Como está a minha carteira hoje?"
+          }
+        }
+      }
+    },
     "How to connect your Mac": {
       "localizations": {
         "es": {
@@ -3099,6 +5497,72 @@
           "stringUnit": {
             "state": "translated",
             "value": "Como conectar seu computador"
+          }
+        }
+      }
+    },
+    "Hundreds of models, some free": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cientos de modelos, algunos gratis"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Des centaines de modèles, certains gratuits"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Centenas de modelos, alguns grátis"
+          }
+        }
+      }
+    },
+    "If the page did not finish": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si la página no terminó"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si la page ne s'est pas terminée"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se a página não terminou"
+          }
+        }
+      }
+    },
+    "In Home Assistant: your profile → Security → Long-lived access tokens → Create token. The token stays in this iPhone's Keychain; AXYON never acts on locks or alarms.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En Home Assistant: tu perfil → Seguridad → Tokens de acceso de larga duración → Crear token. El token se queda en el llavero de este iPhone; AXYON nunca actúa sobre cerraduras ni alarmas."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dans Home Assistant : votre profil → Sécurité → Jetons d'accès longue durée → Créer un jeton. Le jeton reste dans le trousseau de cet iPhone ; AXYON n'agit jamais sur les serrures ni les alarmes."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No Home Assistant: seu perfil → Segurança → Tokens de acesso de longa duração → Criar token. O token fica nas Chaves deste iPhone; o AXYON nunca mexe em fechaduras nem alarmes."
           }
         }
       }
@@ -3323,6 +5787,72 @@
         }
       }
     },
+    "Key": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clave"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clé"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chave"
+          }
+        }
+      }
+    },
+    "Key saved (paste a new one to change it)": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clave guardada (pega otra para cambiarla)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clé enregistrée (collez-en une autre pour la changer)"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chave salva (cole uma nova para trocar)"
+          }
+        }
+      }
+    },
+    "Kind": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tipo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Type"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tipo"
+          }
+        }
+      }
+    },
     "LM Studio (on your computer)": {
       "localizations": {
         "es": {
@@ -3411,6 +5941,28 @@
         }
       }
     },
+    "Let AXYON see your calendar and reminders": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dejar que AXYON vea tu calendario y recordatorios"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Laisser AXYON voir votre calendrier et vos rappels"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deixar o AXYON ver o seu calendário e lembretes"
+          }
+        }
+      }
+    },
     "Link": {
       "localizations": {
         "es": {
@@ -3477,6 +6029,50 @@
         }
       }
     },
+    "Location": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ubicación"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Position"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Localização"
+          }
+        }
+      }
+    },
+    "Long-lived access token": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Token de acceso de larga duración"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jeton d'accès longue durée"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Token de acesso de longa duração"
+          }
+        }
+      }
+    },
     "Look": {
       "localizations": {
         "es": {
@@ -3499,6 +6095,160 @@
         }
       }
     },
+    "Look again": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscar de nuevo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chercher à nouveau"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Procurar de novo"
+          }
+        }
+      }
+    },
+    "Look again at your decision: %@ %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revisa tu decisión: %@ %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revois ta décision : %@ %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reveja sua decisão: %@ %@"
+          }
+        }
+      }
+    },
+    "Look now": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revisar ahora"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vérifier maintenant"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verificar agora"
+          }
+        }
+      }
+    },
+    "Look on this Wi-Fi": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscar en este Wi-Fi"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chercher sur ce Wi-Fi"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Procurar neste Wi-Fi"
+          }
+        }
+      }
+    },
+    "Looking at the home": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mirando la casa"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Regarde la maison"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Olhando a casa"
+          }
+        }
+      }
+    },
+    "Looking at the iPhone": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mirando el iPhone"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Regarde l'iPhone"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Olhando o iPhone"
+          }
+        }
+      }
+    },
+    "Looking at the image": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mirando la imagen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Regarde l'image"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Olhando a imagem"
+          }
+        }
+      }
+    },
     "Looking for it on the network…": {
       "localizations": {
         "es": {
@@ -3517,6 +6267,72 @@
           "stringUnit": {
             "state": "translated",
             "value": "Procurando na rede…"
+          }
+        }
+      }
+    },
+    "Making an image": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Creando una imagen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Création d'une image"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Criando uma imagem"
+          }
+        }
+      }
+    },
+    "Memory": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Memoria"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mémoire"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Memória"
+          }
+        }
+      }
+    },
+    "Message AXYON…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mensaje para AXYON…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Message à AXYON…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mensagem para o AXYON…"
           }
         }
       }
@@ -3807,6 +6623,50 @@
         }
       }
     },
+    "More settings": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Más ajustes"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plus de réglages"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mais ajustes"
+          }
+        }
+      }
+    },
+    "Music": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Música"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Musique"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Música"
+          }
+        }
+      }
+    },
     "Mute": {
       "localizations": {
         "es": {
@@ -3851,6 +6711,28 @@
         }
       }
     },
+    "My day": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mi día"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ma journée"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meu dia"
+          }
+        }
+      }
+    },
     "Name": {
       "localizations": {
         "es": {
@@ -3869,6 +6751,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nome"
+          }
+        }
+      }
+    },
+    "Name (optional)": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nombre (opcional)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nom (facultatif)"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nome (opcional)"
           }
         }
       }
@@ -3961,6 +6865,28 @@
         }
       }
     },
+    "New conversation": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nueva conversación"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nouvelle conversation"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nova conversa"
+          }
+        }
+      }
+    },
     "News and feeds (RSS)": {
       "localizations": {
         "es": {
@@ -4001,6 +6927,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Próximo canal"
+          }
+        }
+      }
+    },
+    "Next: %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Próxima: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prochaine : %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Próxima: %@"
           }
         }
       }
@@ -4225,6 +7173,28 @@
         }
       }
     },
+    "No scheduled task yet. Ask AXYON: “every weekday at 9am, tell me how BTLG11 is”.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aún no hay tareas programadas. Pídele a AXYON: “cada día laborable a las 9, dime cómo va BTLG11”."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucune tâche programmée pour l'instant. Demandez à AXYON : « chaque jour ouvré à 9 h, dis-moi comment va BTLG11 »."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhuma tarefa agendada ainda. Peça ao AXYON: “todo dia útil às 9h, me diga como está o BTLG11”."
+          }
+        }
+      }
+    },
     "No session yet. Start Claude Code on %@, or chat with Mochi there in the Chat tab.": {
       "localizations": {
         "es": {
@@ -4291,6 +7261,28 @@
         }
       }
     },
+    "Not answering": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No responde"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ne répond pas"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não responde"
+          }
+        }
+      }
+    },
     "Not connected": {
       "localizations": {
         "es": {
@@ -4335,6 +7327,28 @@
         }
       }
     },
+    "Not done.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se hizo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pas fait."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi feito."
+          }
+        }
+      }
+    },
     "Not paired": {
       "localizations": {
         "es": {
@@ -4353,6 +7367,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Não pareado"
+          }
+        }
+      }
+    },
+    "Not paired yet": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aún sin emparejar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pas encore jumelé"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ainda não pareado"
           }
         }
       }
@@ -4397,6 +7433,72 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sem sessão iniciada"
+          }
+        }
+      }
+    },
+    "Nothing found: is the device on, on this Wi-Fi? Or add it by its address.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se encontró nada: ¿está el dispositivo encendido y en este Wi-Fi? O añádelo por su dirección."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rien trouvé : l'appareil est-il allumé, sur ce Wi-Fi ? Ou ajoutez-le par son adresse."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nada encontrado: o aparelho está ligado, neste Wi-Fi? Ou adicione pelo endereço."
+          }
+        }
+      }
+    },
+    "Nothing on your calendar today.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nada en tu calendario hoy."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rien dans votre calendrier aujourd'hui."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nada no seu calendário hoje."
+          }
+        }
+      }
+    },
+    "Nothing to tell right now.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nada que avisar ahora."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rien à signaler pour l'instant."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nada para avisar agora."
           }
         }
       }
@@ -4731,6 +7833,28 @@
         }
       }
     },
+    "On OpenAI's page, type this code:": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En la página de OpenAI, escribe este código:"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sur la page d'OpenAI, tapez ce code :"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Na página da OpenAI, digite este código:"
+          }
+        }
+      }
+    },
     "On the Mac: Coucou Settings → General → iPhone → \"Show my agent sessions on my iPhone\".": {
       "localizations": {
         "es": {
@@ -4749,6 +7873,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "No Mac: Configurações do Coucou → Geral → iPhone → “Mostrar minhas sessões de agente no meu iPhone”."
+          }
+        }
+      }
+    },
+    "On the TV, allow AXYON…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En el televisor, permite AXYON…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sur le téléviseur, autorisez AXYON…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Na TV, permita o AXYON…"
           }
         }
       }
@@ -4793,6 +7939,94 @@
           "stringUnit": {
             "state": "translated",
             "value": "No computador: Coucou → Configurações → Celular (Android e iPhone) → ative o link e mostre o código de pareamento, depois escaneie aqui. Ou copie o link lá e cole aqui. (O app Câmera do iPhone não abre códigos do Coucou.)"
+          }
+        }
+      }
+    },
+    "On the device, accept “Allow USB debugging?”…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En el dispositivo, acepta “¿Permitir depuración USB?”…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sur l'appareil, acceptez « Autoriser le débogage USB ? »…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No aparelho, aceite “Permitir depuração USB?”…"
+          }
+        }
+      }
+    },
+    "On the device: Settings → About → tap Build 7 times, then Developer options → turn on USB debugging and network debugging (ADB over the network, port 5555). It asks once to allow this iPhone.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En el dispositivo: Ajustes → Acerca de → toca 7 veces en Compilación, luego Opciones de desarrollador → activa la depuración USB y la depuración de red (ADB por la red, puerto 5555). Pide una vez permitir este iPhone."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sur l'appareil : Paramètres → À propos → touchez 7 fois Build, puis Options pour les développeurs → activez le débogage USB et le débogage réseau (ADB par le réseau, port 5555). Il demande une fois d'autoriser cet iPhone."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No aparelho: Configurações → Sobre → toque 7 vezes em Versão/Build, depois Opções do desenvolvedor → ligue a depuração USB e a depuração de rede (ADB pela rede, porta 5555). Ele pede uma vez para permitir este iPhone."
+          }
+        }
+      }
+    },
+    "On this iPhone's Wi-Fi": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En el Wi-Fi de este iPhone"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sur le Wi-Fi de cet iPhone"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No Wi-Fi deste iPhone"
+          }
+        }
+      }
+    },
+    "Once, in Google Cloud (about 5 minutes): create a project, enable the Gmail, Sheets, Drive, Docs and Calendar APIs, create an OAuth client of type “Desktop app”, add your account as a test user, and download its JSON. A client made for gog or for Hermes on the computer works too.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Una vez, en Google Cloud (unos 5 minutos): crea un proyecto, activa las API de Gmail, Sheets, Drive, Docs y Calendar, crea un cliente OAuth de tipo “App de escritorio” (Desktop app), añade tu cuenta como usuario de prueba y descarga su JSON. Un cliente hecho para gog o para Hermes en el ordenador también sirve."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Une fois, dans Google Cloud (environ 5 minutes) : créez un projet, activez les API Gmail, Sheets, Drive, Docs et Calendar, créez un client OAuth de type « Application de bureau » (Desktop app), ajoutez votre compte comme utilisateur test et téléchargez son JSON. Un client fait pour gog ou pour Hermes sur l'ordinateur convient aussi."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uma vez, no Google Cloud (uns 5 minutos): crie um projeto, ative as APIs do Gmail, Sheets, Drive, Docs e Calendar, crie um cliente OAuth do tipo “App para computador” (Desktop app), adicione a sua conta como usuário de teste e baixe o JSON. Um cliente feito para o gog ou para o Hermes no computador também serve."
           }
         }
       }
@@ -4863,6 +8097,28 @@
         }
       }
     },
+    "Open AXYON once at home with your computer on: it gives this iPhone your positions and ceilings. Or tell AXYON in the chat what you hold.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abre AXYON una vez en casa con el ordenador encendido: le pasa a este iPhone tus posiciones y techos. O dile a AXYON en el chat lo que tienes."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ouvrez AXYON une fois à la maison avec l'ordinateur allumé : il donne à cet iPhone vos positions et vos plafonds. Ou dites à AXYON dans le chat ce que vous détenez."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abra o AXYON uma vez em casa com o computador ligado: ele passa para este iPhone as suas posições e tetos. Ou conte ao AXYON no chat o que você tem."
+          }
+        }
+      }
+    },
     "Open Coucou on your Mac: your sessions will show up here.": {
       "localizations": {
         "es": {
@@ -4885,6 +8141,72 @@
         }
       }
     },
+    "Open Google Cloud's credentials": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir las credenciales de Google Cloud"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ouvrir les identifiants Google Cloud"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir as credenciais do Google Cloud"
+          }
+        }
+      }
+    },
+    "Open OpenAI": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir OpenAI"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ouvrir OpenAI"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir a OpenAI"
+          }
+        }
+      }
+    },
+    "Open Settings": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir Ajustes"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ouvrir Réglages"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir Ajustes"
+          }
+        }
+      }
+    },
     "Open iPhone Settings": {
       "localizations": {
         "es": {
@@ -4903,6 +8225,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Abrir os Ajustes do iPhone"
+          }
+        }
+      }
+    },
+    "Open reminders: %lld": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recordatorios pendientes: %lld"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rappels en cours : %lld"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lembretes em aberto: %lld"
           }
         }
       }
@@ -4969,6 +8313,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "OpenRouter (chave de API)"
+          }
+        }
+      }
+    },
+    "Opening on the iPhone": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abriendo en el iPhone"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ouvre sur l'iPhone"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrindo no iPhone"
           }
         }
       }
@@ -5193,6 +8559,28 @@
         }
       }
     },
+    "Paste the key": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pega la clave"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Collez la clé"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cole a chave"
+          }
+        }
+      }
+    },
     "Paste the link": {
       "localizations": {
         "es": {
@@ -5211,6 +8599,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "Colar o link"
+          }
+        }
+      }
+    },
+    "Paste the page's address": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pega la dirección de la página"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Collez l'adresse de la page"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cole o endereço da página"
+          }
+        }
+      }
+    },
+    "Paused": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En pausa"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En pause"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausada"
           }
         }
       }
@@ -5255,6 +8687,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Celular"
+          }
+        }
+      }
+    },
+    "Photos": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fotos"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Photos"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fotos"
           }
         }
       }
@@ -5325,6 +8779,28 @@
         }
       }
     },
+    "Play / pause": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reproducir / pausa"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lecture / pause"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tocar / pausar"
+          }
+        }
+      }
+    },
     "Playful": {
       "localizations": {
         "es": {
@@ -5387,6 +8863,116 @@
           "stringUnit": {
             "state": "translated",
             "value": "Aponte a câmera para o código em Coucou → Configurações → Celular (Android e iPhone) no computador."
+          }
+        }
+      }
+    },
+    "Portfolio": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cartera"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Portefeuille"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Carteira"
+          }
+        }
+      }
+    },
+    "Portfolio alerts": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alertas de la cartera"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alertes du portefeuille"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alertas da carteira"
+          }
+        }
+      }
+    },
+    "Positions": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Posiciones"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Positions"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Posições"
+          }
+        }
+      }
+    },
+    "Positions from AXYON on your computer (%@) · prices %@, about 15 min late": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Posiciones del AXYON de tu ordenador (%@) · precios %@, con unos 15 min de retraso"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Positions de l'AXYON de votre ordinateur (%@) · cours %@, environ 15 min de retard"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Posições do AXYON no seu computador (%@) · preços %@, com uns 15 min de atraso"
+          }
+        }
+      }
+    },
+    "Positions kept on this iPhone · prices %@, about 15 min late": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Posiciones guardadas en este iPhone · precios %@, con unos 15 min de retraso"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Positions gardées sur cet iPhone · cours %@, environ 15 min de retard"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Posições guardadas neste iPhone · preços %@, com uns 15 min de atraso"
           }
         }
       }
@@ -5677,6 +9263,116 @@
         }
       }
     },
+    "Reading a page": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leyendo una página"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lit une page"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lendo uma página"
+          }
+        }
+      }
+    },
+    "Reading prices": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leyendo precios"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lit les cours"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lendo preços"
+          }
+        }
+      }
+    },
+    "Reading the portfolio": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leyendo la cartera"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lit le portefeuille"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lendo a carteira"
+          }
+        }
+      }
+    },
+    "Reading your file": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leyendo tu archivo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lecture de votre fichier"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lendo o seu arquivo"
+          }
+        }
+      }
+    },
+    "Reading…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leyendo…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lecture…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lendo…"
+          }
+        }
+      }
+    },
     "Ready, %lld addresses": {
       "localizations": {
         "es": {
@@ -5765,6 +9461,72 @@
         }
       }
     },
+    "Remind me": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recuérdame"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rappelle-moi"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Me lembre"
+          }
+        }
+      }
+    },
+    "Remind me at 6pm to ": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recuérdame a las 18:00 que "
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rappelle-moi à 18 h de "
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Me lembre às 18h de "
+          }
+        }
+      }
+    },
+    "Reminders": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recordatorios"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rappels"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lembretes"
+          }
+        }
+      }
+    },
     "Remove": {
       "localizations": {
         "es": {
@@ -5783,6 +9545,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "Remover"
+          }
+        }
+      }
+    },
+    "Remove %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quitar %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retirer %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remover %@"
+          }
+        }
+      }
+    },
+    "Remove from AXYON": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quitar de AXYON"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retirer d'AXYON"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remover do AXYON"
           }
         }
       }
@@ -5875,6 +9681,50 @@
         }
       }
     },
+    "Review: %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Repasar: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réviser : %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revisar: %@"
+          }
+        }
+      }
+    },
+    "Room (optional)": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Habitación (opcional)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pièce (facultatif)"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cômodo (opcional)"
+          }
+        }
+      }
+    },
     "Routine": {
       "localizations": {
         "es": {
@@ -5937,6 +9787,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Executar"
+          }
+        }
+      }
+    },
+    "Run my shortcut ": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ejecuta mi atajo "
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lance mon raccourci "
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rode o meu atalho "
           }
         }
       }
@@ -6029,6 +9901,28 @@
         }
       }
     },
+    "Running a shortcut": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ejecutando un atajo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lance un raccourci"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rodando um atalho"
+          }
+        }
+      }
+    },
     "Running outside Coucou": {
       "localizations": {
         "es": {
@@ -6073,6 +9967,50 @@
         }
       }
     },
+    "Samsung TV": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Televisor Samsung"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Téléviseur Samsung"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TV Samsung"
+          }
+        }
+      }
+    },
+    "Save": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guardar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enregistrer"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salvar"
+          }
+        }
+      }
+    },
     "Save name and tone": {
       "localizations": {
         "es": {
@@ -6091,6 +10029,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Salvar nome e tom"
+          }
+        }
+      }
+    },
+    "Saved": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guardado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enregistré"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salvo"
           }
         }
       }
@@ -6139,6 +10099,50 @@
         }
       }
     },
+    "Scheduled tasks": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tareas programadas"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tâches programmées"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tarefas agendadas"
+          }
+        }
+      }
+    },
+    "Scheduling a notification": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Programando una notificación"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Programme une notification"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agendando uma notificação"
+          }
+        }
+      }
+    },
     "Search": {
       "localizations": {
         "es": {
@@ -6161,6 +10165,28 @@
         }
       }
     },
+    "Search the web: ": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Busca en la web: "
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cherche sur le web : "
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pesquise na web: "
+          }
+        }
+      }
+    },
     "Search your Mac's turns": {
       "localizations": {
         "es": {
@@ -6179,6 +10205,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "Buscar nos turnos do seu Mac"
+          }
+        }
+      }
+    },
+    "Searching past chats": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscando en chats anteriores"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cherche dans les anciens chats"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Procurando em conversas antigas"
+          }
+        }
+      }
+    },
+    "Searching the web": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscando en la web"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cherche sur le web"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pesquisando na web"
           }
         }
       }
@@ -6249,6 +10319,28 @@
         }
       }
     },
+    "Send this e-mail?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Enviar este correo?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Envoyer cet e-mail ?"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviar este e-mail?"
+          }
+        }
+      }
+    },
     "Send this instruction to Claude Code on your Mac": {
       "localizations": {
         "es": {
@@ -6267,6 +10359,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "Enviar esta instrução ao Claude Code no seu Mac"
+          }
+        }
+      }
+    },
+    "Send this reply?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Enviar esta respuesta?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Envoyer cette réponse ?"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviar esta resposta?"
+          }
+        }
+      }
+    },
+    "Sent from your Gmail only when you tap Send.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se envía desde tu Gmail solo cuando tocas Enviar."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Envoyé depuis votre Gmail seulement quand vous touchez Envoyer."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviado pelo seu Gmail só quando você tocar em Enviar."
           }
         }
       }
@@ -6513,6 +10649,72 @@
         }
       }
     },
+    "Share the image": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compartir la imagen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Partager l'image"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compartilhar a imagem"
+          }
+        }
+      }
+    },
+    "Sheets": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hojas de cálculo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feuilles de calcul"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Planilhas"
+          }
+        }
+      }
+    },
+    "Shortcut": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atajo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Raccourci"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atalho"
+          }
+        }
+      }
+    },
     "Show all %lld": {
       "localizations": {
         "es": {
@@ -6689,6 +10891,72 @@
         }
       }
     },
+    "Sign in with ChatGPT, or paste a free Gemini key.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inicia sesión con ChatGPT, o pega una clave gratis de Gemini."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connectez-vous avec ChatGPT, ou collez une clé Gemini gratuite."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entre com o ChatGPT, ou cole uma chave grátis do Gemini."
+          }
+        }
+      }
+    },
+    "Sign in with Google": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Iniciar sesión con Google"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se connecter avec Google"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entrar com o Google"
+          }
+        }
+      }
+    },
+    "Signed in to ChatGPT": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sesión iniciada en ChatGPT"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connecté à ChatGPT"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conectado ao ChatGPT"
+          }
+        }
+      }
+    },
     "Signed in with your ChatGPT account.": {
       "localizations": {
         "es": {
@@ -6707,6 +10975,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "Conectado com sua conta do ChatGPT."
+          }
+        }
+      }
+    },
+    "Signed in. Hermes thinks with your ChatGPT.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sesión iniciada. Hermes piensa con tu ChatGPT."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connecté. Hermes pense avec votre ChatGPT."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conectado. O Hermes pensa com o seu ChatGPT."
+          }
+        }
+      }
+    },
+    "Since you bought": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desde la compra"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Depuis l'achat"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desde a compra"
           }
         }
       }
@@ -6751,6 +11063,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Algumas linhas ficaram de fora para não pesar."
+          }
+        }
+      }
+    },
+    "Speaking": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hablando"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Parle"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Falando"
           }
         }
       }
@@ -6909,6 +11243,28 @@
         }
       }
     },
+    "Study: %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Estudiar: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Étudier : %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Estudar: %@"
+          }
+        }
+      }
+    },
     "Summarize this text: ": {
       "localizations": {
         "es": {
@@ -6931,6 +11287,72 @@
         }
       }
     },
+    "Superpowers": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Superpoderes"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Superpouvoirs"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Superpoderes"
+          }
+        }
+      }
+    },
+    "Superpowers: money": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Superpoderes: dinero"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Superpouvoirs : argent"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Superpoderes: dinheiro"
+          }
+        }
+      }
+    },
+    "Superpowers: your day": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Superpoderes: tu día"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Superpouvoirs : votre journée"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Superpoderes: o seu dia"
+          }
+        }
+      }
+    },
     "Support": {
       "localizations": {
         "es": {
@@ -6949,6 +11371,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Suporte"
+          }
+        }
+      }
+    },
+    "Switch": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alternar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Basculer"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alternar"
           }
         }
       }
@@ -6993,6 +11437,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "HOJE"
+          }
+        }
+      }
+    },
+    "Tap Pair, then accept AXYON on the TV when it asks.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toca Emparejar y acepta AXYON en el televisor cuando lo pida."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Touchez Jumeler, puis acceptez AXYON sur le téléviseur quand il le demande."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toque em Parear e aceite o AXYON na TV quando ela perguntar."
+          }
+        }
+      }
+    },
+    "Tap Pair, then on the device accept “Allow USB debugging?” (tick “Always allow”).": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toca Emparejar y, en el dispositivo, acepta “¿Permitir depuración USB?” (marca “Permitir siempre”)."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Touchez Jumeler, puis sur l'appareil acceptez « Autoriser le débogage USB ? » (cochez « Toujours autoriser »)."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toque em Parear e, no aparelho, aceite “Permitir depuração USB?” (marque “Sempre permitir”)."
           }
         }
       }
@@ -7063,6 +11551,28 @@
         }
       }
     },
+    "That file could not be added.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo añadir ese archivo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce fichier n'a pas pu être ajouté."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não deu para adicionar esse arquivo."
+          }
+        }
+      }
+    },
     "The Home Screen icon follows your choice; dark and tinted icons follow the Home Screen style. Spotlight's index stays on this iPhone.": {
       "localizations": {
         "es": {
@@ -7085,6 +11595,28 @@
         }
       }
     },
+    "The TV on and on the same Wi-Fi. It asks once, on its screen, to allow AXYON.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El televisor encendido y en el mismo Wi-Fi. Pide una vez, en su pantalla, permitir AXYON."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le téléviseur allumé et sur le même Wi-Fi. Il demande une fois, à l'écran, d'autoriser AXYON."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A TV ligada e no mesmo Wi-Fi. Ela pede uma vez, na tela, para permitir o AXYON."
+          }
+        }
+      }
+    },
     "The agent asks for a permission.": {
       "localizations": {
         "es": {
@@ -7103,6 +11635,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "O agente pede uma permissão."
+          }
+        }
+      }
+    },
+    "The answer stopped there: AXYON closed before it ended.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La respuesta se cortó aquí: AXYON se cerró antes de terminar."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La réponse s'est arrêtée là : AXYON s'est fermé avant la fin."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A resposta parou aí: o AXYON fechou antes de terminar."
           }
         }
       }
@@ -7217,6 +11771,28 @@
         }
       }
     },
+    "The computer's assistant": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El asistente del ordenador"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'assistant de l'ordinateur"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O assistente do computador"
+          }
+        }
+      }
+    },
     "The device can't do this.": {
       "localizations": {
         "es": {
@@ -7327,6 +11903,28 @@
         }
       }
     },
+    "This device is no longer in AXYON's home.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este dispositivo ya no está en la casa de AXYON."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cet appareil n'est plus dans la maison d'AXYON."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este aparelho não está mais na casa do AXYON."
+          }
+        }
+      }
+    },
     "This device isn't shared with the phone any more.": {
       "localizations": {
         "es": {
@@ -7367,6 +11965,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Este aparelho ou rotina não está mais compartilhado com o celular."
+          }
+        }
+      }
+    },
+    "This iPhone": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este iPhone"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cet iPhone"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este iPhone"
           }
         }
       }
@@ -7525,6 +12145,28 @@
         }
       }
     },
+    "To check in AXYON's tab": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para revisar en la pestaña de AXYON"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "À vérifier dans l'onglet d'AXYON"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para conferir na aba do AXYON"
+          }
+        }
+      }
+    },
     "To see the files it changed, turn on Settings → Phone → “Show the files an agent changed on the phone” on %@.": {
       "localizations": {
         "es": {
@@ -7587,6 +12229,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "Para escrever ao Claude daqui, ative “Deixar meu iPhone enviar instruções ao Claude Code” nas Configurações do Coucou no seu Mac (versão GitHub)."
+          }
+        }
+      }
+    },
+    "To-do list": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lista de tareas"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Liste de tâches"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lista de tarefas"
+          }
+        }
+      }
+    },
+    "To: %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "À : %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para: %@"
           }
         }
       }
@@ -7697,6 +12383,94 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mudanças demais. Tente de novo em alguns minutos."
+          }
+        }
+      }
+    },
+    "Total now": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Total ahora"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Total maintenant"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Total agora"
+          }
+        }
+      }
+    },
+    "Training: %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entrenamiento: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entraînement : %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Treino: %@"
+          }
+        }
+      }
+    },
+    "Training: %@, light": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entrenamiento: %@, suave"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entraînement : %@, léger"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Treino: %@, leve"
+          }
+        }
+      }
+    },
+    "Training: rest or a walk today": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entrenamiento: hoy descanso o un paseo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entraînement : repos ou marche aujourd'hui"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Treino: hoje descanso ou uma caminhada"
           }
         }
       }
@@ -7833,6 +12607,28 @@
         }
       }
     },
+    "Turn on the living room TV": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enciende la tele del salón"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allume la télé du salon"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ligue a TV da sala"
+          }
+        }
+      }
+    },
     "Turn on the phone link": {
       "localizations": {
         "es": {
@@ -7899,6 +12695,50 @@
         }
       }
     },
+    "Use": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Utiliser"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usar"
+          }
+        }
+      }
+    },
+    "Use this brain": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usar este cerebro"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Utiliser ce cerveau"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usar este cérebro"
+          }
+        }
+      }
+    },
     "Use your ChatGPT Plus or Pro subscription: Coucou starts the sign-in on %@, and you type a code on OpenAI's page here. No key needed.": {
       "localizations": {
         "es": {
@@ -7939,6 +12779,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Versão %@"
+          }
+        }
+      }
+    },
+    "Vol. %lld": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vol. %lld"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vol. %lld"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vol. %lld"
           }
         }
       }
@@ -7987,6 +12849,28 @@
         }
       }
     },
+    "Volume +": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volumen +"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volume +"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volume +"
+          }
+        }
+      }
+    },
     "Volume down": {
       "localizations": {
         "es": {
@@ -8027,6 +12911,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "Aumentar volume"
+          }
+        }
+      }
+    },
+    "Volume −": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volumen −"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volume −"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volume −"
+          }
+        }
+      }
+    },
+    "Waiting for the sign-in…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esperando el inicio de sesión…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En attente de la connexion…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esperando você entrar…"
           }
         }
       }
@@ -8097,6 +13025,28 @@
         }
       }
     },
+    "Wallet": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cartera"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Portefeuille"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Carteira"
+          }
+        }
+      }
+    },
     "Warm and friendly, like a helpful friend: short, clear answers, a light touch of humour when it fits.": {
       "localizations": {
         "es": {
@@ -8115,6 +13065,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Caloroso e amigável, como um amigo prestativo: respostas curtas e claras, com um toque leve de humor quando cabe."
+          }
+        }
+      }
+    },
+    "Watched with your ceiling": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seguidos con tu techo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suivis avec votre plafond"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Acompanhados com o seu teto"
           }
         }
       }
@@ -8141,6 +13113,28 @@
         }
       }
     },
+    "What AXYON may use on this iPhone": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lo que AXYON puede usar en este iPhone"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce qu'AXYON peut utiliser sur cet iPhone"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O que o AXYON pode usar neste iPhone"
+          }
+        }
+      }
+    },
     "What Claude does on your Mac shows up here, ready to search.": {
       "localizations": {
         "es": {
@@ -8159,6 +13153,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "O que o Claude faz no seu Mac aparece aqui, pronto para buscar."
+          }
+        }
+      }
+    },
+    "What do I have today and tomorrow?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Qué tengo hoy y mañana?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Qu'est-ce que j'ai aujourd'hui et demain ?"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O que eu tenho hoje e amanhã?"
+          }
+        }
+      }
+    },
+    "What is my workout today?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Cuál es mi entrenamiento de hoy?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quelle est ma séance du jour ?"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Qual é o meu treino de hoje?"
           }
         }
       }
@@ -8229,6 +13267,28 @@
         }
       }
     },
+    "When the page after allowing fails to load, copy its whole address and paste it here.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cuando la página después de permitir no carga, copia su dirección completa y pégala aquí."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si la page qui suit l'autorisation ne se charge pas, copiez son adresse complète et collez-la ici."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quando a página depois de permitir não carregar, copie o endereço inteiro dela e cole aqui."
+          }
+        }
+      }
+    },
     "Which devices of my home are on?": {
       "localizations": {
         "es": {
@@ -8247,6 +13307,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Quais aparelhos da minha casa estão ligados?"
+          }
+        }
+      }
+    },
+    "Which of my assets are under their ceiling price?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Cuáles de mis activos están por debajo de su precio techo?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lesquels de mes actifs sont sous leur prix plafond ?"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quais dos meus ativos estão abaixo do preço teto?"
           }
         }
       }
@@ -8317,6 +13399,28 @@
         }
       }
     },
+    "Workout": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entreno"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Séance"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Treino"
+          }
+        }
+      }
+    },
     "Write a short message that says ": {
       "localizations": {
         "es": {
@@ -8379,6 +13483,72 @@
           "stringUnit": {
             "state": "translated",
             "value": "Você · %@"
+          }
+        }
+      }
+    },
+    "Your ChatGPT subscription, no key": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu suscripción de ChatGPT, sin clave"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre abonnement ChatGPT, sans clé"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A sua assinatura do ChatGPT, sem chave"
+          }
+        }
+      }
+    },
+    "Your ChatGPT subscription, with its own sign-in on this iPhone (separate from the computer's).": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu suscripción de ChatGPT, con su propio inicio de sesión en este iPhone (aparte del del ordenador)."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre abonnement ChatGPT, avec sa propre connexion sur cet iPhone (distincte de celle de l'ordinateur)."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A sua assinatura do ChatGPT, com um login próprio neste iPhone (separado do computador)."
+          }
+        }
+      }
+    },
+    "Your Google OAuth client": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu cliente OAuth de Google"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre client OAuth Google"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seu cliente OAuth do Google"
           }
         }
       }
@@ -8471,6 +13641,50 @@
         }
       }
     },
+    "Your home, from the iPhone": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu casa, desde el iPhone"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre maison, depuis l'iPhone"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A sua casa, pelo iPhone"
+          }
+        }
+      }
+    },
+    "Your own server or another provider": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu propio servidor u otro proveedor"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre propre serveur ou un autre fournisseur"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O seu próprio servidor ou outro provedor"
+          }
+        }
+      }
+    },
     "Your own words, kept as you type them.": {
       "localizations": {
         "es": {
@@ -8489,6 +13703,226 @@
           "stringUnit": {
             "state": "translated",
             "value": "Suas próprias palavras, do jeito que você escrever."
+          }
+        }
+      }
+    },
+    "Your portfolio comes from AXYON on your computer once, or tell AXYON your positions in the chat.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu cartera llega una vez desde el AXYON de tu ordenador, o dile a AXYON tus posiciones en el chat."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre portefeuille vient une fois de l'AXYON de votre ordinateur, ou dites vos positions à AXYON dans le chat."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A sua carteira vem uma vez do AXYON no seu computador, ou conte ao AXYON as suas posições no chat."
+          }
+        }
+      }
+    },
+    "Your portfolio is down %@ today": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu cartera baja un %@ hoy"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre portefeuille perd %@ aujourd'hui"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua carteira cai %@ hoje"
+          }
+        }
+      }
+    },
+    "Your portfolio is up %@ today": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu cartera sube un %@ hoy"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre portefeuille gagne %@ aujourd'hui"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua carteira sobe %@ hoje"
+          }
+        }
+      }
+    },
+    "Your portfolio, here": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu cartera, aquí"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre portefeuille, ici"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A sua carteira, aqui"
+          }
+        }
+      }
+    },
+    "amortization": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "amortización"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "amortissement"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "amortização"
+          }
+        }
+      }
+    },
+    "assembly: your vote": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "asamblea: tu voto"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "assemblée : ton vote"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "assembleia: seu voto"
+          }
+        }
+      }
+    },
+    "avoid": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "evitar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "éviter"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "evitar"
+          }
+        }
+      }
+    },
+    "buy": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "comprar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "acheter"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "comprar"
+          }
+        }
+      }
+    },
+    "data-com": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "fecha de corte"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "date de détachement"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "data-com"
+          }
+        }
+      }
+    },
+    "dividend paid": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "pago de dividendo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "dividende versé"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "pagamento de rendimento"
           }
         }
       }
@@ -8533,6 +13967,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "arquivos"
+          }
+        }
+      }
+    },
+    "hold": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "mantener"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "garder"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "manter"
           }
         }
       }
@@ -8637,6 +14093,204 @@
         }
       }
     },
+    "manager's report": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "informe del gestor"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "rapport du gérant"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "relatório gerencial"
+          }
+        }
+      }
+    },
+    "material fact": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "hecho relevante"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "fait important"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "fato relevante"
+          }
+        }
+      }
+    },
+    "notice to holders": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "aviso a los cuotistas"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "avis aux porteurs"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "aviso aos cotistas"
+          }
+        }
+      }
+    },
+    "offering: your decision": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "oferta: tu decisión"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "émission : ta décision"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "oferta: sua decisão"
+          }
+        }
+      }
+    },
+    "projected Bazin": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bazin proyectado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bazin projeté"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bazin projetivo"
+          }
+        }
+      }
+    },
+    "sell": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "vender"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "vendre"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "vender"
+          }
+        }
+      }
+    },
+    "soon": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "pronto"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "bientôt"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "em breve"
+          }
+        }
+      }
+    },
+    "today": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "hoy"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "aujourd'hui"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "hoje"
+          }
+        }
+      }
+    },
+    "tomorrow": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "mañana"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "demain"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "amanhã"
+          }
+        }
+      }
+    },
     "turn": {
       "localizations": {
         "es": {
@@ -8721,6 +14375,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "seu computador"
+          }
+        }
+      }
+    },
+    "your own ceiling": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "tu propio precio techo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "votre propre prix plafond"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "seu próprio preço teto"
           }
         }
       }

@@ -11991,17 +11991,6 @@
    "ru": "Ваша Google Таблица",
    "id": "Google Sheet Anda"
   },
-  "gog was not found on this computer, on its PATH, in Downloads or in WSL: put gog.exe (from gogcli's Windows ZIP, github.com/openclaw/gogcli) on the PATH and sign in with gog auth add, as your assistant's gog skill does.": {
-   "zh-Hans": "在此电脑的 PATH、下载文件夹和 WSL 中都未找到 gog：把 gog.exe（来自 gogcli 的 Windows ZIP，github.com/openclaw/gogcli）放到 PATH 中，并像你的助手的 gog 技能那样用 gog auth add 登录。",
-   "hi": "इस कंप्यूटर पर gog नहीं मिला, न PATH में, न Downloads में, न WSL में: gog.exe (gogcli के Windows ZIP से, github.com/openclaw/gogcli) को PATH में रखें और gog auth add से साइन इन करें, जैसे आपके असिस्टेंट की gog स्किल करती है।",
-   "es": "No se encontró gog en este equipo, ni en su PATH, ni en Descargas, ni en WSL: pon gog.exe (del ZIP de gogcli para Windows, github.com/openclaw/gogcli) en el PATH e inicia sesión con gog auth add, como hace la skill gog de tu asistente.",
-   "ar": "لم يُعثر على gog في هذا الحاسوب، لا في PATH ولا في التنزيلات ولا في WSL: ضع gog.exe (من ملف ZIP الخاص بـ gogcli لنظام Windows، github.com/openclaw/gogcli) في PATH وسجّل الدخول بالأمر gog auth add، كما تفعل مهارة gog لدى مساعدك.",
-   "fr": "gog est introuvable sur cet ordinateur, ni dans son PATH, ni dans Téléchargements, ni dans WSL : placez gog.exe (du ZIP Windows de gogcli, github.com/openclaw/gogcli) dans le PATH et connectez-vous avec gog auth add, comme le fait la compétence gog de votre assistant.",
-   "bn": "এই কম্পিউটারে gog পাওয়া যায়নি, PATH-এ, Downloads-এ বা WSL-এ কোথাও নয়: gog.exe (gogcli-এর Windows ZIP থেকে, github.com/openclaw/gogcli) PATH-এ রাখুন এবং gog auth add দিয়ে সাইন ইন করুন, যেমন আপনার সহকারীর gog স্কিল করে।",
-   "pt-BR": "O gog não foi encontrado neste computador, nem no PATH, nem em Downloads, nem no WSL: coloque o gog.exe (do ZIP do gogcli para Windows, github.com/openclaw/gogcli) no PATH e entre com gog auth add, como faz a skill gog do seu assistente.",
-   "ru": "gog не найден на этом компьютере — ни в PATH, ни в «Загрузках», ни в WSL: положите gog.exe (из Windows-архива gogcli, github.com/openclaw/gogcli) в PATH и войдите командой gog auth add, как делает навык gog вашего ассистента.",
-   "id": "gog tidak ditemukan di komputer ini, baik di PATH, di Downloads, maupun di WSL: taruh gog.exe (dari ZIP Windows gogcli, github.com/openclaw/gogcli) di PATH lalu masuk dengan gog auth add, seperti yang dilakukan skill gog asisten Anda."
-  },
   "Sheet link or ID": {
    "zh-Hans": "表格链接或 ID",
    "hi": "शीट लिंक या ID",
@@ -12441,6 +12430,237 @@
    "pt-BR": "O AXYON guarda a sua carteira na aba AXYON da sua planilha do Google, criada lá na primeira vez, pelo gog, com o login que a skill gog do seu assistente usa. Vocês dois escrevem nela: as suas linhas (Ativo, Classe, Quantidade, Preço médio, Meu teto; um ticker com o seu teto e sem quantidade fica em observação) são lidas de volta a cada 10 minutos e no Atualizar, e o que você pedir ao AXYON no chat (uma compra, uma venda, um teto) é escrito lá na hora. Ao lado, o AXYON escreve a cotação agora, o resultado, os tetos dele e o que observar. Indique outra aba para que ela seja só lida. As suas outras abas nunca são escritas. Deixe o link vazio e salve para parar.",
    "ru": "AXYON ведёт ваш портфель на собственном листе AXYON вашей Google Таблицы (он создаётся там в первый раз) через gog со входом, который использует навык gog вашего ассистента. Пишете в него вы оба: ваши строки (Ativo, Classe, Quantidade, Preço médio, Meu teto; тикер с вашей предельной ценой и без количества — под наблюдением) перечитываются каждые 10 минут и по кнопке «Обновить», а то, о чём вы просите AXYON в чате (покупка, продажа, предельная цена), сразу записывается туда. Рядом AXYON пишет текущую цену, результат, свои предельные цены и то, за чем следить. Укажите другой лист, чтобы его только читали. В другие ваши листы ничего не записывается. Оставьте ссылку пустой и сохраните, чтобы остановить.",
    "id": "AXYON menyimpan portofolio Anda di tab AXYON miliknya sendiri di Google Sheet Anda, dibuat di sana pertama kali, lewat gog dengan login yang dipakai skill gog asisten Anda. Kalian berdua menulisnya: baris Anda (Ativo, Classe, Quantidade, Preço médio, Meu teto; ticker dengan harga plafon Anda tanpa jumlah berarti dipantau) dibaca ulang setiap 10 menit dan saat Muat ulang, dan apa yang Anda minta ke AXYON di chat (beli, jual, harga plafon) langsung ditulis di sana. Di sebelahnya AXYON menulis harga sekarang, hasilnya, harga plafon versinya sendiri, dan apa yang perlu diperhatikan. Isi nama tab lain agar tab itu hanya dibaca. Tab Anda yang lain tidak pernah ditulis. Kosongkan tautan lalu simpan untuk berhenti."
+  },
+  "AXYON Core's Google sign-in cannot be renewed: ask it to sign in to Google again (its google-workspace skill).": {
+   "zh-Hans": "AXYON Core 的 Google 登录无法续期：请让它重新登录 Google（它的 google-workspace 技能）。",
+   "hi": "AXYON Core का Google साइन-इन नवीनीकृत नहीं हो सकता: उससे फिर से Google में साइन इन करने को कहें (उसकी google-workspace स्किल)।",
+   "es": "El inicio de sesión de Google de AXYON Core no se puede renovar: pídele que vuelva a iniciar sesión en Google (su skill google-workspace).",
+   "ar": "لا يمكن تجديد تسجيل دخول AXYON Core إلى Google: اطلب منه تسجيل الدخول إلى Google مجددًا (مهارة google-workspace لديه).",
+   "fr": "La connexion Google d'AXYON Core ne peut pas être renouvelée : demandez-lui de se reconnecter à Google (sa skill google-workspace).",
+   "bn": "AXYON Core-এর Google সাইন-ইন নবায়ন করা যাচ্ছে না: তাকে আবার Google-এ সাইন ইন করতে বলুন (তার google-workspace স্কিল)।",
+   "pt-BR": "O login Google do AXYON Core não pode ser renovado: peça a ele para entrar no Google de novo (a skill google-workspace dele).",
+   "ru": "Вход AXYON Core в Google нельзя продлить: попросите его снова войти в Google (его навык google-workspace).",
+   "id": "Login Google AXYON Core tidak dapat diperbarui: minta ia masuk ke Google lagi (skill google-workspace-nya)."
+  },
+  "AXYON Core is not signed in to Google on this computer: ask it to set up its google-workspace skill (it asks for your Google sign-in once).": {
+   "zh-Hans": "AXYON Core 未在这台电脑上登录 Google：请让它设置它的 google-workspace 技能（只需登录一次 Google）。",
+   "hi": "AXYON Core इस कंप्यूटर पर Google में साइन इन नहीं है: उससे उसकी google-workspace स्किल सेट करने को कहें (वह एक बार आपका Google साइन-इन माँगती है)।",
+   "es": "AXYON Core no ha iniciado sesión en Google en este equipo: pídele que configure su skill google-workspace (pide tu inicio de sesión de Google una vez).",
+   "ar": "AXYON Core غير مسجّل الدخول إلى Google على هذا الكمبيوتر: اطلب منه إعداد مهارة google-workspace (تطلب تسجيل دخولك إلى Google مرة واحدة).",
+   "fr": "AXYON Core n'est pas connecté à Google sur cet ordinateur : demandez-lui de configurer sa skill google-workspace (elle demande votre connexion Google une fois).",
+   "bn": "এই কম্পিউটারে AXYON Core Google-এ সাইন ইন করা নেই: তাকে তার google-workspace স্কিল সেট আপ করতে বলুন (এটি একবার আপনার Google সাইন-ইন চায়)।",
+   "pt-BR": "O AXYON Core não está conectado ao Google neste computador: peça a ele para configurar a skill google-workspace (ela pede o seu login Google uma vez).",
+   "ru": "AXYON Core не вошёл в Google на этом компьютере: попросите его настроить навык google-workspace (он один раз попросит войти в Google).",
+   "id": "AXYON Core belum masuk ke Google di komputer ini: minta ia menyiapkan skill google-workspace-nya (meminta login Google Anda sekali)."
+  },
+  "AXYON Core's Google sign-in file could not be read.": {
+   "zh-Hans": "无法读取 AXYON Core 的 Google 登录文件。",
+   "hi": "AXYON Core की Google साइन-इन फ़ाइल पढ़ी नहीं जा सकी।",
+   "es": "No se pudo leer el archivo de inicio de sesión de Google de AXYON Core.",
+   "ar": "تعذّرت قراءة ملف تسجيل دخول AXYON Core إلى Google.",
+   "fr": "Le fichier de connexion Google d'AXYON Core n'a pas pu être lu.",
+   "bn": "AXYON Core-এর Google সাইন-ইন ফাইল পড়া যায়নি।",
+   "pt-BR": "Não foi possível ler o arquivo de login Google do AXYON Core.",
+   "ru": "Не удалось прочитать файл входа AXYON Core в Google.",
+   "id": "File login Google AXYON Core tidak dapat dibaca."
+  },
+  "Google could not be reached: {error}": {
+   "zh-Hans": "无法连接 Google：{error}",
+   "hi": "Google तक नहीं पहुँचा जा सका: {error}",
+   "es": "No se pudo contactar con Google: {error}",
+   "ar": "تعذّر الوصول إلى Google: {error}",
+   "fr": "Google est injoignable : {error}",
+   "bn": "Google-এ পৌঁছানো যায়নি: {error}",
+   "pt-BR": "Não foi possível falar com o Google: {error}",
+   "ru": "Не удалось связаться с Google: {error}",
+   "id": "Google tidak dapat dihubungi: {error}"
+  },
+  "AXYON Core's Google sign-in no longer works ({error}): ask it to sign in to Google again (its google-workspace skill).": {
+   "zh-Hans": "AXYON Core 的 Google 登录已失效（{error}）：请让它重新登录 Google（它的 google-workspace 技能）。",
+   "hi": "AXYON Core का Google साइन-इन अब काम नहीं करता ({error}): उससे फिर से Google में साइन इन करने को कहें (उसकी google-workspace स्किल)।",
+   "es": "El inicio de sesión de Google de AXYON Core ya no funciona ({error}): pídele que vuelva a iniciar sesión en Google (su skill google-workspace).",
+   "ar": "لم يعد تسجيل دخول AXYON Core إلى Google يعمل ({error}): اطلب منه تسجيل الدخول إلى Google مجددًا (مهارة google-workspace لديه).",
+   "fr": "La connexion Google d'AXYON Core ne fonctionne plus ({error}) : demandez-lui de se reconnecter à Google (sa skill google-workspace).",
+   "bn": "AXYON Core-এর Google সাইন-ইন আর কাজ করছে না ({error}): তাকে আবার Google-এ সাইন ইন করতে বলুন (তার google-workspace স্কিল)।",
+   "pt-BR": "O login Google do AXYON Core não funciona mais ({error}): peça a ele para entrar no Google de novo (a skill google-workspace dele).",
+   "ru": "Вход AXYON Core в Google больше не работает ({error}): попросите его снова войти в Google (его навык google-workspace).",
+   "id": "Login Google AXYON Core tidak berfungsi lagi ({error}): minta ia masuk ke Google lagi (skill google-workspace-nya)."
+  },
+  "Google gave no access token.": {
+   "zh-Hans": "Google 没有提供访问令牌。",
+   "hi": "Google ने कोई एक्सेस टोकन नहीं दिया।",
+   "es": "Google no dio ningún token de acceso.",
+   "ar": "لم يقدّم Google رمز وصول.",
+   "fr": "Google n'a donné aucun jeton d'accès.",
+   "bn": "Google কোনো অ্যাক্সেস টোকেন দেয়নি।",
+   "pt-BR": "O Google não deu nenhum token de acesso.",
+   "ru": "Google не выдал токен доступа.",
+   "id": "Google tidak memberikan token akses."
+  },
+  "Google refused AXYON Core's sign-in for this spreadsheet: {error}": {
+   "zh-Hans": "Google 拒绝了 AXYON Core 对此电子表格的访问：{error}",
+   "hi": "Google ने इस स्प्रेडशीट के लिए AXYON Core का साइन-इन अस्वीकार किया: {error}",
+   "es": "Google rechazó el inicio de sesión de AXYON Core para esta hoja de cálculo: {error}",
+   "ar": "رفض Google تسجيل دخول AXYON Core لهذا الجدول: {error}",
+   "fr": "Google a refusé la connexion d'AXYON Core pour ce classeur : {error}",
+   "bn": "Google এই স্প্রেডশিটের জন্য AXYON Core-এর সাইন-ইন প্রত্যাখ্যান করেছে: {error}",
+   "pt-BR": "O Google recusou o login do AXYON Core para esta planilha: {error}",
+   "ru": "Google отклонил вход AXYON Core для этой таблицы: {error}",
+   "id": "Google menolak login AXYON Core untuk spreadsheet ini: {error}"
+  },
+  "Google has no spreadsheet with this link, or this Google account cannot open it.": {
+   "zh-Hans": "Google 上没有这个链接的电子表格，或者此 Google 账户无法打开它。",
+   "hi": "Google पर इस लिंक वाली कोई स्प्रेडशीट नहीं है, या यह Google खाता उसे नहीं खोल सकता।",
+   "es": "Google no tiene ninguna hoja de cálculo con este enlace, o esta cuenta de Google no puede abrirla.",
+   "ar": "لا يوجد في Google جدول بهذا الرابط، أو لا يستطيع حساب Google هذا فتحه.",
+   "fr": "Google n'a aucun classeur avec ce lien, ou ce compte Google ne peut pas l'ouvrir.",
+   "bn": "Google-এ এই লিংকের কোনো স্প্রেডশিট নেই, অথবা এই Google অ্যাকাউন্ট সেটি খুলতে পারে না।",
+   "pt-BR": "O Google não tem nenhuma planilha com esse link, ou esta conta Google não pode abri-la.",
+   "ru": "В Google нет таблицы с этой ссылкой, или этот аккаунт Google не может её открыть.",
+   "id": "Google tidak punya spreadsheet dengan tautan ini, atau akun Google ini tidak dapat membukanya."
+  },
+  "Google refused the sign-in.": {
+   "zh-Hans": "Google 拒绝了登录。",
+   "hi": "Google ने साइन-इन अस्वीकार कर दिया।",
+   "es": "Google rechazó el inicio de sesión.",
+   "ar": "رفض Google تسجيل الدخول.",
+   "fr": "Google a refusé la connexion.",
+   "bn": "Google সাইন-ইন প্রত্যাখ্যান করেছে।",
+   "pt-BR": "O Google recusou o login.",
+   "ru": "Google отклонил вход.",
+   "id": "Google menolak login."
+  },
+  "AXYON found no way to your Google Sheet on this computer: ask AXYON Core to set up its google-workspace skill (it asks for your Google sign-in once), or install gog (github.com/openclaw/gogcli) and sign in with gog auth add.": {
+   "zh-Hans": "AXYON 在这台电脑上找不到访问你的 Google 表格的方式：请让 AXYON Core 设置它的 google-workspace 技能（只需登录一次 Google），或者安装 gog（github.com/openclaw/gogcli）并用 gog auth add 登录。",
+   "hi": "AXYON को इस कंप्यूटर पर आपकी Google शीट तक पहुँचने का कोई तरीका नहीं मिला: AXYON Core से उसकी google-workspace स्किल सेट करने को कहें (वह एक बार आपका Google साइन-इन माँगती है), या gog (github.com/openclaw/gogcli) इंस्टॉल करके gog auth add से साइन इन करें।",
+   "es": "AXYON no encontró ninguna forma de llegar a tu hoja de Google en este equipo: pide a AXYON Core que configure su skill google-workspace (pide tu inicio de sesión de Google una vez) o instala gog (github.com/openclaw/gogcli) e inicia sesión con gog auth add.",
+   "ar": "لم يجد AXYON طريقة للوصول إلى جدول Google الخاص بك على هذا الكمبيوتر: اطلب من AXYON Core إعداد مهارة google-workspace (تطلب تسجيل دخولك إلى Google مرة واحدة)، أو ثبّت gog (github.com/openclaw/gogcli) وسجّل الدخول باستخدام gog auth add.",
+   "fr": "AXYON n'a trouvé aucun moyen d'accéder à votre feuille Google sur cet ordinateur : demandez à AXYON Core de configurer sa skill google-workspace (elle demande votre connexion Google une fois), ou installez gog (github.com/openclaw/gogcli) et connectez-vous avec gog auth add.",
+   "bn": "এই কম্পিউটারে AXYON আপনার Google শিটে পৌঁছানোর কোনো উপায় পায়নি: AXYON Core-কে তার google-workspace স্কিল সেট আপ করতে বলুন (এটি একবার আপনার Google সাইন-ইন চায়), অথবা gog (github.com/openclaw/gogcli) ইনস্টল করে gog auth add দিয়ে সাইন ইন করুন।",
+   "pt-BR": "O AXYON não achou nenhum caminho até a sua planilha do Google neste computador: peça ao AXYON Core para configurar a skill google-workspace dele (ela pede o seu login Google uma vez), ou instale o gog (github.com/openclaw/gogcli) e entre com gog auth add.",
+   "ru": "AXYON не нашёл способа добраться до вашей Google Таблицы на этом компьютере: попросите AXYON Core настроить навык google-workspace (он один раз попросит войти в Google) или установите gog (github.com/openclaw/gogcli) и войдите командой gog auth add.",
+   "id": "AXYON tidak menemukan cara ke Google Sheet Anda di komputer ini: minta AXYON Core menyiapkan skill google-workspace-nya (meminta login Google Anda sekali), atau pasang gog (github.com/openclaw/gogcli) lalu masuk dengan gog auth add."
+  },
+  "Your portfolio is there with the price now, the result and the ceilings: edit it there or tell me in the chat.": {
+   "zh-Hans": "你的投资组合已在那里，附有当前价格、盈亏和上限价：可以在那里编辑，或在聊天中告诉我。",
+   "hi": "आपका पोर्टफ़ोलियो वहाँ है, अभी की कीमत, नतीजे और अधिकतम कीमतों के साथ: उसे वहाँ बदलें या चैट में मुझे बताएँ।",
+   "es": "Tu cartera está allí con el precio actual, el resultado y los precios techo: edítala allí o dímelo en el chat.",
+   "ar": "محفظتك هناك مع السعر الآن والنتيجة وأسعار السقف: عدّلها هناك أو أخبرني في الدردشة.",
+   "fr": "Votre portefeuille y est, avec le cours actuel, le résultat et les prix plafonds : modifiez-le là-bas ou dites-le-moi dans le chat.",
+   "bn": "আপনার পোর্টফোলিও সেখানে আছে, এখনকার দাম, ফলাফল আর সর্বোচ্চ দাম সহ: সেখানে বদলান বা চ্যাটে আমাকে বলুন।",
+   "pt-BR": "A sua carteira está lá, com a cotação agora, o resultado e os tetos: edite por lá ou me diga no chat.",
+   "ru": "Ваш портфель там — с текущей ценой, результатом и предельными ценами: правьте его там или скажите мне в чате.",
+   "id": "Portofolio Anda ada di sana dengan harga sekarang, hasil, dan harga plafon: ubah di sana atau beri tahu saya di chat."
+  },
+  "Look at its rows: {list}.": {
+   "zh-Hans": "看看这些行：{list}。",
+   "hi": "इसकी इन पंक्तियों को देखें: {list}।",
+   "es": "Revisa estas filas: {list}.",
+   "ar": "راجع هذه الصفوف: {list}.",
+   "fr": "Regardez ces lignes : {list}.",
+   "bn": "এই সারিগুলো দেখুন: {list}।",
+   "pt-BR": "Confira estas linhas: {list}.",
+   "ru": "Посмотрите на эти строки: {list}.",
+   "id": "Periksa baris ini: {list}."
+  },
+  "AXYON's tab is ready in your sheet": {
+   "zh-Hans": "AXYON 工作表已在你的表格中准备好",
+   "hi": "आपकी शीट में AXYON का टैब तैयार है",
+   "es": "La pestaña de AXYON está lista en tu hoja",
+   "ar": "تبويب AXYON جاهز في جدولك",
+   "fr": "L'onglet d'AXYON est prêt dans votre feuille",
+   "bn": "আপনার শিটে AXYON-এর ট্যাব তৈরি",
+   "pt-BR": "A aba do AXYON está pronta na sua planilha",
+   "ru": "Лист AXYON готов в вашей таблице",
+   "id": "Tab AXYON sudah siap di sheet Anda"
+  },
+  "no quantity": {
+   "zh-Hans": "没有数量",
+   "hi": "मात्रा नहीं",
+   "es": "sin cantidad",
+   "ar": "بلا كمية",
+   "fr": "sans quantité",
+   "bn": "পরিমাণ নেই",
+   "pt-BR": "sem quantidade",
+   "ru": "без количества",
+   "id": "tanpa jumlah"
+  },
+  "not in your other tabs": {
+   "zh-Hans": "不在你的其他工作表中",
+   "hi": "आपके दूसरे टैब में नहीं",
+   "es": "no está en tus otras pestañas",
+   "ar": "ليس في تبويباتك الأخرى",
+   "fr": "absent de vos autres onglets",
+   "bn": "আপনার অন্য ট্যাবে নেই",
+   "pt-BR": "não está nas suas outras abas",
+   "ru": "нет в ваших других листах",
+   "id": "tidak ada di tab Anda yang lain"
+  },
+  "Check in AXYON's tab: {list}": {
+   "zh-Hans": "请在 AXYON 工作表中检查：{list}",
+   "hi": "AXYON के टैब में जाँचें: {list}",
+   "es": "Revisa en la pestaña de AXYON: {list}",
+   "ar": "راجع في تبويب AXYON: {list}",
+   "fr": "À vérifier dans l'onglet d'AXYON : {list}",
+   "bn": "AXYON-এর ট্যাবে দেখে নিন: {list}",
+   "pt-BR": "Confira na aba do AXYON: {list}",
+   "ru": "Проверьте на листе AXYON: {list}",
+   "id": "Periksa di tab AXYON: {list}"
+  },
+  "What is left to check in AXYON's tab?": {
+   "zh-Hans": "AXYON 工作表里还有什么要检查的？",
+   "hi": "AXYON के टैब में अभी क्या जाँचना बाकी है?",
+   "es": "¿Qué queda por revisar en la pestaña de AXYON?",
+   "ar": "ما الذي بقي للتحقق منه في تبويب AXYON؟",
+   "fr": "Que reste-t-il à vérifier dans l'onglet d'AXYON ?",
+   "bn": "AXYON-এর ট্যাবে আর কী দেখা বাকি?",
+   "pt-BR": "O que falta conferir na aba do AXYON?",
+   "ru": "Что ещё нужно проверить на листе AXYON?",
+   "id": "Apa yang masih perlu diperiksa di tab AXYON?"
+  },
+  "Through AXYON Core's Google sign-in (its google-workspace skill)": {
+   "zh-Hans": "通过 AXYON Core 的 Google 登录（它的 google-workspace 技能）",
+   "hi": "AXYON Core के Google साइन-इन से (उसकी google-workspace स्किल)",
+   "es": "Con el inicio de sesión de Google de AXYON Core (su skill google-workspace)",
+   "ar": "عبر تسجيل دخول AXYON Core إلى Google (مهارة google-workspace لديه)",
+   "fr": "Par la connexion Google d'AXYON Core (sa skill google-workspace)",
+   "bn": "AXYON Core-এর Google সাইন-ইন দিয়ে (তার google-workspace স্কিল)",
+   "pt-BR": "Pelo login Google do AXYON Core (a skill google-workspace dele)",
+   "ru": "Через вход AXYON Core в Google (его навык google-workspace)",
+   "id": "Lewat login Google AXYON Core (skill google-workspace-nya)"
+  },
+  "Through gog, with its own sign-in": {
+   "zh-Hans": "通过 gog，使用它自己的登录",
+   "hi": "gog से, उसके अपने साइन-इन के साथ",
+   "es": "Con gog, con su propio inicio de sesión",
+   "ar": "عبر gog، بتسجيل دخوله الخاص",
+   "fr": "Par gog, avec sa propre connexion",
+   "bn": "gog দিয়ে, তার নিজের সাইন-ইন সহ",
+   "pt-BR": "Pelo gog, com o login dele",
+   "ru": "Через gog, с его собственным входом",
+   "id": "Lewat gog, dengan login miliknya"
+  },
+  "Tailscale is on here ({address}): with Tailscale on in the iPhone too, AXYON reaches this computer from anywhere, on 4G, 5G or another Wi-Fi. The iPhone learns this address the next time it connects here.": {
+   "zh-Hans": "这台电脑上的 Tailscale 已开启（{address}）：iPhone 上也开启 Tailscale 后，AXYON 在任何地方都能连到这台电脑，无论是 4G、5G 还是其他 Wi-Fi。iPhone 下次在这里连接时会记住这个地址。",
+   "hi": "यहाँ Tailscale चालू है ({address}): iPhone में भी Tailscale चालू हो तो AXYON कहीं से भी इस कंप्यूटर तक पहुँचता है, 4G, 5G या किसी दूसरे Wi-Fi पर। iPhone अगली बार यहाँ कनेक्ट होने पर यह पता सीख लेता है।",
+   "es": "Tailscale está activo aquí ({address}): con Tailscale activo también en el iPhone, AXYON llega a este equipo desde cualquier lugar, en 4G, 5G u otra Wi-Fi. El iPhone aprende esta dirección la próxima vez que se conecte aquí.",
+   "ar": "Tailscale يعمل هنا ({address}): مع تشغيل Tailscale على iPhone أيضًا، يصل AXYON إلى هذا الكمبيوتر من أي مكان، عبر 4G أو 5G أو شبكة Wi-Fi أخرى. يتعلّم iPhone هذا العنوان في المرة القادمة التي يتصل فيها هنا.",
+   "fr": "Tailscale est actif ici ({address}) : avec Tailscale actif aussi sur l'iPhone, AXYON joint cet ordinateur de partout, en 4G, en 5G ou sur un autre Wi-Fi. L'iPhone apprend cette adresse la prochaine fois qu'il se connecte ici.",
+   "bn": "এখানে Tailscale চালু আছে ({address}): iPhone-এও Tailscale চালু থাকলে AXYON যেকোনো জায়গা থেকে এই কম্পিউটারে পৌঁছায়, 4G, 5G বা অন্য Wi-Fi-তে। পরের বার এখানে কানেক্ট হলে iPhone এই ঠিকানাটি শিখে নেয়।",
+   "pt-BR": "O Tailscale está ligado aqui ({address}): com o Tailscale ligado no iPhone também, o AXYON chega a este computador de qualquer lugar, no 4G, no 5G ou em outro Wi-Fi. O iPhone aprende este endereço na próxima vez que se conectar aqui.",
+   "ru": "Здесь включён Tailscale ({address}): если Tailscale включён и на iPhone, AXYON доберётся до этого компьютера откуда угодно — через 4G, 5G или другой Wi-Fi. iPhone запомнит этот адрес, когда в следующий раз подключится здесь.",
+   "id": "Tailscale aktif di sini ({address}): dengan Tailscale aktif juga di iPhone, AXYON menjangkau komputer ini dari mana saja, lewat 4G, 5G, atau Wi-Fi lain. iPhone mempelajari alamat ini saat berikutnya terhubung di sini."
+  },
+  "Away from home on any network (4G, 5G, another Wi-Fi), even when your router cannot be opened: install Tailscale (free) on this computer and on the iPhone, signed in with the same account. AXYON finds the address by itself.": {
+   "zh-Hans": "在外面用任何网络（4G、5G、其他 Wi-Fi）都能连，即使路由器无法开放端口：在这台电脑和 iPhone 上安装 Tailscale（免费），并用同一个账户登录。AXYON 会自己找到地址。",
+   "hi": "घर से बाहर किसी भी नेटवर्क पर (4G, 5G, दूसरा Wi-Fi), तब भी जब आपका राउटर खोला न जा सके: इस कंप्यूटर और iPhone पर Tailscale (मुफ़्त) इंस्टॉल करें, एक ही खाते से साइन इन करके। AXYON पता खुद ढूँढ लेता है।",
+   "es": "Fuera de casa en cualquier red (4G, 5G, otra Wi-Fi), aunque no se pueda abrir tu router: instala Tailscale (gratis) en este equipo y en el iPhone, con la misma cuenta. AXYON encuentra la dirección solo.",
+   "ar": "خارج المنزل على أي شبكة (4G أو 5G أو Wi-Fi أخرى)، حتى عندما لا يمكن فتح جهاز التوجيه: ثبّت Tailscale (مجانًا) على هذا الكمبيوتر وعلى iPhone، مسجّلًا الدخول بالحساب نفسه. يجد AXYON العنوان بنفسه.",
+   "fr": "Hors de chez vous sur n'importe quel réseau (4G, 5G, un autre Wi-Fi), même quand votre routeur ne peut pas être ouvert : installez Tailscale (gratuit) sur cet ordinateur et sur l'iPhone, avec le même compte. AXYON trouve l'adresse tout seul.",
+   "bn": "বাড়ির বাইরে যেকোনো নেটওয়ার্কে (4G, 5G, অন্য Wi-Fi), এমনকি রাউটার খোলা না গেলেও: এই কম্পিউটারে ও iPhone-এ Tailscale (বিনামূল্যে) ইনস্টল করুন, একই অ্যাকাউন্টে সাইন ইন করে। AXYON নিজেই ঠিকানা খুঁজে নেয়।",
+   "pt-BR": "Fora de casa em qualquer rede (4G, 5G, outro Wi-Fi), mesmo quando o seu roteador não pode ser aberto: instale o Tailscale (grátis) neste computador e no iPhone, entrando com a mesma conta. O AXYON acha o endereço sozinho.",
+   "ru": "Вне дома в любой сети (4G, 5G, другой Wi-Fi), даже если роутер нельзя открыть: установите Tailscale (бесплатно) на этот компьютер и на iPhone, войдя в одну и ту же учётную запись. AXYON сам найдёт адрес.",
+   "id": "Di luar rumah di jaringan apa pun (4G, 5G, Wi-Fi lain), bahkan saat router Anda tidak bisa dibuka: pasang Tailscale (gratis) di komputer ini dan di iPhone, masuk dengan akun yang sama. AXYON menemukan alamatnya sendiri."
   }
  }
 }

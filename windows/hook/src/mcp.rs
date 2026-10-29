@@ -80,7 +80,7 @@ fn relay(payload: &Value) -> Relayed {
     let mut line = payload.to_string();
     line.push('\n');
     std::thread::spawn(move || {
-        let _ = tx.send(super::talk(&line, true));
+        let _ = tx.send(super::talk_patiently(&line));
     });
     match rx.recv_timeout(CALL_BUDGET).ok().flatten().and_then(|answer| serde_json::from_str(&answer).ok()) {
         Some(answer) => Relayed::Answer(answer),

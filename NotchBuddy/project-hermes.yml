@@ -1,0 +1,70 @@
+# The sideloaded iPhone app with Hermes inside it (Hermes/README.md): project.yml, plus CPython for iOS, Hermes and its
+# packages and AXYON's superpowers (Hermes/build-ios.sh builds them first), the C that starts them and the Swift of
+# AXYON's screens, in the CoucouPhone target, compiled with HERMES. The App Store and Mac builds use project.yml alone
+# and carry none of it.
+#   cd NotchBuddy && Hermes/build-ios.sh && xcodegen --spec project-hermes.yml
+include:
+  - project.yml
+
+targets:
+  CoucouPhone:
+    dependencies:
+      - framework: Hermes/build/support/Python.xcframework
+        embed: true
+    sources:
+      - path: Hermes/Swift
+        type: group
+      - path: Hermes/bridge
+        type: group
+      - path: Hermes/build/app
+        type: folder
+        buildPhase: resources
+      - path: Hermes/build/app_packages
+        type: folder
+        buildPhase: resources
+      # The permission prompts below in the user's language (pt-BR, es, fr).
+      - path: Hermes/InfoPlist.xcstrings
+        buildPhase: resources
+    info:
+      # Its own Info.plist, out of git: the committed InfoPhone.plist stays the App Store build's.
+      path: Hermes/build/InfoPhone.plist
+      properties:
+        CFBundleDisplayName: AXYON
+        # Hermes listens on 127.0.0.1 only, in plain HTTP inside the app (a token made at each launch).
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+        NSCalendarsFullAccessUsageDescription: "AXYON reads your calendar to plan your day, and adds the events you ask it to."
+        NSRemindersFullAccessUsageDescription: "AXYON adds, lists and completes the reminders you ask it to."
+        NSContactsUsageDescription: "AXYON finds a person's phone or e-mail when you ask it to call or write to them; you send."
+        NSLocationWhenInUseUsageDescription: "AXYON uses where you are when you ask it about places, the weather or the way."
+        NSAppleMusicUsageDescription: "AXYON plays, pauses and skips music when you ask it to."
+        # project.yml's, said of AXYON: its home and computer, dictation, Face ID, the pairing code.
+        NSLocalNetworkUsageDescription: "AXYON reaches the TVs, boxes and Home Assistant on your Wi-Fi, and your computer when you pair one."
+        NSMicrophoneUsageDescription: "AXYON uses the microphone when you dictate a message to it."
+        NSSpeechRecognitionUsageDescription: "AXYON turns your voice into the text of a message."
+        NSFaceIDUsageDescription: "AXYON asks for Face ID before something that needs your yes, like turning on a plug or allowing an agent's request."
+        NSCameraUsageDescription: "AXYON uses the camera to take the photos you send it in the chat, and to scan the pairing code of AXYON on your computer."
+        # The superpowers' alerts with AXYON closed (Hermes/Swift/AXYONAlerts.swift), once the user turns them on;
+        # added to project.yml's background modes.
+        BGTaskSchedulerPermittedIdentifiers:
+          - fr.louisraille.Coucou.powers-watch
+        UIBackgroundModes:
+          - fetch
+    settings:
+      base:
+        INFOPLIST_FILE: Hermes/build/InfoPhone.plist
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) HERMES"
+        SWIFT_OBJC_BRIDGING_HEADER: Hermes/bridge/AXYONPython.h
+        HEADER_SEARCH_PATHS: "$(inherited) \"$(PROJECT_DIR)/Hermes/build/support/Python.xcframework/ios-arm64/Python.framework/Headers\""
+        # AXYON's superpowers (Hermes/bridge/AXYONPowers.h): the computer's engine, built by Hermes/build-ios.sh.
+        OTHER_LDFLAGS: "$(inherited) \"$(PROJECT_DIR)/Hermes/build/powers/libcoucou_powers_ffi.a\""
+        # The script below writes into the app's bundle, which the user script sandbox would refuse.
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
+    postBuildScripts:
+      # The standard library into the app, and every compiled module turned into a framework (Hermes/utils.sh).
+      - name: Process Python libraries
+        basedOnDependencyAnalysis: false
+        script: |
+          set -e
+          source "$PROJECT_DIR/Hermes/utils.sh"
+          install_python Hermes/build/support/Python.xcframework app app_packages

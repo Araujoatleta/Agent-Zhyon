@@ -7,7 +7,7 @@ import { readFileSync } from "node:fs";
 import { installFakeDom } from "./fakedom.mjs";
 
 installFakeDom();
-const { remoteLines } = await import("../src/settings/phone.ts");
+const { remoteLines, tailnetLine } = await import("../src/settings/phone.ts");
 
 const base = {
   enabled: true,
@@ -66,4 +66,10 @@ test("only the settings window asks for the home's addresses, and they never rea
   }
   const remote = readFileSync(new URL("../src-tauri/src/phone_link/remote.rs", import.meta.url), "utf8");
   assert.ok(!/ipify|ifconfig\.me|stun:|icanhazip|cloudflare|dyndns|noip/i.test(remote), "nobody but the router is asked");
+});
+
+test("Settings says how the iPhone comes through Tailscale, or how to set it up", () => {
+  const link = { enabled: true, running: true, port: 47821, host: "192.168.0.10", name: "PC", clients: 1, error: null, relayState: "off", tailnet: [] };
+  assert.match(tailnetLine(link), /install Tailscale \(free\) on this computer and on the iPhone/);
+  assert.match(tailnetLine({ ...link, tailnet: ["100.101.102.103"] }), /Tailscale is on here \(100\.101\.102\.103\)/);
 });

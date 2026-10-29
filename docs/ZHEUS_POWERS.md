@@ -84,18 +84,29 @@ And "What is my day?" — between 7 and 11, once a day, the island says it by it
 | Banco Central (SGS and Focus) | Selic, CDI, IPCA, the dollar and expectations | once a day |
 
 While the superpowers are on, Coucou wakes every half hour to see what is due; when nothing is, nothing is read. A
-question to Zheus waits about 20 seconds at most for what is due (and up to 40 for an asset you do not hold); the
-reading goes on behind it and the next question has the rest.
+question to Zheus is answered at once from what AXYON has, while what is due is read behind it; it waits (about 20
+seconds at most) only when a price or the economy's figures are missing, and up to 40 seconds for an asset you do not
+hold. The readings run apart from the threads that take AXYON Core's calls, so a call is always taken at once.
 
 ### Your portfolio in your Google Sheet: AXYON's tab
 
-Settings → Zheus' superpowers → **Your Google Sheet**: paste the spreadsheet's link (or its ID) and, if gog has several
-accounts, which one (empty: gog's default), then **Save and read**. AXYON works through
-[gog](https://github.com/openclaw/gogcli), the command your assistant's gog skill already uses, with gog's own sign-in
-(AXYON never sees it).
+Settings → Zheus' superpowers → **Your Google Sheet**: paste the spreadsheet's link (or its ID), then **Save and
+read**. AXYON reaches the sheet one of two ways, said under the card:
 
-The first time, AXYON makes its own tab, **AXYON**, in the spreadsheet and fills it with the portfolio it knows. From
-then on that tab is the portfolio, and you both write it:
+- **AXYON Core's Google sign-in** — the one its google-workspace skill keeps (`google_token.json` in Hermes' folder,
+  made when you signed in to Google there). AXYON reads that file when it needs it, gets a fresh access token from
+  Google with it in memory (it never writes anything back), and calls the Sheets API for this spreadsheet only. If
+  AXYON Core is not signed in to Google yet, ask it to set up its google-workspace skill.
+- **[gog](https://github.com/openclaw/gogcli)**, when it is on the computer, with gog's own sign-in (AXYON never
+  sees it); the gog account field picks one of its accounts.
+
+The first time, AXYON makes its own tab, **AXYON**, in the spreadsheet. It reads your other tabs once, only
+reading them: their ceilings (a **Preço teto** or **Meu teto** column) become yours in AXYON, the assets they list are
+the portfolio's (a row whose **Status** says Vendido or Zerado is left out), and a position with a quantity there
+replaces AXYON's. Then it fills its tab, and what does not agree gets a note in the row's **Aviso**: an asset AXYON had
+that your tabs do not list ("se vendeu, apague esta linha"), an asset your tabs list with no quantity ("preencha a
+Quantidade"). A note goes when you change its row, delete it, or after two weeks; the island says the tab is ready and
+lists them, and AXYON Core is told too. From then on that tab is the portfolio, and you both write it:
 
 | Columns | Who writes them |
 | --- | --- |
