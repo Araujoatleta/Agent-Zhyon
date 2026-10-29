@@ -18,14 +18,17 @@ enum AXYONAlerts {
 
     static var enabled: Bool { UserDefaults.standard.bool(forKey: enabledKey) }
 
-    /// The next look while the alerts are on: iOS decides when, not before half an hour from now.
+    /// The next look while the alerts are on or Hermes has scheduled tasks (HermesCron): iOS decides when, not before
+    /// half an hour from now, or a quarter of an hour when a task comes due sooner.
     static func schedule() {
-        guard enabled else {
+        let next = HermesCron.nextTimes().min()
+        guard enabled || next != nil else {
             BGTaskScheduler.shared.cancel(taskRequestWithIdentifier: task)
             return
         }
         let request = BGAppRefreshTaskRequest(identifier: task)
-        request.earliestBeginDate = Date(timeIntervalSinceNow: 30 * 60)
+        let wait = next.map { min(30 * 60, max(15 * 60, $0.timeIntervalSinceNow)) } ?? 30 * 60
+        request.earliestBeginDate = Date(timeIntervalSinceNow: enabled ? min(wait, 30 * 60) : wait)
         do {
             try BGTaskScheduler.shared.submit(request)
         } catch {
@@ -33,10 +36,16 @@ enum AXYONAlerts {
         }
     }
 
-    /// iOS woke AXYON for a look: the next one first (iOS may end this one early), then this one.
+    /// iOS woke AXYON for a look: the next one first (iOS may end this one early), then Hermes' tasks that came due
+    /// (iOS gives about half a minute in all), then the alerts with the time left.
     static func backgroundLook() async {
         schedule()
-        await look(budget: backgroundBudget)
+        let started = Date.now
+        if HermesCron.due() {
+            await HermesCron.run(budget: enabled ? 18 : 26)
+        }
+        let left = (enabled && HermesCron.hasTasks ? 26 : backgroundBudget) - Date.now.timeIntervalSince(started)
+        if enabled, left > 4 { await look(budget: min(left, backgroundBudget)) }
     }
 
     /// One look: what is worth telling, as notifications, and the day's briefing between 7 and 11. How many

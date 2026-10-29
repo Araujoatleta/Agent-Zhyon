@@ -19,10 +19,10 @@ alone: none of this is compiled or copied into them.
 | `app/axyon_hermes/` | The host: Hermes behind a small HTTP API on 127.0.0.1, and AXYON's tools for it. |
 | `shims/psutil/` | An iOS stand-in for psutil (no other process can be seen on iOS). |
 | `bridge/` | The C that starts CPython (`axyon_python_run`) and runs a line in it (`axyon_python_exec`), and the superpowers' C interface (`AXYONPowers.h`, from `windows/powers-ffi`). |
-| `Swift/` | `HermesEngine` (starts and talks to the host), `HermesArms` (what Hermes asks of the iPhone, and `HermesPowers`, the superpowers' engine), `HermesWire` (its events and the conversation, tested on Linux), `AXYONStyle`, `AXYONViews` and `AXYONHouse` (the screens), `AXYONAlerts` (the superpowers' alerts with the app closed). |
+| `Swift/` | `HermesEngine` (starts and talks to the host), `HermesArms` (what Hermes asks of the iPhone, and `HermesPowers`, the superpowers' engine), `HermesWire` (its events and the conversation, tested on Linux), `AXYONStyle`, `AXYONViews` and `AXYONHouse` (the screens), `AXYONAlerts` (the superpowers' alerts and Hermes' scheduled tasks with the app closed), `AXYONInbox` (the files sent, Google's sign-in and the scheduled tasks' screens). |
 | `utils.sh`, `iOS-dylib-Info-template.plist` | CPython's own iOS install steps: every compiled module becomes a framework. |
 | `requirements-*.txt` | Hermes' packages: pure Python, and the three with iOS wheels on PyPI. |
-| `tests/` | `test_units.py` (the tools, no Hermes), `test_home.py` (the home against a simulated Samsung TV, ADB box and Home Assistant), `test_host.py` (the host end to end with Hermes, iOS limits emulated), `test_embedded.py` (the app's C start of Python, on a computer), `simulator.sh` (CI: the app in the iOS Simulator, Hermes started for real, answering with an iPhone tool and with a superpower the engine answers inside iOS). |
+| `tests/` | `test_units.py` (the tools, no Hermes), `test_home.py` (the home against a simulated Samsung TV, ADB box and Home Assistant), `test_host.py` (the host end to end with Hermes, iOS limits emulated: files sent, Google's status, a scheduled task run and delivered), `test_embedded.py` (the app's C start of Python, on a computer), `simulator.sh` (CI: the app in the iOS Simulator, Hermes started for real, answering with an iPhone tool, a superpower the engine answers inside iOS, a document sent and a scheduled task run at the app's tick). |
 
 ## Build
 
@@ -113,14 +113,37 @@ iPhone never shares the computer's.
   The app's Home tab adds them (a scan of the Wi-Fi it is on, or an address), pairs them and drives them.
 - `coucou_home`, `coucou_home_action`: the paired computer's home, through the phone link (a device that asks first
   waits for Face ID there).
-- Hermes' own `memory`, `skills`, `todo`, `clarify`, `session_search` and `vision`.
+- The files the user sends (`attachments.py`, `Swift/AXYONInbox.swift`): the chat's **+** copies photos (library,
+  camera) and files (Files, iCloud Drive) into `Application Support/Hermes/inbox`, a photo as a JPEG at most 2048
+  pixels long, a PDF's text read by PDFKit (its scanned pages by Vision's text recognition) into `<file>.txt.extracted`.
+  `POST /v1/runs` takes them (`attachments`, paths in the inbox only); the turn gets the documents' text (60 000
+  characters at most, Word and Excel through Hermes' own `tools/read_extract.py`) and the photos as images when the
+  brain sees (Hermes' `agent/image_routing.py`, as its gateway does), or described by `vision_analyze` when it does
+  not. `iphone_files` reads them again. The session keeps their names and paths, not their text.
+- Google (`google.py`, `Swift/AXYONInbox.swift`'s `AXYONGoogleView`): `google_account`, `gmail`, `google_sheets`,
+  `google_drive`, `google_calendar`. The google-workspace skill signs in by running `setup.py` in a terminal, which
+  iOS forbids: the same OAuth is made in Hermes' process, with the user's own Desktop-app client and PKCE, Google's
+  REST APIs over urllib, and the skill's own files (`google_client_secret.json`, `google_token.json`). The redirect is
+  `http://127.0.0.1:<port>/`: the app opens Google's page inside itself (SFSafariViewController), so the host hears
+  the browser come back and finishes alone (only for its own random `state`); a pasted address finishes it otherwise.
+  `gmail` send and reply show the e-mail whole in the chat (`HermesMailAsk`) and go only on the user's tap on Send.
+- Hermes' scheduled tasks (`scheduled.py`): its own `cronjob` tool (offered once `HERMES_EXEC_ASK` is set, as Hermes'
+  gateway sets it), its scheduler ticked every minute in the host while the app runs, and by `POST /v1/cron/tick` when
+  iOS wakes the app (`AXYONAlerts.backgroundLook`, which starts Python only when `cron/jobs.json` says a task is
+  due). Each result Hermes' scheduler delivers becomes an iPhone notification (`cron.scheduler._deliver_result` is
+  the iPhone's); `[SILENT]` stays silent.
+- `iphone_alerts`: the alerts above, turned on or off, or a look now, from the chat.
+- Hermes' own `memory`, `skills`, `todo`, `clarify`, `session_search`, `vision`, `delegation` and `image_gen` (with
+  the brain's own image maker: ChatGPT's or OpenRouter's; the images made in a run go to the app as an `images`
+  event and show under the answer).
 
 ## What iOS does not allow
 
 iOS suspends an app soon after it leaves the screen: Hermes thinks while AXYON is open, and an answer under way gets
 the half minute iOS grants to end (then a notification brings it). Reminders and timed notifications are iOS's own,
-so they come with the app closed. iOS runs no other process: Hermes' terminal, code execution and browser tools are
-not there.
+so they come with the app closed; scheduled tasks run when iOS wakes the app. iOS runs no other process: Hermes'
+terminal, code execution, browser and shell-backed file tools are not there, and no app may see or touch another
+app's screen, so computer use (cua-driver) cannot exist on an iPhone.
 
 ## Tests
 

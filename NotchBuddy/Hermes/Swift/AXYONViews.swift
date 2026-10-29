@@ -1,8 +1,10 @@
 import Contacts
 import CoreLocation
 import EventKit
+import PhotosUI
 import SwiftUI
 import UIKit
+import UniformTypeIdentifiers
 import UserNotifications
 
 // The screens of AXYON with Hermes inside the iPhone (the build that carries it): the start screen with Hermes' orb,
@@ -461,6 +463,17 @@ struct HermesChatView: View {
     @State private var spoken = false
     @State private var brainOpen = false
     @AppStorage("hermesReadAloud") private var readAloud = true
+    /// The photos and files that go with the next message (in Hermes' inbox already).
+    @State private var pending: [HermesAttachment] = []
+    /// Files being read into the inbox.
+    @State private var adding = 0
+    @State private var attachProblem: String?
+    @State private var photosOpen = false
+    @State private var photoItems: [PhotosPickerItem] = []
+    @State private var cameraOpen = false
+    @State private var filesOpen = false
+    /// A page opened inside the app (Google's sign-in).
+    @State private var page: AXYONPage?
 
     private static let end = "hermes-chat-end"
 
@@ -476,7 +489,7 @@ struct HermesChatView: View {
                     if engine.conversation.entries.isEmpty { intro }
                     if !engine.canChat { setupCard }
                     ForEach(engine.conversation.entries) { entry in
-                        PCChatBubble(entry: entry, live: entry.id == engine.answering)
+                        message(entry)
                             .contextMenu {
                                 Button {
                                     UIPasteboard.general.string = entry.text
@@ -491,6 +504,9 @@ struct HermesChatView: View {
                             }
                             .id(entry.id)
                     }
+                    if let ask = engine.mailAsk {
+                        AXYONMailCard(ask: ask) { engine.answerMail($0) }
+                    }
                     Color.clear.frame(height: 1).id(Self.end)
                 }
                 .padding(.horizontal, 16)
@@ -500,6 +516,7 @@ struct HermesChatView: View {
             .scrollDismissesKeyboard(.interactively)
             .onAppear { proxy.scrollTo(Self.end, anchor: .bottom) }
             .onChange(of: followKey) { proxy.scrollTo(Self.end, anchor: .bottom) }
+            .onChange(of: engine.mailAsk?.id) { proxy.scrollTo(Self.end, anchor: .bottom) }
         }
         .axyonBackdrop(intensity: 0.6)
         .safeAreaInset(edge: .bottom) { composer }
@@ -534,6 +551,34 @@ struct HermesChatView: View {
             }
         }
         .sheet(isPresented: $brainOpen) { NavigationStack { HermesBrainView() } }
+        .sheet(item: $page, onDismiss: { Task { await engine.refreshGoogle() } }) { page in
+            AXYONSafari(url: page.url).ignoresSafeArea()
+        }
+        .photosPicker(isPresented: $photosOpen, selection: $photoItems, maxSelectionCount: 6, matching: .images)
+        .onChange(of: photoItems) { _, items in
+            guard !items.isEmpty else { return }
+            photoItems = []
+            for (index, item) in items.enumerated() {
+                attach {
+                    guard let data = try await item.loadTransferable(type: Data.self) else { throw CocoaError(.fileReadUnknown) }
+                    return try await AXYONInbox.addPhoto(data, name: "photo-\(index + 1)")
+                }
+            }
+        }
+        .fullScreenCover(isPresented: $cameraOpen) {
+            AXYONCamera { image in
+                cameraOpen = false
+                guard let data = image?.jpegData(compressionQuality: 0.9) else { return }
+                attach { try await AXYONInbox.addPhoto(data, name: "camera") }
+            }
+            .ignoresSafeArea()
+        }
+        .fileImporter(isPresented: $filesOpen, allowedContentTypes: [.item], allowsMultipleSelection: true) { result in
+            guard case .success(let files) = result else { return }
+            for file in files.prefix(6) {
+                attach { try await AXYONInbox.addFile(file) }
+            }
+        }
         .onAppear {
             if !HermesDraft.shared.text.isEmpty {
                 text = HermesDraft.shared.text
@@ -621,23 +666,106 @@ struct HermesChatView: View {
         }
     }
 
+    /// A message, with the files sent with it above, the images Hermes made below, and Google's sign-in to open
+    /// inside the app when an answer gives its link.
+    @ViewBuilder private func message(_ entry: PCChatEntry) -> some View {
+        let files = engine.conversation.files(of: entry.id)
+        let made = engine.conversation.made(in: entry.id)
+        VStack(alignment: entry.role == .you ? .trailing : .leading, spacing: 8) {
+            if !files.isEmpty {
+                AXYONAttachmentChips(files: files)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+            if entry.role == .mochi || !entry.text.isEmpty {
+                PCChatBubble(entry: entry, live: entry.id == engine.answering)
+            }
+            if !made.isEmpty {
+                AXYONMadeImages(paths: made)
+            }
+            if entry.role == .mochi, entry.finished, let link = HermesGoogle.signInLink(in: entry.text) {
+                Button {
+                    page = AXYONPage(url: link)
+                } label: {
+                    Label("Sign in with Google", systemImage: "person.badge.key.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 11)
+                        .axyonCard(tint: AXYONPalette.cyan, glow: AXYONPalette.cyan)
+                }
+                .buttonStyle(PressableButtonStyle())
+            }
+        }
+    }
+
+    /// A photo or a file on its way into the inbox, then into the next message.
+    private func attach(_ work: @escaping @MainActor () async throws -> HermesAttachment) {
+        adding += 1
+        attachProblem = nil
+        Task {
+            do {
+                pending.append(try await work())
+            } catch {
+                attachProblem = String(localized: "That file could not be added.")
+            }
+            adding -= 1
+        }
+    }
+
     private var composer: some View {
-        let empty = text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let empty = text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && pending.isEmpty
         let running = engine.answering != nil
         return VStack(alignment: .leading, spacing: 8) {
-            if let error = engine.lastError {
+            if let error = engine.lastError ?? attachProblem {
                 Label(error, systemImage: "info.circle")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 6)
             }
+            if !pending.isEmpty || adding > 0 {
+                HStack(spacing: 8) {
+                    AXYONAttachmentChips(files: pending) { file in
+                        pending.removeAll { $0.id == file.id }
+                    }
+                    if adding > 0 {
+                        ProgressView().controlSize(.small)
+                    }
+                }
+                .padding(.horizontal, 6)
+            }
             CoucouGlassGroup(spacing: 8) {
                 HStack(alignment: .bottom, spacing: 8) {
                     HStack(alignment: .bottom, spacing: 2) {
+                        Menu {
+                            Button {
+                                photosOpen = true
+                            } label: {
+                                Label("Photos", systemImage: "photo.on.rectangle")
+                            }
+                            if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                                Button {
+                                    cameraOpen = true
+                                } label: {
+                                    Label("Camera", systemImage: "camera")
+                                }
+                            }
+                            Button {
+                                filesOpen = true
+                            } label: {
+                                Label("Files", systemImage: "folder")
+                            }
+                        } label: {
+                            Image(systemName: "plus")
+                                .font(.body.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 40, height: 44)
+                        }
+                        .disabled(running || !engine.canChat)
+                        .accessibilityLabel("Attach a photo or a file")
+                        .padding(.leading, 4)
                         TextField("Message AXYON…", text: $text, axis: .vertical)
                             .lineLimit(1...8)
                             .focused($focused)
-                            .padding(.leading, 16)
+                            .padding(.leading, 2)
                             .padding(.vertical, 12)
                         Button {
                             MochiVoice.shared.stop()
@@ -676,7 +804,7 @@ struct HermesChatView: View {
                                 .shadow(color: AXYONPalette.violet.opacity(0.6), radius: 10)
                         }
                         .buttonStyle(PressableButtonStyle())
-                        .disabled(!running && !engine.canChat)
+                        .disabled(!running && (!engine.canChat || adding > 0))
                         .transition(.scale(scale: 0.5).combined(with: .opacity))
                     }
                 }
@@ -700,8 +828,10 @@ struct HermesChatView: View {
             brainOpen = true
             return
         }
-        engine.send(text)
+        guard adding == 0 else { return }
+        engine.send(text, attachments: pending)
         text = ""
+        pending = []
         spoken = voice
         Haptics.impact()
     }
@@ -1231,6 +1361,29 @@ struct AXYONSettingsView: View {
 
             Section {
                 NavigationLink {
+                    AXYONGoogleView()
+                } label: {
+                    LabeledContent {
+                        Text(googleState)
+                            .foregroundStyle(engine.google?.connected == true ? AXYONPalette.up : Color.secondary)
+                    } label: {
+                        Label("Google", systemImage: "envelope.open")
+                    }
+                }
+                NavigationLink {
+                    AXYONTasksView()
+                } label: {
+                    Label("Scheduled tasks", systemImage: "clock.arrow.circlepath")
+                }
+            } header: {
+                Text("Connections")
+            } footer: {
+                Text("Gmail, Sheets, Drive, Docs and Calendar with your own Google sign-in, and the tasks AXYON runs for you on a schedule.")
+            }
+            .listRowBackground(GlassRowBackground())
+
+            Section {
+                NavigationLink {
                     PCLinkSettingsView(pc: pc)
                 } label: {
                     LabeledContent {
@@ -1266,7 +1419,15 @@ struct AXYONSettingsView: View {
         }
         .axyonBackdrop(intensity: 0.7)
         .navigationTitle("Settings")
-        .task { await permissions.load() }
+        .task {
+            await permissions.load()
+            await engine.refreshGoogle()
+        }
+    }
+
+    private var googleState: String {
+        guard let google = engine.google, google.connected else { return String(localized: "Not connected") }
+        return google.account.isEmpty ? String(localized: "Connected") : google.account
     }
 
     private func permissionRow(_ title: String, _ icon: String, _ granted: Bool?,

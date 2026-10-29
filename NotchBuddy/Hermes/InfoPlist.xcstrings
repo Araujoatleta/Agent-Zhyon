@@ -65,25 +65,25 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "AXYON uses the camera only to scan the pairing code of AXYON on your computer."
+            "value": "AXYON uses the camera to take the photos you send it in the chat, and to scan the pairing code of AXYON on your computer."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "AXYON usa la cámara solo para leer el código de enlace de AXYON en tu ordenador."
+            "value": "AXYON usa la cámara para tomar las fotos que le envías en el chat y para leer el código de enlace de AXYON en tu ordenador."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "AXYON n'utilise l'appareil photo que pour lire le code d'association d'AXYON sur votre ordinateur."
+            "value": "AXYON utilise l'appareil photo pour prendre les photos que vous lui envoyez dans la conversation, et pour lire le code d'association d'AXYON sur votre ordinateur."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "O AXYON usa a câmera só para ler o código de pareamento do AXYON no seu computador."
+            "value": "O AXYON usa a câmera para tirar as fotos que você manda para ele no chat e para ler o código de pareamento do AXYON no seu computador."
           }
         }
       }

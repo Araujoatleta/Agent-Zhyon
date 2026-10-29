@@ -57,8 +57,47 @@ enum HermesArms {
             let what = String((r["text"] as? String ?? "").prefix(150))
             let ok = await OwnerCheck.confirm(reason: String(localized: "Allow AXYON to \(what)"))
             return data(["ok": ok])
+        case "mail":
+            // An e-mail from the user's Gmail (google.py): shown whole in the chat, sent only on their tap.
+            let ask = HermesMailAsk(reply: r["kind"] as? String == "reply", to: r["to"] as? String ?? "",
+                                    cc: r["cc"] as? String ?? "", subject: r["subject"] as? String ?? "",
+                                    body: r["body"] as? String ?? "")
+            let send = await HermesEngine.shared.askToSend(ask)
+            return data(["send": send])
+        case "pdf_text":
+            // A PDF Hermes saved in its inbox (from Drive): read here, as the chat's own.
+            let path = r["path"] as? String ?? ""
+            guard AXYONInbox.holds(path) else { return data(["error": "Not a file of AXYON's inbox."]) }
+            let text = await AXYONInbox.pdfText(URL(fileURLWithPath: path))
+            return data(["text": text])
+        case "alerts":
+            let answer = await alerts(r["do"] as? String ?? "status")
+            return data(answer)
         default:
             return data(["error": "No such iPhone action: \(action)."])
+        }
+    }
+
+    /// The superpowers' alerts with AXYON closed (AXYONAlerts), turned on or off, or a look now.
+    private static func alerts(_ what: String) async -> [String: Any] {
+        let refresh = UIApplication.shared.backgroundRefreshStatus == .available
+        switch what {
+        case "on":
+            let granted = (try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])) ?? false
+            UserDefaults.standard.set(true, forKey: AXYONAlerts.enabledKey)
+            AXYONAlerts.schedule()
+            return ["on": true, "notifications": granted, "backgroundRefresh": refresh,
+                    "said": granted ? (refresh ? "On." : "On, but Background App Refresh is off for AXYON: iPhone Settings → General → Background App Refresh.")
+                        : "On, but notifications are off for AXYON in the iPhone's Settings."]
+        case "off":
+            UserDefaults.standard.set(false, forKey: AXYONAlerts.enabledKey)
+            AXYONAlerts.schedule()
+            return ["on": false]
+        case "look":
+            guard AXYONAlerts.enabled else { return ["error": "The alerts are off: turn them on first (do=on)."] }
+            return ["notificationsSent": await AXYONAlerts.look()]
+        default:
+            return ["on": AXYONAlerts.enabled, "backgroundRefresh": refresh]
         }
     }
 

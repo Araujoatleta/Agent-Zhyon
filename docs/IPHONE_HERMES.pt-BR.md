@@ -44,6 +44,52 @@ Peça normalmente, por texto ou voz (o microfone do chat; uma pausa envia):
   área de transferência.
 - **Web**: *"pesquisa o horário da farmácia aqui perto"*, *"lê esta página e me resume"*. Sem chave nem conta.
 - **Memória**: o Hermes lembra do que você contar e das conversas anteriores, como no computador.
+- **Ajudantes**: num trabalho longo, o Hermes divide partes com ajudantes dele (delegação), como no computador.
+
+## Fotos e arquivos
+
+O **+** ao lado do campo de mensagem manda para o Hermes **fotos** (da galeria ou da **câmera**) e **arquivos** (do
+app Arquivos ou do iCloud Drive): PDF, Word, Excel, CSV, texto. Um cérebro que enxerga (ChatGPT, Gemini, Claude)
+recebe a própria foto; outro recebe a foto descrita antes. O PDF é lido no próprio iPhone (as páginas escaneadas,
+com o reconhecimento de texto do iPhone) e o texto vai junto com a sua mensagem; o Hermes consegue ler de novo
+qualquer arquivo que você mandou. *"O que diz esta nota?"*, *"resume este extrato"*, *"lança estas operações na minha
+carteira"*. Os arquivos ficam na pasta do próprio AXYON, por um mês no máximo.
+
+Com o ChatGPT como cérebro (ou o OpenRouter), o Hermes também **cria imagens** (*"desenha…"*): elas aparecem embaixo da
+resposta, e um toque compartilha ou salva.
+
+## Google: Gmail, Planilhas, Drive, Documentos e Agenda
+
+No computador, a skill google-workspace do Hermes faz o login rodando scripts num terminal, e nenhum app de iPhone
+pode fazer isso. Aqui o próprio AXYON faz o login no Google, dentro do app, com **o seu cliente OAuth do Google
+Cloud** (o mesmo que você fez para o gog ou para o Hermes no computador serve).
+
+1. Uma vez, no Google Cloud (uns 5 minutos): crie um projeto, ative as APIs do Gmail, Sheets, Drive, Docs e Calendar,
+   crie um cliente OAuth do tipo **App para computador (Desktop app)**, adicione a sua conta como usuário de teste
+   (Público-alvo) e baixe o JSON.
+2. **Ajustes → Google → Escolher o arquivo JSON do cliente** (ou cole o ID e a chave secreta do cliente), ou mande o
+   JSON no chat e peça *"conecta o meu Google"*.
+3. **Entrar com o Google**: a própria página do Google abre dentro do AXYON; entre e permita (se o Google disser que o
+   app não foi verificado: Avançado → ir para o seu app). O AXYON termina sozinho. Se a página depois de permitir não
+   carregar, copie o endereço dela e cole em Ajustes → Google, ou no chat.
+
+Depois é só pedir: *"o que tem de novo no meu Gmail?"*, *"procura no e-mail o relatório do BTLG11"*, *"lê a aba AXYON
+da minha planilha"*, *"lança esta operação na minha planilha"*, *"acha o meu plano 2027 no Drive"*, *"coloca a
+assembleia na minha agenda do Google"*. Um rascunho vai para os rascunhos do Gmail; **um e-mail só é enviado quando você
+toca em Enviar** no cartão que o AXYON mostra no chat. A sua senha nunca passa pelo AXYON: o login é a página do
+Google, e o AXYON guarda o acesso do Google na pasta do Hermes, como o Hermes faz no computador.
+
+## Tarefas agendadas
+
+O **cron** do próprio Hermes funciona no iPhone: *"todo dia útil às 9h, me diga como estão o BTLG11 e o LVBI11 em
+relação aos meus tetos"*, *"daqui a 2 horas, me lembra de pagar o DARF com o valor"*. A resposta de cada tarefa chega
+como **notificação**; uma tarefa que deve ficar quieta quando não há nada a dizer ("só me avisa se…") fica quieta.
+**Ajustes → Tarefas agendadas** mostra as tarefas; para mudar ou tirar uma, peça no chat.
+
+Na hora certa com o AXYON aberto. Com o AXYON fechado, o iOS acorda o app **algumas vezes por dia** (com a
+Atualização em 2º Plano ligada), e a tarefa que venceu roda nessa hora: nenhum app de iPhone pode se acordar a cada 5
+minutos. Para alertas em minutos durante o pregão, o AXYON do computador acompanha os preços enquanto está aberto e
+pode avisar o iPhone (no computador: Ajustes → Celular → Notificações com o Coucou fechado).
 
 ## Os superpoderes, dentro do iPhone
 
@@ -126,8 +172,12 @@ Fora de casa, use o Tailscale nos dois ([IPHONE_PC.pt-BR.md](IPHONE_PC.pt-BR.md)
 
 - O iOS suspende os apps pouco depois de saírem da tela: o Hermes pensa com o AXYON aberto. Uma resposta em andamento
   ganha o meio minuto que o iOS dá para terminar, e uma notificação traz a resposta.
-- O iOS não deixa um app rodar outros programas: as ferramentas de terminal e de código do Hermes não existem no
-  iPhone (no computador, sim).
+- O iOS não deixa um app rodar outros programas: o terminal do Hermes, a execução de código, o navegador dele e as
+  ferramentas de arquivo que passam por um shell não existem no iPhone (no computador, sim).
+- **Uso do computador** (o mouse e o teclado que o Hermes usa pelo cua-driver no Mac ou no PC) não tem como existir
+  no iPhone: o iOS não deixa nenhum app ver ou tocar na tela de outro app, com sideload ou não. O que mais chega perto:
+  os **Atalhos** (*"roda o meu atalho…"*: os Atalhos alcançam quase todo ajuste e muitos apps), os links que abrem um
+  app já preenchido, e o AXYON do computador pareado, que usa a tela dele.
 - Se o Hermes não iniciar, o início mostra o motivo; feche o AXYON no seletor de apps e abra de novo.
 
 ## Se o app fechar sozinho ou o Hermes não iniciar: o REA

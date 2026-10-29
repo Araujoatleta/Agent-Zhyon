@@ -10,6 +10,8 @@ enum HermesEvent: Equatable, Sendable {
     /// A tool Hermes started: its name, and what it is about (a few words, maybe empty).
     case tool(name: String, preview: String)
     case toolDone(name: String, failed: Bool)
+    /// The images Hermes made in this answer, their paths in its home.
+    case images([String])
     /// The answer, whole; `stopped` when it was stopped from here.
     case done(text: String, stopped: Bool)
     case error(String)
@@ -25,6 +27,9 @@ enum HermesEvent: Equatable, Sendable {
         case "delta": return .delta(text("text"))
         case "tool": return .tool(name: text("name"), preview: text("preview"))
         case "tool_done": return .toolDone(name: text("name"), failed: object["error"] as? Bool ?? false)
+        case "images":
+            // Only paths inside Hermes' home: the chat shows nothing else.
+            return .images((object["paths"] as? [String] ?? []).filter { !$0.hasPrefix("/") && !$0.contains("..") })
         case "done": return .done(text: text("text"), stopped: object["stopped"] as? Bool ?? false)
         case "error": return .error(text("message"))
         default: return .other
@@ -242,6 +247,76 @@ struct HermesFound: Equatable, Sendable, Identifiable {
     }
 }
 
+/// The user's Google account in Hermes (`GET /v1/google`, google.py).
+struct HermesGoogle: Equatable, Sendable {
+    /// Their OAuth client is set.
+    var client = false
+    var connected = false
+    var account = ""
+    /// What they allowed: email, calendar, drive, sheets, docs, contacts.
+    var services: [String] = []
+
+    init(json o: [String: Any]) {
+        client = o["client"] as? Bool ?? false
+        connected = o["connected"] as? Bool ?? false
+        account = o["account"] as? String ?? ""
+        services = o["services"] as? [String] ?? []
+    }
+
+    /// Google's sign-in link in an answer of Hermes, to open inside the app.
+    static func signInLink(in text: String) -> URL? {
+        guard let found = text.range(of: #"https://accounts\.google\.com/o/oauth2/[^\s)\]>"'`]+"#,
+                                     options: .regularExpression) else { return nil }
+        return URL(string: String(text[found]))
+    }
+}
+
+/// One of Hermes' scheduled tasks (`GET /v1/cron`, scheduled.py).
+struct HermesTask: Identifiable, Equatable, Sendable {
+    let id: String
+    let name: String
+    /// As Hermes words it: "every 5m", "0 9 * * 1-5"…
+    let schedule: String
+    let next: Date?
+    let enabled: Bool
+
+    static func list(_ o: [String: Any]) -> [HermesTask] {
+        (o["jobs"] as? [[String: Any]] ?? []).compactMap { job in
+            guard let id = job["id"] as? String else { return nil }
+            return HermesTask(id: id, name: job["name"] as? String ?? id, schedule: job["schedule"] as? String ?? "",
+                              next: (job["next"] as? String).flatMap(date), enabled: job["enabled"] as? Bool ?? true)
+        }
+    }
+
+    /// Hermes' times (2026-10-29T19:52:43.699152+00:00): ISO 8601 with any fraction of a second.
+    static func date(_ text: String) -> Date? {
+        let whole = text.replacingOccurrences(of: #"\.\d+"#, with: "", options: .regularExpression)
+        return ISO8601DateFormatter().date(from: whole)
+    }
+}
+
+/// A file the user sent with a message (a photo or a document), as the chat keeps it: its name in Hermes' inbox (the
+/// app's own folder can move when iOS updates the app), what the chat calls it, and the text the app read from it.
+struct HermesAttachment: Equatable, Sendable, Codable, Identifiable {
+    enum Kind: String, Equatable, Sendable, Codable { case image, file }
+
+    /// The file's name in Hermes' inbox.
+    let file: String
+    let name: String
+    let kind: Kind
+    /// The text the app read from it (a PDF's), beside it in the inbox.
+    var textFile: String?
+
+    var id: String { file }
+
+    /// As the host's POST /v1/runs takes it, with where the inbox is now.
+    func wire(inbox: URL) -> [String: String] {
+        var o = ["path": inbox.appendingPathComponent(file).path, "name": name, "kind": kind.rawValue]
+        if let textFile { o["text"] = inbox.appendingPathComponent(textFile).path }
+        return o
+    }
+}
+
 /// The conversation with Hermes on this iPhone as the AXYON tab shows it, in the chat's own entries (PCChatEntry, so
 /// the bubbles are the computer chat's), and the Hermes session it belongs to.
 struct HermesConversation: Equatable, Sendable, Codable {
@@ -252,19 +327,37 @@ struct HermesConversation: Equatable, Sendable, Codable {
     /// Hermes' session for this conversation: it keeps the history and remembers across launches.
     var session: String
     var entries: [PCChatEntry] = []
+    /// The files sent with your messages, by the message's id (absent from what an older app saved).
+    var attachments: [String: [HermesAttachment]]?
+    /// The images Hermes made in an answer, by the answer's id: their paths in its home.
+    var images: [String: [String]]?
 
     static func newSession() -> String { "axyon-iphone-" + UUID().uuidString.lowercased().prefix(12) }
 
     static func fresh() -> HermesConversation { HermesConversation(session: newSession()) }
 
-    /// Your message and the answer to come, which events fill in.
-    mutating func ask(_ text: String, now id: (String) -> String = { $0 + "-" + UUID().uuidString }) -> String {
+    /// Your message, with the files sent with it, and the answer to come, which events fill in.
+    mutating func ask(_ text: String, attachments files: [HermesAttachment] = [],
+                      now id: (String) -> String = { $0 + "-" + UUID().uuidString }) -> String {
         let answer = id("hermes")
-        entries.append(PCChatEntry(id: id("you"), role: .you, text: text, finished: true))
+        let yours = id("you")
+        entries.append(PCChatEntry(id: yours, role: .you, text: text, finished: true))
         entries.append(PCChatEntry(id: answer, role: .mochi, text: ""))
-        if entries.count > Self.kept { entries.removeFirst(entries.count - Self.kept) }
+        if !files.isEmpty { attachments = (attachments ?? [:]).merging([yours: files]) { $1 } }
+        if entries.count > Self.kept {
+            entries.removeFirst(entries.count - Self.kept)
+            let shown = Set(entries.map(\.id))
+            attachments = attachments?.filter { shown.contains($0.key) }
+            images = images?.filter { shown.contains($0.key) }
+        }
         return answer
     }
+
+    /// The files sent with the message `id`.
+    func files(of id: String) -> [HermesAttachment] { attachments?[id] ?? [] }
+
+    /// The images Hermes made in the answer `id`.
+    func made(in id: String) -> [String] { images?[id] ?? [] }
 
     /// One event of the answer `id`. `label` words a tool for the steps.
     mutating func apply(_ event: HermesEvent, to id: String, label: (String) -> String) {
@@ -288,6 +381,9 @@ struct HermesConversation: Equatable, Sendable, Codable {
             entry.text = message.isEmpty ? entry.text : message
             entry.failed = true
             entry.finished = true
+        case .images(let paths):
+            if !paths.isEmpty { images = (images ?? [:]).merging([id: paths]) { $0 + $1 } }
+            return
         case .other:
             return
         }

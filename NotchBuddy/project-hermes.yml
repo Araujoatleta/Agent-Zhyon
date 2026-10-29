@@ -43,7 +43,7 @@ targets:
         NSMicrophoneUsageDescription: "AXYON uses the microphone when you dictate a message to it."
         NSSpeechRecognitionUsageDescription: "AXYON turns your voice into the text of a message."
         NSFaceIDUsageDescription: "AXYON asks for Face ID before something that needs your yes, like turning on a plug or allowing an agent's request."
-        NSCameraUsageDescription: "AXYON uses the camera only to scan the pairing code of AXYON on your computer."
+        NSCameraUsageDescription: "AXYON uses the camera to take the photos you send it in the chat, and to scan the pairing code of AXYON on your computer."
         # The superpowers' alerts with AXYON closed (Hermes/Swift/AXYONAlerts.swift), once the user turns them on;
         # added to project.yml's background modes.
         BGTaskSchedulerPermittedIdentifiers:

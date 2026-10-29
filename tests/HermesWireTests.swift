@@ -80,6 +80,51 @@ enum HermesWireTests {
         for i in 0..<70 { _ = many.ask("m\(i)") }
         checkEqual("the newest 100 kept", many.entries.count, HermesConversation.kept)
 
+        print("\nFiles sent")
+        let photo = HermesAttachment(file: "a1-foto.jpg", name: "foto.jpg", kind: .image)
+        let pdf = HermesAttachment(file: "a2-nota.pdf", name: "nota.pdf", kind: .file, textFile: "a2-nota.pdf.txt.extracted")
+        var sent = HermesConversation(session: "s2")
+        _ = sent.ask("o que é isso?", attachments: [photo, pdf]) { n += 1; return "\($0)-\(n)" }
+        let mine = sent.entries[0].id
+        checkEqual("kept with your message", sent.files(of: mine), [photo, pdf])
+        check("none with the answer", sent.files(of: sent.entries[1].id).isEmpty)
+        let inbox = URL(fileURLWithPath: "/data/Hermes/inbox")
+        checkEqual("as the host takes it, where the inbox is now", pdf.wire(inbox: inbox),
+                   ["path": "/data/Hermes/inbox/a2-nota.pdf", "name": "nota.pdf", "kind": "file",
+                    "text": "/data/Hermes/inbox/a2-nota.pdf.txt.extracted"])
+        checkEqual("a photo has no text", photo.wire(inbox: inbox)["text"], nil)
+        let kept = (try? JSONEncoder().encode(sent)).flatMap { try? JSONDecoder().decode(HermesConversation.self, from: $0) }
+        checkEqual("saved and read back with its files", kept, sent)
+        let older = #"{"version":1,"session":"s","entries":[{"id":"you-1","role":"you","text":"oi","finished":true}]}"#
+        check("what an older app saved still reads", (try? JSONDecoder().decode(HermesConversation.self, from: Data(older.utf8)))?.entries.count == 1)
+        for i in 0..<60 { _ = sent.ask("m\(i)") }
+        check("files leave with their message", sent.attachments?[mine] == nil)
+
+        print("\nGoogle and scheduled tasks")
+        let google = HermesGoogle(json: ["client": true, "connected": true, "account": "dono@example.com", "services": ["email", "sheets"]])
+        check("Google connected, as whom, what", google.connected && google.account == "dono@example.com" && google.services == ["email", "sheets"])
+        let link = "https://accounts.google.com/o/oauth2/v2/auth?client_id=1.apps.googleusercontent.com&state=x%2Fy&scope=a+b"
+        checkEqual("the sign-in link in an answer", HermesGoogle.signInLink(in: "Abra este link:\n\(link)\nDepois volte.")?.absoluteString, link)
+        checkEqual("in a Markdown link too", HermesGoogle.signInLink(in: "[Entrar](\(link))")?.absoluteString, link)
+        check("no other link", HermesGoogle.signInLink(in: "https://www.google.com/search?q=x") == nil)
+        let tasks = HermesTask.list(["jobs": [["id": "a1", "name": "Cotação BTLG11", "schedule": "every 5m",
+                                              "next": "2026-10-29T19:52:43.699152+00:00", "enabled": true],
+                                             ["name": "no id"]]])
+        check("a task, its schedule and next time", tasks.count == 1 && tasks[0].schedule == "every 5m"
+              && tasks[0].next == Date(timeIntervalSince1970: 1_793_303_563))
+        check("Hermes' times without a fraction too", HermesTask.date("2026-10-29T19:52:43+00:00") == Date(timeIntervalSince1970: 1_793_303_563))
+
+        print("\nImages Hermes made")
+        checkEqual("their paths in Hermes' home, nothing outside it",
+                   HermesEvent.parse(#"data: {"type": "images", "paths": ["cache/generated/images/a.png", "/etc/x.png", "../b.png"]}"#),
+                   .images(["cache/generated/images/a.png"]))
+        var drawn = HermesConversation(session: "s3")
+        let drawing = drawn.ask("desenha um gato") { n += 1; return "\($0)-\(n)" }
+        drawn.apply(.images(["cache/generated/images/gato.png"]), to: drawing, label: label)
+        drawn.apply(.done(text: "Aqui está.", stopped: false), to: drawing, label: label)
+        checkEqual("kept with the answer", drawn.made(in: drawing), ["cache/generated/images/gato.png"])
+        check("and the answer still ends", drawn.entries[1].finished && drawn.entries[1].text == "Aqui está.")
+
         print("\nThe iPhone's own home")
         let reported: [String: Any] = [
             "devices": [

@@ -3,6 +3,7 @@ import Observation
 import os
 import Security
 import UIKit
+import UserNotifications
 
 /// Hermes Agent inside this iPhone (NotchBuddy/Hermes/README.md): CPython embedded in the app runs Hermes itself, its
 /// memory, skills and sessions in the app's own folder, behind a small API on 127.0.0.1 only
@@ -54,6 +55,10 @@ final class HermesEngine {
     /// The devices this iPhone drives itself (Hermes/app/axyon_hermes/home.py), as last read.
     private(set) var house: HermesHouse?
     private(set) var houseLoading = false
+    /// The user's Google account in Hermes, as last read.
+    private(set) var google: HermesGoogle?
+    /// An e-mail Hermes wants to send, waiting for the user's tap in the chat.
+    private(set) var mailAsk: HermesMailAsk?
 
     @ObservationIgnored private var port: UInt16 = 0
     @ObservationIgnored private var token = ""
@@ -61,6 +66,7 @@ final class HermesEngine {
     @ObservationIgnored private var runTask: Task<Void, Never>?
     @ObservationIgnored private var bridgeTask: Task<Void, Never>?
     @ObservationIgnored private var signInTask: Task<Void, Never>?
+    @ObservationIgnored private var mailWaiting: CheckedContinuation<Bool, Never>?
     @ObservationIgnored private var backgroundTask: UIBackgroundTaskIdentifier = .invalid
     /// Python returned: it cannot start again in this launch.
     @ObservationIgnored private var pythonStopped = false
@@ -113,6 +119,7 @@ final class HermesEngine {
         try? FileManager.default.createDirectory(at: home, withIntermediateDirectories: true)
         try? FileManager.default.removeItem(at: home.appendingPathComponent("host-error.txt"))
         try? FileManager.default.removeItem(at: home.appendingPathComponent("python-ended.txt"))
+        Task.detached(priority: .utility) { AXYONInbox.prune() }
         let listening = port
         Self.log.info("Starting Hermes on 127.0.0.1:\(listening, privacy: .public)")
         setenv("AXYON_HERMES_HOME", home.path, 1)
@@ -220,19 +227,22 @@ final class HermesEngine {
 
     // MARK: Chatting
 
-    func send(_ text: String) {
+    /// A message, with the photos and files the user sent with it (in Hermes' inbox: AXYONInbox).
+    func send(_ text: String, attachments: [HermesAttachment] = []) {
         let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty, state == .ready, answering == nil else { return }
+        guard !text.isEmpty || !attachments.isEmpty, state == .ready, answering == nil else { return }
         lastError = nil
-        let answer = conversation.ask(text)
+        let answer = conversation.ask(text, attachments: attachments)
         answering = answer
         save()
-        runTask = Task { await run(text, answer: answer) }
+        runTask = Task { await run(text, attachments: attachments, answer: answer) }
     }
 
-    private func run(_ text: String, answer: String) async {
+    private func run(_ text: String, attachments: [HermesAttachment], answer: String) async {
         do {
-            let started = try await call("POST", "/v1/runs", ["session": conversation.session, "message": text])
+            var body: [String: Any] = ["session": conversation.session, "message": text]
+            if !attachments.isEmpty { body["attachments"] = attachments.map { $0.wire(inbox: AXYONInbox.folder) } }
+            let started = try await call("POST", "/v1/runs", body)
             guard let run = started["run_id"] as? String else { throw HermesError.broken }
             runID = run
             var request = URLRequest(url: url("/v1/runs/\(run)/events"), timeoutInterval: 120)
@@ -240,6 +250,10 @@ final class HermesEngine {
             try await Self.stream(request, session: session) { line in
                 guard let event = HermesEvent.parse(line) else { return true }
                 if case .tool = event { self.acting = true }
+                if case .tool(let name, _) = event, name == "cronjob_manage" || name == "iphone_alerts" {
+                    // Their answers come as notifications, also with AXYON closed: iOS asks now, with the user here.
+                    Task { _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) }
+                }
                 if case .toolDone = event { self.acting = false }
                 self.conversation.apply(event, to: answer, label: Self.label)
                 switch event {
@@ -308,6 +322,16 @@ final class HermesEngine {
         case "todo_list": String(localized: "To-do list")
         case "vision_analyze": String(localized: "Looking at the image")
         case "clarify": String(localized: "A question for you")
+        case "iphone_files": String(localized: "Reading your file")
+        case "iphone_alerts": String(localized: "Portfolio alerts")
+        case "google_account": String(localized: "Google account")
+        case "gmail": "Gmail"
+        case "google_sheets": String(localized: "Google Sheets")
+        case "google_drive": "Google Drive"
+        case "google_calendar": String(localized: "Google Calendar")
+        case "cronjob_manage": String(localized: "Scheduled tasks")
+        case "delegate_task": String(localized: "A helper at work")
+        case "image_generate": String(localized: "Making an image")
         default:
             tool.hasPrefix("wealth_") ? String(localized: "Superpowers: money")
                 : tool.hasPrefix("life_") ? String(localized: "Superpowers: your day") : tool
@@ -399,6 +423,73 @@ final class HermesEngine {
                 if now.state != .waiting { return }
             }
         }
+    }
+
+    // MARK: An e-mail waiting for the user's tap
+
+    /// Shows the e-mail in the chat and waits for the user's tap: Send (true) or Cancel; nothing after four minutes,
+    /// or when another one comes.
+    func askToSend(_ ask: HermesMailAsk) async -> Bool {
+        mailWaiting?.resume(returning: false)
+        mailWaiting = nil
+        mailAsk = ask
+        let timeout = Task {
+            try? await Task.sleep(for: .seconds(240))
+            if !Task.isCancelled, mailAsk?.id == ask.id { answerMail(false) }
+        }
+        defer { timeout.cancel() }
+        return await withCheckedContinuation { mailWaiting = $0 }
+    }
+
+    func answerMail(_ send: Bool) {
+        mailAsk = nil
+        mailWaiting?.resume(returning: send)
+        mailWaiting = nil
+    }
+
+    // MARK: Google
+
+    func refreshGoogle() async {
+        guard state == .ready, let object = try? await call("GET", "/v1/google") else { return }
+        google = HermesGoogle(json: object)
+    }
+
+    /// The user's OAuth client: the JSON they picked (copied into the inbox), or its ID and secret.
+    func googleClient(path: String?, id: String, secret: String) async throws {
+        var body: [String: Any] = ["clientId": id, "clientSecret": secret]
+        if let path { body["path"] = path }
+        try await call("POST", "/v1/google/client", body)
+        await refreshGoogle()
+    }
+
+    /// Google's sign-in page, to open inside the app: Google sends the browser back to Hermes, which finishes it.
+    func googleConnect() async throws -> URL {
+        let object = try await call("POST", "/v1/google/connect", [:])
+        guard let link = object["url"] as? String, let url = URL(string: link) else { throw HermesError.broken }
+        return url
+    }
+
+    func googleFinish(_ pasted: String) async throws {
+        try await call("POST", "/v1/google/finish", ["pasted": pasted])
+        await refreshGoogle()
+    }
+
+    func googleDisconnect() async {
+        _ = try? await call("POST", "/v1/google/disconnect", [:])
+        await refreshGoogle()
+    }
+
+    // MARK: Scheduled tasks
+
+    func cronTasks() async -> [HermesTask] {
+        guard state == .ready, let object = try? await call("GET", "/v1/cron") else { return [] }
+        return HermesTask.list(object)
+    }
+
+    /// Hermes' due tasks run now (when iOS woke AXYON): how many ran.
+    func cronTick(timeout: TimeInterval) async -> Int {
+        guard state == .ready, let object = try? await call("POST", "/v1/cron/tick", [:], timeout: timeout) else { return 0 }
+        return object["ran"] as? Int ?? 0
     }
 
     // MARK: The portfolio
