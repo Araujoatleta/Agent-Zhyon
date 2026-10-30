@@ -175,11 +175,12 @@ escrevem nela:
 - Para manter o seu próprio layout, ponha o nome da sua aba em **Aba**: o AXYON passa a só ler essa aba (Ativo e
   Quantidade, ou uma lista de tickers com **Preço teto** ou **Meu teto**), e uma mudança pelo chat vale até a próxima
   leitura.
-- A cada 3 horas o AXYON também lê, só lendo, duas coisas que as suas abas podem ter: a tabela **Proventos pagos** (os
-  meses nas colunas, o total de cada mês, os ativos linha a linha: esses são os seus proventos, no computador e no
-  iPhone pareado, com os anúncios dos fundos guardados ao lado para mostrar uma divergência) e a coluna **Percentual
-  Ideal** (ou **Meta**) ao lado dos ativos (a sua meta por ativo, que o comitê leva em conta). A meta também pode ser
-  dita no chat (`wealth_update` com `asset_targets`, como `{"GARE11": 7.5}`).
+- A cada 3 horas o AXYON também lê, só lendo, duas coisas que as suas abas podem ter: **Proventos pagos** (um título
+  com os meses embaixo e os valores abaixo deles, ou uma linha de uma tabela mensal com os meses no cabeçalho acima; os
+  ativos linha a linha também: esses são os seus proventos, no computador e no iPhone pareado, com os anúncios dos
+  fundos guardados ao lado para mostrar uma divergência) e a coluna **Percentual Ideal** (ou **Meta**): ao lado dos
+  ativos, a meta por ativo; ao lado das classes (Ações, FIIs, Renda Fixa…), a meta por classe. O comitê leva as duas em
+  conta. A meta também pode ser dita no chat (`wealth_update` com `asset_targets`, como `{"GARE11": 7.5}`).
 
 ### O preço durante o pregão
 

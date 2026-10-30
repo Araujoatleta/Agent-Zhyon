@@ -710,10 +710,16 @@ async fn sheet_extras(app: &AppHandle, link: &SheetLink) {
     };
     let mut dividends: Option<(String, coucou_powers::sheet::SheetDividends)> = None;
     let mut targets: Vec<(String, f64)> = Vec::new();
+    let mut classes: Vec<(coucou_powers::model::AssetClass, f64)> = Vec::new();
     for name in names.iter().take(12) {
         let Ok(sheet::Got::Rows(rows)) = sheet::get_tab(link, name).await else { continue };
         if dividends.is_none() {
             dividends = coucou_powers::sheet::dividends(&rows).map(|d| (name.clone(), d));
+        }
+        for (c, x) in coucou_powers::sheet::class_targets(&rows) {
+            if !classes.iter().any(|(d, _)| *d == c) {
+                classes.push((c, x));
+            }
         }
         if let Ok(found) = coucou_powers::sheet::positions(&rows) {
             for (t, x) in found.targets {
@@ -724,7 +730,7 @@ async fn sheet_extras(app: &AppHandle, link: &SheetLink) {
         }
     }
     let today = today();
-    let found = (dividends.as_ref().map(|d| d.1.months.len()).unwrap_or(0), targets.len());
+    let found = (dividends.as_ref().map(|d| d.1.months.len()).unwrap_or(0), targets.len(), classes.len());
     change(app, |s, _| {
         if let Some((tab, d)) = dividends {
             s.recorded_dividends = coucou_powers::model::RecordedDividends { source: format!("Sua planilha — aba {tab}"), read: Some(today), months: d.months, by_asset: d.by_asset };
@@ -732,8 +738,11 @@ async fn sheet_extras(app: &AppHandle, link: &SheetLink) {
         for (t, x) in targets {
             s.portfolio.asset_targets.insert(t, x);
         }
+        for (c, x) in classes {
+            s.portfolio.targets.insert(c, x);
+        }
     });
-    log::line(format!("powers: the sheet gives {} month(s) of dividends and {} target(s) by asset", found.0, found.1));
+    log::line(format!("powers: the sheet gives {} month(s) of dividends, {} target(s) by asset and {} by class", found.0, found.1, found.2));
 }
 
 /// The user's other tabs (ten at most), read once when AXYON makes its own: what they list, the positions they give
@@ -1608,6 +1617,7 @@ fn phone_copy_of(s: &Store, m: &Market) -> Value {
         "type": "portfolio",
         "positions": positions,
         "assetTargets": s.portfolio.asset_targets,
+        "classTargets": s.portfolio.targets,
         "dividends": s.recorded_dividends,
         "ceilings": s.ceilings.manual,
         "prices": prices,

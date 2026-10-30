@@ -154,6 +154,9 @@ impl State {
         if let Ok(targets) = serde_json::from_value::<BTreeMap<String, f64>>(v["assetTargets"].clone()) {
             self.store.portfolio.asset_targets.extend(targets);
         }
+        if let Ok(classes) = serde_json::from_value::<BTreeMap<AssetClass, f64>>(v["classTargets"].clone()) {
+            self.store.portfolio.targets.extend(classes);
+        }
         // The dividends the sheet records are the record: a copy without them (an older computer) keeps the last one.
         if let Ok(recorded) = serde_json::from_value::<RecordedDividends>(v["dividends"].clone()) {
             if !recorded.months.is_empty() {
@@ -830,6 +833,7 @@ mod tests {
             "positions": [{ "ticker": "GARE11", "class": "fii", "subtype": "", "quantity": 100.0, "averagePrice": 9.0, "currentValue": null, "note": "" }],
             "ceilings": { "TIMS3": 21.5 }, "prices": {}, "notes": [],
             "assetTargets": { "GARE11": 7.5 },
+            "classTargets": { "fii": 25.0, "renda_fixa": 50.0 },
             "dividends": { "source": "Sua planilha — aba Meu Patrimônio", "read": "2026-10-29", "months": { "2026-10": 82.27 } }
         }).to_string()).unwrap();
         let mut st = State::open(&dir);
@@ -842,6 +846,7 @@ mod tests {
         assert_eq!(st.store.portfolio.source, COMPUTER);
         assert_eq!(st.store.portfolio.asset_targets.get("GARE11"), Some(&7.5), "the sheet's target");
         assert_eq!(st.store.portfolio.asset_targets.get("TIMS3"), Some(&5.0), "a target set on the iPhone stays");
+        assert_eq!(st.store.portfolio.targets.get(&AssetClass::Fii), Some(&25.0), "the sheet's class targets");
         assert_eq!(st.store.recorded_dividends.months.get("2026-10"), Some(&82.27), "the sheet's record");
         let months = invest::dividends(&st.store, &st.market, Date::parse("2026-10-30").unwrap(), 12);
         assert_eq!(months[11]["total"], 82.27, "the wallet's October is the sheet's");

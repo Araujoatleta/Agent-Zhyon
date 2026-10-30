@@ -133,11 +133,12 @@ lists them, and AXYON Core is told too. From then on that tab is the portfolio, 
   never written. A copy of your data is kept before the sheet changes it.
 - To keep your own layout, name your tab in **Tab**: AXYON then only reads it (Ativo and Quantidade, or a list of
   tickers with a **Preço teto** or **Meu teto**), and a change made in the chat lasts until the next reading.
-- Every 3 hours AXYON also reads, only reading, two things your tabs may hold: a **Proventos pagos** table (months
-  across, a total per month, assets row by row: these are your dividends, on the computer and on the paired iPhone,
-  the funds' announcements kept beside them to show a divergence) and a **Percentual Ideal** (or **Meta**) column next
-  to the assets (your target per asset, which the committee weighs). A target can also be told in the chat
-  (`wealth_update` with `asset_targets`, like `{"GARE11": 7.5}`).
+- Every 3 hours AXYON also reads, only reading, two things your tabs may hold: **Proventos pagos** (a title with the
+  months under it and the amounts below, or one row of a monthly table whose months head the columns above it; assets
+  row by row too: these are your dividends, on the computer and on the paired iPhone, the funds' announcements kept
+  beside them to show a divergence) and a **Percentual Ideal** (or **Meta**) column: next to the assets, your target
+  per asset; next to the classes (Ações, FIIs, Renda Fixa…), your target per class. The committee weighs both. A target
+  can also be told in the chat (`wealth_update` with `asset_targets`, like `{"GARE11": 7.5}`).
 
 ### The price during the session
 
