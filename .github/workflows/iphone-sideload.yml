@@ -302,17 +302,3 @@ jobs:
           path: ${{ runner.temp }}/axyon-screens
           retention-days: 14
           if-no-files-found: ignore
-
-      # The same screenshots, small, as base64 in the log: for a reviewer (or an agent) that can read the run's log
-      # but cannot download its artifacts.
-      - name: Screenshots in the log (small JPEG, base64)
-        if: always()
-        run: |
-          cd "$RUNNER_TEMP/axyon-screens" 2>/dev/null || exit 0
-          for f in *.png; do
-            [ -f "$f" ] || continue
-            sips -Z 800 -s format jpeg -s formatOptions 50 "$f" --out "${f%.png}.jpg" >/dev/null
-            echo "=== BEGIN ${f%.png}.jpg"
-            base64 -b 100 -i "${f%.png}.jpg"
-            echo "=== END ${f%.png}.jpg"
-          done
