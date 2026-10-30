@@ -547,8 +547,10 @@ final class AXYONInvest {
 
     /// The reader's round: the documents due (a material fact first, then the reports) downloaded by the engine, a
     /// PDF read here (PDFKit; a scanned page by the iPhone's text recognition when `ocr`), and kept with what changed.
-    /// At most `most` documents, each download `seconds` at most, and once every half hour unless `force`.
-    func read(most: Int = 4, ocr: Bool = true, force: Bool = false, seconds: Int = 25) async {
+    /// At most `most` documents, each download `seconds` at most, and once every half hour unless `force`. A document
+    /// that could not be read is tried again tomorrow, unless `background` (a background refresh's few seconds are not
+    /// a failure).
+    func read(most: Int = 4, ocr: Bool = true, force: Bool = false, seconds: Int = 25, background: Bool = false) async {
         guard reading == nil else { return }
         if !force, let last = readerRan, Date.now.timeIntervalSince(last) < 30 * 60 { return }
         readerRan = .now
@@ -559,8 +561,8 @@ final class AXYONInvest {
             let ticker = pending["ticker"] as? String ?? ""
             reading = String(localized: "Reading \(ticker)'s documents…")
             do {
-                let fetched = try await engine("invest_docs", ["do": "fetch", "pending": pending, "seconds": seconds])
-                    as? [String: Any] ?? [:]
+                let downloaded = try await engine("invest_docs", ["do": "fetch", "pending": pending, "seconds": seconds])
+                let fetched = downloaded as? [String: Any] ?? [:]
                 var pages = fetched["pages"] as? [String] ?? []
                 if let path = fetched["pdf"] as? String {
                     let file = URL(fileURLWithPath: path)
@@ -572,7 +574,9 @@ final class AXYONInvest {
                 }
                 _ = try await engine("invest_docs", ["do": "ingest", "pending": pending, "pages": pages])
             } catch {
-                _ = try? await engine("invest_docs", ["do": "failed", "pending": pending, "problem": Self.describe(error)])
+                if !background {
+                    _ = try? await engine("invest_docs", ["do": "failed", "pending": pending, "problem": Self.describe(error)])
+                }
             }
         }
         if !due.isEmpty { await load() }

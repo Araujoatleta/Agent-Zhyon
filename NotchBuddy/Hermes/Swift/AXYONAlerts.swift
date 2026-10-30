@@ -48,7 +48,7 @@ enum AXYONAlerts {
         // A new document of an asset followed, read now (the first one, its text only: the brain reads it once AXYON
         // opens), so a thesis it breaks is told below.
         if enabled, left > 16 {
-            await AXYONInvest.shared.read(most: 1, ocr: false, force: true, seconds: 8)
+            await AXYONInvest.shared.read(most: 1, ocr: false, force: true, seconds: 8, background: true)
             left = (enabled && HermesCron.hasTasks ? 26 : backgroundBudget) - Date.now.timeIntervalSince(started)
         }
         if enabled, left > 4 { await look(budget: min(left, backgroundBudget)) }

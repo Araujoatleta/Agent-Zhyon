@@ -175,14 +175,51 @@ pub fn documents_tool(store: &mut Store, market: &Market, lib: Option<&Library>,
     }
 }
 
-/// The JSON object in a brain's answer: alone, in a ```json fence, or with words around it.
+/// The JSON object in a brain's answer: alone, in a ```json fence, or with words around it (braces among them too),
+/// a trailing comma forgiven.
 pub fn json_in(text: &str) -> Option<Value> {
-    let start = text.find('{')?;
     let end = text.rfind('}')?;
-    if end <= start {
-        return None;
+    for (start, _) in text.match_indices('{').take(20) {
+        if start >= end {
+            break;
+        }
+        let slice = &text[start..=end];
+        for candidate in [slice.to_string(), without_trailing_commas(slice)] {
+            if let Ok(v) = serde_json::from_str::<Value>(&candidate) {
+                if v.is_object() {
+                    return Some(v);
+                }
+            }
+        }
     }
-    serde_json::from_str::<Value>(&text[start..=end]).ok().filter(Value::is_object)
+    None
+}
+
+/// A comma just before a closing brace or bracket taken out (outside strings), as models sometimes leave one.
+fn without_trailing_commas(s: &str) -> String {
+    let chars: Vec<char> = s.chars().collect();
+    let mut out = String::with_capacity(s.len());
+    let (mut in_string, mut escaped) = (false, false);
+    for (i, &c) in chars.iter().enumerate() {
+        if in_string {
+            out.push(c);
+            if escaped {
+                escaped = false;
+            } else if c == '\\' {
+                escaped = true;
+            } else if c == '"' {
+                in_string = false;
+            }
+            continue;
+        }
+        if c == '"' {
+            in_string = true;
+        } else if c == ',' && matches!(chars[i + 1..].iter().find(|x| !x.is_whitespace()), Some('}') | Some(']')) {
+            continue;
+        }
+        out.push(c);
+    }
+    out
 }
 
 /// What an app call changed, for the caller to save.
@@ -399,6 +436,7 @@ mod tests {
         assert_eq!(json_in("Aqui está: {\"a\": {\"b\": 2}} pronto."), Some(json!({"a": {"b": 2}})));
         assert_eq!(json_in("nada"), None);
         assert_eq!(json_in("} {"), None);
+        assert_eq!(json_in("O comitê {resumo} decidiu: {\"a\": [1, 2,], \"b\": \"x, }\",}"), Some(json!({"a": [1, 2], "b": "x, }"})));
     }
 
     #[test]

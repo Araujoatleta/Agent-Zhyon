@@ -201,22 +201,41 @@ pub struct Listed {
 }
 
 impl Listed {
-    /// What it is about, from its category, type and subject.
+    /// What it is about, from its category first (as the CVM files it), then its type and subject. The minutes of the
+    /// board's meetings and the calendar are not read; a filing's English version neither (the Portuguese one is).
     pub fn doc_kind(&self) -> Option<DocKind> {
-        let all = crate::text::plain(&format!("{} {} {}", self.category, self.kind, self.subject));
-        if all.contains("fato relevante") {
+        let category = crate::text::plain(&self.category);
+        let rest = crate::text::plain(&format!("{} {}", self.kind, self.subject));
+        if self.in_english() {
+            return None;
+        }
+        if category.contains("fato relevante") {
             Some(DocKind::MaterialFact)
-        } else if all.contains("release") || all.contains("apresentac") || all.contains("resultado") {
-            Some(DocKind::Release)
-        } else if all.contains("assembleia") {
+        } else if category.contains("assembleia") {
             Some(DocKind::Assembly)
-        } else if all.contains("oferta") || all.contains("emissao") {
+        } else if category.contains("reuniao da administracao") || category.contains("calendario") {
+            None
+        } else if category.contains("dados economico") || rest.contains("release") || rest.contains("apresentacao de resultados") || rest.contains("apresentacoes a analistas") {
+            Some(DocKind::Release)
+        } else if category.contains("oferta") || category.contains("valores mobiliarios") || rest.contains("oferta publica de distribuicao") {
             Some(DocKind::Offering)
-        } else if all.contains("comunicado") || all.contains("aviso aos acionistas") {
+        } else if category.contains("comunicado") || category.contains("aviso aos acionistas") {
             Some(DocKind::Notice)
         } else {
             None
         }
+    }
+
+    /// A filing's English version ("Cancellation of Treasury Shares", "… - versão em inglês").
+    fn in_english(&self) -> bool {
+        let subject = format!(" {} ", crate::text::plain(&self.subject).replace('_', " "));
+        if subject.contains("versao em ingles") || subject.contains("english version") || subject.contains(" in english ") {
+            return true;
+        }
+        let count = |words: &[&str]| words.iter().filter(|w| subject.contains(&format!(" {w} "))).count();
+        let english = count(&["the", "of", "to", "and", "regarding", "information", "cancellation", "shareholders", "notice", "public", "offer", "addressed"]);
+        let portuguese = count(&["de", "da", "do", "dos", "das", "e", "sobre", "acoes", "aos", "acionistas", "oferta", "publica"]);
+        english >= 2 && english > portuguese
     }
 }
 
@@ -321,11 +340,18 @@ impl Library {
                 }
             }
             if let Some(company) = market.companies.get(&t) {
+                let mut seen: Vec<(DocKind, String, Option<Date>)> = Vec::new();
                 for d in &company.documents {
                     let Some(kind) = d.doc_kind() else { continue };
                     if d.delivered.is_none_or(|day| day.until(today) > window(kind)) || d.download.is_empty() {
                         continue;
                     }
+                    // The same filing sent again (a new protocol the same day): read once.
+                    let same = (kind, crate::text::plain(&d.subject), d.delivered);
+                    if seen.contains(&same) {
+                        continue;
+                    }
+                    seen.push(same);
                     let subject = if d.subject.trim().is_empty() { d.kind.clone() } else { d.subject.clone() };
                     let p = Pending {
                         key: d.key.clone(),
@@ -1027,5 +1053,23 @@ mod tests {
         let got: Vec<(&str, DocKind)> = due.iter().map(|p| (p.key.as_str(), p.kind)).collect();
         assert_eq!(got, [("ipe:1", DocKind::MaterialFact), ("ipe:3", DocKind::Release)], "the calendar is not read");
         assert!(due[0].title.contains("Aquisição"));
+    }
+
+    #[test]
+    fn the_cvms_real_filings_are_told_apart() {
+        // TIM's filings as the CVM's IPE file listed them on 30/10/2026 (powers-live.yml, live_reader).
+        let listed = |category: &str, kind: &str, subject: &str| Listed { category: category.into(), kind: kind.into(), subject: subject.into(), ..Listed::default() };
+        let kind = |category: &str, kind: &str, subject: &str| listed(category, kind, subject).doc_kind();
+        assert_eq!(kind("Fato Relevante", "", "Cancelamento de Ações em Tesouraria"), Some(DocKind::MaterialFact));
+        assert_eq!(kind("Fato Relevante", "", "Cancellation of Treasury Shares"), None, "the English version");
+        assert_eq!(kind("Fato Relevante", "", "Information Regarding The Public Offer Addressed To Telecom Italia S.P.A. Shareholders"), None);
+        assert_eq!(kind("Fato Relevante", "", "Informações Relativas à Oferta Pública Dirigida aos Acionistas da Telecom Italia SPA"), Some(DocKind::MaterialFact));
+        assert_eq!(kind("Fato Relevante", "", "Programa de Recompra de Ações - versão em inglês"), None);
+        assert_eq!(kind("Comunicado ao Mercado", "Apresentações a analistas/agentes do mercado", "Apresentação de Resultados 2T26"), Some(DocKind::Release));
+        assert_eq!(kind("Comunicado ao Mercado", "Outros Comunicados Não Considerados Fatos Relevantes", "Resultado Final Oferta Poste"), Some(DocKind::Notice));
+        assert_eq!(kind("Reunião da Administração", "Conselho Fiscal", "Ata — (1) Avaliação sobre a proposta de pagamento de juros sobre o capital próprio"), None, "minutes");
+        assert_eq!(kind("Aviso aos Acionistas", "Outros avisos", "Dividendos/Juros sobre Capital Próprio"), Some(DocKind::Notice));
+        assert_eq!(kind("Assembleia", "AGE", "Edital de Convocação"), Some(DocKind::Assembly));
+        assert_eq!(kind("Dados Econômico-Financeiros", "Release", ""), Some(DocKind::Release));
     }
 }
