@@ -44,6 +44,9 @@ pub struct Fact {
     pub warning: String,
     /// Its main figure, with its source's precision.
     pub value: Option<f64>,
+    /// Where the user can open its source: a FundosNet notice or document.
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub url: String,
 }
 
 impl Fact {
@@ -76,6 +79,11 @@ impl Fact {
         self
     }
 
+    fn link(mut self, url: impl Into<String>) -> Fact {
+        self.url = url.into();
+        self
+    }
+
     /// The fact as the brain reads it: "F7 [calculado · Google Finance e CVM · ref. 30/10/2026] …".
     pub fn line(&self) -> String {
         let mut meta = vec![self.status.clone(), self.source.clone()];
@@ -90,6 +98,37 @@ impl Fact {
             out.push_str(&format!(" ATENÇÃO: {}", self.warning));
         }
         out
+    }
+}
+
+/// A fund's event as the committee reads it, in Portuguese: a payout's dates with its value from the fund's own notice,
+/// or a document by its kind and title.
+fn event_pt(fund: &crate::model::FundData, e: &fii::FundEvent) -> String {
+    let payout = fund.payouts.iter().find(|p| if e.kind == "record" { p.record == e.date } else { p.payment == Some(e.date) });
+    let what = |amortization: bool| if amortization { "uma amortização" } else { "um rendimento" };
+    match (e.kind.as_str(), payout) {
+        ("record", Some(p)) => format!("Data-com de {} de {} por cota: {}.", what(p.amortization), brl_exact(p.value), e.date.br()),
+        ("payment" | "amortization", Some(p)) => format!(
+            "Pagamento de {} de {} por cota em {}{}.",
+            what(p.amortization),
+            brl_exact(p.value),
+            e.date.br(),
+            if p.amortization { " (devolve capital: não é renda)" } else { "" }
+        ),
+        (kind, _) => {
+            let label = match kind {
+                "assembly" => "Assembleia",
+                "offering" => "Oferta de cotas",
+                "material_fact" => "Fato relevante",
+                "report" => "Relatório gerencial",
+                "record" => "Data-com",
+                "payment" => "Pagamento",
+                "amortization" => "Amortização",
+                _ => "Comunicado",
+            };
+            let title = e.title.trim().trim_end_matches(';').trim();
+            format!("{label}: {title}{}.", e.deadline.map(|d| format!(" (prazo {})", d.br())).unwrap_or_default())
+        }
     }
 }
 
@@ -360,7 +399,8 @@ pub fn gather(store: &Store, market: &Market, lib: Option<&Library>, ticker: &st
                 )
                 .at(pay.record.br())
                 .read(consulted)
-                .worth(pay.value),
+                .worth(pay.value)
+                .link(crate::sources::fnet::view_url(pay.document)),
             );
         }
         if payouts.is_empty() {
@@ -415,7 +455,7 @@ pub fn gather(store: &Store, market: &Market, lib: Option<&Library>, ticker: &st
         }
         out.push(Fact::new("proventos", COMPUTED, format!("Leitura do AXYON sobre a saúde dos rendimentos: {}.", health_pt(report.health)), "AXYON (CVM e FundosNet)"));
         for e in fii::events(fund, p.position(t).map(|x| x.quantity).unwrap_or(0.0), today, 60) {
-            out.push(Fact::new("documento", CONFIRMED, format!("{}: {}{}", e.kind, e.title, e.deadline.map(|d| format!(" (prazo {})", d.br())).unwrap_or_default()), "FundosNet").at(e.date.br()));
+            out.push(Fact::new("documento", CONFIRMED, event_pt(fund, &e), "FundosNet").at(e.date.br()).link(e.url.clone().unwrap_or_default()));
         }
         // A divergence: the dividend the notice gives against the one the manager's report states.
         if let (Some(lib), Some(last)) = (lib, payouts.first()) {
@@ -725,6 +765,33 @@ mod tests {
         let d = find(&facts, "Divergência no rendimento");
         assert_eq!(d.status, DIVERGENT);
         assert!(d.text.contains("R$ 0,083") && d.text.contains("R$ 0,08") && d.text.contains("p. 2"), "{}", d.text);
+    }
+
+    #[test]
+    fn the_funds_events_are_told_in_portuguese_with_their_links() {
+        let (store, mut market) = gare11();
+        let gare = market.funds.get_mut("GARE11").unwrap();
+        gare.payouts.push(crate::sources::fnet::Payout { record: day(2026, 11, 3), payment: Some(day(2026, 11, 10)), value: 0.083, amortization: false, tax_free: Some(true), period: String::new(), document: 77 });
+        gare.documents.push(crate::sources::fnet::Document {
+            id: 78,
+            category: "Fato Relevante".into(),
+            kind: String::new(),
+            species: String::new(),
+            reference: String::new(),
+            delivered: Some(day(2026, 10, 2)),
+            info: "FII GUARDIAN;".into(),
+            topic: crate::sources::fnet::Topic::MaterialFact,
+            structured: false,
+            fund: String::new(),
+            trading: String::new(),
+        });
+        let facts = number(gather(&store, &market, None, "GARE11", "", day(2026, 10, 30)));
+        let record = find(&facts, "Data-com de um rendimento de R$ 0,083 por cota: 03/11/2026.");
+        assert!(record.url.contains("id=77"), "the notice opens: {}", record.url);
+        let fact = find(&facts, "Fato relevante: Fato Relevante — FII GUARDIAN.");
+        assert!(!fact.url.is_empty());
+        assert!(!facts.iter().any(|f| f.text.contains("material_fact") || f.text.contains("Record date")), "nothing in the engine's English");
+        assert!(find(&facts, "Último rendimento").url.contains("fnet"), "a payout's notice opens too");
     }
 
     #[test]

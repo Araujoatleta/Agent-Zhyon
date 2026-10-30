@@ -1253,6 +1253,12 @@ struct InvestSourceSheet: View {
                     .font(.callout)
                     .foregroundStyle(InvestPalette.mixed)
             }
+            if let link = URL(string: fact.url), !fact.url.isEmpty {
+                Link(destination: link) {
+                    Label("Open the document", systemImage: "arrow.up.right.square").font(.callout.weight(.semibold))
+                }
+                .tint(.white)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

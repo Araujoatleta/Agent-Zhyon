@@ -263,6 +263,8 @@ struct InvestFact: Identifiable, Equatable {
     /// confirmado, calculado, estimativa, ausente or divergente.
     let status: String
     let warning: String
+    /// Where its source opens: a FundosNet notice or document ("" when there is none).
+    let url: String
 
     init(_ o: [String: Any]) {
         id = InvestJSON.str(o["id"])
@@ -274,6 +276,7 @@ struct InvestFact: Identifiable, Equatable {
         formula = InvestJSON.str(o["formula"])
         status = InvestJSON.str(o["status"])
         warning = InvestJSON.str(o["warning"])
+        url = InvestJSON.str(o["url"])
     }
 
     var statusName: String {
