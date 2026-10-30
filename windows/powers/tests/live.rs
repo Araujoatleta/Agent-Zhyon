@@ -446,6 +446,46 @@ async fn live_reader() {
     }
 }
 
+/// The facts the committee is given, from today's sources: each with its source, its reference date and how the code
+/// computed it, for GARE11 (a made-up portfolio with a 7,5 % target for it) and GGRC11.
+#[tokio::test]
+#[ignore]
+async fn live_committee_facts() {
+    let http = Http::new();
+    let today = today();
+    let mut store = Store::default();
+    engine::update(&mut store, &json!({"text": PASTE, "asset_targets": {"GARE11": 7.5}}), None, today).expect("the paste");
+    let mut market = Market::default();
+    let held = store.portfolio.tickers(None);
+    let (day, quotes) = sources::quotes(&http, today, false, &held, None).await.expect("quotes");
+    refresh::merge_quotes(&mut market, day, quotes);
+    let funds: Vec<String> = ["GARE11", "GGRC11"].iter().map(|t| t.to_string()).collect();
+    let read = refresh::funds(&http, &funds, &BTreeMap::new(), &given(), Some(&funds), &HashMap::new(), today).await;
+    println!("fund errors: {:?}", read.errors);
+    refresh::merge_funds(&mut market, read, today);
+    market.economy = sources::economy(&http).await.unwrap_or_default();
+    market.economy_read = Some(today);
+    for t in &funds {
+        let b = coucou_powers::committee::brief_full(&store, &market, None, &json!({"proposal": format!("comprar 50 cotas de {t}")}), today, true).expect("the brief");
+        section(&format!("{t}: the committee's facts"));
+        for f in &b.facts {
+            println!("{}", f.line());
+        }
+        // P/VP names the day of the price and the month of the book value it divides.
+        if let Some(pvp) = b.facts.iter().find(|f| f.text.starts_with(&format!("P/VP de {t}"))) {
+            assert!(pvp.reference.starts_with("preço ") && pvp.reference.contains("; VP "), "{}", pvp.line());
+        }
+        // A payout keeps the places it was announced with, into the yield.
+        if let Some(last) = b.facts.iter().find(|f| f.text.starts_with("Último rendimento:")) {
+            let announced = market.funds[t.as_str()].payouts.iter().filter(|p| !p.amortization && p.value > 0.0).max_by_key(|p| p.record).map(|p| p.value).unwrap();
+            assert_eq!(last.value, Some(announced), "{}", last.line());
+        }
+    }
+    let b = coucou_powers::committee::brief_full(&store, &market, None, &json!({"proposal": "comprar 50 cotas de GARE11"}), today, true).unwrap();
+    assert!(b.facts.iter().any(|f| f.text.starts_with("Sua meta para GARE11: 7,5%")), "the target from the portfolio");
+    assert!(b.facts.iter().any(|f| f.text.contains("GARE11 vale") && f.text.contains("pesa")), "its weight in the portfolio");
+}
+
 /// Everything at once, the way the app does it, and what the brain reads back.
 #[tokio::test]
 #[ignore]
