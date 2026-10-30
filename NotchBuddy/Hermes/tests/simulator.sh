@@ -229,6 +229,35 @@ echo "${settings:0:600}"
 portfolio="$(call GET /v1/portfolio)" || fail "the portfolio did not answer"
 echo "${portfolio:0:400}"
 
+# What each tab looks like, for the eye (uploaded as the AXYON-screens artifact): the app opened again on each tab,
+# once Hermes is ready, with the conversation above kept. A screenshot that fails never fails the test.
+say "Screenshots of each tab"
+SHOTS="$RUNNER_TEMP/axyon-screens"
+mkdir -p "$SHOTS"
+xcrun simctl status_bar "$DEVICE" override --time 9:41 --dataNetwork wifi --wifiBars 3 --cellularBars 4 \
+    --batteryState charged --batteryLevel 100 2>/dev/null || true
+shot() {  # tab
+    xcrun simctl terminate "$DEVICE" "$BUNDLE" 2>/dev/null || true
+    sleep 2
+    SIMCTL_CHILD_AXYON_TEST_PORT="$PORT" SIMCTL_CHILD_AXYON_TEST_TOKEN="$TOKEN" SIMCTL_CHILD_AXYON_TEST_TAB="$1" \
+        xcrun simctl launch "$DEVICE" "$BUNDLE" >/dev/null 2>&1 || return 0
+    for i in $(seq 1 45); do
+        state="$(curl -sS --max-time 3 -H "Authorization: Bearer $TOKEN" "$URL/health" 2>/dev/null | "$PYTHON" -c '
+import json, sys
+try:
+    print("ready" if json.load(sys.stdin).get("ready") else "")
+except ValueError:
+    pass
+' 2>/dev/null || true)"
+        [ "$state" = ready ] && break
+        sleep 2
+    done
+    sleep 5
+    xcrun simctl io "$DEVICE" screenshot "$SHOTS/$1.png" >/dev/null 2>&1 || true
+}
+for tab in start chat house wallet settings; do shot "$tab"; done
+ls -l "$SHOTS" || true
+
 kill "$MODEL_PID" 2>/dev/null || true
 xcrun simctl terminate "$DEVICE" "$BUNDLE" 2>/dev/null || true
 echo "Hermes runs inside iOS: started, answered, used the iPhone's own tool."

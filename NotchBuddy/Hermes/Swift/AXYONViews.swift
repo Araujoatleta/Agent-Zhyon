@@ -11,7 +11,25 @@ import UserNotifications
 // the chat, the portfolio, the home and the settings, where a computer is one option among others. Black and Liquid
 // Glass (AXYONStyle.swift); the chat's bubbles are the computer chat's (PCChatBubble).
 
-enum AXYONTab: Hashable { case start, chat, house, wallet, settings }
+enum AXYONTab: Hashable {
+    case start, chat, house, wallet, settings
+
+    /// The tab AXYON opens on: the start screen; in the Simulator, the one CI's screenshots ask for
+    /// (AXYON_TEST_TAB, Hermes/tests/simulator.sh).
+    static var launch: AXYONTab {
+        #if targetEnvironment(simulator)
+        switch ProcessInfo.processInfo.environment["AXYON_TEST_TAB"] {
+        case "chat": return .chat
+        case "house": return .house
+        case "wallet": return .wallet
+        case "settings": return .settings
+        default: return .start
+        }
+        #else
+        return .start
+        #endif
+    }
+}
 
 /// The tabs of the build with Hermes inside. `startPath` is the start screen's navigation: an agent session of the
 /// paired computer opened from a notification, a widget or the list there.

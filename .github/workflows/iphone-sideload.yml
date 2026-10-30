@@ -236,7 +236,7 @@ jobs:
   # answer that takes a tool the app answers itself (NotchBuddy/Hermes/tests/simulator.sh).
   hermes-simulator:
     runs-on: macos-latest
-    timeout-minutes: 35
+    timeout-minutes: 42
     steps:
       - uses: actions/checkout@v7
         with:
@@ -289,7 +289,16 @@ jobs:
             }
 
       - name: Hermes inside iOS (start, health, an answer with the iPhone's own tool)
-        timeout-minutes: 18
+        timeout-minutes: 24
         env:
           PYTHON: python3.14
         run: bash NotchBuddy/Hermes/tests/simulator.sh build/Build/Products/Release-iphonesimulator/Coucou.app
+
+      # Each tab as the Simulator draws it, taken at the end of the test above.
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: AXYON-screens
+          path: ${{ runner.temp }}/axyon-screens
+          retention-days: 14
+          if-no-files-found: ignore

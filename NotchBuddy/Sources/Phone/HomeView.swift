@@ -18,7 +18,7 @@ struct HomeView: View {
     @State private var servicesPath: [String] = []
     #if HERMES
     /// Hermes inside this iPhone (NotchBuddy/Hermes/README.md): AXYON's own tabs, a computer one option among others.
-    @State private var axyonTab: AXYONTab = .start
+    @State private var axyonTab: AXYONTab = .launch
     @State private var axyonPath: [String] = []
     #endif
     @State private var introDone = HomeView.hermesInside
