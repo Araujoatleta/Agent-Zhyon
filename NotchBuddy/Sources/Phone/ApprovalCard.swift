@@ -12,7 +12,7 @@ struct ApprovalCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Waiting for your OK").font(.subheadline.weight(.semibold)).foregroundStyle(.orange)
+            Text("Waiting for your OK").font(.subheadline.weight(.semibold)).foregroundStyle(CoucouPalette.attention)
             Text(session.approvalCommand.isEmpty ? String(localized: "The agent asks for a permission.") : session.approvalCommand)
                 .font(.callout.monospaced())
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -50,8 +50,8 @@ struct ApprovalCard: View {
             }
         }
         .padding(16)
-        .glassCard(tint: .orange)
-        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).strokeBorder(Color.orange.opacity(0.4), lineWidth: 1))
+        .glassCard(tint: CoucouPalette.attention)
+        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).strokeBorder(CoucouPalette.attention.opacity(0.4), lineWidth: 1))
         .animation(.spring(duration: 0.5, bounce: 0.3), value: sent)
         .onChange(of: session.approvalFingerprint) { sent = nil; error = nil }
     }
@@ -97,7 +97,7 @@ struct ReviewSheet: View {
                             MochiLive(state: session.state)
                                 .padding(6)
                                 .frame(width: 52, height: 52)
-                                .background(Color.mochiTile(hex: session.color), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                .background(Color.agentTile(hex: session.color), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("\(session.pillName) · \(session.title)").font(.headline)
                                 if !session.macName.isEmpty {

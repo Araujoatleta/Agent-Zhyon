@@ -240,11 +240,11 @@ struct PCChatView: View {
         let decided = answered[approval.fingerprint]
         return VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
-                Circle().fill(Color.orange).frame(width: 8, height: 8)
-                    .shadow(color: .orange.opacity(0.8), radius: 4)
+                Circle().fill(CoucouPalette.attention).frame(width: 8, height: 8)
+                    .shadow(color: CoucouPalette.attention.opacity(0.8), radius: 4)
                 Text("Mochi asks to run")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(CoucouPalette.attention)
                 Spacer(minLength: 0)
                 Text(pc.name)
                     .font(.caption)
@@ -514,7 +514,7 @@ struct PCChatView: View {
         } label: {
             Image(systemName: running ? "stop.fill" : "arrow.up")
                 .font(.body.weight(.bold))
-                .foregroundStyle(.white)
+                .foregroundStyle(running ? Color.white : CoucouPalette.onAccent)
                 .frame(width: 44, height: 44)
                 .contentTransition(.symbolEffect(.replace))
                 .coucouGlass(.prominent, in: Circle(), tint: running ? CoucouPalette.danger : CoucouPalette.accent)
@@ -651,7 +651,7 @@ struct PCChatBubble: View {
                     .foregroundStyle(.white)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
-                    .coucouGlass(.prominent, cornerRadius: 20, tint: CoucouPalette.accent)
+                    .coucouGlass(.yours, cornerRadius: 20, tint: CoucouPalette.accent)
             }
         case .mochi:
             HStack(alignment: .top, spacing: 10) {
@@ -670,8 +670,12 @@ struct PCChatBubble: View {
         }
     }
 
-    /// Mochi himself, drawn in code: thinking, working, waiting for you, or done.
-    private var avatar: some View {
+    /// Mochi himself, drawn in code: thinking, working, waiting for you, or done. In AXYON, its orb.
+    @ViewBuilder private var avatar: some View {
+        #if HERMES
+        AXYONOrb(mood: orbMood, size: 26, still: !live)
+            .frame(width: 34, height: 34)
+        #else
         Group {
             if live {
                 MochiLive(state: mood, bodyHex: PCLink.mochiColor, fps: 30)
@@ -682,7 +686,17 @@ struct PCChatBubble: View {
         .padding(5)
         .frame(width: 34, height: 34)
         .coucouGlass(.regular, in: Circle())
+        #endif
     }
+
+    #if HERMES
+    private var orbMood: AXYONMood {
+        if entry.failed { return .trouble }
+        if entry.finished { return .idle }
+        if entry.steps.last?.status == "waiting" { return .acting }
+        return entry.text.isEmpty ? .thinking : .speaking
+    }
+    #endif
 
     private var mood: BotState {
         if entry.failed { return .error }
@@ -769,7 +783,7 @@ struct PCStepRow: View {
         case "denied":
             Image(systemName: "hand.raised.fill").foregroundStyle(.secondary)
         case "waiting":
-            Image(systemName: "exclamationmark.circle.fill").foregroundStyle(.orange)
+            Image(systemName: "exclamationmark.circle.fill").foregroundStyle(CoucouPalette.attention)
                 .symbolEffect(.pulse)
         default:
             ProgressView().controlSize(.mini)

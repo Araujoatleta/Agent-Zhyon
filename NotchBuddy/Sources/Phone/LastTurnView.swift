@@ -42,7 +42,7 @@ struct LastTurnView: View {
                 // Your words, as in the chat: tinted glass on the right.
                 ExpandableText(text: turn.prompt, collapsedLines: 6)
                     .padding(12)
-                    .coucouGlass(.prominent, cornerRadius: 16, tint: CoucouPalette.accent)
+                    .coucouGlass(.yours, cornerRadius: 16, tint: CoucouPalette.accent)
             }
             Text(taskSummary == nil ? "You · \(turn.startedAt.formatted(date: .omitted, time: .shortened))"
                                     : "Background task · \(turn.startedAt.formatted(date: .omitted, time: .shortened))")

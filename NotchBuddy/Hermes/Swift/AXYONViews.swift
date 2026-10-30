@@ -11,7 +11,25 @@ import UserNotifications
 // the chat, the portfolio, the home and the settings, where a computer is one option among others. Black and Liquid
 // Glass (AXYONStyle.swift); the chat's bubbles are the computer chat's (PCChatBubble).
 
-enum AXYONTab: Hashable { case start, chat, house, wallet, settings }
+enum AXYONTab: Hashable {
+    case start, chat, house, wallet, settings
+
+    /// The tab AXYON opens on: the start screen; in the Simulator, the one CI's screenshots ask for
+    /// (AXYON_TEST_TAB, Hermes/tests/simulator.sh).
+    static var launch: AXYONTab {
+        #if targetEnvironment(simulator)
+        switch ProcessInfo.processInfo.environment["AXYON_TEST_TAB"] {
+        case "chat": return .chat
+        case "house": return .house
+        case "wallet": return .wallet
+        case "settings": return .settings
+        default: return .start
+        }
+        #else
+        return .start
+        #endif
+    }
+}
 
 /// The tabs of the build with Hermes inside. `startPath` is the start screen's navigation: an agent session of the
 /// paired computer opened from a notification, a widget or the list there.
@@ -22,7 +40,7 @@ struct AXYONTabs: View {
 
     var body: some View {
         TabView(selection: $tab) {
-            Tab("AXYON", systemImage: "sparkles", value: AXYONTab.start) {
+            Tab("AXYON", systemImage: "sparkle", value: AXYONTab.start) {
                 NavigationStack(path: $startPath) {
                     AXYONStartView(link: link, tab: $tab)
                         .navigationDestination(for: String.self) { id in
@@ -30,7 +48,7 @@ struct AXYONTabs: View {
                         }
                 }
             }
-            Tab("Chat", systemImage: "bubble.left.and.text.bubble.right.fill", value: AXYONTab.chat) {
+            Tab("Chat", systemImage: "bubble.left.and.bubble.right.fill", value: AXYONTab.chat) {
                 NavigationStack { HermesChatView() }
             }
             Tab("Home", systemImage: "house.fill", value: AXYONTab.house) {
@@ -44,14 +62,29 @@ struct AXYONTabs: View {
             }
         }
         .coucouMinimizingTabBar()
-        .tint(AXYONPalette.violet)
+        // White for every control, as Apple's own dark apps; switches stay the system's green.
+        .tint(.white)
+        .toggleStyle(AXYONSwitch())
         .preferredColorScheme(.dark)
         .environment(HermesEngine.shared)
     }
 }
 
+extension HermesEngine.State {
+    /// The dot beside Hermes' status: white when he is ready, grey while he starts, red when he could not.
+    var dot: Color {
+        switch self {
+        case .ready: .white
+        case .failed: AXYONPalette.down
+        case .off, .starting: AXYONPalette.faint
+        }
+    }
+}
+
 // MARK: - The start screen
 
+/// The start screen, as Apple's own apps open: today's date over a large greeting, Hermes' orb beside it, the field to
+/// ask him, then the shortcuts, the portfolio, the day and the computer, each in its own glass.
 struct AXYONStartView: View {
     let link: PhoneLink
     @Binding var tab: AXYONTab
@@ -70,20 +103,23 @@ struct AXYONStartView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 22) {
-                hero
-                if let waiting { approvalCard(waiting) }
-                askBar
-                if !engine.canChat, engine.state == .ready { brainCard }
-                if case .failed(let why) = engine.state { troubleCard(why) }
+            VStack(alignment: .leading, spacing: 30) {
+                header
+                VStack(spacing: 12) {
+                    askBar
+                    if let waiting { approvalCard(waiting) }
+                    if !engine.canChat, engine.state == .ready { brainCard }
+                    if case .failed(let why) = engine.state { troubleCard(why) }
+                }
                 actions
                 walletCard
                 todayCard
                 if !sessions.isEmpty { agentsCard }
                 computerCard
             }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 30)
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+            .padding(.bottom, 32)
         }
         .scrollIndicators(.hidden)
         .axyonBackdrop()
@@ -121,25 +157,31 @@ struct AXYONStartView: View {
         }
     }
 
-    private var hero: some View {
-        VStack(spacing: 6) {
-            AXYONOrb(mood: engine.mood, size: 116)
-                .padding(.top, 34)
-            Text(greeting)
-                .font(.system(.largeTitle, design: .rounded, weight: .bold))
-                .foregroundStyle(LinearGradient(colors: [.white, AXYONPalette.cyan.opacity(0.85)],
-                                                startPoint: .leading, endPoint: .trailing))
-            HStack(spacing: 6) {
-                Circle().fill(engine.state == .ready ? AXYONPalette.up : AXYONPalette.gold).frame(width: 7, height: 7)
-                    .shadow(color: engine.state == .ready ? AXYONPalette.up : AXYONPalette.gold, radius: 4)
-                Text(statusLine)
+    private var header: some View {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide)).uppercased())
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(AXYONPalette.dim)
+                Text(greeting)
+                    .font(.largeTitle.bold())
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                HStack(spacing: 6) {
+                    Circle().fill(engine.state.dot).frame(width: 6, height: 6)
+                    Text(statusLine).lineLimit(1)
+                }
+                .font(.footnote)
+                .foregroundStyle(AXYONPalette.dim)
             }
-            .font(.footnote.weight(.medium))
-            .foregroundStyle(AXYONPalette.dim)
+            Spacer(minLength: 0)
+            AXYONOrb(mood: engine.mood, size: 56)
         }
-        .frame(maxWidth: .infinity)
+        .padding(.top, 14)
     }
 
+    /// Like the iPhone's own search field: a capsule of glass that opens the chat.
     private var askBar: some View {
         Button {
             tab = .chat
@@ -147,39 +189,31 @@ struct AXYONStartView: View {
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: "sparkle")
-                    .foregroundStyle(AXYONPalette.cyan)
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(.white)
                 Text("Ask AXYON anything…")
                     .foregroundStyle(AXYONPalette.dim)
-                Spacer()
+                Spacer(minLength: 0)
                 Image(systemName: "mic.fill")
-                    .foregroundStyle(.white)
-                    .frame(width: 36, height: 36)
-                    .coucouGlass(.prominent, in: Circle(), tint: AXYONPalette.violet)
+                    .foregroundStyle(AXYONPalette.dim)
             }
-            .padding(.leading, 18)
-            .padding(.trailing, 6)
-            .padding(.vertical, 6)
-            .axyonCard(cornerRadius: 26, glow: AXYONPalette.violet)
+            .padding(.horizontal, 18)
+            .frame(height: 52)
+            .contentShape(Capsule())
+            .coucouGlass(.regular, in: Capsule(), interactive: true)
+            .overlay {
+                Capsule().strokeBorder(AXYONPalette.rim, lineWidth: 0.6).allowsHitTesting(false)
+            }
         }
         .buttonStyle(PressableButtonStyle())
     }
 
     private var brainCard: some View {
         Button { brainOpen = true } label: {
-            HStack(spacing: 14) {
-                Image(systemName: "brain.head.profile")
-                    .font(.title2)
-                    .foregroundStyle(AXYONPalette.magenta)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("Give Hermes a brain").font(.headline).foregroundStyle(.white)
-                    Text("Sign in with ChatGPT, or paste a free Gemini key.")
-                        .font(.footnote).foregroundStyle(AXYONPalette.dim)
-                }
-                Spacer()
-                Image(systemName: "chevron.right").foregroundStyle(AXYONPalette.faint)
-            }
-            .padding(18)
-            .axyonCard(tint: AXYONPalette.magenta, glow: AXYONPalette.magenta)
+            AXYONRow(icon: "brain.head.profile", title: String(localized: "Give Hermes a brain"),
+                     detail: String(localized: "Sign in with ChatGPT, or paste a free Gemini key."))
+                .padding(16)
+                .axyonCard(cornerRadius: 22)
         }
         .buttonStyle(PressableButtonStyle())
     }
@@ -200,135 +234,150 @@ struct AXYONStartView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(18)
-        .axyonCard(tint: AXYONPalette.down)
+        .axyonCard(cornerRadius: 22, tint: AXYONPalette.down)
     }
 
+    /// What to ask in one tap, as Control Center's tiles: a white symbol and a word in glass.
     private var actions: some View {
-        VStack(spacing: 10) {
-            AXYONHeader(title: String(localized: "Do it for me"), systemImage: "bolt.fill")
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10),
-                                GridItem(.flexible(), spacing: 10)], spacing: 10) {
-                action(String(localized: "Remind me"), "bell.badge.fill", AXYONPalette.gold,
-                       String(localized: "Remind me at 6pm to "))
-                action(String(localized: "My day"), "calendar", AXYONPalette.cyan,
-                       String(localized: "What do I have today and tomorrow?"))
-                action(String(localized: "Portfolio"), "chart.pie.fill", AXYONPalette.up,
-                       String(localized: "How is my portfolio doing today?"))
-                action(String(localized: "Home"), "tv.fill", AXYONPalette.violet,
-                       String(localized: "Turn on the living room TV"))
-                action(String(localized: "Shortcut"), "square.on.square.dashed", AXYONPalette.magenta,
-                       String(localized: "Run my shortcut "))
-                action(String(localized: "Search"), "globe", .white,
-                       String(localized: "Search the web: "))
-                // The superpowers (axyon_hermes/powers.py).
-                action(String(localized: "Ceilings"), "target", AXYONPalette.gold,
-                       String(localized: "Which of my assets are under their ceiling price?"))
-                action(String(localized: "English"), "character.book.closed.fill", AXYONPalette.cyan,
-                       String(localized: "Give me today's English lesson."))
-                action(String(localized: "Workout"), "figure.strengthtraining.traditional", AXYONPalette.magenta,
-                       String(localized: "What is my workout today?"))
+        VStack(alignment: .leading, spacing: 10) {
+            AXYONHeader(title: String(localized: "Do it for me"))
+            CoucouGlassGroup(spacing: 4) {
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 3), spacing: 10) {
+                    action(String(localized: "Remind me"), "bell.badge.fill", String(localized: "Remind me at 6pm to "))
+                    action(String(localized: "My day"), "calendar", String(localized: "What do I have today and tomorrow?"))
+                    action(String(localized: "Portfolio"), "chart.pie.fill", String(localized: "How is my portfolio doing today?"))
+                    action(String(localized: "Home"), "tv.fill", String(localized: "Turn on the living room TV"))
+                    action(String(localized: "Shortcut"), "square.on.square.dashed", String(localized: "Run my shortcut "))
+                    action(String(localized: "Search"), "globe", String(localized: "Search the web: "))
+                    // The superpowers (axyon_hermes/powers.py).
+                    action(String(localized: "Ceilings"), "target",
+                           String(localized: "Which of my assets are under their ceiling price?"))
+                    action(String(localized: "English"), "character.book.closed.fill",
+                           String(localized: "Give me today's English lesson."))
+                    action(String(localized: "Workout"), "figure.strengthtraining.traditional",
+                           String(localized: "What is my workout today?"))
+                }
             }
         }
     }
 
-    private func action(_ title: String, _ icon: String, _ color: Color, _ prompt: String) -> some View {
+    private func action(_ title: String, _ icon: String, _ prompt: String) -> some View {
         Button {
             HermesDraft.shared.text = prompt
             tab = .chat
             Haptics.impact()
         } label: {
-            VStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 0) {
                 Image(systemName: icon)
                     .font(.title3)
-                    .foregroundStyle(color)
-                    .shadow(color: color.opacity(0.7), radius: 6)
+                    .foregroundStyle(.white)
+                    .frame(height: 26, alignment: .leading)
+                Spacer(minLength: 14)
                 Text(title)
-                    .font(.caption.weight(.semibold))
+                    .font(.footnote.weight(.semibold))
                     .foregroundStyle(.white)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(14)
+            .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
             .axyonCard(cornerRadius: 22)
         }
         .buttonStyle(PressableButtonStyle())
     }
 
+    /// The portfolio as the Stocks app shows it: the total, the day in green or red, the day's biggest moves.
     private var walletCard: some View {
         let report = engine.portfolio.map(WalletReport.init)
-        return Button { tab = .wallet } label: {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack {
-                    AXYONHeader(title: String(localized: "Portfolio"), systemImage: "chart.line.uptrend.xyaxis")
-                    Spacer()
-                    if engine.portfolioLoading { ProgressView().controlSize(.small) }
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                AXYONHeader(title: String(localized: "Portfolio"))
+                if engine.portfolioLoading { ProgressView().controlSize(.small) }
+            }
+            Button { tab = .wallet } label: {
+                VStack(alignment: .leading, spacing: 14) {
+                    if let report, !report.rows.isEmpty {
+                        HStack(alignment: .bottom) {
+                            AXYONFigure(value: AXYONMoney.text(report.total), label: String(localized: "Total now"))
+                            Spacer(minLength: 8)
+                            if let day = report.dayMoney {
+                                AXYONFigure(value: AXYONMoney.signed(day), label: String(localized: "Today"),
+                                            color: day >= 0 ? AXYONPalette.up : AXYONPalette.down)
+                            }
+                        }
+                        let movers = Array(report.movers.prefix(3))
+                        if !movers.isEmpty {
+                            VStack(spacing: 0) {
+                                ForEach(movers, id: \.ticker) { row in
+                                    Divider().overlay(Color.white.opacity(0.08))
+                                    HStack {
+                                        Text(row.ticker)
+                                            .font(.subheadline.weight(.semibold))
+                                            .foregroundStyle(.white)
+                                        Spacer()
+                                        Text(AXYONMoney.percent(row.dayPct ?? 0))
+                                            .font(.subheadline.weight(.semibold))
+                                            .monospacedDigit()
+                                            .foregroundStyle((row.dayPct ?? 0) >= 0 ? AXYONPalette.up : AXYONPalette.down)
+                                    }
+                                    .padding(.vertical, 9)
+                                }
+                            }
+                        }
+                    } else {
+                        AXYONRow(icon: "chart.line.uptrend.xyaxis", title: String(localized: "Your portfolio, here"),
+                                 detail: String(localized: "Your portfolio comes from AXYON on your computer once, or tell AXYON your positions in the chat."))
+                    }
                 }
-                if let report, !report.rows.isEmpty {
-                    HStack(alignment: .bottom) {
-                        AXYONFigure(value: AXYONMoney.text(report.total), label: String(localized: "Total now"))
-                        Spacer()
-                        if let day = report.dayMoney {
-                            AXYONFigure(value: AXYONMoney.signed(day), label: String(localized: "Today"),
-                                        color: day >= 0 ? AXYONPalette.up : AXYONPalette.down)
+                .padding(18)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .axyonCard()
+            }
+            .buttonStyle(PressableButtonStyle())
+        }
+    }
+
+    /// The day as the Calendar's "Up Next": the events left today, and the open reminders.
+    private var todayCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            AXYONHeader(title: String(localized: "Today"))
+            VStack(alignment: .leading, spacing: 12) {
+                if today.allowed {
+                    if today.events.isEmpty {
+                        Text("Nothing on your calendar today.").font(.subheadline).foregroundStyle(AXYONPalette.dim)
+                    }
+                    ForEach(today.events) { event in
+                        HStack(spacing: 12) {
+                            Capsule().fill(Color.white.opacity(0.85)).frame(width: 3, height: 32)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(event.title).font(.subheadline.weight(.semibold)).foregroundStyle(.white).lineLimit(1)
+                                Text(event.when).font(.caption).foregroundStyle(AXYONPalette.dim)
+                            }
+                            Spacer()
                         }
                     }
-                    HStack(spacing: 8) {
-                        ForEach(report.movers.prefix(3), id: \.ticker) { row in
-                            AXYONChip(title: "\(row.ticker) \(AXYONMoney.percent(row.dayPct ?? 0))",
-                                      systemImage: (row.dayPct ?? 0) >= 0 ? "arrow.up.right" : "arrow.down.right",
-                                      tint: (row.dayPct ?? 0) >= 0 ? AXYONPalette.up : AXYONPalette.down)
-                        }
+                    if today.reminders > 0 {
+                        Label("Open reminders: \(today.reminders)", systemImage: "checklist")
+                            .font(.footnote.weight(.medium))
+                            .foregroundStyle(AXYONPalette.dim)
                     }
                 } else {
-                    Text("Your portfolio comes from AXYON on your computer once, or tell AXYON your positions in the chat.")
-                        .font(.footnote)
+                    Text("Let AXYON see your calendar and reminders")
+                        .font(.subheadline)
                         .foregroundStyle(AXYONPalette.dim)
-                        .multilineTextAlignment(.leading)
+                    Button {
+                        Task { await today.ask() }
+                    } label: {
+                        Label("Allow", systemImage: "calendar.badge.plus")
+                    }
+                    .coucouProminentButton()
                 }
             }
             .padding(18)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .axyonCard(glow: AXYONPalette.up)
+            .axyonCard()
         }
-        .buttonStyle(PressableButtonStyle())
-    }
-
-    private var todayCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            AXYONHeader(title: String(localized: "Today"), systemImage: "sun.max.fill")
-            if today.allowed {
-                if today.events.isEmpty {
-                    Text("Nothing on your calendar today.").font(.footnote).foregroundStyle(AXYONPalette.dim)
-                }
-                ForEach(today.events) { event in
-                    HStack(spacing: 12) {
-                        Capsule().fill(AXYONPalette.cyan).frame(width: 3, height: 30)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(event.title).font(.subheadline.weight(.semibold)).foregroundStyle(.white).lineLimit(1)
-                            Text(event.when).font(.caption).foregroundStyle(AXYONPalette.dim)
-                        }
-                        Spacer()
-                    }
-                }
-                if today.reminders > 0 {
-                    Label("Open reminders: \(today.reminders)", systemImage: "checklist")
-                        .font(.footnote.weight(.medium))
-                        .foregroundStyle(AXYONPalette.gold)
-                }
-            } else {
-                Button {
-                    Task { await today.ask() }
-                } label: {
-                    Label("Let AXYON see your calendar and reminders", systemImage: "calendar.badge.plus")
-                        .font(.footnote.weight(.semibold))
-                }
-                .coucouGlassButton()
-            }
-        }
-        .padding(18)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .axyonCard(glow: AXYONPalette.cyan)
     }
 
     /// A command of an agent on the computer waits for your OK: Allow (Face ID) and Deny right here.
@@ -346,16 +395,16 @@ struct AXYONStartView: View {
                 deciding = false
             }
         }
-        .axyonCard(tint: .orange, glow: .orange)
+        .axyonCard(cornerRadius: 22, tint: CoucouPalette.attention)
     }
 
     /// The computer's agents (Claude Code, Codex…): a tap opens the session, its last turn and what it asks.
     private var agentsCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            AXYONHeader(title: String(localized: "Agents on the computer"), systemImage: "terminal.fill")
+            AXYONHeader(title: String(localized: "Agents on the computer"))
             VStack(spacing: 0) {
                 ForEach(Array(sessions.prefix(5).enumerated()), id: \.element.id) { index, session in
-                    if index > 0 { Divider().overlay(Color.white.opacity(0.06)).padding(.leading, 64) }
+                    if index > 0 { Divider().overlay(Color.white.opacity(0.08)).padding(.leading, 66) }
                     NavigationLink(value: session.id) {
                         SessionRow(session: session)
                             .padding(.horizontal, 14)
@@ -371,24 +420,18 @@ struct AXYONStartView: View {
 
     private var computerCard: some View {
         let pc = PCLink.shared
-        return Button { tab = .settings } label: {
-            HStack(spacing: 14) {
-                Image(systemName: "desktopcomputer")
-                    .font(.title3)
-                    .foregroundStyle(pc.status == .connected ? AXYONPalette.up : AXYONPalette.faint)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(pc.isPaired ? pc.name : String(localized: "Computer (optional)"))
-                        .font(.subheadline.weight(.semibold)).foregroundStyle(.white)
-                    Text(pc.isPaired ? pc.status.shortText : String(localized: "AXYON works on its own. Pair a computer to reach it too."))
-                        .font(.caption).foregroundStyle(AXYONPalette.dim).lineLimit(2)
-                }
-                Spacer()
-                Image(systemName: "chevron.right").foregroundStyle(AXYONPalette.faint)
+        return VStack(alignment: .leading, spacing: 10) {
+            AXYONHeader(title: String(localized: "Computer"))
+            Button { tab = .settings } label: {
+                AXYONRow(icon: "desktopcomputer",
+                         title: pc.isPaired ? pc.name : String(localized: "Computer (optional)"),
+                         detail: pc.isPaired ? pc.status.shortText
+                            : String(localized: "AXYON works on its own. Pair a computer to reach it too."))
+                    .padding(16)
+                    .axyonCard(cornerRadius: 22)
             }
-            .padding(16)
-            .axyonCard(cornerRadius: 22)
+            .buttonStyle(PressableButtonStyle())
         }
-        .buttonStyle(PressableButtonStyle())
     }
 }
 
@@ -616,7 +659,7 @@ struct HermesChatView: View {
         VStack(spacing: 1) {
             Text(verbatim: "AXYON").font(.headline)
             HStack(spacing: 5) {
-                Circle().fill(engine.state == .ready ? AXYONPalette.up : AXYONPalette.gold).frame(width: 6, height: 6)
+                Circle().fill(engine.state.dot).frame(width: 6, height: 6)
                 Text(engine.state == .ready ? String(localized: "Hermes inside the iPhone") : String(localized: "Starting…"))
             }
             .font(.caption2)
@@ -643,12 +686,10 @@ struct HermesChatView: View {
         case .ready:
             Button { brainOpen = true } label: {
                 Label("Choose AXYON's brain to start", systemImage: "brain.head.profile")
-                    .font(.headline)
                     .frame(maxWidth: .infinity)
-                    .padding(16)
-                    .axyonCard(tint: AXYONPalette.magenta, glow: AXYONPalette.magenta)
             }
-            .buttonStyle(PressableButtonStyle())
+            .buttonStyle(WhiteCapsuleButtonStyle())
+            .controlSize(.large)
         case .starting, .off:
             HStack(spacing: 12) {
                 ProgressView()
@@ -688,11 +729,8 @@ struct HermesChatView: View {
                 } label: {
                     Label("Sign in with Google", systemImage: "person.badge.key.fill")
                         .font(.subheadline.weight(.semibold))
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 11)
-                        .axyonCard(tint: AXYONPalette.cyan, glow: AXYONPalette.cyan)
                 }
-                .buttonStyle(PressableButtonStyle())
+                .buttonStyle(WhiteCapsuleButtonStyle())
             }
         }
     }
@@ -797,11 +835,10 @@ struct HermesChatView: View {
                         } label: {
                             Image(systemName: running ? "stop.fill" : "arrow.up")
                                 .font(.body.weight(.bold))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(running ? Color.white : Color.black)
                                 .frame(width: 46, height: 46)
                                 .contentTransition(.symbolEffect(.replace))
-                                .coucouGlass(.prominent, in: Circle(), tint: running ? AXYONPalette.down : AXYONPalette.violet)
-                                .shadow(color: AXYONPalette.violet.opacity(0.6), radius: 10)
+                                .coucouGlass(.prominent, in: Circle(), tint: running ? AXYONPalette.down : .white)
                         }
                         .buttonStyle(PressableButtonStyle())
                         .disabled(!running && (!engine.canChat || adding > 0))
@@ -865,7 +902,7 @@ struct HermesBrainView: View {
                         HStack(spacing: 12) {
                             Image(systemName: icon(option.id))
                                 .frame(width: 28)
-                                .foregroundStyle(chosen == option.id ? AXYONPalette.cyan : AXYONPalette.faint)
+                                .foregroundStyle(chosen == option.id ? Color.white : AXYONPalette.faint)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(option.id == "custom" ? String(localized: "Another OpenAI-compatible") : option.name)
                                     .foregroundStyle(.white)
@@ -873,7 +910,7 @@ struct HermesBrainView: View {
                             }
                             Spacer()
                             if chosen == option.id {
-                                Image(systemName: "checkmark.circle.fill").foregroundStyle(AXYONPalette.violet)
+                                Image(systemName: "checkmark").font(.body.weight(.semibold)).foregroundStyle(.white)
                             }
                         }
                     }
@@ -946,7 +983,7 @@ struct HermesBrainView: View {
                     Text("Hermes is still starting: a moment.").font(.footnote).foregroundStyle(.secondary)
                 }
             }
-            .listRowBackground(GlassRowBackground(tint: AXYONPalette.violet))
+            .listRowBackground(GlassRowBackground(tint: .white))
         }
         .axyonBackdrop(intensity: 0.7)
         .navigationTitle("Brain")
@@ -976,7 +1013,7 @@ struct HermesBrainView: View {
                     Text("On OpenAI's page, type this code:").font(.footnote).foregroundStyle(.secondary)
                     Text(engine.signIn.code)
                         .font(.system(.largeTitle, design: .monospaced, weight: .bold))
-                        .foregroundStyle(AXYONPalette.cyan)
+                        .foregroundStyle(.white)
                         .textSelection(.enabled)
                     HStack {
                         Button {
@@ -1137,35 +1174,41 @@ struct AXYONWalletView: View {
     var body: some View {
         let report = engine.portfolio.map(WalletReport.init)
         ScrollView {
-            VStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: 24) {
                 if let report, report.error == nil, !report.rows.isEmpty {
                     summary(report)
-                    AXYONHeader(title: String(localized: "Positions"), systemImage: "list.bullet.rectangle")
-                    ForEach(report.rows, id: \.ticker) { positionRow($0) }
+                    section(String(localized: "Positions"), report.rows)
                     if !report.watched.isEmpty {
-                        AXYONHeader(title: String(localized: "Watched with your ceiling"), systemImage: "eye.fill")
-                        ForEach(report.watched, id: \.ticker) { positionRow($0) }
+                        section(String(localized: "Watched with your ceiling"), report.watched)
                     }
                     if !report.notes.isEmpty {
-                        AXYONHeader(title: String(localized: "To check in AXYON's tab"), systemImage: "exclamationmark.bubble")
-                        VStack(alignment: .leading, spacing: 6) {
-                            ForEach(report.notes, id: \.self) { Text($0).font(.footnote).foregroundStyle(AXYONPalette.gold) }
+                        VStack(alignment: .leading, spacing: 10) {
+                            AXYONHeader(title: String(localized: "To check in AXYON's tab"))
+                            VStack(alignment: .leading, spacing: 8) {
+                                ForEach(report.notes, id: \.self) { note in
+                                    Label(note, systemImage: "exclamationmark.circle")
+                                        .font(.footnote)
+                                        .foregroundStyle(.white)
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(16)
+                            .axyonCard(cornerRadius: 22)
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(16)
-                        .axyonCard(tint: AXYONPalette.gold)
                     }
                     Text(report.keptOnIphone
                          ? String(localized: "Positions kept on this iPhone · prices \(report.pricesAt), about 15 min late")
                          : String(localized: "Positions from AXYON on your computer (\(report.copyDate)) · prices \(report.pricesAt), about 15 min late"))
                         .font(.caption2)
                         .foregroundStyle(AXYONPalette.faint)
+                        .frame(maxWidth: .infinity)
                         .multilineTextAlignment(.center)
                 } else {
                     empty(report?.error)
                 }
             }
-            .padding(16)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
         }
         .axyonBackdrop()
         .navigationTitle("Wallet")
@@ -1173,13 +1216,17 @@ struct AXYONWalletView: View {
         .task { await engine.refreshPortfolio() }
     }
 
+    /// The total in large type, the day and what it gained since bought under it.
     private func summary(_ report: WalletReport) -> some View {
         VStack(alignment: .leading, spacing: 14) {
             Text(AXYONMoney.text(report.total))
-                .font(.system(size: 40, weight: .bold, design: .rounded))
+                .font(.system(size: 40, weight: .bold))
+                .monospacedDigit()
                 .foregroundStyle(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
                 .contentTransition(.numericText())
-            HStack(spacing: 18) {
+            HStack(spacing: 24) {
                 if let day = report.dayMoney {
                     AXYONFigure(value: AXYONMoney.signed(day), label: String(localized: "Today"),
                                 color: day >= 0 ? AXYONPalette.up : AXYONPalette.down)
@@ -1193,9 +1240,23 @@ struct AXYONWalletView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(20)
-        .axyonCard(glow: AXYONPalette.up)
+        .axyonCard()
     }
 
+    private func section(_ title: String, _ rows: [WalletReport.Row]) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            AXYONHeader(title: title)
+            VStack(spacing: 0) {
+                ForEach(Array(rows.enumerated()), id: \.element.ticker) { index, row in
+                    if index > 0 { Divider().overlay(Color.white.opacity(0.08)).padding(.leading, 16) }
+                    positionRow(row)
+                }
+            }
+            .axyonCard(cornerRadius: 22)
+        }
+    }
+
+    /// A line of the Stocks app: the ticker and what it is on the left, the value and the day on the right.
     private func positionRow(_ row: WalletReport.Row) -> some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 3) {
@@ -1213,25 +1274,29 @@ struct AXYONWalletView: View {
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 3) {
-                if let value = row.value { Text(AXYONMoney.text(value)).font(.subheadline.weight(.semibold)).foregroundStyle(.white) }
-                if let price = row.price { Text(AXYONMoney.text(price)).font(.caption).foregroundStyle(AXYONPalette.dim) }
+                if let value = row.value {
+                    Text(AXYONMoney.text(value)).font(.subheadline.weight(.semibold)).monospacedDigit().foregroundStyle(.white)
+                }
+                if let price = row.price {
+                    Text(AXYONMoney.text(price)).font(.caption).monospacedDigit().foregroundStyle(AXYONPalette.dim)
+                }
                 if let day = row.dayPct {
                     Text(AXYONMoney.percent(day))
                         .font(.caption.weight(.bold))
+                        .monospacedDigit()
                         .foregroundStyle(day >= 0 ? AXYONPalette.up : AXYONPalette.down)
                 }
             }
         }
-        .padding(16)
-        .axyonCard(cornerRadius: 22)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
     }
 
     private func empty(_ error: String?) -> some View {
         VStack(spacing: 14) {
-            Image(systemName: "chart.pie")
-                .font(.system(size: 44))
-                .foregroundStyle(AXYONPalette.up)
-                .shadow(color: AXYONPalette.up.opacity(0.6), radius: 12)
+            Image(systemName: "chart.line.uptrend.xyaxis")
+                .font(.system(size: 44, weight: .light))
+                .foregroundStyle(.white)
             Text("Your portfolio, here").font(.title3.weight(.semibold))
             Text(error ?? String(localized: "Open AXYON once at home with your computer on: it gives this iPhone your positions and ceilings. Or tell AXYON in the chat what you hold."))
                 .font(.callout)
@@ -1279,7 +1344,7 @@ struct AXYONSettingsView: View {
                 } label: {
                     LabeledContent {
                         Text(engine.settings.flatMap { HermesBrain.named($0.provider)?.name } ?? "—")
-                            .foregroundStyle(engine.settings?.canThink == true ? AXYONPalette.up : .secondary)
+                            .foregroundStyle(.secondary)
                     } label: {
                         Label("Brain", systemImage: "brain.head.profile")
                     }
@@ -1365,7 +1430,7 @@ struct AXYONSettingsView: View {
                 } label: {
                     LabeledContent {
                         Text(googleState)
-                            .foregroundStyle(engine.google?.connected == true ? AXYONPalette.up : Color.secondary)
+                            .foregroundStyle(.secondary)
                     } label: {
                         Label("Google", systemImage: "envelope.open")
                     }
@@ -1388,7 +1453,7 @@ struct AXYONSettingsView: View {
                 } label: {
                     LabeledContent {
                         Text(pc.status.shortText)
-                            .foregroundStyle(pc.status == .connected ? AXYONPalette.up : Color.secondary)
+                            .foregroundStyle(.secondary)
                     } label: {
                         Label("Windows or Linux computer", systemImage: "desktopcomputer")
                     }
@@ -1436,7 +1501,7 @@ struct AXYONSettingsView: View {
             Label(title, systemImage: icon)
             Spacer()
             if granted == true {
-                Image(systemName: "checkmark.circle.fill").foregroundStyle(AXYONPalette.up)
+                Image(systemName: "checkmark").font(.body.weight(.semibold)).foregroundStyle(.secondary)
             } else if granted == false {
                 Button("Open Settings") {
                     if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }

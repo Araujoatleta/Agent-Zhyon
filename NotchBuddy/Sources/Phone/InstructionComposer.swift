@@ -139,7 +139,7 @@ struct InstructionComposer: View {
                 } label: {
                     Image(systemName: "arrow.up")
                         .font(.body.weight(.bold))
-                        .foregroundStyle(empty ? Color.secondary : Color.white)
+                        .foregroundStyle(empty ? Color.secondary : CoucouPalette.onAccent)
                         .frame(width: 44, height: 44)
                         .coucouGlass(empty ? .regular : .prominent, in: Circle())
                         .contentTransition(.symbolEffect(.replace))

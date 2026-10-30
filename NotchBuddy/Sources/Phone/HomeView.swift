@@ -18,7 +18,7 @@ struct HomeView: View {
     @State private var servicesPath: [String] = []
     #if HERMES
     /// Hermes inside this iPhone (NotchBuddy/Hermes/README.md): AXYON's own tabs, a computer one option among others.
-    @State private var axyonTab: AXYONTab = .start
+    @State private var axyonTab: AXYONTab = .launch
     @State private var axyonPath: [String] = []
     #endif
     @State private var introDone = HomeView.hermesInside
@@ -397,7 +397,7 @@ struct SessionPeek: View {
                 MochiStill(state: session.state, bodyHex: session.color)
                     .padding(6)
                     .frame(width: 48, height: 48)
-                    .background(Color.mochiTile(hex: session.color), in: RoundedRectangle(cornerRadius: 13))
+                    .background(Color.agentTile(hex: session.color), in: RoundedRectangle(cornerRadius: 13))
                 VStack(alignment: .leading, spacing: 2) {
                     Text(session.title).font(.headline)
                     Text(session.statusText).font(.subheadline.weight(.semibold)).foregroundStyle(session.statusColor)
@@ -586,7 +586,7 @@ struct SessionRow: View {
         let base = mochi
             .padding(4)
             .frame(width: 40, height: 40)
-            .background(Color.mochiTile(hex: session.color), in: RoundedRectangle(cornerRadius: 11))
+            .background(Color.agentTile(hex: session.color), in: RoundedRectangle(cornerRadius: 11))
         if let zoom {
             base.matchedTransitionSource(id: session.id, in: zoom)
         } else {

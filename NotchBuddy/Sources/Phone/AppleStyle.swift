@@ -22,9 +22,13 @@ extension View {
 struct AgentBackdrop: View {
     let hex: String
 
-    /// A soft glow from the top, fading into black.
+    /// A soft glow from the top, fading into black; in AXYON, the same faint white light for every agent.
     private var colors: [Color] {
+        #if HERMES
+        let base = Color.white.opacity(0.3)
+        #else
         let base = Color(hex: Self.glowHex(for: hex))
+        #endif
         return [base.opacity(0.42), base.opacity(0.26), base.opacity(0.36),
                 base.opacity(0.16), base.opacity(0.06), base.opacity(0.14),
                 Color.clear, Color.clear, Color.clear]
@@ -110,10 +114,10 @@ struct StateSymbol: View {
     var body: some View {
         switch session.urgency {
         case 0:
-            Image(systemName: "hand.raised.fill").foregroundStyle(.orange)
+            Image(systemName: "hand.raised.fill").foregroundStyle(CoucouPalette.attention)
                 .symbolEffect(.breathe)
         case 1:
-            Image(systemName: "questionmark.bubble.fill").foregroundStyle(.cyan)
+            Image(systemName: "questionmark.bubble.fill").foregroundStyle(CoucouPalette.question)
                 .symbolEffect(.breathe)
         case 2:
             Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(CoucouPalette.danger)
@@ -182,11 +186,11 @@ struct ApprovalPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
-                Circle().fill(Color.orange).frame(width: 8, height: 8)
-                    .shadow(color: .orange.opacity(0.8), radius: 4)
+                Circle().fill(CoucouPalette.attention).frame(width: 8, height: 8)
+                    .shadow(color: CoucouPalette.attention.opacity(0.8), radius: 4)
                 Text("\(session.pillName) asks to run")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(CoucouPalette.attention)
                 Spacer(minLength: 0)
                 Text(session.title)
                     .font(.caption)
