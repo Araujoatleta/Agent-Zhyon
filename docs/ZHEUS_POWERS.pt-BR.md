@@ -62,8 +62,12 @@ Os exemplos abaixo são frases que você pode mandar como estão, na ilha, no iP
 
 **6. Comitê de investimento e diário de decisões**
 - "Quero comprar 50 cotas de GARE11. Faz o comitê." (cinco mentes: valuation, jurídico e governança, contador forense,
-  risco e macro, cada uma com o voto, quanta certeza tem e a fonte de cada ponto, o jurídico e o risco com veto; depois
-  o placar do presidente, o melhor argumento do lado que perdeu e uma pergunta para você)
+  risco e macro, cada uma com o voto, quanta certeza tem, a justificativa e cada ponto marcado como fato, cálculo,
+  hipótese, estimativa ou dado ausente, com a fonte; o jurídico e o risco com veto só por critério objetivo; o código
+  confere cada número contra o fato ou a página citada; depois dois pareceres separados, A sobre o ativo e B sobre o
+  lugar dele na sua carteira contra a sua meta, o placar do presidente, o melhor argumento do lado que perdeu e uma
+  pergunta para você). Os fatos que ele recebe trazem fonte, data de referência, data da consulta e a conta, em
+  português.
 - "O que os relatórios disseram?" (`wealth_documents`: o que o estagiário do iPhone leu, página por página, e as suas
   teses conferidas); "me explica P/VP com os meus fundos", "a minha carteira de treino", "o meu placar"
   (`wealth_learn`).
@@ -171,6 +175,11 @@ escrevem nela:
 - Para manter o seu próprio layout, ponha o nome da sua aba em **Aba**: o AXYON passa a só ler essa aba (Ativo e
   Quantidade, ou uma lista de tickers com **Preço teto** ou **Meu teto**), e uma mudança pelo chat vale até a próxima
   leitura.
+- A cada 3 horas o AXYON também lê, só lendo, duas coisas que as suas abas podem ter: a tabela **Proventos pagos** (os
+  meses nas colunas, o total de cada mês, os ativos linha a linha: esses são os seus proventos, no computador e no
+  iPhone pareado, com os anúncios dos fundos guardados ao lado para mostrar uma divergência) e a coluna **Percentual
+  Ideal** (ou **Meta**) ao lado dos ativos (a sua meta por ativo, que o comitê leva em conta). A meta também pode ser
+  dita no chat (`wealth_update` com `asset_targets`, como `{"GARE11": 7.5}`).
 
 ### O preço durante o pregão
 

@@ -60,7 +60,16 @@ enum AXYONAlerts {
         let content = UNMutableNotificationContent()
         content.title = String(localized: "The committee met on \(v.ticker): \(v.score)")
         let vetoes = v.vetoedBy.map { InvestMind.name($0) }.joined(separator: ", ")
-        content.body = vetoes.isEmpty ? v.question : String(localized: "Vetoed by \(vetoes) · \(v.question)")
+        var lines: [String] = []
+        // The two opinions first: a vote against buying more is not a call to sell.
+        if !v.asset.isEmpty || !v.portfolio.isEmpty {
+            lines.append(String(localized: "Asset: \(v.asset.viewName) · In your portfolio: \(v.portfolio.viewName)"))
+        }
+        if !v.critical.isEmpty {
+            lines.append(String(localized: "Critical alerts: \(v.critical.count)"))
+        }
+        lines.append(vetoes.isEmpty ? v.question : String(localized: "Vetoed by \(vetoes) · \(v.question)"))
+        content.body = lines.filter { !$0.isEmpty }.joined(separator: "\n")
         content.sound = .default
         content.threadIdentifier = "axyon-committee"
         let request = UNNotificationRequest(identifier: "axyon-committee-\(v.ticker)", content: content, trigger: nil)

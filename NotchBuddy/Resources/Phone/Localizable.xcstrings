@@ -419,6 +419,28 @@
         }
       }
     },
+    "%@: not a number.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: no es un número."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ : ce n'est pas un nombre."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: não é um número."
+          }
+        }
+      }
+    },
     "%lld decisions": {
       "localizations": {
         "es": {
@@ -1053,6 +1075,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "O cérebro do AXYON"
+          }
+        }
+      }
+    },
+    "AXYON's code": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "código de AXYON"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "code d'AXYON"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "código do AXYON"
           }
         }
       }
@@ -2267,6 +2311,28 @@
         }
       }
     },
+    "Asset: %@ · In your portfolio: %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activo: %@ · En tu cartera: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actif : %@ · Dans votre portefeuille : %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ativo: %@ · Na sua carteira: %@"
+          }
+        }
+      }
+    },
     "Assistant": {
       "localizations": {
         "es": {
@@ -2527,6 +2593,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Pelo endereço"
+          }
+        }
+      }
+    },
+    "Calculation": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cálculo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Calcul"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conta"
           }
         }
       }
@@ -3433,6 +3521,28 @@
         }
       }
     },
+    "Committee of %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comité del %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comité du %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comitê de %@"
+          }
+        }
+      }
+    },
     "Computer": {
       "localizations": {
         "es": {
@@ -3495,6 +3605,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Concentração, vacância, crédito, o que pode dar errado"
+          }
+        }
+      }
+    },
+    "Confidence %lld%%": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confianza %lld%%"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confiance %lld %%"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confiança %lld%%"
           }
         }
       }
@@ -4133,6 +4265,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "Não foi possível acessar o iCloud."
+          }
+        }
+      }
+    },
+    "Critical alerts": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alertas críticas"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alertes critiques"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alertas críticos"
+          }
+        }
+      }
+    },
+    "Critical alerts: %lld": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alertas críticas: %lld"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alertes critiques : %lld"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alertas críticos: %lld"
           }
         }
       }
@@ -5215,6 +5391,28 @@
         }
       }
     },
+    "Found in its source": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Encontrado en su fuente"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trouvé dans sa source"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Encontrado na fonte"
+          }
+        }
+      }
+    },
     "Free key, generous limits": {
       "localizations": {
         "es": {
@@ -5299,6 +5497,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "De"
+          }
+        }
+      }
+    },
+    "From the funds' announcements, for what you held": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Según los anuncios de los fondos, para lo que tenías"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "D'après les annonces des fonds, pour ce que vous déteniez"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pelos anúncios dos fundos, para o que você tinha"
           }
         }
       }
@@ -6579,6 +6799,28 @@
         }
       }
     },
+    "Increase the position": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aumentar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Renforcer"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aumentar"
+          }
+        }
+      }
+    },
     "Install Coucou for Mac (Mac App Store or the website) and set up its Claude Code hooks.": {
       "localizations": {
         "es": {
@@ -6795,6 +7037,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Guardar"
+          }
+        }
+      }
+    },
+    "Keep the position": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mantener"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conserver"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manter"
           }
         }
       }
@@ -7547,6 +7811,28 @@
         }
       }
     },
+    "Material points": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puntos materiales"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Points importants"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pontos materiais"
+          }
+        }
+      }
+    },
     "Meeting due: %@": {
       "localizations": {
         "es": {
@@ -7631,6 +7917,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mensagem para o Mochi…"
+          }
+        }
+      }
+    },
+    "Missing data that could change its vote": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Datos ausentes que podrían cambiar su voto"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Données manquantes qui pourraient changer son vote"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dados ausentes que podem mudar o voto"
           }
         }
       }
@@ -8141,6 +8449,28 @@
         }
       }
     },
+    "Negative": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Negativo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Négatif"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Negativo"
+          }
+        }
+      }
+    },
     "Neutral": {
       "localizations": {
         "es": {
@@ -8515,6 +8845,28 @@
         }
       }
     },
+    "No new contribution": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Evitar nuevo aporte"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pas de nouvel apport"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Evitar novo aporte"
+          }
+        }
+      }
+    },
     "No pairing link to paste. Copy it on the computer first (Settings → Phone).": {
       "localizations": {
         "es": {
@@ -8735,6 +9087,28 @@
         }
       }
     },
+    "Not found in its source": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No encontrado en su fuente"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Introuvable dans sa source"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não encontrado na fonte"
+          }
+        }
+      }
+    },
     "Not judged yet": {
       "localizations": {
         "es": {
@@ -8841,6 +9215,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sem sessão iniciada"
+          }
+        }
+      }
+    },
+    "Notes": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Observaciones"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remarques"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Observações"
           }
         }
       }
@@ -8973,6 +9369,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Notificações"
+          }
+        }
+      }
+    },
+    "Now %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ahora %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actuellement %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agora %@"
           }
         }
       }
@@ -9725,6 +10143,28 @@
         }
       }
     },
+    "Open the source %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir la fuente %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ouvrir la source %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir a fonte %@"
+          }
+        }
+      }
+    },
     "OpenAI (API key)": {
       "localizations": {
         "es": {
@@ -9787,6 +10227,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "Abrindo no iPhone"
+          }
+        }
+      }
+    },
+    "Opinion A · The asset": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opinión A · El activo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avis A · L'actif"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Parecer A · O ativo"
+          }
+        }
+      }
+    },
+    "Opinion B · In your portfolio": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opinión B · En tu cartera"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avis B · Dans votre portefeuille"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Parecer B · Na sua carteira"
           }
         }
       }
@@ -9919,6 +10403,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "P/VP abaixo de 1,05; DY acima de 9%; vacância até 10%"
+          }
+        }
+      }
+    },
+    "Page %lld of %lld": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Página %lld de %lld"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Page %lld sur %lld"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Página %lld de %lld"
           }
         }
       }
@@ -10561,6 +11067,28 @@
         }
       }
     },
+    "Positive": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Positivo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Positif"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Positivo"
+          }
+        }
+      }
+    },
     "Power": {
       "localizations": {
         "es": {
@@ -10957,6 +11485,28 @@
         }
       }
     },
+    "Read on": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Consultado el"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Consulté le"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Consultado em"
+          }
+        }
+      }
+    },
     "Read the documents now": {
       "localizations": {
         "es": {
@@ -11239,6 +11789,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "Recentes"
+          }
+        }
+      }
+    },
+    "Reduce the position": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reducir"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réduire"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reduzir"
+          }
+        }
+      }
+    },
+    "Reference date": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fecha de referencia"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Date de référence"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Data de referência"
           }
         }
       }
@@ -13047,6 +13641,50 @@
         }
       }
     },
+    "Source": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fuente"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Source"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fonte"
+          }
+        }
+      }
+    },
+    "Sources": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fuentes"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sources"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fontes"
+          }
+        }
+      }
+    },
     "Speaking": {
       "localizations": {
         "es": {
@@ -13597,6 +14235,28 @@
         }
       }
     },
+    "Targets per asset": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Metas por activo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Objectifs par actif"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Metas por ativo"
+          }
+        }
+      }
+    },
     "Tell AXYON in the chat what you decide and how sure you are, from 0 to 100: the decision journal judges each one later against the price and the CDI.": {
       "localizations": {
         "es": {
@@ -13791,6 +14451,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "O ativo"
+          }
+        }
+      }
+    },
+    "The audit changed its vote: it was %@.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La auditoría cambió su voto: era %@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'audit a changé son vote : c'était %@."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A auditoria mudou o voto: era %@."
           }
         }
       }
@@ -14147,6 +14829,28 @@
         }
       }
     },
+    "The funds announced %@ for what you held: worth checking.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los fondos anunciaron %@ para lo que tenías: conviene revisarlo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les fonds ont annoncé %@ pour ce que vous déteniez : à vérifier."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Os fundos anunciaram %@ para o que você tinha: vale conferir."
+          }
+        }
+      }
+    },
     "The iPhone's voice could not record the summary.": {
       "localizations": {
         "es": {
@@ -14209,6 +14913,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "O melhor argumento do lado que perdeu"
+          }
+        }
+      }
+    },
+    "The page's text is no longer kept on this iPhone: open the document.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El texto de la página ya no se guarda en este iPhone: abre el documento."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le texte de la page n'est plus gardé sur cet iPhone : ouvrez le document."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O texto da página não está mais guardado neste iPhone: abra o documento."
           }
         }
       }
@@ -14543,6 +15269,28 @@
         }
       }
     },
+    "This source is not in the meeting's record.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta fuente no está en el registro de la reunión."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cette source n'est pas dans le compte rendu de la réunion."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta fonte não está no registro da reunião."
+          }
+        }
+      }
+    },
     "Ticker": {
       "localizations": {
         "es": {
@@ -14693,6 +15441,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Para sair, use Coucou → Configurações → Hermes Agent no computador."
+          }
+        }
+      }
+    },
+    "To verify": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por verificar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "À vérifier"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A verificar"
           }
         }
       }
@@ -15353,6 +16123,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Versão %@"
+          }
+        }
+      }
+    },
+    "Veto: %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Veto: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Veto : %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Veto: %@"
           }
         }
       }
@@ -16831,6 +17623,72 @@
         }
       }
     },
+    "Your sheet": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu hoja"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre feuille"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua planilha"
+          }
+        }
+      }
+    },
+    "Your sheet has no amount for this month.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu hoja no tiene importe para este mes."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre feuille n'a pas de montant pour ce mois."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua planilha não tem valor para este mês."
+          }
+        }
+      }
+    },
+    "Your sheet's \"Percentual Ideal\" column, read by the computer, wins over a target set here. Empty: no target.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La columna \"Percentual Ideal\" de tu hoja, leída por el ordenador, prevalece sobre la meta fijada aquí. Vacío: sin meta."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La colonne « Percentual Ideal » de votre feuille, lue par l'ordinateur, l'emporte sur l'objectif fixé ici. Vide : pas d'objectif."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A coluna \"Percentual Ideal\" da sua planilha, lida pelo computador, prevalece sobre a meta definida aqui. Vazio: sem meta."
+          }
+        }
+      }
+    },
     "Your thesis on %@ broke": {
       "localizations": {
         "es": {
@@ -16985,6 +17843,28 @@
         }
       }
     },
+    "auditor": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "auditor"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "auditeur"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "auditor"
+          }
+        }
+      }
+    },
     "avoid": {
       "localizations": {
         "es": {
@@ -17003,6 +17883,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "evitar"
+          }
+        }
+      }
+    },
+    "breach of the fund's rules": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "violación del reglamento"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "violation du règlement"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "violação do regulamento"
           }
         }
       }
@@ -17073,6 +17975,116 @@
         }
       }
     },
+    "calculation": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "cálculo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "calcul"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "cálculo"
+          }
+        }
+      }
+    },
+    "computed": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "calculado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "calculé"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "calculado"
+          }
+        }
+      }
+    },
+    "confirmed": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "confirmado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "confirmé"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "confirmado"
+          }
+        }
+      }
+    },
+    "confirmed irregularity": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "irregularidad confirmada"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "irrégularité confirmée"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "irregularidade confirmada"
+          }
+        }
+      }
+    },
+    "conflict of interest": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "conflicto de intereses"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "conflit d'intérêts"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "conflito de interesses"
+          }
+        }
+      }
+    },
     "data-com": {
       "localizations": {
         "es": {
@@ -17091,6 +18103,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "data-com"
+          }
+        }
+      }
+    },
+    "dilutive issuance": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "emisión dilutiva"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "émission dilutive"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "emissão diluitiva"
+          }
+        }
+      }
+    },
+    "divergent": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "divergente"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "divergent"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "divergente"
           }
         }
       }
@@ -17135,6 +18191,72 @@
           "stringUnit": {
             "state": "translated",
             "value": "documento"
+          }
+        }
+      }
+    },
+    "estimate": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "estimación"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "estimation"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "estimativa"
+          }
+        }
+      }
+    },
+    "excessive concentration": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "concentración excesiva"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "concentration excessive"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "concentração excessiva"
+          }
+        }
+      }
+    },
+    "fact": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "hecho"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "fait"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "fato"
           }
         }
       }
@@ -17305,6 +18427,28 @@
         }
       }
     },
+    "hypothesis": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "hipótesis"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "hypothèse"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "hipótese"
+          }
+        }
+      }
+    },
     "iCloud not connected": {
       "localizations": {
         "es": {
@@ -17323,6 +18467,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "iCloud não conectado"
+          }
+        }
+      }
+    },
+    "insufficient liquidity": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "liquidez insuficiente"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "liquidité insuffisante"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "liquidez insuficiente"
           }
         }
       }
@@ -17389,6 +18555,94 @@
           "stringUnit": {
             "state": "translated",
             "value": "fato relevante"
+          }
+        }
+      }
+    },
+    "material lawsuit": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "litigio relevante"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "litige important"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "litígio relevante"
+          }
+        }
+      }
+    },
+    "missing": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ausente"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "manquant"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ausente"
+          }
+        }
+      }
+    },
+    "missing data": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "dato ausente"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "donnée manquante"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "dado ausente"
+          }
+        }
+      }
+    },
+    "none": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ninguna"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "aucun"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "nenhuma"
           }
         }
       }
@@ -17503,6 +18757,72 @@
         }
       }
     },
+    "read on %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "consultado el %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "consulté le %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "consultado em %@"
+          }
+        }
+      }
+    },
+    "ref. %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ref. %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "réf. %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ref. %@"
+          }
+        }
+      }
+    },
+    "relevant default": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "morosidad relevante"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "impayés importants"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "inadimplência relevante"
+          }
+        }
+      }
+    },
     "results release": {
       "localizations": {
         "es": {
@@ -17521,6 +18841,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "release de resultados"
+          }
+        }
+      }
+    },
+    "revised": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "revisado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "révisé"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "revisado"
           }
         }
       }
@@ -17697,6 +19039,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "turnos"
+          }
+        }
+      }
+    },
+    "uncovered leverage": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "apalancamiento sin cobertura"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "levier non couvert"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "alavancagem sem cobertura"
           }
         }
       }

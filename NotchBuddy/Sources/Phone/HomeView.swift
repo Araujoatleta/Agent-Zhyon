@@ -103,7 +103,7 @@ struct HomeView: View {
 
     @ViewBuilder private var tabs: some View {
         #if HERMES
-        AXYONTabs(link: link, tab: $axyonTab, startPath: $axyonPath)
+        AXYONTabs(link: link, tab: $axyonTab, sessionPath: $axyonPath)
         #else
         coucouTabs
         #endif
@@ -154,9 +154,8 @@ struct HomeView: View {
 
     private func open(_ id: String) {
         #if HERMES
-        // The computer's agent sessions open from AXYON's start screen.
+        // The computer's agent sessions open over AXYON's tabs.
         if PillCatalog.isSession(id) {
-            axyonTab = .start
             axyonPath = [id]
         }
         #else

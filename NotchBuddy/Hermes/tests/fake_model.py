@@ -1,7 +1,7 @@
 """A fake OpenAI-compatible model for the host's tests: it calls wealth_portfolio when asked about "carteira",
 life_english (15 minutes logged) about "inglês", coucou_home about "casa", iphone_status about "iPhone" and cronjob_manage
 (a task every 5 minutes) about "agenda", then answers "Feito: <what the tool returned>". With no tools, AXYON's
-committee gets its five minds as JSON in a fence, and its reader a document's digest. Sent files are counted: it
+committee gets its five minds as JSON in a fence, then its auditor's review, and its reader a document's digest. Sent files are counted: it
 answers "Vi <images> imagem(ns) e <documents> documento(s): <the documents' first words>". It logs how many messages it
 saw."""
 import json
@@ -50,15 +50,29 @@ class Model(BaseHTTPRequestHandler):
             first = flat.split("Its text follows.]\\n")[1][:40] if "Its text follows.]\\n" in flat else ""
             photo = images or flat.count("The user sent a photo")
             content = f"Vi {photo} imagem(ns) e {documents} documento(s): {first}"
-        elif not tools and "AXYON's investment committee" in asked:
-            # The committee, asked once with no tools: its JSON, in a fence, as models often answer.
+        elif not tools and "Você é o auditor do comitê" in asked:
+            # The committee's auditor: what it found, a mind revised, the two final opinions.
+            sys.stderr.write(f"invest audit: tools={len(tools)}\n")
+            sys.stderr.flush()
+            content = json.dumps({"audit": [{"severity": "material", "minds": ["forensic"], "text": "Falta de dado contábil não é prejuízo.",
+                                             "sources": ["F2"]}],
+                                  "revisions": [{"id": "forensic", "vote": "neutral", "confidence": 40, "why": "Sem dados contábeis.",
+                                                 "points": [{"text": "DRE não publicada", "source": "", "kind": "ausente"}]}],
+                                  "asset": {"view": "neutro", "confidence": 55, "why": "Vacância subiu.", "sources": ["D1 p.2"]},
+                                  "portfolio": {"view": "evitar_novo_aporte", "why": "Acima da meta.", "sources": ["F2"]},
+                                  "chair": {"question": "Manter GGRC11?", "dissent": "P/VP baixo.", "wouldChange": "Vacância de volta.",
+                                            "fit": "FIIs acima da meta."},
+                                  "toVerify": ["A vacância do próximo relatório"]}, ensure_ascii=False)
+        elif not tools and "Você é o comitê de investimentos do AXYON" in asked:
+            # The committee's five minds, asked with no tools: their JSON, in a fence, as models often answer.
             sys.stderr.write(f"invest committee: tools={len(tools)}\n")
             sys.stderr.flush()
             minds = [{"id": m, "vote": "against" if m in ("legal", "risk", "forensic") else "for", "confidence": 70,
-                      "veto": m == "risk", "points": [{"text": f"{m}: a vacância subiu", "source": "D1 p.2"}]}
+                      "veto": m == "risk", "points": [{"text": f"{m}: a vacância subiu", "source": "D1 p.2", "kind": "fato"}]}
                      for m in ("valuation", "legal", "forensic", "risk", "macro")]
-            content = "```json\n" + json.dumps({"minds": minds, "chair": {"question": "Manter GGRC11?", "dissent": "P/VP baixo.",
-                                                                    "wouldChange": "Vacância de volta.", "fit": "FIIs acima da meta."}}) + "\n```"
+            content = "```json\n" + json.dumps({"minds": minds, "asset": {"view": "neutro"}, "portfolio": {"view": "manter"},
+                                                 "chair": {"question": "Manter GGRC11?", "dissent": "P/VP baixo.",
+                                                           "wouldChange": "Vacância de volta.", "fit": "FIIs acima da meta."}}) + "\n```"
         elif not tools and "You are AXYON's reader" in asked:
             content = json.dumps({"headline": "Vacância subiu", "points": [{"text": "Vacância de 6% para 8,5%", "page": 2}],
                                   "tone": "worse", "thesisRisk": True})

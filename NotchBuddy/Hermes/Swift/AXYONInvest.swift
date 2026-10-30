@@ -42,6 +42,15 @@ struct InvestMonth: Identifiable, Equatable {
     let id: String
     let total: Double
     let items: [InvestSlice]
+    /// "planilha" (the user's sheet is the record) or "anuncios" (the funds' announcements times what is held).
+    var source = ""
+    /// The sheet has this month (false: a month before or after what it records).
+    var covered = true
+    /// What the funds announced for what is held, kept beside the sheet's record to show a divergence.
+    var announced = 0.0
+
+    /// The sheet's amount and the announcements' differ by more than a cent.
+    var diverges: Bool { source == "planilha" && covered && abs(announced - total) >= 0.01 }
 
     private var date: Date? {
         let parts = id.split(separator: "-").compactMap { Int($0) }
@@ -147,6 +156,12 @@ struct InvestMind: Identifiable, Equatable {
         let id: Int
         let text: String
         let source: String
+        /// fato, calculo, hipotese, estimativa or ausente.
+        var kind = ""
+        /// The source exists and holds the point's figures; nil: not checked.
+        var verified: Bool?
+        /// What AXYON's code found when it checked the point.
+        var check = ""
     }
 
     let id: String
@@ -154,6 +169,49 @@ struct InvestMind: Identifiable, Equatable {
     let confidence: Int
     let veto: Bool
     let points: [Point]
+    var why = ""
+    var vetoReason = ""
+    /// The data it lacked, that could change its vote.
+    var missing: [String] = []
+    /// The audit revised it; `was` is its vote before, when the vote changed.
+    var revised = false
+    var was = ""
+
+    /// A point's kind in the user's language.
+    static func kindName(_ kind: String) -> String {
+        switch kind {
+        case "fato": String(localized: "fact")
+        case "calculo": String(localized: "calculation")
+        case "hipotese": String(localized: "hypothesis")
+        case "estimativa": String(localized: "estimate")
+        case "ausente": String(localized: "missing data")
+        default: kind
+        }
+    }
+
+    /// A veto's objective criterion in the user's language.
+    static func vetoName(_ reason: String) -> String {
+        switch reason {
+        case "irregularidade_confirmada": String(localized: "confirmed irregularity")
+        case "litigio_material": String(localized: "material lawsuit")
+        case "emissao_diluitiva": String(localized: "dilutive issuance")
+        case "conflito_de_interesses": String(localized: "conflict of interest")
+        case "violacao_do_regulamento": String(localized: "breach of the fund's rules")
+        case "concentracao_excessiva": String(localized: "excessive concentration")
+        case "liquidez_insuficiente": String(localized: "insufficient liquidity")
+        case "alavancagem_sem_cobertura": String(localized: "uncovered leverage")
+        case "inadimplencia_relevante": String(localized: "relevant default")
+        default: reason.replacingOccurrences(of: "_", with: " ")
+        }
+    }
+
+    static func voteName(_ vote: String) -> String {
+        switch vote {
+        case "for": String(localized: "For")
+        case "against": String(localized: "Against")
+        default: String(localized: "Neutral")
+        }
+    }
 
     /// The archetype, in the user's language (never a real person).
     var name: String { InvestMind.name(id) }
@@ -191,6 +249,147 @@ struct InvestMind: Identifiable, Equatable {
     }
 }
 
+/// A fact the committee was given (F1…): what it says, where it comes from, its dates and how the code computed it.
+struct InvestFact: Identifiable, Equatable {
+    let id: String
+    let topic: String
+    let text: String
+    let source: String
+    /// Its reference date: the price's moment, the report's month, a dividend's record date.
+    let reference: String
+    /// When AXYON read it.
+    let consulted: String
+    let formula: String
+    /// confirmado, calculado, estimativa, ausente or divergente.
+    let status: String
+    let warning: String
+
+    init(_ o: [String: Any]) {
+        id = InvestJSON.str(o["id"])
+        topic = InvestJSON.str(o["topic"])
+        text = InvestJSON.str(o["text"])
+        source = InvestJSON.str(o["source"])
+        reference = InvestJSON.str(o["reference"])
+        consulted = InvestJSON.str(o["consulted"])
+        formula = InvestJSON.str(o["formula"])
+        status = InvestJSON.str(o["status"])
+        warning = InvestJSON.str(o["warning"])
+    }
+
+    var statusName: String {
+        switch status {
+        case "confirmado": String(localized: "confirmed")
+        case "calculado": String(localized: "computed")
+        case "estimativa": String(localized: "estimate")
+        case "ausente": String(localized: "missing")
+        case "divergente": String(localized: "divergent")
+        default: status
+        }
+    }
+}
+
+/// A document the committee read (D1…), with where to open it.
+struct InvestDocRef: Identifiable, Equatable {
+    let id: String
+    let key: String
+    let title: String
+    let kind: String
+    let delivered: String
+    let url: String
+    let pages: Int
+
+    init(_ o: [String: Any]) {
+        id = InvestJSON.str(o["id"])
+        key = InvestJSON.str(o["key"])
+        title = InvestJSON.str(o["title"])
+        kind = InvestJSON.str(o["kind"])
+        delivered = InvestJSON.str(o["delivered"])
+        url = InvestJSON.str(o["url"])
+        pages = InvestJSON.int(o["pages"])
+    }
+}
+
+/// One of the two opinions: the asset itself (A), or what to do with it in the user's portfolio (B).
+struct InvestOpinion: Equatable {
+    var view = ""
+    var why = ""
+    var confidence: Int?
+    var sources: [String] = []
+
+    init() {}
+
+    init(_ o: [String: Any]) {
+        view = InvestJSON.str(o["view"])
+        why = InvestJSON.str(o["why"])
+        confidence = InvestJSON.num(o["confidence"]).map { Int($0) }
+        sources = InvestJSON.strings(o["sources"])
+    }
+
+    var isEmpty: Bool { view.isEmpty && why.isEmpty }
+
+    var viewName: String {
+        switch view {
+        case "positivo": String(localized: "Positive")
+        case "neutro": String(localized: "Neutral")
+        case "negativo": String(localized: "Negative")
+        case "aumentar": String(localized: "Increase the position")
+        case "manter": String(localized: "Keep the position")
+        case "reduzir": String(localized: "Reduce the position")
+        case "evitar_novo_aporte": String(localized: "No new contribution")
+        default: view
+        }
+    }
+
+    /// Green for what adds, red for what takes away, grey in between.
+    var tone: String {
+        switch view {
+        case "positivo", "aumentar": "for"
+        case "negativo", "reduzir": "against"
+        default: "neutral"
+        }
+    }
+}
+
+/// What the audit found before the verdict was published, by the auditor or by AXYON's code.
+struct InvestAuditItem: Identifiable, Equatable {
+    let id: Int
+    /// critico, material or observacao.
+    let severity: String
+    let minds: [String]
+    let text: String
+    let sources: [String]
+    /// auditor or codigo.
+    let by: String
+}
+
+/// A source a point cites: a fact ("F3") or a document, at a page ("D1 p.4").
+struct InvestCitation: Identifiable, Hashable {
+    let ref: String
+    let page: Int?
+
+    var id: String { label }
+    var label: String { page.map { "\(ref) p.\($0)" } ?? ref }
+    var isFact: Bool { ref.hasPrefix("F") }
+
+    /// Compiled once, read only.
+    nonisolated(unsafe) private static let pattern = try? NSRegularExpression(
+        pattern: #"\b([FD])\s?(\d{1,3})(?:\s*,?\s*p(?:ág|ag)?\.?\s*(\d{1,4}))?"#, options: [.caseInsensitive])
+
+    /// Every source "F3, D1 p.4" names, in order, once each.
+    static func parse(_ text: String) -> [InvestCitation] {
+        guard let pattern else { return [] }
+        let whole = NSRange(text.startIndex..., in: text)
+        var found: [InvestCitation] = []
+        for match in pattern.matches(in: text, range: whole) {
+            guard let letter = Range(match.range(at: 1), in: text), let number = Range(match.range(at: 2), in: text) else { continue }
+            let page = Range(match.range(at: 3), in: text).flatMap { Int(text[$0]) }
+            let citation = InvestCitation(ref: text[letter].uppercased() + text[number], page: page)
+            if !found.contains(citation) { found.append(citation) }
+        }
+        return found
+    }
+}
+
 /// The committee's verdict on a proposal: the score, the vetoes, the minds and the chair's synthesis.
 struct InvestVerdict: Identifiable, Equatable {
     let id: String
@@ -208,6 +407,15 @@ struct InvestVerdict: Identifiable, Equatable {
     let fit: String
     /// asked, document or thesis: why the committee met.
     let reason: String
+    /// 2: checked facts, two opinions and an audit; 1: the first committee.
+    var version = 1
+    /// Opinion A: the asset itself. Opinion B: what to do with it in the user's portfolio.
+    var asset = InvestOpinion()
+    var portfolio = InvestOpinion()
+    var audit: [InvestAuditItem] = []
+    var toVerify: [String] = []
+    var facts: [InvestFact] = []
+    var documents: [InvestDocRef] = []
 
     init(_ o: [String: Any]) {
         id = InvestJSON.str(o["id"])
@@ -222,16 +430,49 @@ struct InvestVerdict: Identifiable, Equatable {
         minds = InvestJSON.list(o["minds"]).map { m in
             InvestMind(id: InvestJSON.str(m["id"]), vote: InvestJSON.str(m["vote"]),
                        confidence: InvestJSON.int(m["confidence"]), veto: m["veto"] as? Bool ?? false,
-                       points: InvestJSON.list(m["points"]).enumerated().map { index, p in
-                           InvestMind.Point(id: index, text: InvestJSON.str(p["text"]), source: InvestJSON.str(p["source"]))
-                       })
+                       points: InvestVerdict.points(m["points"]),
+                       why: InvestJSON.str(m["why"]), vetoReason: InvestJSON.str(m["vetoReason"]),
+                       missing: InvestJSON.strings(m["missing"]), revised: m["revised"] as? Bool ?? false,
+                       was: InvestJSON.str(m["was"]))
         }
         question = InvestJSON.str(o["question"])
         dissent = InvestJSON.str(o["dissent"])
         wouldChange = InvestJSON.str(o["wouldChange"])
         fit = InvestJSON.str(o["fit"])
         reason = InvestJSON.str(o["reason"])
+        version = max(InvestJSON.int(o["version"]), 1)
+        asset = InvestOpinion(InvestJSON.dict(o["asset"]))
+        portfolio = InvestOpinion(InvestJSON.dict(o["portfolio"]))
+        audit = InvestJSON.list(o["audit"]).enumerated().map { index, a in
+            InvestAuditItem(id: index, severity: InvestJSON.str(a["severity"]), minds: InvestJSON.strings(a["minds"]),
+                            text: InvestJSON.str(a["text"]), sources: InvestJSON.strings(a["sources"]), by: InvestJSON.str(a["by"]))
+        }
+        toVerify = InvestJSON.strings(o["toVerify"])
+        facts = InvestJSON.list(o["facts"]).map(InvestFact.init)
+        documents = InvestJSON.list(o["documents"]).map(InvestDocRef.init)
     }
+
+    /// A mind's points: objects (text, source, kind, verified, check), or the first committee's [text, source] pairs.
+    private static func points(_ value: Any?) -> [InvestMind.Point] {
+        let given = value as? [Any] ?? []
+        return given.enumerated().compactMap { index, item in
+            if let pair = item as? [String] {
+                return InvestMind.Point(id: index, text: pair.first ?? "", source: pair.count > 1 ? pair[1] : "")
+            }
+            guard let p = item as? [String: Any] else { return nil }
+            return InvestMind.Point(id: index, text: InvestJSON.str(p["text"]), source: InvestJSON.str(p["source"]),
+                                    kind: InvestJSON.str(p["kind"]), verified: p["verified"] as? Bool,
+                                    check: InvestJSON.str(p["check"]))
+        }
+    }
+
+    func fact(_ id: String) -> InvestFact? { facts.first { $0.id == id } }
+    func document(_ id: String) -> InvestDocRef? { documents.first { $0.id == id } }
+
+    /// The audit's findings by severity: what changes the conclusion, what needed a revision, the notes.
+    var critical: [InvestAuditItem] { audit.filter { $0.severity == "critico" } }
+    var material: [InvestAuditItem] { audit.filter { $0.severity == "material" } }
+    var notes: [InvestAuditItem] { audit.filter { $0.severity != "critico" && $0.severity != "material" } }
 
     /// "3 × 2".
     var score: String { "\(favor) × \(against)" }
@@ -301,6 +542,12 @@ struct InvestOverview: Equatable {
     var judged = 0
     var paper = InvestPaper()
     var weeklyTold = false
+    /// Where the dividends come from when the user's sheet records them ("Sua planilha — aba Meu Patrimônio"), and
+    /// the day it was read.
+    var dividendsSource = ""
+    var dividendsRead = ""
+    /// The share of the portfolio the user wants in each asset, percent (the sheet's "% Ideal", or set here).
+    var targets: [String: Double] = [:]
 
     init() {}
 
@@ -320,7 +567,7 @@ struct InvestOverview: Equatable {
             let gain = InvestJSON.num($0["gainPct"]).map { " · " + AXYONMoney.percent($0) } ?? ""
             return InvestSlice(id: InvestJSON.str($0["key"]), label: InvestJSON.str($0["label"]),
                                value: InvestJSON.num($0["value"]) ?? 0, weight: InvestJSON.num($0["weight"]) ?? 0,
-                               detail: quantity.formatted() + gain)
+                               target: InvestJSON.num($0["target"]), detail: quantity.formatted() + gain)
         }
         dividends = InvestJSON.list(o["dividends"]).map { m in
             let items = InvestJSON.list(m["items"]).map {
@@ -333,7 +580,9 @@ struct InvestOverview: Equatable {
                 slice.weight = total > 0 ? item.value / total * 100 : 0
                 return slice
             }
-            return InvestMonth(id: InvestJSON.str(m["month"]), total: total, items: weighted)
+            return InvestMonth(id: InvestJSON.str(m["month"]), total: total, items: weighted,
+                               source: InvestJSON.str(m["source"]), covered: m["covered"] as? Bool ?? true,
+                               announced: InvestJSON.num(m["announced"]) ?? total)
         }
         feed = InvestJSON.list(o["feed"]).map(InvestDoc.init)
         pending = InvestJSON.int(o["pending"])
@@ -350,6 +599,12 @@ struct InvestOverview: Equatable {
         judged = InvestJSON.int(learn["judged"])
         paper = InvestPaper(InvestJSON.dict(learn["paper"]))
         weeklyTold = InvestJSON.dict(o["weekly"])["told"] as? Bool ?? false
+        let record = InvestJSON.dict(o["dividendsRecord"])
+        dividendsSource = InvestJSON.str(record["source"])
+        dividendsRead = InvestJSON.str(record["read"])
+        for (ticker, value) in InvestJSON.dict(o["targets"]) {
+            if let target = InvestJSON.num(value) { targets[ticker] = target }
+        }
     }
 }
 
@@ -456,14 +711,11 @@ final class AXYONInvest {
     @ObservationIgnored private var readerRan: Date?
     @ObservationIgnored private var thinking = false
 
-    /// The brain's language for what it writes.
-    nonisolated static var language: String {
-        let code = Locale.preferredLanguages.first ?? "pt-BR"
-        if code.hasPrefix("pt") { return "Brazilian Portuguese" }
-        if code.hasPrefix("es") { return "Spanish" }
-        if code.hasPrefix("fr") { return "French" }
-        return "English"
-    }
+    /// The brain's language for what it writes: the user's reports are in Brazilian Portuguese, whatever the iPhone's
+    /// own language (the host asks for it too, axyon_hermes/invest.py).
+    nonisolated static let language = "Brazilian Portuguese"
+    /// The week's script and its voice.
+    nonisolated static let speech = "pt-BR"
 
     /// A class of the portfolio in the user's language (the engine names them in Portuguese).
     nonisolated static func className(_ key: String, _ given: String) -> String {
@@ -619,6 +871,12 @@ final class AXYONInvest {
         return InvestDoc(object)
     }
 
+    /// A page of a document as the reader read it: the excerpt a committee's point cites.
+    func page(_ key: String, _ number: Int) async -> String? {
+        let object = try? await engine("invest_docs", ["do": "page", "key": key, "page": number]) as? [String: Any]
+        return object?["text"] as? String
+    }
+
     // MARK: The committee
 
     /// The committee on the user's proposal ("comprar 100 cotas de GGRC11"): the verdict, kept.
@@ -636,6 +894,18 @@ final class AXYONInvest {
             return InvestVerdict(made)
         } catch {
             throw AXYONInvestError.said(Self.describe(error))
+        }
+    }
+
+    // MARK: The targets
+
+    /// The share of the portfolio the user wants in `ticker`, percent; nil takes it away. The sheet's "% Ideal" wins
+    /// when the computer sends a newer copy of the portfolio.
+    func setTarget(_ ticker: String, _ target: Double?) async throws {
+        var input: [String: Any] = ["ticker": ticker]
+        if let target { input["target"] = target }
+        if let object = try await engine("invest_target", input) as? [String: Any] {
+            overview = InvestOverview(object)
         }
     }
 
@@ -693,8 +963,7 @@ final class AXYONInvest {
     // MARK: The week
 
     func loadWeekly() async {
-        guard let object = try? await engine("invest_weekly", ["language": Locale.preferredLanguages.first ?? "pt-BR"])
-                as? [String: Any] else { return }
+        guard let object = try? await engine("invest_weekly", ["language": Self.speech]) as? [String: Any] else { return }
         weekly = InvestWeekly(week: InvestJSON.str(object["week"]), title: InvestJSON.str(object["title"]),
                               text: InvestJSON.str(object["text"]), seconds: InvestJSON.int(object["seconds"]))
     }
@@ -703,6 +972,23 @@ final class AXYONInvest {
     func weeklyTold() async {
         _ = try? await engine("invest_weekly", ["do": "told"])
         await load()
+    }
+}
+
+// MARK: - Portuguese
+
+/// AXYON speaks Portuguese whatever the iPhone's own language: set once for the app, before its first screen (iOS
+/// Settings → AXYON → Language can change it after).
+enum AXYONLanguage {
+    private static let setKey = "axyon.language.portuguese"
+
+    static func portugueseOnce() {
+        let defaults = UserDefaults.standard
+        guard !defaults.bool(forKey: setKey) else { return }
+        defaults.set(true, forKey: setKey)
+        let own = defaults.persistentDomain(forName: Bundle.main.bundleIdentifier ?? "")?["AppleLanguages"] as? [String]
+        if own?.first?.hasPrefix("pt") == true { return }
+        defaults.set(["pt-BR"], forKey: "AppleLanguages")
     }
 }
 

@@ -532,7 +532,8 @@ from axyon_hermes import invest  # noqa: E402
 
 
 class Engine:
-    """The app's engine on the other side of the bridge: the brief, then what the brain said, kept."""
+    """The app's engine on the other side of the bridge: the brief with its facts, the audit's brief, then the
+    verdict kept."""
 
     def __init__(self, fail=None):
         self.asked = []
@@ -544,22 +545,45 @@ class Engine:
         if self.fail == tool + ":" + data["do"]:
             return {"ok": False, "text": "the committee needs the asset's ticker"}
         if data["do"] == "brief":
-            prompt = "Run AXYON's investment committee on GGRC11" if tool == "invest_committee" else "You are AXYON's reader"
-            return {"ok": True, "data": {"prompt": prompt, "ticker": "GGRC11", "documents": ["fnet:904"]}}
-        return {"ok": True, "data": {"kept": data["answer"], "ticker": data.get("ticker"), "reason": data.get("reason")}}
+            if tool == "invest_docs":
+                return {"ok": True, "data": {"prompt": "You are AXYON's reader"}}
+            return {"ok": True, "data": {"prompt": "Comitê de investimentos do AXYON: GGRC11", "ticker": "GGRC11", "documents": ["fnet:904"],
+                                         "facts": [{"id": "F1", "text": "Preço de GGRC11: R$ 9,12"}], "docs": [{"id": "D1", "key": "fnet:904"}]}}
+        if data["do"] == "audit":
+            return {"ok": True, "data": {"prompt": "Você é o auditor do comitê: GGRC11 " + str(len(data["facts"])), "findings": []}}
+        return {"ok": True, "data": {"kept": data["answer"], "audit": data.get("audit"), "auditFailed": data.get("auditFailed"),
+                                     "ticker": data.get("ticker"), "reason": data.get("reason"), "facts": len(data.get("facts") or [])}}
 
 
 prompts = []
 engine = Engine()
-brain = invest.Invest(engine, ask=lambda prompt: (prompts.append(prompt), '{"minds": []}')[1])
-verdict = brain.committee({"proposal": "comprar mais 100 cotas de GGRC11", "reason": "asked", "language": "Portuguese"})
-check("the committee's brief asked of the engine, then the brain, then kept by the engine",
-      [r[1]["input"]["do"] for r in engine.asked] == ["brief", "verdict"] and prompts == ["Run AXYON's investment committee on GGRC11"])
-check("the verdict is the engine's, for the ticker the engine found", verdict == {"kept": '{"minds": []}', "ticker": "GGRC11", "reason": "asked"})
+brain = invest.Invest(engine, ask=lambda prompt: (prompts.append(prompt), '{"minds": []}' if len(prompts) == 1 else '{"audit": []}')[1])
+verdict = brain.committee({"proposal": "comprar mais 100 cotas de GGRC11", "reason": "asked", "language": "en-US"})
+check("the committee: the brief, the minds, the audit's brief, the auditor, then the verdict kept by the engine",
+      [r[1]["input"]["do"] for r in engine.asked] == ["brief", "audit", "verdict"]
+      and prompts == ["Comitê de investimentos do AXYON: GGRC11", "Você é o auditor do comitê: GGRC11 1"])
+check("always in Portuguese, whatever the iPhone's language", engine.asked[0][1]["input"]["language"] == "Brazilian Portuguese")
+check("the verdict has the minds, the audit and the meeting's facts, for the ticker the engine found",
+      verdict == {"kept": '{"minds": []}', "audit": '{"audit": []}', "auditFailed": None, "ticker": "GGRC11", "reason": "asked", "facts": 1})
 check("each through the superpowers' bridge", all(k == "powers" and r["tool"] == "invest_committee" for k, r in engine.asked))
-digest = brain.digest({"key": "fnet:904", "language": "Portuguese"})
-check("a document's digest the same way", engine.asked[-1][1] == {"tool": "invest_docs", "input": {"do": "digest", "key": "fnet:904", "answer": '{"minds": []}'}}
-      and digest["kept"] == '{"minds": []}' and prompts[-1] == "You are AXYON's reader")
+digest = brain.digest({"key": "fnet:904", "language": "en-US"})
+check("a document's digest the same way, in Portuguese",
+      engine.asked[-2][1]["input"]["language"] == "Brazilian Portuguese"
+      and engine.asked[-1][1] == {"tool": "invest_docs", "input": {"do": "digest", "key": "fnet:904", "answer": '{"audit": []}'}}
+      and prompts[-1] == "You are AXYON's reader")
+
+
+def auditor_fails(prompt):
+    if "auditor" in prompt:
+        raise RuntimeError("the brain timed out")
+    return '{"minds": []}'
+
+
+verdict = invest.Invest(Engine(), ask=auditor_fails).committee({"proposal": "manter"})
+check("the auditor fails: the verdict is still kept, saying why", verdict["auditFailed"] == "the brain timed out" and verdict["audit"] is None)
+engine = Engine(fail="invest_committee:audit")
+verdict = invest.Invest(engine, ask=lambda p: "sem JSON").committee({"proposal": "manter"})
+check("the minds' answer unreadable: the verdict step answers for it", [r[1]["input"]["do"] for r in engine.asked] == ["brief", "audit", "verdict"])
 try:
     invest.Invest(Engine(fail="invest_committee:brief"), ask=lambda p: "{}").committee({"proposal": "manter"})
     said = ""

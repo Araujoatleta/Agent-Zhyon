@@ -260,6 +260,7 @@ struct AXYONInvestView: View {
     @State private var month = 11
     @State private var appeared = false
     @State private var writing = false
+    @State private var targeting = false
 
     private var overview: InvestOverview { invest.overview ?? InvestOverview() }
 
@@ -296,6 +297,7 @@ struct AXYONInvestView: View {
                         Label("Read the documents now", systemImage: "doc.text.magnifyingglass")
                     }
                     Button { writing = true } label: { Label("Write a thesis", systemImage: "square.and.pencil") }
+                    Button { targeting = true } label: { Label("Targets per asset", systemImage: "scope") }
                     Toggle(isOn: Binding(get: { overview.apprentice }, set: { on in Task { await invest.setApprentice(on) } })) {
                         Label("Apprentice mode", systemImage: "graduationcap")
                     }
@@ -314,6 +316,9 @@ struct AXYONInvestView: View {
         }
         .sheet(isPresented: $writing) {
             InvestThesisSheet(invest: invest)
+        }
+        .sheet(isPresented: $targeting) {
+            InvestTargetsSheet(invest: invest)
         }
     }
 
@@ -419,12 +424,137 @@ struct AXYONInvestView: View {
             } else {
                 InvestLegend(slices: slices)
             }
+            if shown == .dividends { dividendsSource }
             NavigationLink {
                 if shown == .allocation { AXYONWalletView() } else { InvestDividendsHistory(months: overview.dividends) }
             } label: {
                 InvestOutlineLabel(title: String(localized: "History"))
             }
             .buttonStyle(.plain)
+        }
+    }
+}
+
+extension AXYONInvestView {
+    /// Where the month's dividends come from: the user's sheet (and the day it was read), or the funds' announcements
+    /// for what was held; a month the two disagree on says both.
+    @ViewBuilder var dividendsSource: some View {
+        if overview.dividends.indices.contains(month) {
+            let shownMonth = overview.dividends[month]
+            VStack(spacing: 4) {
+                if shownMonth.source == "planilha" {
+                    Label(sheetLine, systemImage: "tablecells").labelStyle(.titleAndIcon)
+                    if !shownMonth.covered {
+                        Text("Your sheet has no amount for this month.")
+                    } else if shownMonth.diverges {
+                        Text("The funds announced \(AXYONMoney.text(shownMonth.announced)) for what you held: worth checking.")
+                            .foregroundStyle(InvestPalette.mixed)
+                    }
+                } else {
+                    Label(String(localized: "From the funds' announcements, for what you held"), systemImage: "megaphone")
+                        .labelStyle(.titleAndIcon)
+                }
+            }
+            .font(.caption)
+            .foregroundStyle(AXYONPalette.dim)
+            .multilineTextAlignment(.center)
+        }
+    }
+
+    private var sheetLine: String {
+        let name = overview.dividendsSource.isEmpty ? String(localized: "Your sheet") : overview.dividendsSource
+        guard !overview.dividendsRead.isEmpty else { return name }
+        return name + " · " + String(localized: "read on \(investDay(overview.dividendsRead))")
+    }
+}
+
+/// The share of the portfolio wanted in each asset, percent: the sheet's "% Ideal" when the computer sends it, or set
+/// here. The committee weighs each asset against its target before any opinion on adding to it.
+struct InvestTargetsSheet: View {
+    let invest: AXYONInvest
+    @Environment(\.dismiss) private var dismiss
+    @State private var typed: [String: String] = [:]
+    @State private var saving = false
+    @State private var problem: String?
+
+    private var assets: [InvestSlice] { invest.overview?.byAsset ?? [] }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    if assets.isEmpty {
+                        Text("Your portfolio shows here once AXYON knows it: from your computer, or told in the chat.")
+                            .foregroundStyle(.secondary)
+                    }
+                    ForEach(assets) { asset in
+                        HStack(spacing: 10) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(asset.label).font(.body.weight(.semibold))
+                                Text("Now \(Self.share(asset.weight))").font(.caption).foregroundStyle(.secondary)
+                            }
+                            Spacer(minLength: 8)
+                            TextField(String(localized: "none"), text: field(asset))
+                                .keyboardType(.decimalPad)
+                                .multilineTextAlignment(.trailing)
+                                .frame(width: 72)
+                            Text(verbatim: "%").foregroundStyle(.secondary)
+                        }
+                    }
+                } footer: {
+                    Text("Your sheet's \"Percentual Ideal\" column, read by the computer, wins over a target set here. Empty: no target.")
+                }
+                if let problem {
+                    Text(problem).foregroundStyle(InvestPalette.against)
+                }
+            }
+            .scrollContentBackground(.hidden)
+            .background { InvestBackdrop() }
+            .navigationTitle("Targets per asset")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") { save() }.disabled(saving || typed.isEmpty)
+                }
+            }
+        }
+        .presentationDetents([.large])
+    }
+
+    /// "19,5%".
+    static func share(_ value: Double) -> String {
+        value.formatted(.number.precision(.fractionLength(0...1)).locale(Locale(identifier: "pt_BR"))) + "%"
+    }
+
+    private func field(_ asset: InvestSlice) -> Binding<String> {
+        Binding(get: {
+            typed[asset.id] ?? asset.target.map { $0.formatted(.number.precision(.fractionLength(0...2)).locale(Locale(identifier: "pt_BR"))) } ?? ""
+        }, set: { typed[asset.id] = $0 })
+    }
+
+    private func save() {
+        saving = true
+        problem = nil
+        Task {
+            defer { saving = false }
+            for (ticker, text) in typed {
+                let cleaned = text.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")
+                let value = cleaned.isEmpty ? nil : Double(cleaned)
+                if !cleaned.isEmpty, value == nil {
+                    problem = String(localized: "\(ticker): not a number.")
+                    return
+                }
+                do {
+                    try await invest.setTarget(ticker, value.flatMap { $0 > 0 ? $0 : nil })
+                } catch {
+                    problem = AXYONInvest.describe(error)
+                    return
+                }
+            }
+            dismiss()
         }
     }
 }
@@ -665,6 +795,9 @@ struct InvestVerdictRow: View {
                     if verdict.reason == "document" || verdict.reason == "thesis" {
                         InvestTag(text: String(localized: "by itself"), color: InvestPalette.mixed)
                     }
+                    if !verdict.portfolio.view.isEmpty {
+                        InvestTag(text: verdict.portfolio.viewName, color: InvestPalette.vote(verdict.portfolio.tone))
+                    }
                     Spacer(minLength: 0)
                     Text(investDay(verdict.date)).font(.caption2).foregroundStyle(AXYONPalette.faint)
                 }
@@ -703,50 +836,34 @@ struct InvestVerdictsList: View {
     }
 }
 
-/// A meeting of the committee: the score, the vetoes, each mind's vote and points with their sources, and the
-/// chair's synthesis, which ends with a question.
+/// A meeting of the committee: the score; the two opinions, the asset itself and what to do with it in the
+/// portfolio; what the audit found, the critical apart from the notes; what to verify; the chair's synthesis; each
+/// mind's vote, why, its points with their kind and sources and what it lacked; then the facts and documents cited,
+/// each with its dates. A source opens where it comes from.
 struct InvestVerdictView: View {
     let verdict: InvestVerdict
     @State private var appeared = false
+    @State private var opened: InvestCitation?
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
-                VStack(spacing: 14) {
-                    ZStack {
-                        InvestRing(values: appeared ? Array(repeating: 1.0, count: verdict.minds.count) : [],
-                                   colors: verdict.minds.map { InvestPalette.vote($0.vote) }, lineWidth: 22, gap: 0.03, capacity: 5)
-                        VStack(spacing: 2) {
-                            Text(verdict.score)
-                                .font(.system(size: 44, weight: .bold, design: .rounded))
-                                .monospacedDigit()
-                                .foregroundStyle(.white)
-                            Text("for × against").font(.caption.weight(.semibold)).foregroundStyle(AXYONPalette.dim)
-                            if verdict.neutral > 0 {
-                                Text("\(verdict.neutral) neutral").font(.caption2).foregroundStyle(AXYONPalette.faint)
-                            }
-                        }
+                header
+                if !verdict.asset.isEmpty || !verdict.portfolio.isEmpty {
+                    VStack(spacing: 12) {
+                        opinion("A", String(localized: "Opinion A · The asset"), verdict.asset)
+                        opinion("B", String(localized: "Opinion B · In your portfolio"), verdict.portfolio)
                     }
-                    .frame(width: 210, height: 210)
-                    if verdict.vetoed {
-                        Label(String(localized: "Vetoed by \(vetoes)"), systemImage: "hand.raised.fill")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(InvestPalette.against)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
-                            .background(Capsule().fill(InvestPalette.against.opacity(0.14)))
-                    }
-                    Text("“\(verdict.proposal)”")
-                        .font(.callout)
-                        .foregroundStyle(AXYONPalette.dim)
-                        .multilineTextAlignment(.center)
                 }
-                .frame(maxWidth: .infinity)
-
+                findings(String(localized: "Critical alerts"), "exclamationmark.octagon.fill", InvestPalette.against, verdict.critical)
+                findings(String(localized: "Material points"), "exclamationmark.triangle.fill", InvestPalette.mixed, verdict.material)
+                if !verdict.toVerify.isEmpty { toVerify }
                 chair
                 ForEach(verdict.minds) { mind in
-                    InvestMindCard(mind: mind)
+                    InvestMindCard(mind: mind) { opened = $0 }
                 }
+                findings(String(localized: "Notes"), "info.circle.fill", InvestPalette.neutral, verdict.notes)
+                if !verdict.facts.isEmpty || !verdict.documents.isEmpty { sources }
                 Text("The committee never orders: its five minds are archetypes, every number is the code's and every point cites its source. Nothing is bought or sold; this is not an investment recommendation.")
                     .font(.caption2)
                     .foregroundStyle(AXYONPalette.faint)
@@ -757,9 +874,124 @@ struct InvestVerdictView: View {
         .navigationTitle(verdict.ticker)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { withAnimation(.spring(response: 0.9, dampingFraction: 0.8)) { appeared = true } }
+        .sheet(item: $opened) { citation in
+            InvestSourceSheet(citation: citation, verdict: verdict)
+        }
     }
 
     private var vetoes: String { verdict.vetoedBy.map { InvestMind.name($0) }.joined(separator: ", ") }
+
+    private var header: some View {
+        VStack(spacing: 14) {
+            ZStack {
+                InvestRing(values: appeared ? Array(repeating: 1.0, count: verdict.minds.count) : [],
+                           colors: verdict.minds.map { InvestPalette.vote($0.vote) }, lineWidth: 22, gap: 0.03, capacity: 5)
+                VStack(spacing: 2) {
+                    Text(verdict.score)
+                        .font(.system(size: 44, weight: .bold, design: .rounded))
+                        .monospacedDigit()
+                        .foregroundStyle(.white)
+                    Text("for × against").font(.caption.weight(.semibold)).foregroundStyle(AXYONPalette.dim)
+                    if verdict.neutral > 0 {
+                        Text("\(verdict.neutral) neutral").font(.caption2).foregroundStyle(AXYONPalette.faint)
+                    }
+                }
+            }
+            .frame(width: 210, height: 210)
+            if verdict.vetoed {
+                Label(String(localized: "Vetoed by \(vetoes)"), systemImage: "hand.raised.fill")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(InvestPalette.against)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .background(Capsule().fill(InvestPalette.against.opacity(0.14)))
+            }
+            Text("“\(verdict.proposal)”")
+                .font(.callout)
+                .foregroundStyle(AXYONPalette.dim)
+                .multilineTextAlignment(.center)
+            if !verdict.date.isEmpty {
+                Text("Committee of \(investDay(verdict.date))").font(.caption2).foregroundStyle(AXYONPalette.faint)
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    /// One of the two opinions, each on its own: a vote against buying more is not a call to sell.
+    @ViewBuilder
+    private func opinion(_ letter: String, _ title: String, _ given: InvestOpinion) -> some View {
+        if !given.isEmpty {
+            let color = InvestPalette.vote(given.tone)
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 10) {
+                    Text(verbatim: letter)
+                        .font(.caption.weight(.heavy))
+                        .foregroundStyle(.black)
+                        .frame(width: 24, height: 24)
+                        .background(Circle().fill(color))
+                    Text(title).font(.headline).foregroundStyle(.white)
+                    Spacer(minLength: 4)
+                    InvestTag(text: given.viewName, color: color)
+                }
+                if !given.why.isEmpty {
+                    Text(given.why).font(.callout).foregroundStyle(Color.white.opacity(0.88))
+                }
+                HStack(spacing: 6) {
+                    if let confidence = given.confidence {
+                        Text("Confidence \(confidence)%").font(.caption2.weight(.semibold)).foregroundStyle(AXYONPalette.faint)
+                    }
+                    InvestCitations(text: given.sources.joined(separator: ", ")) { opened = $0 }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(16)
+            .axyonCard(cornerRadius: 22)
+        }
+    }
+
+    /// What the audit found at one severity, by the auditor or by AXYON's code.
+    @ViewBuilder
+    private func findings(_ title: String, _ icon: String, _ color: Color, _ items: [InvestAuditItem]) -> some View {
+        if !items.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                Label(title, systemImage: icon).font(.headline).foregroundStyle(color)
+                ForEach(items) { item in
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(item.text).font(.callout).foregroundStyle(Color.white.opacity(0.9))
+                        HStack(spacing: 6) {
+                            InvestTag(text: item.by == "auditor" ? String(localized: "auditor") : String(localized: "AXYON's code"),
+                                      color: AXYONPalette.dim)
+                            if !item.minds.isEmpty {
+                                Text(item.minds.map { InvestMind.name($0) }.joined(separator: ", "))
+                                    .font(.caption2)
+                                    .foregroundStyle(AXYONPalette.faint)
+                                    .lineLimit(1)
+                            }
+                            InvestCitations(text: item.sources.joined(separator: ", ")) { opened = $0 }
+                        }
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(16)
+            .axyonCard(cornerRadius: 22, tint: color == InvestPalette.neutral ? nil : color)
+        }
+    }
+
+    private var toVerify: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("To verify", systemImage: "checklist").font(.headline).foregroundStyle(.white)
+            ForEach(Array(verdict.toVerify.enumerated()), id: \.offset) { _, line in
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Image(systemName: "circle").font(.caption2).foregroundStyle(AXYONPalette.faint)
+                    Text(line).font(.callout).foregroundStyle(Color.white.opacity(0.88))
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .axyonCard(cornerRadius: 22)
+    }
 
     private var chair: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -785,19 +1017,86 @@ struct InvestVerdictView: View {
             }
         }
     }
+
+    /// The facts the committee was given and the documents it read, each with its dates; a tap opens one.
+    private var sources: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("Sources", systemImage: "books.vertical.fill").font(.headline).foregroundStyle(.white)
+            ForEach(verdict.documents) { doc in
+                Button { opened = InvestCitation(ref: doc.id, page: nil) } label: {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        InvestTag(text: doc.id)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(doc.title).font(.callout).foregroundStyle(.white).multilineTextAlignment(.leading)
+                            Text([AXYONInvest.kindName(doc.kind), investDay(doc.delivered)].filter { !$0.isEmpty }.joined(separator: " · "))
+                                .font(.caption2)
+                                .foregroundStyle(AXYONPalette.faint)
+                        }
+                        Spacer(minLength: 0)
+                        Image(systemName: "chevron.right").font(.caption2.weight(.semibold)).foregroundStyle(AXYONPalette.faint)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+            ForEach(verdict.facts) { fact in
+                Button { opened = InvestCitation(ref: fact.id, page: nil) } label: {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        InvestTag(text: fact.id, color: InvestPalette.status(fact.status))
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(fact.text).font(.footnote).foregroundStyle(Color.white.opacity(0.88)).multilineTextAlignment(.leading)
+                            Text(InvestSourceSheet.dates(fact)).font(.caption2).foregroundStyle(AXYONPalette.faint).multilineTextAlignment(.leading)
+                        }
+                        Spacer(minLength: 0)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .axyonCard(cornerRadius: 22)
+    }
 }
 
-/// One mind: who it is, what it watches, its vote and how sure it is, its points and their sources.
-struct InvestMindCard: View {
-    let mind: InvestMind
+/// The sources a text names ("F3, D1 p.4"), each a tag that opens it.
+struct InvestCitations: View {
+    let text: String
+    let open: (InvestCitation) -> Void
 
-    private var vote: String {
-        switch mind.vote {
-        case "for": String(localized: "For")
-        case "against": String(localized: "Against")
-        default: String(localized: "Neutral")
+    var body: some View {
+        let found = InvestCitation.parse(text)
+        if !found.isEmpty {
+            HStack(spacing: 4) {
+                ForEach(found) { citation in
+                    Button { open(citation) } label: { InvestTag(text: citation.label) }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(Text("Open the source \(citation.label)"))
+                }
+            }
         }
     }
+}
+
+extension InvestPalette {
+    /// A fact's status: confirmed and computed plain, an estimate soft, missing grey, divergent red.
+    static func status(_ status: String) -> Color {
+        switch status {
+        case "divergente": against
+        case "estimativa": mixed
+        case "ausente": neutral
+        default: .white
+        }
+    }
+}
+
+/// One mind: who it is and what it watches, its vote and how sure it is, why, its veto's criterion, each point with
+/// its kind, whether AXYON's code found it in its source, and the source to open; what it lacked; and when the audit
+/// revised it, its vote before.
+struct InvestMindCard: View {
+    let mind: InvestMind
+    var open: (InvestCitation) -> Void = { _ in }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -813,9 +1112,12 @@ struct InvestMindCard: View {
                 }
                 Spacer(minLength: 4)
                 VStack(alignment: .trailing, spacing: 4) {
-                    InvestTag(text: vote, color: InvestPalette.vote(mind.vote))
+                    InvestTag(text: InvestMind.voteName(mind.vote), color: InvestPalette.vote(mind.vote))
                     if mind.veto {
                         InvestTag(text: String(localized: "veto"), color: InvestPalette.against)
+                    }
+                    if mind.revised {
+                        InvestTag(text: String(localized: "revised"), color: InvestPalette.mixed)
                     }
                 }
             }
@@ -828,20 +1130,187 @@ struct InvestMindCard: View {
             }
             .frame(height: 5)
             .accessibilityLabel(Text("Sure at \(mind.confidence)%"))
+            if mind.revised, !mind.was.isEmpty {
+                Text("The audit changed its vote: it was \(InvestMind.voteName(mind.was)).")
+                    .font(.caption)
+                    .foregroundStyle(InvestPalette.mixed)
+            }
+            if !mind.why.isEmpty {
+                Text(mind.why).font(.callout).foregroundStyle(.white)
+            }
+            if mind.veto, !mind.vetoReason.isEmpty {
+                Label(String(localized: "Veto: \(InvestMind.vetoName(mind.vetoReason))"), systemImage: "hand.raised.fill")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(InvestPalette.against)
+            }
             ForEach(mind.points) { point in
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text("•").foregroundStyle(AXYONPalette.faint)
-                    Text(point.text).font(.callout).foregroundStyle(Color.white.opacity(0.88))
-                    Spacer(minLength: 0)
-                    if !point.source.isEmpty { InvestTag(text: point.source) }
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        mark(point)
+                        Text(point.text).font(.callout).foregroundStyle(Color.white.opacity(0.88))
+                        Spacer(minLength: 0)
+                    }
+                    HStack(spacing: 4) {
+                        if !point.kind.isEmpty {
+                            InvestTag(text: InvestMind.kindName(point.kind), color: AXYONPalette.dim)
+                        }
+                        InvestCitations(text: point.source, open: open)
+                    }
+                    .padding(.leading, 18)
+                    if point.verified == false, !point.check.isEmpty {
+                        Text(point.check).font(.caption2).foregroundStyle(InvestPalette.mixed).padding(.leading, 18)
+                    }
                 }
             }
             if mind.points.isEmpty {
                 Text("Said nothing: short of data.").font(.footnote).foregroundStyle(AXYONPalette.faint)
             }
+            if !mind.missing.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Missing data that could change its vote").font(.caption.weight(.semibold)).foregroundStyle(AXYONPalette.faint)
+                    ForEach(Array(mind.missing.enumerated()), id: \.offset) { _, missing in
+                        Text("· \(missing)").font(.footnote).foregroundStyle(AXYONPalette.dim)
+                    }
+                }
+            }
         }
         .padding(16)
         .axyonCard(cornerRadius: 22)
+    }
+
+    /// Whether AXYON's code found the point in its source: a seal when it did, a triangle when it did not.
+    @ViewBuilder
+    private func mark(_ point: InvestMind.Point) -> some View {
+        switch point.verified {
+        case true?:
+            Image(systemName: "checkmark.seal.fill").font(.caption).foregroundStyle(InvestPalette.favor)
+                .accessibilityLabel(Text("Found in its source"))
+        case false?:
+            Image(systemName: "exclamationmark.triangle.fill").font(.caption).foregroundStyle(InvestPalette.mixed)
+                .accessibilityLabel(Text("Not found in its source"))
+        case nil:
+            Text("•").foregroundStyle(AXYONPalette.faint)
+        }
+    }
+}
+
+/// A source opened: a fact with its source, dates, formula and status; or a document, the page cited read here, and
+/// the link to open it where it was published.
+struct InvestSourceSheet: View {
+    let citation: InvestCitation
+    let verdict: InvestVerdict
+    @Environment(\.dismiss) private var dismiss
+    @State private var page: String?
+    @State private var loading = false
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    if citation.isFact {
+                        if let fact = verdict.fact(citation.ref) { factView(fact) } else { gone }
+                    } else {
+                        if let doc = verdict.document(citation.ref) { docView(doc) } else { gone }
+                    }
+                }
+                .padding(20)
+            }
+            .background { InvestBackdrop() }
+            .navigationTitle(citation.label)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .task { await loadPage() }
+    }
+
+    /// "Fonte · ref. 09/2026 · consultado em 29/10/2026".
+    static func dates(_ fact: InvestFact) -> String {
+        var parts = [fact.source]
+        if !fact.reference.isEmpty { parts.append(String(localized: "ref. \(fact.reference)")) }
+        if !fact.consulted.isEmpty { parts.append(String(localized: "read on \(investDay(fact.consulted))")) }
+        return parts.filter { !$0.isEmpty }.joined(separator: " · ")
+    }
+
+    private var gone: some View {
+        Text("This source is not in the meeting's record.").font(.callout).foregroundStyle(AXYONPalette.dim)
+    }
+
+    private func factView(_ fact: InvestFact) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            InvestTag(text: fact.statusName, color: InvestPalette.status(fact.status))
+            Text(fact.text).font(.title3.weight(.semibold)).foregroundStyle(.white)
+            row(String(localized: "Source"), fact.source)
+            row(String(localized: "Reference date"), fact.reference)
+            row(String(localized: "Read on"), investDay(fact.consulted))
+            row(String(localized: "Calculation"), fact.formula)
+            if !fact.warning.isEmpty {
+                Label(fact.warning, systemImage: "exclamationmark.triangle.fill")
+                    .font(.callout)
+                    .foregroundStyle(InvestPalette.mixed)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func docView(_ doc: InvestDocRef) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 6) {
+                InvestTag(text: AXYONInvest.kindName(doc.kind))
+                if !doc.delivered.isEmpty {
+                    Text(investDay(doc.delivered)).font(.caption).foregroundStyle(AXYONPalette.faint)
+                }
+            }
+            Text(doc.title).font(.title3.weight(.semibold)).foregroundStyle(.white)
+            if let url = URL(string: doc.url), !doc.url.isEmpty {
+                Link(destination: url) {
+                    Label("Open the document", systemImage: "arrow.up.right.square").font(.callout.weight(.semibold))
+                }
+                .tint(.white)
+            }
+            if let number = citation.page {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Page \(number) of \(doc.pages)").font(.caption.weight(.semibold)).foregroundStyle(AXYONPalette.faint)
+                    if loading {
+                        ProgressView().tint(.white)
+                    } else if let page, !page.isEmpty {
+                        Text(page)
+                            .font(.footnote)
+                            .foregroundStyle(Color.white.opacity(0.85))
+                            .textSelection(.enabled)
+                    } else {
+                        Text("The page's text is no longer kept on this iPhone: open the document.")
+                            .font(.footnote)
+                            .foregroundStyle(AXYONPalette.dim)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(14)
+                .axyonCard(cornerRadius: 18)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private func row(_ title: String, _ text: String) -> some View {
+        if !text.isEmpty {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title).font(.caption.weight(.semibold)).foregroundStyle(AXYONPalette.faint)
+                Text(text).font(.callout).foregroundStyle(Color.white.opacity(0.88)).textSelection(.enabled)
+            }
+        }
+    }
+
+    private func loadPage() async {
+        guard !citation.isFact, let number = citation.page, let doc = verdict.document(citation.ref) else { return }
+        loading = true
+        page = await AXYONInvest.shared.page(doc.key, number)
+        loading = false
     }
 }
 
@@ -1202,7 +1671,7 @@ struct InvestWeeklyCard: View {
     @State private var problem: String?
     @State private var remind = UserDefaults.standard.bool(forKey: AXYONWeeklyAudio.remindKey)
 
-    private var language: String { Locale.preferredLanguages.first ?? "pt-BR" }
+    private var language: String { AXYONInvest.speech }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {

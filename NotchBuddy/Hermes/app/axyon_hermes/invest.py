@@ -1,12 +1,15 @@
-"""AXYON's investing brain on the iPhone: the reader's digest of a document, and the committee's meeting, each asked
-of Hermes' model once, with no tools. The engine (windows/powers, coucou_powers::invest `app`, through the app's
-"powers" bridge) writes the brief, with the facts its code computed and the documents' pages, and keeps the answer:
-every number is the code's, every point cites its source, and the five minds are archetypes. Nothing is bought or
-sold, and the decision stays the user's (the committee ends with a question).
+"""AXYON's investing brain on the iPhone: the reader's digest of a document, and the committee's meeting, asked of
+Hermes' model with no tools, always in Brazilian Portuguese. The engine (windows/powers, coucou_powers::invest `app`,
+through the app's "powers" bridge) writes the brief, with the facts its code computed (each with its source, dates
+and formula) and the documents' pages, and keeps the answer: every number is the code's, every point cites its
+source, and the five minds are archetypes. The committee meets in two answers: the minds, then an auditor who reads
+what the engine's code found in them, revises the minds it must and writes the two final opinions (the asset, and
+its fit in the portfolio). Nothing is bought or sold, and the decision stays the user's.
 
-  POST /v1/invest/digest {key, language}         the digest of a document the reader read, kept with it
-  POST /v1/invest/committee {proposal, ticker, reason, document, language}
-                                                 the committee's verdict, kept (reason: asked, document or thesis)
+  POST /v1/invest/digest {key}                   the digest of a document the reader read, kept with it
+  POST /v1/invest/committee {proposal, ticker, reason, document}
+                                                 the committee's verdict, audited and kept (reason: asked, document
+                                                 or thesis)
 """
 
 from __future__ import annotations
@@ -16,8 +19,10 @@ from typing import Any, Callable, Optional
 
 # The engine reads the sources it needs first: about a minute at most.
 WAIT = 100.0
-SYSTEM = ("You answer for AXYON's investing screen. Follow the brief exactly, answer with only the JSON it asks for, "
-          "and never invent a number, a fact or a source.")
+SYSTEM = ("Você responde para a tela de investimentos do AXYON. Siga o roteiro exatamente, responda só com o JSON "
+          "que ele pede, com todo o texto em português do Brasil, e nunca invente um número, um fato ou uma fonte.")
+# The reports are the user's, in their language: Portuguese, whatever the iPhone's language.
+LANGUAGE = "Brazilian Portuguese"
 
 
 class InvestError(Exception):
@@ -86,9 +91,8 @@ class Invest:
         key = str(body.get("key") or "").strip()
         if not key:
             raise ValueError("the document's key is missing")
-        language = str(body.get("language") or "Portuguese")
         with self.lock:
-            brief = self._engine("invest_docs", {"do": "brief", "key": key, "language": language})
+            brief = self._engine("invest_docs", {"do": "brief", "key": key, "language": LANGUAGE})
             said = self.ask(str((brief or {}).get("prompt") or ""))
             return self._engine("invest_docs", {"do": "digest", "key": key, "answer": said})
 
@@ -96,12 +100,23 @@ class Invest:
         proposal = str(body.get("proposal") or "").strip()
         if not proposal:
             raise ValueError("the committee needs the proposal")
-        asked = {"do": "brief", "proposal": proposal[:600], "ticker": str(body.get("ticker") or ""),
-                 "language": str(body.get("language") or "Portuguese")}
+        asked = {"do": "brief", "proposal": proposal[:600], "ticker": str(body.get("ticker") or ""), "language": LANGUAGE}
         with self.lock:
             brief = self._engine("invest_committee", asked) or {}
+            # The facts and documents of this meeting go back with each step: the audit and the verdict check
+            # the minds against them.
+            meeting = {"ticker": brief.get("ticker") or asked["ticker"], "proposal": proposal[:300],
+                       "facts": brief.get("facts") or [], "docs": brief.get("docs") or []}
             said = self.ask(str(brief.get("prompt") or ""))
-            return self._engine("invest_committee", {
-                "do": "verdict", "answer": said, "ticker": brief.get("ticker") or asked["ticker"],
-                "proposal": proposal[:300], "reason": str(body.get("reason") or "asked"),
-                "document": str(body.get("document") or "")})
+            verdict = {"do": "verdict", "answer": said, "reason": str(body.get("reason") or "asked"),
+                       "document": str(body.get("document") or ""), **meeting}
+            try:
+                review = self._engine("invest_committee", {"do": "audit", "answer": said, **meeting}) or {}
+            except InvestError:
+                # The minds' answer cannot be read: the verdict step says why.
+                return self._engine("invest_committee", verdict)
+            try:
+                verdict["audit"] = self.ask(str(review.get("prompt") or ""))
+            except Exception as e:  # the auditor's answer failed: the verdict is kept, saying the audit was not done
+                verdict["auditFailed"] = str(e) or "o auditor não respondeu"
+            return self._engine("invest_committee", verdict)

@@ -520,10 +520,11 @@ final class HermesEngine {
     // MARK: Investing (AXYONInvest.swift)
 
     /// The committee's meeting on a proposal (axyon_hermes/invest.py): the engine's brief, the brain's five minds, the
-    /// verdict the engine keeps. One long answer of the brain: up to five minutes.
+    /// auditor who checks them, the verdict the engine keeps. Two long answers of the brain: up to ten minutes.
     func investCommittee(_ body: [String: Any]) async throws -> [String: Any] {
         guard state == .ready else { throw HermesError.refused(String(localized: "AXYON Core is not running yet.")) }
-        return try await call("POST", "/v1/invest/committee", body, timeout: 300)
+        // Two answers of the brain: the five minds, then the auditor.
+        return try await call("POST", "/v1/invest/committee", body, timeout: 600)
     }
 
     /// The brain's digest of a document the reader read, kept with it.

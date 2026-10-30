@@ -7,46 +7,42 @@ import UIKit
 import UniformTypeIdentifiers
 import UserNotifications
 
-// The screens of AXYON with Hermes inside the iPhone (the build that carries it): the start screen with Hermes' orb,
-// the chat, the portfolio, the home and the settings, where a computer is one option among others. Black and Liquid
-// Glass (AXYONStyle.swift); the chat's bubbles are the computer chat's (PCChatBubble).
+// The screens of AXYON with Hermes inside the iPhone (the build that carries it): the portfolio first, the chat, the
+// home and the settings, where a computer is one option among others. Black and Liquid Glass (AXYONStyle.swift); the
+// chat's bubbles are the computer chat's (PCChatBubble).
 
 enum AXYONTab: Hashable {
-    case start, chat, house, wallet, settings
+    case wallet, chat, house, settings
 
-    /// The tab AXYON opens on: the start screen; in the Simulator, the one CI's screenshots ask for
+    /// The tab AXYON opens on: the portfolio; in the Simulator, the one CI's screenshots ask for
     /// (AXYON_TEST_TAB, Hermes/tests/simulator.sh).
     static var launch: AXYONTab {
         #if targetEnvironment(simulator)
         switch ProcessInfo.processInfo.environment["AXYON_TEST_TAB"] {
         case "chat": return .chat
         case "house": return .house
-        case "wallet": return .wallet
         case "settings": return .settings
-        default: return .start
+        default: return .wallet
         }
         #else
-        return .start
+        return .wallet
         #endif
     }
 }
 
-/// The tabs of the build with Hermes inside. `startPath` is the start screen's navigation: an agent session of the
-/// paired computer opened from a notification, a widget or the list there.
+/// The tabs of the build with Hermes inside, the portfolio first. `sessionPath` is an agent session of the paired
+/// computer opened from a notification or a widget, shown over the tabs; a command of one waiting for the user's OK
+/// shows above every tab.
 struct AXYONTabs: View {
     let link: PhoneLink
     @Binding var tab: AXYONTab
-    @Binding var startPath: [String]
+    @Binding var sessionPath: [String]
 
     var body: some View {
         TabView(selection: $tab) {
-            Tab("AXYON", systemImage: "sparkle", value: AXYONTab.start) {
-                NavigationStack(path: $startPath) {
-                    AXYONStartView(link: link, tab: $tab)
-                        .navigationDestination(for: String.self) { id in
-                            SessionDetailView(link: link, sessionId: id)
-                        }
-                }
+            Tab("Wallet", systemImage: "chart.pie.fill", value: AXYONTab.wallet) {
+                // The investing screen (AXYONInvestViews.swift); the positions, as before, under its History.
+                NavigationStack { AXYONInvestView() }
             }
             Tab("Chat", systemImage: "bubble.left.and.bubble.right.fill", value: AXYONTab.chat) {
                 NavigationStack { HermesChatView() }
@@ -54,15 +50,17 @@ struct AXYONTabs: View {
             Tab("Home", systemImage: "house.fill", value: AXYONTab.house) {
                 NavigationStack { AXYONHouseView() }
             }
-            Tab("Wallet", systemImage: "chart.pie.fill", value: AXYONTab.wallet) {
-                // The investing screen (AXYONInvestViews.swift); the positions, as before, under its History.
-                NavigationStack { AXYONInvestView() }
-            }
             Tab("Settings", systemImage: "gearshape.fill", value: AXYONTab.settings) {
                 NavigationStack { AXYONSettingsView(link: link) }
             }
         }
         .coucouMinimizingTabBar()
+        .safeAreaInset(edge: .top, spacing: 0) { AXYONApprovalBanner(link: link) }
+        .sheet(isPresented: Binding(get: { !sessionPath.isEmpty }, set: { if !$0 { sessionPath = [] } })) {
+            if let id = sessionPath.first {
+                NavigationStack { SessionDetailView(link: link, sessionId: id) }
+            }
+        }
         // White for every control, as Apple's own dark apps; switches stay the system's green.
         .tint(.white)
         .toggleStyle(AXYONSwitch())
@@ -82,417 +80,37 @@ extension HermesEngine.State {
     }
 }
 
-// MARK: - The start screen
-
-/// The start screen, as Apple's own apps open: today's date over a large greeting, Hermes' orb beside it, the field to
-/// ask him, then the shortcuts, the portfolio, the day and the computer, each in its own glass.
-struct AXYONStartView: View {
+/// A command of an agent on the paired computer (Claude Code, Codex…) waits for the user's OK: Allow (Face ID) and
+/// Deny, above whichever tab is open. Nothing is allowed without the tap.
+struct AXYONApprovalBanner: View {
     let link: PhoneLink
-    @Binding var tab: AXYONTab
-    @Environment(HermesEngine.self) private var engine
-    @State private var today = AXYONToday()
-    @State private var brainOpen = false
     @State private var deciding = false
-
-    /// The agent sessions of the paired computer (Claude Code, Codex…), most urgent first.
-    private var sessions: [SessionItem] { link.sessions.sortedByUrgency() }
 
     /// The session waiting for an OK this iPhone can give.
     private var waiting: SessionItem? {
-        sessions.first { $0.needsApproval && !$0.approvalFingerprint.isEmpty }
+        link.sessions.sortedByUrgency().first { $0.needsApproval && !$0.approvalFingerprint.isEmpty }
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 30) {
-                header
-                VStack(spacing: 12) {
-                    askBar
-                    if let waiting { approvalCard(waiting) }
-                    if !engine.canChat, engine.state == .ready { brainCard }
-                    if case .failed(let why) = engine.state { troubleCard(why) }
+        if let session = waiting {
+            ApprovalPanel(session: session, disabled: deciding) {
+                Task {
+                    deciding = true
+                    _ = await QuickDecision.deny(session, link: link)
+                    deciding = false
                 }
-                actions
-                walletCard
-                todayCard
-                if !sessions.isEmpty { agentsCard }
-                computerCard
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 8)
-            .padding(.bottom, 32)
-        }
-        .scrollIndicators(.hidden)
-        .axyonBackdrop()
-        .toolbarVisibility(.hidden, for: .navigationBar)
-        .sheet(isPresented: $brainOpen) { NavigationStack { HermesBrainView() } }
-        .task {
-            await today.load()
-            await engine.refreshPortfolio()
-        }
-        .refreshable {
-            await today.load()
-            await engine.refreshPortfolio()
-        }
-    }
-
-    private var greeting: String {
-        let hour = Calendar.current.component(.hour, from: .now)
-        switch hour {
-        case 5..<12: return String(localized: "Good morning")
-        case 12..<18: return String(localized: "Good afternoon")
-        default: return String(localized: "Good evening")
-        }
-    }
-
-    private var statusLine: String {
-        switch engine.state {
-        case .off: return String(localized: "Hermes is asleep")
-        case .starting: return String(localized: "Hermes is waking up inside the iPhone…")
-        case .failed: return String(localized: "Hermes could not start")
-        case .ready:
-            guard let settings = engine.settings else { return String(localized: "Hermes is ready") }
-            let brain = HermesBrain.named(settings.provider)?.name ?? settings.provider
-            return settings.canThink ? String(localized: "Hermes inside the iPhone · \(brain)")
-                : String(localized: "Hermes is ready: choose its brain")
-        }
-    }
-
-    private var header: some View {
-        HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide)).uppercased())
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(AXYONPalette.dim)
-                Text(greeting)
-                    .font(.largeTitle.bold())
-                    .foregroundStyle(.white)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                HStack(spacing: 6) {
-                    Circle().fill(engine.state.dot).frame(width: 6, height: 6)
-                    Text(statusLine).lineLimit(1)
-                }
-                .font(.footnote)
-                .foregroundStyle(AXYONPalette.dim)
-            }
-            Spacer(minLength: 0)
-            AXYONOrb(mood: engine.mood, size: 56)
-        }
-        .padding(.top, 14)
-    }
-
-    /// Like the iPhone's own search field: a capsule of glass that opens the chat.
-    private var askBar: some View {
-        Button {
-            tab = .chat
-            Haptics.impact()
-        } label: {
-            HStack(spacing: 12) {
-                Image(systemName: "sparkle")
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(.white)
-                Text("Ask AXYON anything…")
-                    .foregroundStyle(AXYONPalette.dim)
-                Spacer(minLength: 0)
-                Image(systemName: "mic.fill")
-                    .foregroundStyle(AXYONPalette.dim)
-            }
-            .padding(.horizontal, 18)
-            .frame(height: 52)
-            .contentShape(Capsule())
-            .coucouGlass(.regular, in: Capsule(), interactive: true)
-            .overlay {
-                Capsule().strokeBorder(AXYONPalette.rim, lineWidth: 0.6).allowsHitTesting(false)
-            }
-        }
-        .buttonStyle(PressableButtonStyle())
-    }
-
-    private var brainCard: some View {
-        Button { brainOpen = true } label: {
-            AXYONRow(icon: "brain.head.profile", title: String(localized: "Give Hermes a brain"),
-                     detail: String(localized: "Sign in with ChatGPT, or paste a free Gemini key."))
-                .padding(16)
-                .axyonCard(cornerRadius: 22)
-        }
-        .buttonStyle(PressableButtonStyle())
-    }
-
-    private func troubleCard(_ why: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Label("Hermes did not start", systemImage: "exclamationmark.triangle.fill")
-                .font(.headline)
-                .foregroundStyle(AXYONPalette.down)
-            Text(why)
-                .font(.caption.monospaced())
-                .foregroundStyle(AXYONPalette.dim)
-                .textSelection(.enabled)
-                .lineLimit(8)
-            Text("Close AXYON from the app switcher and open it again.")
-                .font(.footnote)
-                .foregroundStyle(.white)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(18)
-        .axyonCard(cornerRadius: 22, tint: AXYONPalette.down)
-    }
-
-    /// What to ask in one tap, as Control Center's tiles: a white symbol and a word in glass.
-    private var actions: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            AXYONHeader(title: String(localized: "Do it for me"))
-            CoucouGlassGroup(spacing: 4) {
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 3), spacing: 10) {
-                    action(String(localized: "Remind me"), "bell.badge.fill", String(localized: "Remind me at 6pm to "))
-                    action(String(localized: "My day"), "calendar", String(localized: "What do I have today and tomorrow?"))
-                    action(String(localized: "Portfolio"), "chart.pie.fill", String(localized: "How is my portfolio doing today?"))
-                    action(String(localized: "Home"), "tv.fill", String(localized: "Turn on the living room TV"))
-                    action(String(localized: "Shortcut"), "square.on.square.dashed", String(localized: "Run my shortcut "))
-                    action(String(localized: "Search"), "globe", String(localized: "Search the web: "))
-                    // The superpowers (axyon_hermes/powers.py).
-                    action(String(localized: "Ceilings"), "target",
-                           String(localized: "Which of my assets are under their ceiling price?"))
-                    action(String(localized: "English"), "character.book.closed.fill",
-                           String(localized: "Give me today's English lesson."))
-                    action(String(localized: "Workout"), "figure.strengthtraining.traditional",
-                           String(localized: "What is my workout today?"))
+            } allow: {
+                Task {
+                    deciding = true
+                    _ = await QuickDecision.allow(session, link: link)
+                    deciding = false
                 }
             }
+            .axyonCard(cornerRadius: 22, tint: CoucouPalette.attention)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 6)
+            .transition(.move(edge: .top).combined(with: .opacity))
         }
-    }
-
-    private func action(_ title: String, _ icon: String, _ prompt: String) -> some View {
-        Button {
-            HermesDraft.shared.text = prompt
-            tab = .chat
-            Haptics.impact()
-        } label: {
-            VStack(alignment: .leading, spacing: 0) {
-                Image(systemName: icon)
-                    .font(.title3)
-                    .foregroundStyle(.white)
-                    .frame(height: 26, alignment: .leading)
-                Spacer(minLength: 14)
-                Text(title)
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(14)
-            .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-            .axyonCard(cornerRadius: 22)
-        }
-        .buttonStyle(PressableButtonStyle())
-    }
-
-    /// The portfolio as the Stocks app shows it: the total, the day in green or red, the day's biggest moves.
-    private var walletCard: some View {
-        let report = engine.portfolio.map(WalletReport.init)
-        return VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                AXYONHeader(title: String(localized: "Portfolio"))
-                if engine.portfolioLoading { ProgressView().controlSize(.small) }
-            }
-            Button { tab = .wallet } label: {
-                VStack(alignment: .leading, spacing: 14) {
-                    if let report, !report.rows.isEmpty {
-                        HStack(alignment: .bottom) {
-                            AXYONFigure(value: AXYONMoney.text(report.total), label: String(localized: "Total now"))
-                            Spacer(minLength: 8)
-                            if let day = report.dayMoney {
-                                AXYONFigure(value: AXYONMoney.signed(day), label: String(localized: "Today"),
-                                            color: day >= 0 ? AXYONPalette.up : AXYONPalette.down)
-                            }
-                        }
-                        let movers = Array(report.movers.prefix(3))
-                        if !movers.isEmpty {
-                            VStack(spacing: 0) {
-                                ForEach(movers, id: \.ticker) { row in
-                                    Divider().overlay(Color.white.opacity(0.08))
-                                    HStack {
-                                        Text(row.ticker)
-                                            .font(.subheadline.weight(.semibold))
-                                            .foregroundStyle(.white)
-                                        Spacer()
-                                        Text(AXYONMoney.percent(row.dayPct ?? 0))
-                                            .font(.subheadline.weight(.semibold))
-                                            .monospacedDigit()
-                                            .foregroundStyle((row.dayPct ?? 0) >= 0 ? AXYONPalette.up : AXYONPalette.down)
-                                    }
-                                    .padding(.vertical, 9)
-                                }
-                            }
-                        }
-                    } else {
-                        AXYONRow(icon: "chart.line.uptrend.xyaxis", title: String(localized: "Your portfolio, here"),
-                                 detail: String(localized: "Your portfolio comes from AXYON on your computer once, or tell AXYON your positions in the chat."))
-                    }
-                }
-                .padding(18)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .axyonCard()
-            }
-            .buttonStyle(PressableButtonStyle())
-        }
-    }
-
-    /// The day as the Calendar's "Up Next": the events left today, and the open reminders.
-    private var todayCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            AXYONHeader(title: String(localized: "Today"))
-            VStack(alignment: .leading, spacing: 12) {
-                if today.allowed {
-                    if today.events.isEmpty {
-                        Text("Nothing on your calendar today.").font(.subheadline).foregroundStyle(AXYONPalette.dim)
-                    }
-                    ForEach(today.events) { event in
-                        HStack(spacing: 12) {
-                            Capsule().fill(Color.white.opacity(0.85)).frame(width: 3, height: 32)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(event.title).font(.subheadline.weight(.semibold)).foregroundStyle(.white).lineLimit(1)
-                                Text(event.when).font(.caption).foregroundStyle(AXYONPalette.dim)
-                            }
-                            Spacer()
-                        }
-                    }
-                    if today.reminders > 0 {
-                        Label("Open reminders: \(today.reminders)", systemImage: "checklist")
-                            .font(.footnote.weight(.medium))
-                            .foregroundStyle(AXYONPalette.dim)
-                    }
-                } else {
-                    Text("Let AXYON see your calendar and reminders")
-                        .font(.subheadline)
-                        .foregroundStyle(AXYONPalette.dim)
-                    Button {
-                        Task { await today.ask() }
-                    } label: {
-                        Label("Allow", systemImage: "calendar.badge.plus")
-                    }
-                    .coucouProminentButton()
-                }
-            }
-            .padding(18)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .axyonCard()
-        }
-    }
-
-    /// A command of an agent on the computer waits for your OK: Allow (Face ID) and Deny right here.
-    private func approvalCard(_ session: SessionItem) -> some View {
-        ApprovalPanel(session: session, disabled: deciding) {
-            Task {
-                deciding = true
-                _ = await QuickDecision.deny(session, link: link)
-                deciding = false
-            }
-        } allow: {
-            Task {
-                deciding = true
-                _ = await QuickDecision.allow(session, link: link)
-                deciding = false
-            }
-        }
-        .axyonCard(cornerRadius: 22, tint: CoucouPalette.attention)
-    }
-
-    /// The computer's agents (Claude Code, Codex…): a tap opens the session, its last turn and what it asks.
-    private var agentsCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            AXYONHeader(title: String(localized: "Agents on the computer"))
-            VStack(spacing: 0) {
-                ForEach(Array(sessions.prefix(5).enumerated()), id: \.element.id) { index, session in
-                    if index > 0 { Divider().overlay(Color.white.opacity(0.08)).padding(.leading, 66) }
-                    NavigationLink(value: session.id) {
-                        SessionRow(session: session)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.vertical, 6)
-            .axyonCard(cornerRadius: 24)
-        }
-    }
-
-    private var computerCard: some View {
-        let pc = PCLink.shared
-        return VStack(alignment: .leading, spacing: 10) {
-            AXYONHeader(title: String(localized: "Computer"))
-            Button { tab = .settings } label: {
-                AXYONRow(icon: "desktopcomputer",
-                         title: pc.isPaired ? pc.name : String(localized: "Computer (optional)"),
-                         detail: pc.isPaired ? pc.status.shortText
-                            : String(localized: "AXYON works on its own. Pair a computer to reach it too."))
-                    .padding(16)
-                    .axyonCard(cornerRadius: 22)
-            }
-            .buttonStyle(PressableButtonStyle())
-        }
-    }
-}
-
-/// A prompt the start screen puts in the chat's field.
-@MainActor
-@Observable
-final class HermesDraft {
-    static let shared = HermesDraft()
-    var text = ""
-}
-
-/// Today's calendar and open reminders, read on the iPhone itself for the start screen.
-@MainActor
-@Observable
-final class AXYONToday {
-    struct Event: Identifiable, Sendable {
-        let id: String
-        let title: String
-        let when: String
-    }
-
-    private(set) var allowed = false
-    private(set) var events: [Event] = []
-    private(set) var reminders = 0
-
-    func load() async {
-        allowed = EKEventStore.authorizationStatus(for: .event) == .fullAccess
-        guard allowed else { return }
-        let (found, open) = await Self.read()
-        events = found
-        reminders = open
-    }
-
-    func ask() async {
-        await AXYONPermissions.requestEvents()
-        await AXYONPermissions.requestReminders()
-        await load()
-    }
-
-    nonisolated private static func read() async -> ([Event], Int) {
-        let store = EKEventStore()
-        let start = Date.now
-        let end = Calendar.current.startOfDay(for: .now).addingTimeInterval(86_400)
-        let found = store.events(matching: store.predicateForEvents(withStart: start, end: end, calendars: nil))
-            .prefix(4)
-            .map { event in
-                Event(id: event.eventIdentifier ?? UUID().uuidString, title: event.title ?? "",
-                      when: event.isAllDay ? String(localized: "All day")
-                        : event.startDate.formatted(date: .omitted, time: .shortened))
-            }
-        var open = 0
-        if EKEventStore.authorizationStatus(for: .reminder) == .fullAccess {
-            let predicate = store.predicateForIncompleteReminders(withDueDateStarting: nil, ending: end, calendars: nil)
-            open = await withCheckedContinuation { continuation in
-                store.fetchReminders(matching: predicate) { @Sendable found in
-                    continuation.resume(returning: found?.count ?? 0)
-                }
-            }
-        }
-        return (Array(found), open)
     }
 }
 
@@ -621,13 +239,6 @@ struct HermesChatView: View {
             guard case .success(let files) = result else { return }
             for file in files.prefix(6) {
                 attach { try await AXYONInbox.addFile(file) }
-            }
-        }
-        .onAppear {
-            if !HermesDraft.shared.text.isEmpty {
-                text = HermesDraft.shared.text
-                HermesDraft.shared.text = ""
-                focused = true
             }
         }
         .onDisappear {
@@ -1447,6 +1058,23 @@ struct AXYONSettingsView: View {
                 Text("Gmail, Sheets, Drive, Docs and Calendar with your own Google sign-in, and the tasks AXYON runs for you on a schedule.")
             }
             .listRowBackground(GlassRowBackground())
+
+            // The paired computer's agent sessions (Claude Code, Codex…): a tap opens the session, its last turn and
+            // what it asks.
+            if !link.sessions.isEmpty {
+                Section {
+                    ForEach(Array(link.sessions.sortedByUrgency().prefix(8))) { session in
+                        NavigationLink {
+                            SessionDetailView(link: link, sessionId: session.id)
+                        } label: {
+                            SessionRow(session: session)
+                        }
+                    }
+                } header: {
+                    Text("Agents on the computer")
+                }
+                .listRowBackground(GlassRowBackground())
+            }
 
             Section {
                 NavigationLink {

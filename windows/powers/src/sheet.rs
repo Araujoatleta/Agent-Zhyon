@@ -424,7 +424,7 @@ mod tests {
         assert_eq!(d.months.get("2026-06"), Some(&0.0), "a date serial (46174 = 01/06/2026) is a month too");
         assert_eq!(d.months.get("2026-04"), Some(&0.0), "a month with a column and nothing in it: R$ 0");
         assert_eq!(d.months.len(), 9);
-        assert!(d.months.get("2026-03").is_none(), "a month the table has no column for: no record");
+        assert!(!d.months.contains_key("2026-03"), "a month the table has no column for: no record");
         assert_eq!(d.total, Some(82.27));
         assert!(d.by_asset.is_empty());
         // Asset by asset, the months' totals added up.

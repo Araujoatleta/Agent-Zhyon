@@ -414,6 +414,11 @@ fn item(severity: &str, minds: Vec<String>, text: String, sources: Vec<String>) 
     AuditItem { severity: severity.into(), minds, text, sources, by: "codigo".into() }
 }
 
+/// The brain's audit could not be done: said first, with why; this code's checks still stand.
+pub fn unaudited(why: &str) -> AuditItem {
+    item("material", Vec::new(), format!("A revisão cruzada do auditor não foi feita ({}); valeram só as checagens do código do AXYON. Refaça o comitê para a auditoria completa.", clip(why.trim(), 160)), Vec::new())
+}
+
 /// The text a source holds: a fact (its text, formula and value) or a document's page (or all of it).
 fn source_text(c: Cited, facts: &[Fact], docs: &[DocRef], lib: Option<&Library>) -> Option<(String, Vec<f64>)> {
     match c {
@@ -531,7 +536,7 @@ pub fn check_vetoes(minds: &mut [MindVote], facts: &[Fact]) -> Vec<AuditItem> {
 }
 
 /// What the facts themselves call for: sources that disagree, dates far apart in what the minds cited, a target that
-/// could not be found.
+/// could not be found, or one a mind says it does not know while the facts give it.
 fn fact_findings(facts: &[Fact], minds: &[MindVote]) -> (Vec<AuditItem>, Vec<String>) {
     let mut found = Vec::new();
     let mut verify = Vec::new();
@@ -545,7 +550,15 @@ fn fact_findings(facts: &[Fact], minds: &[MindVote]) -> (Vec<AuditItem>, Vec<Str
             found.push(item("observacao", Vec::new(), format!("{} foi citado, mas atenção: {}.", f.id, f.warning), vec![f.id.clone()]));
         }
         if f.status == evidence::MISSING && f.text.starts_with("Meta por ativo") {
-            verify.push("Cadastrar a meta deste ativo (coluna \"% Ideal\" ou \"Meta\" na planilha, ou no app) para o parecer da carteira.".into());
+            verify.push("Cadastrar a meta deste ativo (coluna \"Percentual Ideal\" ou \"Meta\" na planilha, ou no app) para o parecer da carteira.".into());
+        }
+    }
+    if let Some(target) = facts.iter().find(|f| f.topic == "carteira" && f.text.starts_with("Sua meta para")) {
+        for m in minds {
+            let unknown = m.points.iter().any(|p| p.kind == "ausente" && plain(&p.text).contains("meta")) || m.missing.iter().any(|x| plain(x).contains("meta"));
+            if unknown {
+                found.push(item("material", vec![m.id.clone()], format!("{} diz que a meta do ativo não está disponível, mas ela está em {}: {}", name(&m.id), target.id, target.text), vec![target.id.clone()]));
+            }
         }
     }
     (found, verify)
@@ -923,5 +936,133 @@ mod tests {
         // A verdict kept by the first committee (its points as pairs) still reads.
         let old: Verdict = serde_json::from_value(json!({"ticker": "GGRC11", "minds": [{"id": "risk", "vote": "against", "points": [["Concentração", "F2"]]}]})).unwrap();
         assert_eq!(old.minds[0].points[0].source, "F2");
+    }
+
+    // ── The review's acceptance criteria, on GARE11 and GGRC11 as regression cases. None fixes how the minds vote:
+    // each checks what this code guarantees whatever they answer.
+
+    /// GGRC11's meeting with its manager's report read as D1: vacancy 8,5 % and R$ 0,080 a share on its page 2.
+    fn ggrc11_meeting() -> (Library, Brief) {
+        let (store, market) = gare11();
+        let mut lib = Library::default();
+        let pending = crate::library::Pending {
+            key: "fnet:904".into(),
+            ticker: "GGRC11".into(),
+            kind: crate::library::DocKind::Report,
+            title: "Relatório Gerencial 09/2026".into(),
+            reference: "09/2026".into(),
+            delivered: Some(day(2026, 10, 10)),
+            url: "https://fnet.bmfbovespa.com.br/fnet/publico/exibirDocumento?id=904".into(),
+            download: String::new(),
+        };
+        lib.ingest(&pending, crate::library::fixtures::report_pages("8,5", "0,080"), day(2026, 10, 11));
+        let b = brief_full(&store, &market, Some(&lib), &json!({"proposal": "comprar 50 cotas de GGRC11"}), day(2026, 10, 30), true).unwrap();
+        (lib, b)
+    }
+
+    #[test]
+    fn aceite_1_o_rendimento_de_r_0_083_nao_e_arredondado_antes_do_dy() {
+        let (_, _, b) = meeting();
+        let annual = b.facts.iter().find(|f| f.text.contains("DY anualizado pelo último rendimento")).unwrap();
+        assert!(annual.formula.contains("R$ 0,083 × 12"), "{}", annual.formula);
+        assert!((annual.value.unwrap() - 0.083 * 12.0 / 8.14 * 100.0).abs() < 1e-9, "from R$ 0,083, never R$ 0,08");
+        assert!(b.prompt.contains("R$ 0,083 por cota"), "the brain reads it as written");
+    }
+
+    #[test]
+    fn aceite_2_o_pvp_usa_preco_e_vp_com_datas_identificadas() {
+        for (b, ticker) in [(meeting().2, "GARE11"), (ggrc11_meeting().1, "GGRC11")] {
+            let pvp = b.facts.iter().find(|f| f.text.starts_with(&format!("P/VP de {ticker}"))).unwrap_or_else(|| panic!("{ticker}"));
+            assert!(pvp.formula.contains("preço R$") && pvp.formula.contains("VP R$"), "{}", pvp.formula);
+            assert!(pvp.reference.starts_with("preço ") && pvp.reference.contains("; VP "), "both dates: {}", pvp.reference);
+            assert!(b.prompt.contains(&pvp.line()), "the minds see both dates");
+        }
+    }
+
+    #[test]
+    fn aceite_3_a_meta_de_7_5_vem_da_carteira_e_a_mente_de_risco_nao_a_ignora() {
+        let (_, _, b) = meeting();
+        let target = b.facts.iter().find(|f| f.text.starts_with("Sua meta para GARE11")).unwrap();
+        assert_eq!(target.value, Some(7.5));
+        assert!(b.prompt.contains("Sua meta para GARE11: 7,5% da carteira."));
+        let answer = minds_with(json!({
+            "risk": {"vote": "neutral", "confidence": 50, "why": "…", "points": [{"text": "A meta da carteira para o ativo não foi informada", "source": "", "kind": "ausente"}], "missing": ["meta por ativo"]}
+        }));
+        let v = finalize(&answer, None, b.facts.clone(), b.documents.clone(), None, "GARE11", "comprar 100 cotas de GARE11", "asked", "", day(2026, 10, 30)).unwrap();
+        assert!(v.audit.iter().any(|x| x.severity == "material" && x.minds == ["risk"] && x.text.contains(&target.id)), "{:#?}", v.audit);
+        // GGRC11 has no target: said missing, to verify, never invented.
+        let (_, b) = ggrc11_meeting();
+        assert!(b.facts.iter().any(|f| f.status == evidence::MISSING && f.text.starts_with("Meta por ativo para GGRC11")));
+        let v = finalize(&minds_with(json!({})), None, b.facts.clone(), b.documents.clone(), None, "GGRC11", "comprar 50 cotas de GGRC11", "asked", "", day(2026, 10, 30)).unwrap();
+        assert!(v.to_verify.iter().any(|x| x.starts_with("Cadastrar a meta")));
+    }
+
+    #[test]
+    fn aceite_4_um_ativo_acima_da_meta_pode_ser_bom_e_nao_receber_novo_aporte() {
+        let (_, _, b) = meeting();
+        let above = b.facts.iter().find(|f| f.text.contains("acima da meta")).unwrap();
+        assert!(above.value.unwrap() > 0.0, "GARE11 is above its target");
+        let v = finalize(&minds_with(json!({})), None, b.facts.clone(), b.documents.clone(), None, "GARE11", "comprar 100 cotas de GARE11", "asked", "", day(2026, 10, 30)).unwrap();
+        assert_eq!((v.asset.view.as_str(), v.portfolio_fit.view.as_str()), ("positivo", "evitar_novo_aporte"), "two opinions, kept apart");
+        assert!(b.prompt.contains("votar contra uma compra não é recomendar venda"), "{}", b.prompt);
+    }
+
+    #[test]
+    fn aceite_5_falta_de_dado_contabil_nao_e_prejuizo_nem_fraude() {
+        let (_, b) = ggrc11_meeting();
+        let answer = minds_with(json!({
+            "forensic": {"vote": "against", "confidence": 70, "why": "Não há DRE nem parecer do auditor", "points": [{"text": "Demonstrações financeiras não disponíveis", "source": "", "kind": "ausente"}, {"text": "Pode haver resultado não recorrente", "source": "", "kind": "hipotese"}]}
+        }));
+        let v = finalize(&answer, None, b.facts.clone(), b.documents.clone(), None, "GGRC11", "comprar 50 cotas de GGRC11", "asked", "", day(2026, 10, 30)).unwrap();
+        let forensic = v.minds.iter().find(|m| m.id == "forensic").unwrap();
+        assert_eq!(forensic.vote, "neutral", "a vote on missing data counts as neutral");
+        assert_eq!(forensic.was, "against");
+        assert!(b.prompt.contains("ausência de dado contábil não é prejuízo nem fraude"), "the forensic mind is told so");
+    }
+
+    #[test]
+    fn aceite_6_uma_mente_nao_cita_documento_que_nao_sustenta_o_que_diz() {
+        let (lib, b) = ggrc11_meeting();
+        assert_eq!(b.documents[0].id, "D1");
+        let answer = minds_with(json!({
+            "valuation": {"vote": "for", "confidence": 60, "why": "…", "points": [{"text": "A vacância física foi a 8,5%", "source": "D1 p.2", "kind": "fato"}]},
+            "risk": {"vote": "against", "confidence": 70, "why": "…", "points": [{"text": "A vacância chegou a 12,5%", "source": "D1 p.2", "kind": "fato"}, {"text": "LTV de 22,4%", "source": "D1 p.2", "kind": "fato"}]}
+        }));
+        let v = finalize(&answer, None, b.facts.clone(), b.documents.clone(), Some(&lib), "GGRC11", "comprar 50 cotas de GGRC11", "asked", "", day(2026, 10, 30)).unwrap();
+        let valuation = v.minds.iter().find(|m| m.id == "valuation").unwrap();
+        assert_eq!(valuation.points[0].verified, Some(true), "8,5 is on D1's page 2");
+        let risk = v.minds.iter().find(|m| m.id == "risk").unwrap();
+        assert_eq!(risk.points[0].verified, Some(false), "12,5 is on no page");
+        assert_eq!(risk.points[1].verified, Some(false), "22,4 is on page 3, not 2");
+        assert!(v.audit.iter().any(|x| x.severity == "material" && x.text.contains("12,5")), "{:#?}", v.audit);
+    }
+
+    #[test]
+    fn aceite_7_uma_divergencia_material_e_sinalizada_antes_da_conclusao() {
+        let (store, market) = gare11();
+        let mut lib = Library::default();
+        let pending = crate::library::Pending {
+            key: "fnet:9".into(),
+            ticker: "GARE11".into(),
+            kind: crate::library::DocKind::Report,
+            title: "Relatório Gerencial 09/2026".into(),
+            reference: "09/2026".into(),
+            delivered: Some(day(2026, 10, 20)),
+            url: String::new(),
+            download: String::new(),
+        };
+        // The report says R$ 0,080; FundosNet's notice, R$ 0,083.
+        lib.ingest(&pending, crate::library::fixtures::report_pages("7,5", "0,080"), day(2026, 10, 21));
+        let b = brief_full(&store, &market, Some(&lib), &json!({"proposal": "comprar 100 cotas de GARE11"}), day(2026, 10, 30), true).unwrap();
+        let answer = minds_with(json!({}));
+        // Before the conclusion: in what the code found, which the auditor reads before writing the final opinions.
+        let findings = precheck(&answer, &b.facts, &b.documents, Some(&lib)).unwrap();
+        let divergence = findings.iter().find(|x| x.severity == "material" && x.text.starts_with("Fontes divergentes")).expect("flagged before the audit");
+        let prompt = audit_brief(&answer, &b.facts, &b.pages, &findings, "GARE11", "comprar 100 cotas de GARE11", false);
+        assert!(prompt.contains(&divergence.text));
+        // And in the verdict, with what to verify.
+        let v = finalize(&answer, None, b.facts.clone(), b.documents.clone(), Some(&lib), "GARE11", "comprar 100 cotas de GARE11", "asked", "", day(2026, 10, 30)).unwrap();
+        assert!(v.audit.iter().any(|x| x.text == divergence.text));
+        assert!(v.to_verify.iter().any(|x| x.starts_with("Conferir a divergência")));
     }
 }

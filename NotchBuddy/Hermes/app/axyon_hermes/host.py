@@ -29,8 +29,9 @@ and talks to it with:
   GET  /?state=…&code=…              Google's page sending the browser back: the one request without the token,
                                      taken only for the sign-in AXYON is waiting for (its own random state)
   GET  /v1/cron                      Hermes' scheduled tasks; POST /v1/cron/tick runs the due ones now (scheduled.py)
-  POST /v1/invest/digest {key, language}, /v1/invest/committee {proposal, ticker, reason, document, language}
-                                     the reader's digest of a document and the committee's verdict (invest.py)
+  POST /v1/invest/digest {key}, /v1/invest/committee {proposal, ticker, reason, document}
+                                     the reader's digest of a document and the committee's audited verdict, in
+                                     Brazilian Portuguese (invest.py)
 
 Nothing else is served, no other request without the token or from a web page (an Origin header) is answered.
 """

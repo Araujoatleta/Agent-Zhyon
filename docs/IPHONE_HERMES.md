@@ -115,17 +115,36 @@ allowed.
 
 ## Investing: the committee, the reader, your theses, the week and learning
 
-The **Wallet** tab is now AXYON's investing screen, in the design of a statistics screen: charcoal, a ring of thick
-rounded segments in soft colours with the total in its middle, a legend in two columns, a pill to choose **Portfolio**
-or **Dividends**, **Class | Asset**, a carousel of months for the dividends, and **History** under it (your positions,
-as before). Every number is computed by AXYON's code from the official sources; the brain only reads and votes, and
-says where each point comes from.
+The **Wallet** tab, the first one AXYON opens on, is its investing screen, in the design of a statistics screen:
+charcoal, a ring of thick rounded segments in soft colours with the total in its middle, a legend in two columns, a
+pill to choose **Portfolio** or **Dividends**, **Class | Asset**, a carousel of months for the dividends, and
+**History** under it (your positions, as before). Every number is computed by AXYON's code from the official sources;
+the brain only reads and votes, and says where each point comes from. The reports are always in Brazilian
+Portuguese, and the app itself speaks Portuguese (set once; iOS **Settings → AXYON → Language** changes it).
 
-- **The committee of five minds**: ask *"buy 100 shares of GGRC11?"*; a valuation analyst, a legal and governance
-  mind, a forensic accountant, a risk manager and a macro strategist each vote with how sure they are and up to three
-  points, each with its source (a fact the code computed, F3, or a document's page, D1 p.4); legal and risk can veto.
-  The chair gives the score (3 × 2), the losing side's best argument, what would change the picture, how it fits your
-  targets, and ends with a **question**: the decision is yours. The minds are archetypes, never real people.
+- **The dividends are your sheet's**: when your Google Sheet has a **Proventos pagos** table (months across, the total
+  per month, assets row by row), the computer reads it every 3 hours and sends it with the portfolio's copy; the ring
+  shows those amounts (R$ 82,27 in October if that is what the sheet says), says **Your sheet · read on …**, and a month
+  the funds' announcements disagree on shows both. Without the table, the announcements times what you held.
+- **Targets per asset**: your sheet's **Percentual Ideal** (or **Meta**) column, or **… → Targets per asset** on the
+  Wallet. The committee weighs every asset against its target before any opinion on buying more.
+
+- **The committee of five minds, audited**: ask *"buy 100 shares of GGRC11?"*. The code first gathers the **facts**,
+  each numbered (F1…) with its source, its reference date, the day it was read, the calculation (P/VP names the price's
+  day and the book value's month; R$ 0,083 stays R$ 0,083 into the yield; the 12-month yield and the one annualized
+  from the last payout are two facts) and a status: confirmed, computed, estimate, missing or divergent (two sources
+  that disagree). A valuation analyst, a legal and governance mind, a forensic accountant, a risk manager and a macro
+  strategist each vote with how sure they are, why, and points marked fact, calculation, hypothesis, estimate or
+  missing data, each citing F3 or a document's page (D1 p.4), and what they lacked. AXYON's code then checks every
+  figure against what it cites, turns a vote against that rests on missing data into neutral, keeps a veto only on an
+  objective criterion (concentration only past twice your target or a quarter of the portfolio), and an **auditor**
+  (the brain again) reads all of it, revises the minds it must and writes the two final opinions: **A, the asset**
+  (positive, neutral, negative) and **B, in your portfolio** (increase, keep, reduce, no new contribution) — a good
+  asset above its target can be A positive and B no new contribution, and a vote against buying is never a call to
+  sell. The verdict shows **Critical alerts** apart from **Material points** and **Notes**, a **To verify** list, each
+  mind's points with a seal when the code found them in their source, and the **Sources**: tap F3 for its source,
+  dates and calculation, or D1 p.4 for the page's text and the link to the document. It ends with a **question**:
+  the decision is yours. The minds are archetypes, never real people.
 - **The intern who reads everything**: the monthly reports, material facts, assemblies and offerings of your funds
   (FundosNet) and the material facts, notices and releases of your companies (the CVM's list, once a week) are
   downloaded and read on the iPhone (PDFKit, scanned pages by the iPhone's own text recognition); the code finds the
@@ -145,8 +164,8 @@ says where each point comes from.
   score (when you say you are sure, how often you are right, from the decision journal).
 
 Your portfolio stays on the iPhone. The documents are public and read once on the iPhone; the brain you chose is
-asked only for a document's digest and the committee's meetings. Nothing is bought or sold: this is not an
-investment recommendation.
+asked only for a document's digest and the committee's meetings (two answers each: the minds, then the auditor).
+Nothing is bought or sold: this is not an investment recommendation.
 
 ## The home straight from the iPhone (no computer)
 
@@ -163,7 +182,8 @@ switches ask for Face ID first. The first scan makes iOS ask for the local netwo
 (positions, your ceilings, last prices, the notes of AXYON's tab) reaches the iPhone each time it connects and stays
 there, so Hermes on the iPhone still answers about it with the computer off (each newer copy replaces the iPhone's
 positions: with a computer, it and its sheet stay the record); the computer's home shows in the Home tab
-and Hermes can act on it; the computer's agents show on the start screen with Allow and Deny. Away from home, use
+and Hermes can act on it; a command of the computer's agents waiting for your OK shows above every tab with Allow
+(Face ID) and Deny, and the sessions are listed in **Settings → Agents on the computer**. Away from home, use
 Tailscale on both ([IPHONE_PC.md](IPHONE_PC.md)).
 
 ## What iOS does not allow

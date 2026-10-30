@@ -189,20 +189,27 @@ def main():
             return t, got
 
         print("The committee and the reader")
-        brief = {"ok": True, "data": {"prompt": "Run AXYON's investment committee on the proposal below: GGRC11",
-                                      "ticker": "GGRC11", "documents": ["fnet:904"]}}
-        app5, asked5 = app_answering_each([brief, {"ok": True, "data": {"score": {"for": 2, "against": 3}, "vetoedBy": ["risk"]}}])
+        brief = {"ok": True, "data": {"prompt": "Você é o comitê de investimentos do AXYON. Proposta: manter GGRC11",
+                                      "ticker": "GGRC11", "documents": ["fnet:904"], "facts": [{"id": "F1", "text": "Preço"}],
+                                      "docs": [{"id": "D1", "key": "fnet:904"}]}}
+        review = {"ok": True, "data": {"prompt": "Você é o auditor do comitê de investimentos do AXYON. GGRC11", "findings": []}}
+        app5, asked5 = app_answering_each([brief, review, {"ok": True, "data": {"score": {"for": 2, "against": 2}, "vetoedBy": ["risk"]}}])
         code, verdict = call("POST", "/v1/invest/committee", {"proposal": "manter GGRC11 depois do relatório", "reason": "document",
-                                                               "document": "fnet:904", "language": "Portuguese"})
+                                                               "document": "fnet:904", "language": "en-US"})
         app5.join(timeout=30)
         check("the committee's verdict, as the engine kept it", code == 200 and verdict.get("vetoedBy") == ["risk"])
         requests = [a["request"] for a in asked5]
-        check("the engine wrote the brief, then kept the brain's answer", [r["input"]["do"] for r in requests] == ["brief", "verdict"]
-              and requests[1]["input"]["ticker"] == "GGRC11" and requests[1]["input"]["reason"] == "document"
-              and requests[1]["input"]["document"] == "fnet:904")
-        answer = requests[1]["input"]["answer"] if len(requests) > 1 else ""
-        check("the brain's five minds reached the engine", '"veto": true' in answer and '"chair"' in answer)
-        check("asked with no tools", "invest committee: tools=0" in open(os.path.join(work, "model.log")).read())
+        check("the engine wrote the brief, checked the minds for the auditor, then kept both answers",
+              [r["input"]["do"] for r in requests] == ["brief", "audit", "verdict"]
+              and requests[0]["input"]["language"] == "Brazilian Portuguese"
+              and requests[2]["input"]["ticker"] == "GGRC11" and requests[2]["input"]["reason"] == "document"
+              and requests[2]["input"]["document"] == "fnet:904" and requests[2]["input"]["facts"] == [{"id": "F1", "text": "Preço"}])
+        answer = requests[2]["input"]["answer"] if len(requests) > 2 else ""
+        audit = requests[2]["input"].get("audit", "") if len(requests) > 2 else ""
+        check("the brain's five minds and its audit reached the engine", '"veto": true' in answer and '"chair"' in answer
+              and '"revisions"' in audit and "evitar_novo_aporte" in audit)
+        log = open(os.path.join(work, "model.log")).read()
+        check("both asked with no tools", "invest committee: tools=0" in log and "invest audit: tools=0" in log)
         app6, asked6 = app_answering_each([{"ok": True, "data": {"prompt": "You are AXYON's reader. GGRC11"}},
                                            {"ok": True, "data": {"key": "fnet:904", "headline": "Vacância subiu"}}])
         code, doc = call("POST", "/v1/invest/digest", {"key": "fnet:904"})

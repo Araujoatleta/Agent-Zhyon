@@ -136,7 +136,7 @@ pub fn script(store: &Store, market: &Market, lib: Option<&Library>, today: Date
         if !read.is_empty() {
             let mut line = if pt { format!("O AXYON leu {} documento{} dos seus ativos.", read.len(), if read.len() == 1 { "" } else { "s" }) } else { format!("AXYON read {} document{} of your assets.", read.len(), if read.len() == 1 { "" } else { "s" }) };
             let mut top: Vec<_> = read.clone();
-            top.sort_by(|a, b| a.kind.cmp(&b.kind));
+            top.sort_by_key(|a| a.kind);
             for d in top.iter().take(3) {
                 line.push_str(&format!(" {}, {}: {}.", d.ticker, if pt { kind_pt(d.kind) } else { d.kind.label() }, d.headline().trim_end_matches('.')));
             }

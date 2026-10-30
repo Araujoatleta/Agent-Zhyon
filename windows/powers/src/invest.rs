@@ -317,7 +317,7 @@ fn theses_json(store: &Store, market: &Market, lib: Option<&Library>, today: Dat
 }
 
 /// The iPhone app's own calls, never the brain's tools (the brain's answers come through them, from the app's host):
-/// `invest_view`; `invest_docs` (do: due, ingest, failed, brief, digest, undigested, document); `invest_committee`
+/// `invest_view`; `invest_docs` (do: due, ingest, failed, brief, digest, undigested, document, page); `invest_committee`
 /// (do: brief, audit, verdict, meetings); `invest_thesis` (do: write, remove); `invest_target` (ticker, target);
 /// `invest_learn` (do: view, apprentice, cards, grade, paper, reset); `invest_weekly` (do: script, told). The answer,
 /// and what it changed.
@@ -359,6 +359,14 @@ pub fn app(store: &mut Store, market: &Market, lib: &mut Library, tool: &str, in
                 Saved::default(),
             )),
             "document" => Ok((document(lib, &key()?), Saved::default())),
+            // A page the committee cited, as the reader read it: the excerpt behind a point.
+            "page" => {
+                let k = key()?;
+                let d = lib.get(&k).ok_or("No such document.")?;
+                let number = input["page"].as_u64().unwrap_or(1).max(1) as usize;
+                let text = d.pages.get(number - 1).ok_or_else(|| format!("{k} has no page {number}."))?;
+                Ok((json!({ "key": k, "page": number, "pages": d.pages.len(), "text": text, "url": d.url }), Saved::default()))
+            }
             other => Err(format!("invest_docs has no \"{other}\".")),
         },
         "invest_committee" => match what.as_str() {
@@ -382,7 +390,11 @@ pub fn app(store: &mut Store, market: &Market, lib: &mut Library, tool: &str, in
                 let audit = answer_in(&input["audit"]);
                 let (facts, docs) = meeting_of(input);
                 let ticker = s("ticker").and_then(|t| crate::text::ticker(&t)).ok_or("the verdict needs the ticker")?;
-                let verdict = committee::finalize(&given, audit.as_ref(), facts, docs, Some(lib), &ticker, &s("proposal").unwrap_or_default(), &s("reason").unwrap_or_else(|| "asked".into()), &s("document").unwrap_or_default(), today)?;
+                let mut verdict = committee::finalize(&given, audit.as_ref(), facts, docs, Some(lib), &ticker, &s("proposal").unwrap_or_default(), &s("reason").unwrap_or_else(|| "asked".into()), &s("document").unwrap_or_default(), today)?;
+                // The host says why the auditor gave no answer: the verdict says it first.
+                if let (None, Some(why)) = (&audit, s("auditFailed")) {
+                    verdict.audit.insert(0, committee::unaudited(&why));
+                }
                 let out = verdict_json(&verdict);
                 committee::keep(store, verdict);
                 Ok((out, STORE))
@@ -617,6 +629,9 @@ mod tests {
         let answer = "Claro:\n```json\n{\"headline\": \"Vacância subiu para 8,5%\", \"points\": [{\"text\": \"A vacância física foi de 6% para 8,5%\", \"page\": 2}], \"tone\": \"worse\", \"thesisRisk\": true}\n```";
         let (doc, _) = call(&mut store, &mut lib, "invest_docs", json!({"do": "digest", "key": "fnet:904", "answer": answer})).unwrap();
         assert_eq!(doc["headline"], "Vacância subiu para 8,5%");
+        let (page, _) = call(&mut store, &mut lib, "invest_docs", json!({"do": "page", "key": "fnet:904", "page": 2})).unwrap();
+        assert!(page["text"].as_str().unwrap().contains("8,5"), "the page the committee cites, as read: {page}");
+        assert!(call(&mut store, &mut lib, "invest_docs", json!({"do": "page", "key": "fnet:904", "page": 99})).is_err());
         assert_eq!(call(&mut store, &mut lib, "invest_docs", json!({"do": "undigested"})).unwrap().0.as_array().unwrap().len(), 1);
 
         // The thesis breaks on the new report: the committee meets by itself.

@@ -255,7 +255,7 @@ except ValueError:
     sleep 5
     xcrun simctl io "$DEVICE" screenshot "$SHOTS/$1.png" >/dev/null 2>&1 || true
 }
-for tab in start chat house wallet settings; do shot "$tab"; done
+for tab in wallet chat house settings; do shot "$tab"; done
 ls -l "$SHOTS" || true
 
 kill "$MODEL_PID" 2>/dev/null || true

@@ -204,7 +204,7 @@ pub fn gather(store: &Store, market: &Market, lib: Option<&Library>, ticker: &st
         None => out.push(Fact::new(
             "carteira",
             MISSING,
-            format!("Meta por ativo para {t}: não encontrada — nem na sua planilha (coluna \"% Ideal\" ou \"Meta\") nem cadastrada no app."),
+            format!("Meta por ativo para {t}: não encontrada — nem na sua planilha (coluna \"Percentual Ideal\" ou \"Meta\") nem cadastrada no app."),
             mine,
         )),
     }

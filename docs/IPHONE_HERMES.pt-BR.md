@@ -123,18 +123,35 @@ primeira vez. **Ajustes → O que o AXYON pode usar** mostra o que está liberad
 
 ## Investimentos: o comitê, o estagiário, as suas teses, a semana e o aprender
 
-A aba **Carteira** agora é a tela de investimentos do AXYON, no design de uma tela de estatísticas: grafite, um anel
-de segmentos grossos e arredondados em cores suaves com o total no meio, a legenda em duas colunas, uma pílula para
-escolher **Carteira** ou **Proventos**, **Classe | Ativo**, um carrossel de meses para os proventos e **Histórico**
-embaixo (as suas posições, como antes). Todo número é calculado pelo código do AXYON a partir das fontes oficiais;
-o cérebro só lê e vota, e diz de onde vem cada ponto.
+A aba **Carteira**, a primeira, onde o AXYON abre, é a tela de investimentos, no design de uma tela de estatísticas:
+grafite, um anel de segmentos grossos e arredondados em cores suaves com o total no meio, a legenda em duas colunas,
+uma pílula para escolher **Carteira** ou **Proventos**, **Classe | Ativo**, um carrossel de meses para os proventos e
+**Histórico** embaixo (as suas posições, como antes). Todo número é calculado pelo código do AXYON a partir das
+fontes oficiais; o cérebro só lê e vota, e diz de onde vem cada ponto. Os relatórios saem sempre em português.
 
-- **O comitê de cinco mentes**: pergunte *"comprar 100 cotas de GGRC11?"*; um analista de valuation, o jurídico e
-  governança, um contador forense, um gestor de risco e um estrategista macro votam, cada um com quanta certeza tem e
-  até três pontos, cada ponto com a fonte (um fato que o código calculou, F3, ou a página de um documento, D1 p.4); o
-  jurídico e o risco têm veto. O presidente dá o placar (3 × 2), o melhor argumento do lado que perdeu, o que mudaria
-  o quadro, como encaixa nas suas metas, e termina com uma **pergunta**: a decisão é sua. As mentes são arquétipos,
-  nunca pessoas reais.
+- **Os proventos são os da sua planilha**: quando a sua planilha do Google tem a tabela **Proventos pagos** (os meses
+  nas colunas, o total de cada mês, os ativos linha a linha), o computador lê a cada 3 horas e manda junto com a cópia
+  da carteira; o anel mostra esses valores (R$ 82,27 em outubro, se é o que a planilha diz), indica **Sua planilha ·
+  consultado em …**, e um mês em que os anúncios dos fundos discordam mostra os dois. Sem a tabela, os anúncios vezes
+  o que você tinha.
+- **Metas por ativo**: a coluna **Percentual Ideal** (ou **Meta**) da sua planilha, ou **… → Metas por ativo** na
+  Carteira. O comitê pesa cada ativo contra a meta antes de qualquer parecer sobre comprar mais.
+- **O comitê de cinco mentes, auditado**: pergunte *"comprar 100 cotas de GGRC11?"*. Antes, o código junta os
+  **fatos**, numerados (F1…), cada um com a fonte, a data de referência, o dia da consulta, a conta (o P/VP diz o dia
+  do preço e o mês do VP; R$ 0,083 continua R$ 0,083 até o DY; o DY de 12 meses e o anualizado pelo último rendimento
+  são dois fatos) e um status: confirmado, calculado, estimativa, ausente ou divergente (duas fontes que discordam).
+  Um analista de valuation, o jurídico e governança, um contador forense, um gestor de risco e um estrategista macro
+  votam, cada um com quanta certeza tem, a justificativa e pontos marcados como fato, cálculo, hipótese, estimativa ou
+  dado ausente, citando F3 ou a página de um documento (D1 p.4), e o que faltou. Depois, o código confere cada número
+  contra o que foi citado, transforma em neutro um voto contra que só se apoia em dado ausente, mantém um veto só com
+  critério objetivo (concentração só acima do dobro da sua meta ou de um quarto da carteira), e um **auditor** (o
+  cérebro de novo) revisa tudo, corrige as mentes que precisar e escreve os dois pareceres finais: **A, o ativo**
+  (positivo, neutro, negativo) e **B, na sua carteira** (aumentar, manter, reduzir, evitar novo aporte) — um ativo
+  bom acima da meta pode ter A positivo e B evitar novo aporte, e votar contra uma compra nunca é recomendar venda. O
+  veredito mostra os **Alertas críticos** separados dos **Pontos materiais** e das **Observações**, a lista **A
+  verificar**, os pontos de cada mente com um selo quando o código os achou na fonte, e as **Fontes**: toque em F3
+  para ver a fonte, as datas e a conta, ou em D1 p.4 para o texto da página e o link do documento. Termina com uma
+  **pergunta**: a decisão é sua. As mentes são arquétipos, nunca pessoas reais.
 - **O estagiário que lê tudo**: os relatórios gerenciais, fatos relevantes, assembleias e ofertas dos seus fundos
   (FundosNet) e os fatos relevantes, comunicados e releases das suas empresas (a lista da CVM, uma vez por semana) são
   baixados e lidos no iPhone (PDFKit, as páginas escaneadas pelo reconhecimento de texto do próprio iPhone); o código
@@ -154,8 +171,8 @@ o cérebro só lê e vota, e diz de onde vem cada ponto.
   diz que tem certeza, quantas vezes acerta, pelo diário de decisões).
 
 A sua carteira fica no iPhone. Os documentos são públicos e lidos uma vez no próprio iPhone; o cérebro que você
-escolheu só é chamado para resumir um documento e para as reuniões do comitê. Nada é comprado nem vendido: isto não é
-recomendação de investimento.
+escolheu só é chamado para resumir um documento e para as reuniões do comitê (duas respostas: as mentes e o auditor).
+Nada é comprado nem vendido: isto não é recomendação de investimento.
 
 ## A casa direto pelo iPhone (sem computador)
 
@@ -181,15 +198,17 @@ Rede → Configurações avançadas).
 
 ## As telas
 
-- **AXYON**: o orbe do Hermes (a cor diz o que ele está fazendo), atalhos *Faça por mim*, a carteira, o seu dia, os
-  agentes do computador (com Permitir/Negar pelo Face ID) e o computador.
+- **Carteira** (a primeira, onde o app abre): os investimentos (o anel da carteira e dos proventos, o comitê, o
+  estagiário, as teses, a semana e o aprender); em **Histórico**, o total, o dia, cada posição com o seu preço teto e
+  os ativos que você acompanha.
 - **Chat**: a conversa com o Hermes, com cada passo que ele dá (lendo a carteira, agendando, pesquisando…), parar,
   ditado e leitura em voz alta.
 - **Casa**: os aparelhos que o iPhone controla sozinho e, com um computador pareado, a casa dele.
-- **Carteira**: os investimentos (o anel da carteira e dos proventos, o comitê, o estagiário, as teses, a semana e o
-  aprender); em **Histórico**, o total, o dia, cada posição com o seu preço teto e os ativos que você acompanha.
-- **Ajustes**: o cérebro, as permissões, os alertas dos superpoderes, o computador (opcional) e o resto dos ajustes
-  do app.
+- **Ajustes**: o cérebro, as permissões, os alertas dos superpoderes, os agentes do computador, o computador
+  (opcional) e o resto dos ajustes do app.
+
+Um comando de um agente do computador esperando o seu OK aparece acima de qualquer aba, com Permitir (Face ID) e
+Negar. O app fala português (definido uma vez; **Ajustes do iOS → AXYON → Idioma** muda).
 
 ## Com um computador (opcional)
 
@@ -200,7 +219,8 @@ Rede → Configurações avançadas).
   respondendo sobre ela, com os preços de agora. Cada cópia nova do computador substitui as posições do iPhone: com
   um computador, ele e a sua planilha continuam sendo o registro;
 - a **casa** do computador aparece na aba Casa e o Hermes pode ligar e desligar os aparelhos dela;
-- os **agentes** do computador aparecem no início, com Permitir/Negar;
+- os **agentes** do computador aparecem em **Ajustes → Agentes no computador**, e um comando esperando o seu OK
+  aparece acima de qualquer aba, com Permitir/Negar;
 - o **chat com o AXYON do computador** e os ajustes do assistente de lá continuam em Ajustes.
 
 Fora de casa, use o Tailscale nos dois ([IPHONE_PC.pt-BR.md](IPHONE_PC.pt-BR.md)).
