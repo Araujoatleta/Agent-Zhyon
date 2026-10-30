@@ -166,6 +166,55 @@ def main():
             time.sleep(0.5)
             return t, got
 
+        def app_answering_each(answers):
+            """The app's side of the bridge: each request it gets answered with the next of `answers`."""
+            got = []
+
+            def side():
+                req = urllib.request.Request(base + "/v1/bridge")
+                req.add_header("Authorization", "Bearer " + token)
+                with urllib.request.urlopen(req, timeout=120) as resp:
+                    for raw in resp:
+                        line = raw.decode().strip()
+                        if line.startswith("data: "):
+                            ask = json.loads(line[6:])
+                            got.append(ask)
+                            call("POST", f"/v1/bridge/{ask['id']}", {"answer": answers[len(got) - 1]})
+                            if len(got) == len(answers):
+                                return
+
+            t = threading.Thread(target=side, daemon=True)
+            t.start()
+            time.sleep(0.5)
+            return t, got
+
+        print("The committee and the reader")
+        brief = {"ok": True, "data": {"prompt": "Run AXYON's investment committee on the proposal below: GGRC11",
+                                      "ticker": "GGRC11", "documents": ["fnet:904"]}}
+        app5, asked5 = app_answering_each([brief, {"ok": True, "data": {"score": {"for": 2, "against": 3}, "vetoedBy": ["risk"]}}])
+        code, verdict = call("POST", "/v1/invest/committee", {"proposal": "manter GGRC11 depois do relatório", "reason": "document",
+                                                               "document": "fnet:904", "language": "Portuguese"})
+        app5.join(timeout=30)
+        check("the committee's verdict, as the engine kept it", code == 200 and verdict.get("vetoedBy") == ["risk"])
+        requests = [a["request"] for a in asked5]
+        check("the engine wrote the brief, then kept the brain's answer", [r["input"]["do"] for r in requests] == ["brief", "verdict"]
+              and requests[1]["input"]["ticker"] == "GGRC11" and requests[1]["input"]["reason"] == "document"
+              and requests[1]["input"]["document"] == "fnet:904")
+        answer = requests[1]["input"]["answer"] if len(requests) > 1 else ""
+        check("the brain's five minds reached the engine", '"veto": true' in answer and '"chair"' in answer)
+        check("asked with no tools", "invest committee: tools=0" in open(os.path.join(work, "model.log")).read())
+        app6, asked6 = app_answering_each([{"ok": True, "data": {"prompt": "You are AXYON's reader. GGRC11"}},
+                                           {"ok": True, "data": {"key": "fnet:904", "headline": "Vacância subiu"}}])
+        code, doc = call("POST", "/v1/invest/digest", {"key": "fnet:904"})
+        app6.join(timeout=30)
+        check("a document's digest, kept by the engine", code == 200 and doc.get("headline") == "Vacância subiu"
+              and '"thesisRisk": true' in (asked6[1]["request"]["input"]["answer"] if len(asked6) > 1 else ""))
+        app7, _ = app_answering_each([{"ok": False, "text": "No such document."}])
+        code, refused = call("POST", "/v1/invest/digest", {"key": "fnet:1"})
+        app7.join(timeout=30)
+        check("the engine's refusal, in words", code == 422 and refused.get("error") == "No such document.")
+        check("no key: refused", call("POST", "/v1/invest/digest", {})[0] == 400)
+
         print("A run with the superpowers' portfolio")
         app, asked_app = app_answering({"ok": True, "text": "GARE11: 204 shares at R$ 8,31 (B3's close of 27/10/2026)"})
         code, r = call("POST", "/v1/runs", {"session": "axyon-test", "message": "qual é a minha carteira?"})

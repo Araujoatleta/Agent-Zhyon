@@ -116,52 +116,6 @@ pub fn sizing(v: &Valuation, class: AssetClass, amount: f64) -> Option<(f64, f64
     Some((before, after, c.and_then(|c| c.target)))
 }
 
-/// The voices of the committee, each asked on the same facts.
-pub const ROLES: [(&str, &str); 3] = [
-    (
-        "advocate",
-        "You argue FOR the proposal, as a sharp analyst who believes in it: the three strongest reasons, each tied to a fact given. No hype; if the facts are thin, say what would make the case.",
-    ),
-    (
-        "critic",
-        "You argue AGAINST the proposal, as a sceptical analyst: the three strongest reasons not to, each tied to a fact given (the price against the VP or the history, the dividend's health, the concentration against the user's own targets, the rates). No doom; be precise.",
-    ),
-    (
-        "risk",
-        "You are the risk auditor and run a pre-mortem: it is a year from now and this decision turned out to be a mistake. Tell the two or three most likely stories of how, what early signal would have warned, and the one question the user should answer before deciding.",
-    ),
-];
-
-pub const SYNTHESIS: &str = "You chair the committee. From the three opinions below, write the synthesis for the user: the decision in one line (as a question for them, never an order), the strongest argument on each side, what would change the picture, and how this fits their own targets. Short, plain, in the user's language. Nothing is bought or sold by the committee.";
-
-/// The committee's procedure, for a brain that runs it itself in one answer.
-pub fn protocol() -> String {
-    let mut out = String::from("Run an investment committee on the proposal, with the facts below and nothing invented:");
-    for (name, role) in ROLES {
-        out.push_str(&format!("\n[{name}] {role}"));
-    }
-    out.push_str(&format!("\n[synthesis] {SYNTHESIS}"));
-    out.push_str("\nThen offer to record the decision in the journal (wealth_decision) once the user decides, with their reasons and how sure they are.");
-    out
-}
-
-/// The facts a committee works on.
-pub fn brief(proposal: &str, ticker: &str, facts: &[String], sizing: Option<(f64, f64, Option<f64>)>, class: AssetClass) -> String {
-    let mut out = format!("Proposal: {proposal}\nAsset: {ticker} ({})", class.label());
-    if let Some((before, after, target)) = sizing {
-        out.push_str(&format!(
-            "\nIts class would go from {} to {} of the portfolio{}.",
-            pct(before, 1),
-            pct(after, 1),
-            target.map(|t| format!(" (the user's target: {})", pct(t, 0))).unwrap_or_default()
-        ));
-    }
-    for f in facts {
-        out.push_str(&format!("\n{f}"));
-    }
-    out
-}
-
 pub fn for_model(decisions: &[Decision], today: Date, cal: &Calibration) -> String {
     if decisions.is_empty() {
         return "The decision journal is empty. Record a decision with wealth_decision (action record) when the user takes one: the asset, buy/sell/hold/avoid, the price, the reasons, what they expect and how sure they are.".into();
@@ -268,9 +222,5 @@ mod tests {
         let s = sizing(&v, AssetClass::Fii, 420.0).unwrap();
         assert!(s.1 > s.0, "buying more FIIs raises their share");
         assert_eq!(s.2, Some(25.0));
-        let text = brief("comprar 50 cotas de GARE11 a R$ 8,40", "GARE11", &["GARE11: P/VP 0,95; dividend health: healthy.".into()], Some(s), AssetClass::Fii);
-        assert!(text.contains("the user's target: 25%") && text.contains("P/VP"));
-        let p = protocol();
-        assert!(p.contains("[advocate]") && p.contains("[critic]") && p.contains("pre-mortem") && p.contains("[synthesis]"));
     }
 }

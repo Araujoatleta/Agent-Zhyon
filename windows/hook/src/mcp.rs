@@ -203,7 +203,7 @@ mod tests {
         let list = answer(&json!({"jsonrpc": "2.0", "id": "a", "method": "tools/list"}), &mut client, &|_| Relayed::Closed).unwrap();
         let names: Vec<&str> = list["result"]["tools"].as_array().unwrap().iter().map(|t| t["name"].as_str().unwrap()).collect();
         assert_eq!(&names[..5], ["home_devices", "home_control", "home_routine", "zheus_world", "zheus_mission"]);
-        assert_eq!(names.len(), 23, "and the eighteen superpowers");
+        assert_eq!(names.len(), 25, "and the twenty superpowers");
         assert!(names[5..].iter().all(|n| n.starts_with("wealth_") || n.starts_with("life_")));
         assert!(list["result"]["tools"].as_array().unwrap().iter().all(|t| t["inputSchema"]["type"] == "object"));
         let other = answer(&json!({"jsonrpc": "2.0", "id": 3, "method": "resources/list"}), &mut client, &|_| Relayed::Closed).unwrap();

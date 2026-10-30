@@ -397,6 +397,55 @@ async fn live_company() {
     assert_eq!(thesis.len(), 3);
 }
 
+/// The reader, as the iPhone runs it: a fund's latest manager's report and a company's documents listed by the CVM
+/// (IPE), each downloaded and told apart (a PDF for the app's PDFKit, or its text), and a report's figures found.
+#[tokio::test]
+#[ignore]
+async fn live_reader() {
+    use coucou_powers::library::{self, File};
+    let http = Http::new();
+    let today = today();
+    let months = fund_months(&http, today).await;
+    let cnpj = cvm_fii::cnpj_by_root(&months).get("GGRC").expect("GGRC11's CNPJ").clone();
+    let docs = sources::fund_documents(&http, &cnpj, 30).await.expect("GGRC11's documents");
+    let report = docs.iter().find(|d| d.topic == fnet::Topic::Report && !d.structured).expect("a manager's report among the last 30");
+    section(&format!("GGRC11's report {} ({} {}, {:?})", report.id, report.category, report.reference, report.delivered));
+    let body = http.get(&fnet::download_url(report.id)).await.expect("the report's file");
+    println!("{} bytes, starting {:?}", body.len(), String::from_utf8_lossy(&body[..body.len().min(40)]));
+    match library::file_of(&body).expect("a file") {
+        File::Pdf(pdf) => {
+            println!("a PDF of {} bytes", pdf.len());
+            assert!(pdf.starts_with(b"%PDF"));
+        }
+        File::Text(pages) => {
+            println!("text, {} pages:\n{}", pages.len(), head(&pages.join("\n"), 30));
+            println!("figures: {:?}", library::figures(&pages));
+        }
+    }
+    section("TIM's documents at the CVM (IPE)");
+    let tim = coucou_powers::text::cnpj_chars("02.421.421/0001-11");
+    let listed = sources::company_documents(&http, &refresh::document_years(today), std::slice::from_ref(&tim), 15).await.expect("the IPE list");
+    let tim_docs = listed.get(&tim).cloned().unwrap_or_default();
+    for d in &tim_docs {
+        println!("{} [{} / {} / {}] {} {:?} kind {:?} — {}", d.key, d.category, d.kind, d.subject, d.reference, d.delivered.map(|x| x.br()), d.doc_kind(), d.download);
+    }
+    assert!(!tim_docs.is_empty(), "TIM files documents with the CVM every month");
+    if let Some(d) = tim_docs.iter().find(|d| d.doc_kind().is_some() && !d.download.is_empty()) {
+        section(&format!("Its document {} downloaded", d.key));
+        match http.get(&d.download).await {
+            Ok(body) => {
+                println!("{} bytes, starting {:?}", body.len(), String::from_utf8_lossy(&body[..body.len().min(40)]));
+                match library::file_of(&body) {
+                    Ok(File::Pdf(pdf)) => println!("a PDF of {} bytes", pdf.len()),
+                    Ok(File::Text(pages)) => println!("text, {} pages:\n{}", pages.len(), head(&pages.join("\n"), 20)),
+                    Err(e) => println!("not a document: {e}"),
+                }
+            }
+            Err(e) => println!("download error: {e}"),
+        }
+    }
+}
+
 /// Everything at once, the way the app does it, and what the brain reads back.
 #[tokio::test]
 #[ignore]

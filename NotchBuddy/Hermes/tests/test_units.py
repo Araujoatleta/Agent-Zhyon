@@ -153,14 +153,15 @@ class PowersBridge:
 
 tools = powers.load_tools()
 names = [t["name"] for t in tools]
-check("the computer's tools, wealth_ and life_", len(names) == 17 and "wealth_portfolio" in names and "life_gym" in names)
+check("the computer's tools, wealth_ and life_", len(names) == 19 and "wealth_portfolio" in names and "life_gym" in names
+      and "wealth_documents" in names and "wealth_learn" in names)
 check("the content kit stays on the computer", "life_content" not in names and not any(n.startswith("home_") for n in names))
 check("each with its schema", all(t.get("inputSchema", {}).get("type") == "object" for t in tools))
 check("no tool file: no tools", powers.load_tools(["/nonexistent/house_tools.json"]) == [])
 registered.clear()
 pb = PowersBridge({"ok": True, "text": "GARE11 · 204 cotas"})
 powers.Powers(pb).register(FakeRegistry())
-check("registered in Coucou's toolset", len(registered) == 17 and all(t == "coucou" for t, _, _ in registered.values()))
+check("registered in Coucou's toolset", len(registered) == 19 and all(t == "coucou" for t, _, _ in registered.values()))
 check("the schema the model sees", registered["wealth_trade"][1]["parameters"]["type"] == "object")
 out = registered["wealth_portfolio"][2]({})
 check("the call goes to the app's engine, with time to read the sources",
@@ -525,6 +526,52 @@ check("disconnected: revoked at Google and forgotten", json.loads(g.account_tool
       and seen["revoked"] == ["rt-1"] and not os.path.exists(os.path.join(ghome, "google_token.json")))
 check("then every tool says to connect", "not connected" in json.loads(g.gmail_tool({"do": "search", "query": ""}))["error"])
 fake.shutdown()
+
+print("The investing brain")
+from axyon_hermes import invest  # noqa: E402
+
+
+class Engine:
+    """The app's engine on the other side of the bridge: the brief, then what the brain said, kept."""
+
+    def __init__(self, fail=None):
+        self.asked = []
+        self.fail = fail
+
+    def ask(self, kind, request, wait=None):
+        self.asked.append((kind, request))
+        tool, data = request["tool"], request["input"]
+        if self.fail == tool + ":" + data["do"]:
+            return {"ok": False, "text": "the committee needs the asset's ticker"}
+        if data["do"] == "brief":
+            prompt = "Run AXYON's investment committee on GGRC11" if tool == "invest_committee" else "You are AXYON's reader"
+            return {"ok": True, "data": {"prompt": prompt, "ticker": "GGRC11", "documents": ["fnet:904"]}}
+        return {"ok": True, "data": {"kept": data["answer"], "ticker": data.get("ticker"), "reason": data.get("reason")}}
+
+
+prompts = []
+engine = Engine()
+brain = invest.Invest(engine, ask=lambda prompt: (prompts.append(prompt), '{"minds": []}')[1])
+verdict = brain.committee({"proposal": "comprar mais 100 cotas de GGRC11", "reason": "asked", "language": "Portuguese"})
+check("the committee's brief asked of the engine, then the brain, then kept by the engine",
+      [r[1]["input"]["do"] for r in engine.asked] == ["brief", "verdict"] and prompts == ["Run AXYON's investment committee on GGRC11"])
+check("the verdict is the engine's, for the ticker the engine found", verdict == {"kept": '{"minds": []}', "ticker": "GGRC11", "reason": "asked"})
+check("each through the superpowers' bridge", all(k == "powers" and r["tool"] == "invest_committee" for k, r in engine.asked))
+digest = brain.digest({"key": "fnet:904", "language": "Portuguese"})
+check("a document's digest the same way", engine.asked[-1][1] == {"tool": "invest_docs", "input": {"do": "digest", "key": "fnet:904", "answer": '{"minds": []}'}}
+      and digest["kept"] == '{"minds": []}' and prompts[-1] == "You are AXYON's reader")
+try:
+    invest.Invest(Engine(fail="invest_committee:brief"), ask=lambda p: "{}").committee({"proposal": "manter"})
+    said = ""
+except invest.InvestError as exc:
+    said = str(exc)
+check("the engine's refusal comes back in words", said == "the committee needs the asset's ticker")
+for bad in ({}, {"proposal": "  "}):
+    try:
+        brain.committee(bad)
+        check("no proposal: refused", False)
+    except ValueError:
+        check("no proposal: refused", True)
 
 print("All unit tests passed." if not failures else f"{failures} failed.")
 sys.exit(1 if failures else 0)

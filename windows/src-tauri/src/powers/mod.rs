@@ -365,7 +365,7 @@ pub async fn refresh(app: &AppHandle, force: bool) -> RefreshState {
                 if let Some(register) = register {
                     m.company_cnpjs.extend(register);
                 }
-                m.companies.insert(ticker, company);
+                coucou_powers::refresh::merge_company(&mut m, ticker, company);
             }
             Err(e) => {
                 held(&powers.failed).push((ticker.clone(), today));
@@ -450,7 +450,7 @@ async fn ensure_asset(app: &AppHandle, ticker: &str) {
                 if let Some(register) = register {
                     m.company_cnpjs.extend(register);
                 }
-                m.companies.insert(ticker.clone(), company);
+                coucou_powers::refresh::merge_company(&mut m, ticker.clone(), company);
             }
         }
         save_market(&held(&powers.market));
@@ -1114,14 +1114,14 @@ fn sheet_note(text: String, outcome: &SheetOutcome, tab: &str) -> String {
 
 /// The tools that read the official data: what is due is read first.
 fn reads_market(tool: &str) -> bool {
-    matches!(tool, "wealth_portfolio" | "wealth_fii" | "wealth_events" | "wealth_plan" | "wealth_audit" | "wealth_macro" | "wealth_committee" | "wealth_ceiling" | "life_day")
+    matches!(tool, "wealth_portfolio" | "wealth_fii" | "wealth_events" | "wealth_plan" | "wealth_audit" | "wealth_macro" | "wealth_committee" | "wealth_documents" | "wealth_learn" | "wealth_ceiling" | "life_day")
 }
 
 /// An asset the call is about, when it names one.
 fn asked_asset(tool: &str, input: &Value) -> Option<String> {
     let named = engine::s(input, "ticker").and_then(|t| coucou_powers::text::ticker(&t));
     match tool {
-        "wealth_fii" | "wealth_company" | "wealth_ceiling" => named,
+        "wealth_fii" | "wealth_company" | "wealth_ceiling" | "wealth_documents" | "wealth_learn" => named,
         "wealth_committee" => named.or_else(|| engine::s(input, "proposal").and_then(|p| coucou_powers::text::tickers_in(&p).into_iter().next())),
         _ => None,
     }
@@ -1200,6 +1200,9 @@ pub async fn call(app: &AppHandle, tool: &str, input: &Value) -> HomeResult {
         "wealth_audit" => answer(read(app, |s, m| engine::audit_view(s, m, input, today))),
         "wealth_decision" => change(app, |s, m| engine::decision(s, m, input, today)).map_or_else(refused, answer),
         "wealth_committee" => read(app, |s, m| engine::committee(s, m, input, today)).map_or_else(refused, answer),
+        // The documents are read by the iPhone app: on this computer the reader's library is empty, the theses work.
+        "wealth_documents" => change(app, |s, m| coucou_powers::invest::documents_tool(s, m, None, input, today)).map_or_else(refused, answer),
+        "wealth_learn" => change(app, |s, m| coucou_powers::learn::tool(s, m, None, input, today)).map_or_else(refused, answer),
         "wealth_macro" => answer(read(app, |_, m| engine::economy(m, today))),
         "life_study" => change(app, |s, m| engine::study_view(s, m, input, today)).map_or_else(refused, answer),
         "life_cards" => change(app, |s, _| engine::cards(s, input, today)).map_or_else(refused, answer),

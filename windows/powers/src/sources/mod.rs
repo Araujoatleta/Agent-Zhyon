@@ -7,6 +7,7 @@ pub mod b3;
 pub mod bcb;
 pub mod cvm_cia;
 pub mod cvm_fii;
+pub mod cvm_ipe;
 pub mod fetch;
 pub mod fnet;
 pub mod gfinance;
@@ -59,6 +60,33 @@ pub async fn fii_months(http: &Http, years: &[i32], cnpjs: &[String]) -> Result<
     }
     if out.is_empty() && !errors.is_empty() {
         return Err(format!("the CVM's fund reports could not be read: {}", errors.join("; ")));
+    }
+    Ok(out)
+}
+
+/// The documents the CVM lists for the companies of `cnpjs` (IPE: material facts, notices, releases, assemblies) in
+/// `years`, by CNPJ, newest first, at most `most` each.
+pub async fn company_documents(http: &Http, years: &[i32], cnpjs: &[String], most: usize) -> Result<HashMap<String, Vec<crate::library::Listed>>, String> {
+    let mut out: HashMap<String, Vec<crate::library::Listed>> = HashMap::new();
+    let mut errors = Vec::new();
+    for &year in years {
+        match http.zip_entries(&cvm_ipe::url(year), &[cvm_ipe::entry_name(year)]).await {
+            Ok(files) => {
+                for (_, bytes) in files {
+                    for (cnpj, docs) in cvm_ipe::parse(&crate::text::decode(&bytes), cnpjs, most) {
+                        out.entry(cnpj).or_default().extend(docs);
+                    }
+                }
+            }
+            Err(e) => errors.push(e),
+        }
+    }
+    if out.is_empty() && !errors.is_empty() {
+        return Err(format!("the CVM's list of the companies' documents could not be read: {}", errors.join("; ")));
+    }
+    for docs in out.values_mut() {
+        docs.sort_by(|a, b| b.delivered.cmp(&a.delivered));
+        docs.truncate(most);
     }
     Ok(out)
 }

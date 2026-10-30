@@ -763,52 +763,10 @@ pub fn decision(store: &mut Store, market: &Market, args: &Value, today: Date) -
     }
 }
 
-/// The facts a committee works on, for a proposal about `t`.
-pub fn committee_facts(store: &Store, market: &Market, t: &str, proposal: &str, today: Date) -> String {
-    let p = &store.portfolio;
-    let v = portfolio::value(p, market);
-    let class = p.position(t).map(|x| x.class).unwrap_or_else(|| if market.funds.contains_key(t) { AssetClass::Fii } else { import::guess_class(t).0 });
-    let amount = {
-        let nums: Vec<f64> = proposal.split_whitespace().filter_map(crate::text::num).collect();
-        let price = market.price(t).unwrap_or(0.0);
-        match nums.as_slice() {
-            [q, ..] if price > 0.0 && *q >= 1.0 && q.fract() == 0.0 => q * price,
-            _ => 0.0,
-        }
-    };
-    let mut facts = Vec::new();
-    if let Some(h) = v.holdings.iter().find(|h| h.ticker == t) {
-        facts.push(format!("The user holds {} at an average of {} ({} of the portfolio, {}).", grouped(h.quantity, 0), brl(h.average_price), pct(h.weight, 1), h.gain_pct.map(|g| pct(g, 1)).unwrap_or_default()));
-    } else {
-        facts.push("The user does not hold it yet.".into());
-    }
-    if let Some(price) = market.price(t) {
-        facts.push(format!("Last close {}.", brl(price)));
-    }
-    if let Some(fund) = market.funds.get(t) {
-        facts.push(fii::report_for_model(&fii::report(fund, market.price(t), &market.economy, today)));
-        let ev = fii::events(fund, 0.0, today, 60);
-        if !ev.is_empty() {
-            facts.push(format!("Recent events:\n{}", fii::events_for_model(&ev)));
-        }
-    }
-    if let Some(c) = market.companies.get(t) {
-        let m = company::metrics(&c.figures);
-        let thesis: Vec<Condition> = store.theses.iter().find(|x| x.ticker == t).map(|x| x.conditions.clone()).unwrap_or_default();
-        facts.push(company::for_model(t, &c.name, &m, &company::check(&m, &thesis), &company::red_flags(&m)));
-    }
-    facts.push(economy(market, today));
-    let past: Vec<String> = store.decisions.iter().filter(|d| d.ticker == t).map(|d| format!("{} {} ({})", d.date.br(), d.action, crate::text::clip(&d.reasons, 80))).collect();
-    if !past.is_empty() {
-        facts.push(format!("The user's past decisions on it: {}.", past.join("; ")));
-    }
-    journal::brief(proposal, t, &facts, journal::sizing(&v, class, amount), class)
-}
-
+/// wealth_committee: the committee's brief for the chat (committee.rs), without the documents (the apps add the reader's
+/// when they keep one).
 pub fn committee(store: &Store, market: &Market, args: &Value, today: Date) -> Result<String, String> {
-    let proposal = s(args, "proposal").ok_or("the committee needs the proposal, in the user's words")?;
-    let t = s(args, "ticker").and_then(|t| ticker(&t)).or_else(|| crate::text::tickers_in(&proposal).into_iter().next()).ok_or("the committee needs the asset's ticker")?;
-    Ok(format!("{}\n\n{}", journal::protocol(), committee_facts(store, market, &t, &proposal, today)))
+    crate::committee::brief(store, market, None, args, today, false).map(|(text, _, _)| text)
 }
 
 // ── Studies, cards, English, training, the day, content ──────────────────────
@@ -1343,7 +1301,7 @@ mod tests {
         let list = decision(&mut store, &market, &json!({}), today()).unwrap();
         assert!(list.contains("buy GARE11"));
         let c = committee(&store, &market, &json!({"proposal": "comprar 50 cotas de GARE11"}), today()).unwrap();
-        assert!(c.contains("[advocate]") && c.contains("Proposal: comprar 50 cotas de GARE11") && c.contains("would go from"), "{c}");
+        assert!(c.contains("[valuation]") && c.contains("[risk]") && c.contains("Proposal: comprar 50 cotas de GARE11") && c.contains("would go from"), "{c}");
         let st = study_view(
             &mut store,
             &market,

@@ -1,6 +1,7 @@
 """A fake OpenAI-compatible model for the host's tests: it calls wealth_portfolio when asked about "carteira",
 life_english (15 minutes logged) about "inglês", coucou_home about "casa", iphone_status about "iPhone" and cronjob_manage
-(a task every 5 minutes) about "agenda", then answers "Feito: <what the tool returned>". Sent files are counted: it
+(a task every 5 minutes) about "agenda", then answers "Feito: <what the tool returned>". With no tools, AXYON's
+committee gets its five minds as JSON in a fence, and its reader a document's digest. Sent files are counted: it
 answers "Vi <images> imagem(ns) e <documents> documento(s): <the documents' first words>". It logs how many messages it
 saw."""
 import json
@@ -49,6 +50,18 @@ class Model(BaseHTTPRequestHandler):
             first = flat.split("Its text follows.]\\n")[1][:40] if "Its text follows.]\\n" in flat else ""
             photo = images or flat.count("The user sent a photo")
             content = f"Vi {photo} imagem(ns) e {documents} documento(s): {first}"
+        elif not tools and "AXYON's investment committee" in asked:
+            # The committee, asked once with no tools: its JSON, in a fence, as models often answer.
+            sys.stderr.write(f"invest committee: tools={len(tools)}\n")
+            sys.stderr.flush()
+            minds = [{"id": m, "vote": "against" if m in ("legal", "risk", "forensic") else "for", "confidence": 70,
+                      "veto": m == "risk", "points": [{"text": f"{m}: a vacância subiu", "source": "D1 p.2"}]}
+                     for m in ("valuation", "legal", "forensic", "risk", "macro")]
+            content = "```json\n" + json.dumps({"minds": minds, "chair": {"question": "Manter GGRC11?", "dissent": "P/VP baixo.",
+                                                                    "wouldChange": "Vacância de volta.", "fit": "FIIs acima da meta."}}) + "\n```"
+        elif not tools and "You are AXYON's reader" in asked:
+            content = json.dumps({"headline": "Vacância subiu", "points": [{"text": "Vacância de 6% para 8,5%", "page": 2}],
+                                  "tone": "worse", "thesisRisk": True})
         elif "wealth_portfolio" in tools and "carteira" in asked:
             call = {"id": "call_1", "type": "function", "function": {"name": "wealth_portfolio", "arguments": "{}"}}
         elif "life_english" in tools and "ingl" in asked.lower():

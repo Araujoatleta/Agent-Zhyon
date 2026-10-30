@@ -609,7 +609,7 @@
   {
     "name": "wealth_committee",
     "title": "Zheus: an investment committee",
-    "description": "Before the user decides: an investment committee on their proposal (\"comprar 50 cotas de GARE11\"). Gives the facts (their position, the fund's or company's figures, the recent events, the economy, their past decisions on it, the size against their targets) and the protocol to follow: answer as four voices — the advocate, the skeptic, the risk manager, and taxes and costs — then a synthesis with what would change the decision. Then offer to record it with wealth_decision. Read only.",
+    "description": "Before the user decides: AXYON's investment committee on their proposal (\"comprar 50 cotas de GARE11\"). Gives the facts, numbered with their sources (their position and targets, the price, the fund's or company's figures, the ceilings, their thesis, the economy, their past decisions), the documents AXYON's reader read with their pages, and the protocol: five minds — valuation analyst, capital-markets lawyer, forensic accountant, risk manager, macro strategist; the lawyer and the risk manager may veto — each citing its sources, then the chair: the score, any veto, the decision as a question, the dissent, what would change it. Archetypes, never real people. Then offer to record it with wealth_decision. Read only.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -620,11 +620,95 @@
         "ticker": {
           "type": "string",
           "description": "The asset, when the proposal does not name it."
+        },
+        "language": {
+          "type": "string",
+          "description": "The user's language, for the answer (\"Portuguese\")."
         }
       },
       "required": [
         "proposal"
       ]
+    }
+  },
+  {
+    "name": "wealth_documents",
+    "title": "Zheus: the reader of documents and the theses",
+    "description": "AXYON's reader and the user's living theses. do=feed: the documents of the user's assets AXYON read (managers' monthly reports, material facts, assemblies, offerings, notices from FundosNet; companies' material facts and results releases from the CVM), newest first, each with its key, its summary with the pages it rests on, and what changed in its figures against the previous one (vacancy, default, dividend and result per share, LTV, holders); `ticker` for one asset. do=read: a document's text page by page (`key`, `offset`), to answer from it with its pages. do=theses: the user's theses checked now (each condition, holding or broken, with its source, and documents that may hurt them). do=thesis: write the user's thesis on `ticker` from their own `text` (\"P/VP abaixo de 1; DY acima de 9%; vacância até 10%\"): measurable sentences become conditions AXYON checks whenever something new comes in; it tells the user when one breaks.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "do": {
+          "type": "string",
+          "enum": [
+            "feed",
+            "read",
+            "theses",
+            "thesis"
+          ]
+        },
+        "ticker": {
+          "type": "string",
+          "description": "One asset (\"GGRC11\")."
+        },
+        "key": {
+          "type": "string",
+          "description": "A document's key, as feed gives it (\"fnet:904\")."
+        },
+        "offset": {
+          "type": "integer",
+          "description": "read: from this character on."
+        },
+        "text": {
+          "type": "string",
+          "description": "thesis: the user's thesis in their words."
+        }
+      }
+    }
+  },
+  {
+    "name": "wealth_learn",
+    "title": "Zheus: learning with one's own portfolio",
+    "description": "Learning to invest with the user's own assets. do=glossary: a term in plain words with its value in the user's assets (`term`: \"P/VP\", \"vacância\", \"data-com\"…; none for the list). do=apprentice: the apprentice mode on or off (`on`): the committee, the reader and the weekly summary then explain in plain words. do=cards: flashcards made from the user's assets in the deck \"investimentos\" (graded with life_cards). do=paper: a training portfolio with pretend money at the real prices — `action` show, buy, sell (`ticker`, `quantity`) or reset (`amount`); nothing real is bought or sold. do=score: the user's personal score from the decision journal (how often they were right, by how sure they said they were).",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "do": {
+          "type": "string",
+          "enum": [
+            "glossary",
+            "apprentice",
+            "cards",
+            "paper",
+            "score"
+          ]
+        },
+        "term": {
+          "type": "string"
+        },
+        "on": {
+          "type": "boolean"
+        },
+        "action": {
+          "type": "string",
+          "enum": [
+            "show",
+            "buy",
+            "sell",
+            "reset"
+          ]
+        },
+        "ticker": {
+          "type": "string"
+        },
+        "quantity": {
+          "type": "number"
+        },
+        "amount": {
+          "type": "number",
+          "description": "reset: the pretend money to start with, R$ (10.000 by default)."
+        }
+      }
     }
   },
   {

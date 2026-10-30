@@ -247,7 +247,65 @@ pub async fn company(http: &Http, ticker: &str, known: &BTreeMap<String, (String
         }
     };
     let (figures, problems, shares) = sources::company_figures(http, &cnpj, &[today.y - 1, today.y - 2], &[today.y, today.y - 1]).await?;
-    Ok((CompanyData { ticker: ticker.to_string(), cnpj, name, figures, checked: Some(today), problems, shares: shares.map(|s| s.1), shares_date: shares.map(|s| s.0), reader: COMPANY_READER }, register))
+    Ok((
+        CompanyData {
+            ticker: ticker.to_string(),
+            cnpj,
+            name,
+            figures,
+            checked: Some(today),
+            problems,
+            shares: shares.map(|s| s.1),
+            shares_date: shares.map(|s| s.0),
+            reader: COMPANY_READER,
+            documents: Vec::new(),
+            documents_read: None,
+        },
+        register,
+    ))
+}
+
+/// The companies whose documents the CVM lists (IPE) are due to be listed again: those held or of a thesis, read
+/// already (their CNPJ known), listed more than a week ago or never. (ticker, CNPJ).
+pub fn company_documents_due(store: &Store, market: &Market, today: Date) -> Vec<(String, String)> {
+    crate::library::followed(store)
+        .into_iter()
+        .filter_map(|t| {
+            let c = market.companies.get(&t)?;
+            let cnpj = crate::text::cnpj_chars(&c.cnpj);
+            (cnpj.len() == 14 && c.documents_read.is_none_or(|d| d.until(today) >= 7)).then_some((t, cnpj))
+        })
+        .collect()
+}
+
+/// The years whose IPE files hold the documents of the last months: this year's, and last year's in its first two.
+pub fn document_years(today: Date) -> Vec<i32> {
+    if today.m <= 2 {
+        vec![today.y, today.y - 1]
+    } else {
+        vec![today.y]
+    }
+}
+
+/// The documents the CVM listed, kept with each company (by its CNPJ); a company not in the list has none now.
+pub fn merge_company_documents(market: &mut Market, due: &[(String, String)], mut read: HashMap<String, Vec<crate::library::Listed>>, today: Date) {
+    for (ticker, cnpj) in due {
+        if let Some(c) = market.companies.get_mut(ticker) {
+            c.documents = read.remove(cnpj).unwrap_or_default();
+            c.documents_read = Some(today);
+        }
+    }
+}
+
+/// A company's figures read again, kept in place of the old ones; the documents the CVM listed for it stay.
+pub fn merge_company(market: &mut Market, ticker: String, mut company: CompanyData) {
+    if let Some(old) = market.companies.get(&ticker) {
+        if company.documents.is_empty() {
+            company.documents = old.documents.clone();
+            company.documents_read = old.documents_read;
+        }
+    }
+    market.companies.insert(ticker, company);
 }
 
 /// Classes guessed at import (a ticker ending in 11) set from what the sources say: a fund in the CVM's reports is a

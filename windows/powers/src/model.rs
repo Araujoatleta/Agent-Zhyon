@@ -294,6 +294,85 @@ pub struct Snapshot {
     /// Estimated passive income a month, R$.
     #[serde(default)]
     pub income: f64,
+    /// Each quoted asset's price that day, for the week's moves (weekly.rs).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub prices: BTreeMap<String, f64>,
+}
+
+// ── The committee's verdicts, learning, the training portfolio ──────────────
+
+/// What one of the committee's minds said (committee.rs).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct MindVote {
+    /// "valuation", "legal", "forensic", "risk", "macro".
+    pub id: String,
+    /// "for", "against", "neutral".
+    pub vote: String,
+    /// 0 to 100.
+    pub confidence: u8,
+    /// A veto (legal and risk only).
+    pub veto: bool,
+    /// Its points, each with the fact or the page it rests on ("F3", "D1 p.4").
+    pub points: Vec<(String, String)>,
+}
+
+/// The committee's verdict on a proposal, kept for the app and the journal.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct Verdict {
+    pub id: String,
+    pub ticker: String,
+    pub proposal: String,
+    pub date: Option<Date>,
+    pub minds: Vec<MindVote>,
+    /// The chair's question to the user (never an order).
+    pub question: String,
+    /// The strongest argument of the side that lost.
+    pub dissent: String,
+    /// What would change the picture.
+    pub would_change: String,
+    /// How it fits the user's own targets.
+    pub fit: String,
+    /// Why the committee met: "user" (asked), "document" (a new document of the asset), "thesis" (a condition broke).
+    pub reason: String,
+    /// The document that called it, when one did.
+    pub document: String,
+}
+
+impl Verdict {
+    /// (for, against, neutral).
+    pub fn score(&self) -> (usize, usize, usize) {
+        let count = |v: &str| self.minds.iter().filter(|m| m.vote == v).count();
+        (count("for"), count("against"), count("neutral"))
+    }
+
+    pub fn vetoed_by(&self) -> Vec<String> {
+        self.minds.iter().filter(|m| m.veto).map(|m| m.id.clone()).collect()
+    }
+}
+
+/// A practice portfolio with pretend money, at the real prices (learn.rs).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct Paper {
+    pub started: Option<Date>,
+    /// The pretend money it began with, R$.
+    pub start: f64,
+    pub cash: f64,
+    pub positions: Vec<Position>,
+    pub trades: Vec<Trade>,
+}
+
+/// What the user learns with their own portfolio (learn.rs).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct Learn {
+    /// Explanations in plain words, with the terms defined (the committee, the reader, the weekly summary).
+    pub apprentice: bool,
+    pub paper: Paper,
+    /// The week of the last weekly summary made (its Monday), so one a week is told.
+    pub weekly_told: Option<Date>,
 }
 
 // ── Studies, cards, English, training, content ───────────────────────────────
@@ -501,6 +580,11 @@ pub struct Store {
     pub sheet_sync: crate::workspace::Sync,
     /// The moments told today during the session (alerts.rs).
     pub told_today: crate::alerts::Told,
+    /// The committee's last verdicts, newest last (committee.rs).
+    pub verdicts: Vec<Verdict>,
+    pub learn: Learn,
+    /// The documents and broken theses already told, by key (library.rs, thesis.rs).
+    pub told_documents: Vec<String>,
 }
 
 /// The user's choices for ceiling prices (ceiling.rs).
@@ -571,6 +655,12 @@ pub struct CompanyData {
     /// The reader that read it (refresh::COMPANY_READER): one read by an older one is read again once.
     #[serde(default)]
     pub reader: u32,
+    /// Its documents the CVM lists (IPE: material facts, notices, results releases, assemblies), newest first.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub documents: Vec<crate::library::Listed>,
+    /// When they were last listed.
+    #[serde(default)]
+    pub documents_read: Option<Date>,
 }
 
 /// What Zheus read from the official sources, kept between runs.

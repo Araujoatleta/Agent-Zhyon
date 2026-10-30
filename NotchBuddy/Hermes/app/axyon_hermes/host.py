@@ -29,6 +29,8 @@ and talks to it with:
   GET  /?state=…&code=…              Google's page sending the browser back: the one request without the token,
                                      taken only for the sign-in AXYON is waiting for (its own random state)
   GET  /v1/cron                      Hermes' scheduled tasks; POST /v1/cron/tick runs the due ones now (scheduled.py)
+  POST /v1/invest/digest {key, language}, /v1/invest/committee {proposal, ticker, reason, document, language}
+                                     the reader's digest of a document and the committee's verdict (invest.py)
 
 Nothing else is served, no other request without the token or from a web page (an Origin header) is answered.
 """
@@ -152,6 +154,7 @@ class Host:
         self.house = None  # the iPhone's own home (home.py)
         self.google = None  # the user's Google account (google.py)
         self.scheduled = None  # Hermes' cron on the iPhone (scheduled.py)
+        self.invest = None  # the reader's digests and the committee's meetings (invest.py)
         from .bridge import Bridge
 
         self.bridge = Bridge()
@@ -174,6 +177,7 @@ class Host:
             from .coucou import Coucou
             from .google import Google
             from .home import Home
+            from .invest import Invest
             from .iphone import IPhone
             from .powers import Powers
             from .scheduled import Scheduled
@@ -191,6 +195,7 @@ class Host:
             self.google.register(registry)
             self.scheduled = Scheduled(self.bridge)
             self.scheduled.install()
+            self.invest = Invest(self.bridge)
             model = self._model_config()
             try:
                 from hermes_cli.config import load_config, save_config
@@ -709,6 +714,16 @@ class Handler(BaseHTTPRequestHandler):
                 if not h.ready or h.google is None:
                     return self._send(503, {"error": h.problem or "Hermes is starting"})
                 return self._post_more(path, body)
+            if path in ("/v1/invest/digest", "/v1/invest/committee"):
+                if not h.ready or h.invest is None:
+                    return self._send(503, {"error": h.problem or "Hermes is starting"})
+                from .invest import InvestError
+
+                try:
+                    done = h.invest.digest(body) if path.endswith("/digest") else h.invest.committee(body)
+                except InvestError as exc:
+                    return self._send(422, {"error": str(exc)})
+                return self._send(200, done)
         except ValueError as exc:
             return self._send(400, {"error": str(exc)})
         except Exception as exc:

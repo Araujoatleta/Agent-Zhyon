@@ -133,6 +133,8 @@ pub const POWER_TOOLS: &[&str] = &[
     "wealth_audit",
     "wealth_decision",
     "wealth_committee",
+    "wealth_documents",
+    "wealth_learn",
     "wealth_macro",
     "life_study",
     "life_cards",
