@@ -41,7 +41,7 @@ struct PCNotice: View {
             }
             if let retry {
                 Button("Try again now") { retry() }
-                    .buttonStyle(.borderedProminent)
+                    .borderedProminentButton()
                     .tint(CoucouPalette.accent)
                     .padding(.top, 4)
             }

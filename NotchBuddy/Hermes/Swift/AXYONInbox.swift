@@ -235,7 +235,7 @@ struct AXYONAttachmentChips: View {
                             AXYONThumb(url: AXYONInbox.url(file.file))
                         case .file:
                             VStack(spacing: 4) {
-                                Image(systemName: icon(file.name)).font(.title3).foregroundStyle(AXYONPalette.cyan)
+                                Image(systemName: icon(file.name)).font(.title3).foregroundStyle(.white)
                                 Text(file.name).font(.caption2).lineLimit(2).multilineTextAlignment(.center)
                             }
                             .padding(6)
@@ -329,24 +329,28 @@ struct AXYONMailCard: View {
                     answer(false)
                     Haptics.impact()
                 } label: {
-                    Text("Cancel").frame(maxWidth: .infinity)
+                    Text("Cancel")
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 9)
+                        .background(Color.white.opacity(0.12), in: Capsule())
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(PressableButtonStyle())
                 Button {
                     answer(true)
                     Haptics.success()
                 } label: {
                     Label("Send", systemImage: "paperplane.fill").frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(AXYONPalette.violet)
+                .buttonStyle(WhiteCapsuleButtonStyle())
             }
             Text("Sent from your Gmail only when you tap Send.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
         .padding(16)
-        .axyonCard(tint: AXYONPalette.violet, glow: AXYONPalette.violet)
+        .axyonCard()
     }
 }
 

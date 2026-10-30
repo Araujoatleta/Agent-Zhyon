@@ -94,11 +94,11 @@ struct AboutView: View {
                 }
                 LabeledContent("Notifications") {
                     Text(link.notificationsAllowed == false ? "Off" : "On")
-                        .foregroundStyle(link.notificationsAllowed == false ? .orange : .secondary)
+                        .foregroundStyle(link.notificationsAllowed == false ? CoucouPalette.attention : Color.secondary)
                 }
                 LabeledContent("Live Activities") {
                     Text(LiveActivityLink.shared.activitiesEnabled ? "On" : "Off")
-                        .foregroundStyle(LiveActivityLink.shared.activitiesEnabled ? Color.secondary : Color.orange)
+                        .foregroundStyle(LiveActivityLink.shared.activitiesEnabled ? Color.secondary : CoucouPalette.attention)
                 }
                 if link.notificationsAllowed == false || !LiveActivityLink.shared.activitiesEnabled {
                     Button("Open iPhone Settings") {

@@ -77,7 +77,7 @@ struct SearchScreen: View {
             MochiStill(state: .idle, bodyHex: pill?.color ?? "#FFFFFF")
                 .padding(4)
                 .frame(width: 34, height: 34)
-                .background(Color.mochiTile(hex: pill?.color ?? "#3B4A6B"), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                .background(Color.agentTile(hex: pill?.color ?? "#3B4A6B"), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
             VStack(alignment: .leading, spacing: 3) {
                 HStack {
                     Text(hit.turn.project.isEmpty ? hit.agent : "\(hit.turn.project) · \(hit.agent)")

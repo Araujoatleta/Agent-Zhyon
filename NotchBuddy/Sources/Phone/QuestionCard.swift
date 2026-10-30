@@ -18,7 +18,7 @@ struct QuestionCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Question").font(.subheadline.weight(.semibold)).foregroundStyle(.cyan)
+            Text("Question").font(.subheadline.weight(.semibold)).foregroundStyle(CoucouPalette.question)
             ForEach(Array(payload.items.enumerated()), id: \.offset) { index, item in
                 VStack(alignment: .leading, spacing: 8) {
                     if !item.header.isEmpty {
@@ -45,8 +45,8 @@ struct QuestionCard: View {
                 } label: {
                     Label("Send answer", systemImage: "paperplane.fill").frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(.cyan)
+                .borderedProminentButton()
+                .tint(CoucouPalette.question)
                 .controlSize(.large)
                 .disabled(!ready || sending)
                 Text("Claude waits about 2 minutes, then asks in the terminal.")
@@ -57,8 +57,8 @@ struct QuestionCard: View {
             }
         }
         .padding(16)
-        .glassCard(tint: .cyan)
-        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).strokeBorder(Color.cyan.opacity(0.6), lineWidth: 1.2))
+        .glassCard(tint: CoucouPalette.question)
+        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).strokeBorder(CoucouPalette.question.opacity(0.6), lineWidth: 1.2))
         .onAppear { reset() }
         .onChange(of: payload) { reset() }
     }
@@ -78,7 +78,7 @@ struct QuestionCard: View {
                 Image(systemName: item.multiSelect
                       ? (selected ? "checkmark.square.fill" : "square")
                       : (selected ? "largecircle.fill.circle" : "circle"))
-                    .foregroundStyle(selected ? Color.cyan : Color.secondary)
+                    .foregroundStyle(selected ? CoucouPalette.question : Color.secondary)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(option.label).font(.callout).foregroundStyle(.primary)
                     if !option.description.isEmpty {
@@ -88,11 +88,11 @@ struct QuestionCard: View {
                 Spacer(minLength: 0)
             }
             .padding(12)
-            .background(selected ? Color.cyan.opacity(0.18) : Color.white.opacity(0.07),
+            .background(selected ? CoucouPalette.question.opacity(0.18) : Color.white.opacity(0.07),
                         in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             .overlay {
                 if selected {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Color.cyan.opacity(0.5), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(CoucouPalette.question.opacity(0.5), lineWidth: 1)
                 }
             }
             .contentShape(Rectangle())

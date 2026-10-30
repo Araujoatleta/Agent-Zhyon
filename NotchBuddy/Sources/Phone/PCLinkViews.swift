@@ -256,7 +256,7 @@ struct PCPairingConfirm: View {
                 if replaces {
                     Text("It replaces \(pc.name), paired before.")
                         .font(.footnote)
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(CoucouPalette.attention)
                 }
                 if failed {
                     Text(pc.lastError ?? String(localized: "Couldn't pair."))

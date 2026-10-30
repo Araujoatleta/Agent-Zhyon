@@ -180,7 +180,7 @@ struct PCHomeView: View {
                     Text("Run")
                 }
             }
-            .buttonStyle(.borderedProminent)
+            .borderedProminentButton()
             .tint(CoucouPalette.accent)
             .disabled(!connected || pc.homeWorking != nil)
         }
@@ -291,12 +291,17 @@ private enum PCHomeLook {
     }
 
     static func color(_ kind: String) -> Color {
-        switch kind {
+        #if HERMES
+        // AXYON has no colour but for what is on or failed: every kind of device in white.
+        return .white
+        #else
+        return switch kind {
         case "light": CoucouPalette.warn
         case "plug", "switch": CoucouPalette.ok
         case "speaker": Color.cyan
         default: CoucouPalette.accent
         }
+        #endif
     }
 
     /// "On · 80%", "On · Volume 12 · YouTube", "Offline".

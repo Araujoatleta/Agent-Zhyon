@@ -357,7 +357,7 @@ struct PCAssistantSettingsView: View {
                 Label("Open sign-in page", systemImage: "safari")
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.borderedProminent)
+            .borderedProminentButton()
             .tint(CoucouPalette.accent)
             .disabled(!PCAssistant.isSignInPage(url))
         }
@@ -384,7 +384,7 @@ struct PCAssistantSettingsView: View {
             }
             .frame(maxWidth: .infinity)
         }
-        .buttonStyle(.borderedProminent)
+        .borderedProminentButton()
         .tint(CoucouPalette.accent)
         .disabled(!connected || working != nil || !assistant.hermes.installed)
     }

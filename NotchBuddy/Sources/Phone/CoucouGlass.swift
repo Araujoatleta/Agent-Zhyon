@@ -7,6 +7,33 @@ import SwiftUI
 
 /// The colors of the iPhone app. The status colors are the desktop's (windows/src/settings/settings.css).
 enum CoucouPalette {
+    #if HERMES
+    // AXYON, the build with Hermes inside: Apple's own dark, in black and white. Only the system's green and red
+    // have a colour, for what is on or gained and for what failed or was lost.
+    /// Behind everything: black.
+    static let abyss = Color.black
+    /// Cards that are not glass: #121214.
+    static let night = Color(red: 0.071, green: 0.071, blue: 0.078)
+    /// Fills one step up, as the iPhone's own grouped rows: #1C1C1E.
+    static let surface = Color(red: 0.110, green: 0.110, blue: 0.118)
+    static let hairline = Color.white.opacity(0.10)
+    /// The one thing to tap: white.
+    static let accent = Color.white
+    /// Text and icons on `accent`.
+    static let onAccent = Color.black
+    /// The system's green: #30D158.
+    static let ok = Color(red: 0.188, green: 0.820, blue: 0.345)
+    /// What needs a look: white too, AXYON has no other colour.
+    static let warn = Color.white
+    /// The system's red: #FF453A.
+    static let danger = Color(red: 1.0, green: 0.271, blue: 0.227)
+    /// The backdrop's light.
+    static let glow = Color.white
+    /// What wants your attention: a request waiting for your OK, a setting that is off.
+    static let attention = Color.white
+    /// A question for you.
+    static let question = Color.white
+    #else
     /// Behind everything: #05060A.
     static let abyss = Color(red: 0.020, green: 0.024, blue: 0.039)
     /// Cards that are not glass: #0B0D14.
@@ -16,6 +43,8 @@ enum CoucouPalette {
     static let hairline = Color.white.opacity(0.08)
     /// Hermes' violet: #C084FC.
     static let accent = Color(red: 0.753, green: 0.518, blue: 0.988)
+    /// Text and icons on `accent`.
+    static let onAccent = Color.white
     /// #22C55E
     static let ok = Color(red: 0.133, green: 0.773, blue: 0.369)
     /// #F5A524
@@ -24,11 +53,39 @@ enum CoucouPalette {
     static let danger = Color(red: 0.957, green: 0.314, blue: 0.369)
     /// The backdrop's second glow, a deep blue: #3B5BDB.
     static let glow = Color(red: 0.231, green: 0.357, blue: 0.859)
+    /// What wants your attention, a request waiting for your OK, a setting that is off: the system's orange.
+    static let attention = Color.orange
+    /// A question for you: the system's cyan.
+    static let question = Color.cyan
+    #endif
 }
 
 /// How much a glass surface stands out: regular for cards, clear for what floats over busy content, prominent for
 /// the one thing to tap (strongly tinted, Hermes' violet unless told otherwise).
-enum CoucouGlassKind: Sendable, Equatable { case regular, clear, prominent }
+enum CoucouGlassKind: Sendable, Equatable {
+    case regular, clear, prominent
+
+    /// Your own words (a chat bubble, a turn's prompt): the prominent violet glass; in AXYON a lighter glass, the
+    /// white text on it.
+    static var yours: CoucouGlassKind {
+        #if HERMES
+        return .regular
+        #else
+        return .prominent
+        #endif
+    }
+}
+
+extension Color {
+    /// The tile behind an agent's Mochi: the agent's color (CoucouKit's mochiTile); in AXYON, one quiet grey for all.
+    static func agentTile(hex: String) -> Color {
+        #if HERMES
+        return Color.white.opacity(0.12)
+        #else
+        return mochiTile(hex: hex)
+        #endif
+    }
+}
 
 /// Liquid Glass in `shape` on iOS 26; before it, a frosted material with a hairline and a soft shadow.
 struct CoucouGlass<S: InsettableShape>: ViewModifier {
@@ -77,13 +134,32 @@ extension View {
         modifier(CoucouGlass(kind: kind, shape: shape, tint: tint, interactive: interactive))
     }
 
-    /// The system's glass button on iOS 26, a bordered one before.
+    /// The system's glass button on iOS 26, a bordered one before; in AXYON, the prominent one is white with black on
+    /// it.
     @ViewBuilder func coucouGlassButton(prominent: Bool = false) -> some View {
-        if #available(iOS 26.0, *) {
-            if prominent { buttonStyle(.glassProminent) } else { buttonStyle(.glass) }
+        if prominent {
+            coucouProminentButton()
         } else {
-            if prominent { buttonStyle(.borderedProminent) } else { buttonStyle(.bordered) }
+            if #available(iOS 26.0, *) { buttonStyle(.glass) } else { buttonStyle(.bordered) }
         }
+    }
+
+    /// The one button to tap: the system's prominent one (glass on iOS 26), or AXYON's white capsule with black on it.
+    @ViewBuilder func coucouProminentButton() -> some View {
+        #if HERMES
+        buttonStyle(WhiteCapsuleButtonStyle())
+        #else
+        if #available(iOS 26.0, *) { buttonStyle(.glassProminent) } else { buttonStyle(.borderedProminent) }
+        #endif
+    }
+
+    /// The system's bordered prominent button, or AXYON's white capsule with black on it.
+    @ViewBuilder func borderedProminentButton() -> some View {
+        #if HERMES
+        buttonStyle(WhiteCapsuleButtonStyle())
+        #else
+        buttonStyle(.borderedProminent)
+        #endif
     }
 
     /// Lets this glass morph into, or out of, the glass of the same group with another id (iOS 26).
@@ -119,9 +195,13 @@ struct CoucouGlassGroup<Content: View>: View {
 }
 
 /// The deep dark behind every screen: near-black with a dim violet glow from the top and a blue one from the
-/// bottom, so glass has something to bend. Drawn once, no timeline: it costs nothing while it shows.
+/// bottom, so glass has something to bend; in AXYON, its black with a faint light from above. Drawn once, no
+/// timeline: it costs nothing while it shows.
 struct DeepBackdrop: View {
     var body: some View {
+        #if HERMES
+        AXYONBackdrop()
+        #else
         ZStack {
             CoucouPalette.abyss
             EllipticalGradient(colors: [CoucouPalette.accent.opacity(0.17), .clear],
@@ -133,6 +213,7 @@ struct DeepBackdrop: View {
         .ignoresSafeArea()
         .allowsHitTesting(false)
         .accessibilityHidden(true)
+        #endif
     }
 }
 

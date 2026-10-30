@@ -38,7 +38,12 @@ final class PCLink {
 
     /// Mochi's pill on the computer (his hands, windows/src-tauri/src/agent), which the Mac's catalog has not.
     nonisolated static let mochiPill = "agent_mochi"
+    #if HERMES
+    /// AXYON's: a light grey, as it has no colour.
+    nonisolated static let mochiColor = "#E5E5EA"
+    #else
     nonisolated static let mochiColor = "#A5B4FC"
+    #endif
 
     private(set) var computer: PCComputer?
     private(set) var status: Status = .unpaired

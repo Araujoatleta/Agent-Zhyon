@@ -69,21 +69,21 @@ struct AXYONHouseView: View {
                 if let problem {
                     Label(problem, systemImage: "exclamationmark.triangle.fill")
                         .font(.footnote)
-                        .foregroundStyle(AXYONPalette.gold)
+                        .foregroundStyle(AXYONPalette.down)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(14)
-                        .axyonCard(cornerRadius: 20, tint: AXYONPalette.gold)
+                        .axyonCard(cornerRadius: 20, tint: AXYONPalette.down)
                 }
                 if let house = engine.house {
                     if house.devices.isEmpty {
                         empty
                     }
                     if !house.own.isEmpty {
-                        AXYONHeader(title: String(localized: "On this iPhone's Wi-Fi"), systemImage: "wifi")
+                        AXYONHeader(title: String(localized: "On this iPhone's Wi-Fi"))
                         tiles(house.own)
                     }
                     if !house.assistant.isEmpty {
-                        AXYONHeader(title: String(localized: "Home Assistant"), systemImage: "house.lodge.fill")
+                        AXYONHeader(title: String(localized: "Home Assistant"))
                         tiles(house.assistant)
                     }
                     if let trouble = house.assistantProblem {
@@ -104,19 +104,22 @@ struct AXYONHouseView: View {
                         .padding(.top, 60)
                 }
             }
-            .padding(16)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
         }
         .axyonBackdrop()
         .refreshable { await engine.refreshHouse() }
     }
 
     private func tiles(_ devices: [HermesDevice]) -> some View {
-        LazyVGrid(columns: columns, spacing: 12) {
-            ForEach(devices) { device in
-                AXYONDeviceTile(device: device, busy: busy.contains(device.id)) {
-                    opened = device
-                } power: {
-                    Task { await power(device) }
+        CoucouGlassGroup(spacing: 4) {
+            LazyVGrid(columns: columns, spacing: 12) {
+                ForEach(devices) { device in
+                    AXYONDeviceTile(device: device, busy: busy.contains(device.id)) {
+                        opened = device
+                    } power: {
+                        Task { await power(device) }
+                    }
                 }
             }
         }
@@ -134,9 +137,8 @@ struct AXYONHouseView: View {
     private var empty: some View {
         VStack(spacing: 14) {
             Image(systemName: "house.and.flag.fill")
-                .font(.system(size: 44))
-                .foregroundStyle(AXYONPalette.violet)
-                .shadow(color: AXYONPalette.violet.opacity(0.6), radius: 12)
+                .font(.system(size: 44, weight: .light))
+                .foregroundStyle(.white)
             Text("Your home, from the iPhone").font(.title3.weight(.semibold))
             Text("Add your Samsung TV, your Android TV or box, or your Home Assistant: AXYON reaches them from this iPhone on your Wi-Fi, with no computer. Then ask in the chat: “turn on the living room TV”.")
                 .font(.callout)
@@ -153,12 +155,13 @@ struct AXYONHouseView: View {
         }
         .padding(28)
         .frame(maxWidth: .infinity)
-        .axyonCard(glow: AXYONPalette.violet)
+        .axyonCard()
         .padding(.top, 20)
     }
 }
 
-/// One device as a glass tile: what it is, whether it is on, and its power button.
+/// One device as the Home app draws it: dark glass while it is off, lit white with black on it while it is on, and
+/// its power button.
 struct AXYONDeviceTile: View {
     let device: HermesDevice
     var busy = false
@@ -172,8 +175,7 @@ struct AXYONDeviceTile: View {
             HStack(alignment: .top) {
                 Image(systemName: AXYONDeviceTile.icon(device.kind))
                     .font(.title2)
-                    .foregroundStyle(lit ? AXYONPalette.gold : AXYONPalette.faint)
-                    .shadow(color: lit ? AXYONPalette.gold.opacity(0.6) : .clear, radius: 8)
+                    .foregroundStyle(lit ? Color.black : AXYONPalette.dim)
                 Spacer()
                 if device.can("turn_on") || device.can("toggle") || device.can("run") {
                     Button(action: power) {
@@ -185,10 +187,9 @@ struct AXYONDeviceTile: View {
                                     .font(.callout.weight(.bold))
                             }
                         }
-                        .foregroundStyle(lit ? .black : .white)
+                        .foregroundStyle(.white)
                         .frame(width: 36, height: 36)
-                        .background(lit ? AnyShapeStyle(AXYONPalette.gold) : AnyShapeStyle(Color.white.opacity(0.12)),
-                                    in: Circle())
+                        .background(lit ? Color.black.opacity(0.82) : Color.white.opacity(0.12), in: Circle())
                     }
                     .buttonStyle(PressableButtonStyle())
                     .disabled(busy)
@@ -198,18 +199,33 @@ struct AXYONDeviceTile: View {
             Spacer(minLength: 0)
             Text(device.name)
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(lit ? Color.black : Color.white)
                 .lineLimit(2)
             Text(status)
                 .font(.caption)
-                .foregroundStyle(AXYONPalette.dim)
+                .foregroundStyle(lit ? Color.black.opacity(0.6) : AXYONPalette.dim)
                 .lineLimit(1)
         }
         .padding(14)
         .frame(maxWidth: .infinity, minHeight: 128, alignment: .topLeading)
-        .axyonCard(cornerRadius: 22, tint: lit ? AXYONPalette.gold : nil)
+        .modifier(DeviceSurface(lit: lit))
         .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         .onTapGesture(perform: open)
+        .animation(.spring(duration: 0.35), value: lit)
+    }
+
+    /// Off: dark glass. On: the glass lit almost white, as the Home app's tiles.
+    private struct DeviceSurface: ViewModifier {
+        let lit: Bool
+
+        @ViewBuilder func body(content: Content) -> some View {
+            if lit {
+                content.coucouGlass(.prominent, cornerRadius: 22, tint: .white)
+                    .background(Color.white.opacity(0.55), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+            } else {
+                content.axyonCard(cornerRadius: 22)
+            }
+        }
     }
 
     private var status: String {
@@ -258,7 +274,7 @@ struct AXYONDeviceView: View {
                     if let said {
                         Label(said, systemImage: failed ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
                             .font(.footnote)
-                            .foregroundStyle(failed ? AXYONPalette.gold : AXYONPalette.up)
+                            .foregroundStyle(failed ? AXYONPalette.down : AXYONPalette.up)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     if !device.paired {
@@ -300,9 +316,9 @@ struct AXYONDeviceView: View {
         HStack(spacing: 14) {
             Image(systemName: AXYONDeviceTile.icon(device.kind))
                 .font(.title)
-                .foregroundStyle(device.on == true ? AXYONPalette.gold : AXYONPalette.cyan)
+                .foregroundStyle(device.on == true ? Color.black : Color.white)
                 .frame(width: 54, height: 54)
-                .coucouGlass(.regular, in: Circle())
+                .coucouGlass(device.on == true ? .prominent : .regular, in: Circle(), tint: device.on == true ? Color.white : nil)
             VStack(alignment: .leading, spacing: 3) {
                 Text(device.name).font(.title3.weight(.bold)).foregroundStyle(.white)
                 Text([device.source, device.room].filter { !$0.isEmpty }.joined(separator: " · "))
@@ -334,7 +350,7 @@ struct AXYONDeviceView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(18)
-        .axyonCard(tint: AXYONPalette.violet)
+        .axyonCard()
     }
 
     @ViewBuilder private func controls(_ device: HermesDevice) -> some View {
@@ -366,7 +382,7 @@ struct AXYONDeviceView: View {
                         Task { await act(device, brightness ? "set_brightness" : "set_volume", value: Int(level)) }
                     }
                 })
-                .tint(brightness ? AXYONPalette.gold : AXYONPalette.cyan)
+                .tint(.white)
             }
             .padding(16)
             .axyonCard(cornerRadius: 22)
@@ -374,7 +390,7 @@ struct AXYONDeviceView: View {
         if device.can("key") { remote(device) }
         if device.can("open_app"), !device.apps.isEmpty {
             VStack(alignment: .leading, spacing: 10) {
-                AXYONHeader(title: String(localized: "Apps"), systemImage: "square.grid.2x2.fill")
+                AXYONHeader(title: String(localized: "Apps"))
                 FlowChips(items: device.apps) { app in
                     Task { await act(device, "open_app", value: app) }
                 }
@@ -553,7 +569,7 @@ struct AXYONAddDeviceView: View {
                 ForEach(found) { item in
                     HStack(spacing: 12) {
                         Image(systemName: item.driver == "homeassistant" ? "house.lodge.fill" : "tv.fill")
-                            .foregroundStyle(AXYONPalette.cyan)
+                            .foregroundStyle(.white)
                             .frame(width: 26)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(item.name).foregroundStyle(.white)
@@ -645,7 +661,7 @@ struct AXYONAddDeviceView: View {
             if let said {
                 Section {
                     Label(said, systemImage: failed ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
-                        .foregroundStyle(failed ? AXYONPalette.gold : AXYONPalette.up)
+                        .foregroundStyle(failed ? AXYONPalette.down : AXYONPalette.up)
                 }
                 .listRowBackground(GlassRowBackground())
             }

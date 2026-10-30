@@ -31,7 +31,7 @@ struct TurnShareCard: View {
                 MochiStill(state: .finished, bodyHex: color, showBadge: false)
                     .padding(8)
                     .frame(width: 64, height: 64)
-                    .background(Color.mochiTile(hex: color), in: RoundedRectangle(cornerRadius: 16))
+                    .background(Color.agentTile(hex: color), in: RoundedRectangle(cornerRadius: 16))
                 VStack(alignment: .leading, spacing: 2) {
                     Text(turn.project.isEmpty ? "Claude Code" : turn.project)
                         .font(.title3.weight(.bold))

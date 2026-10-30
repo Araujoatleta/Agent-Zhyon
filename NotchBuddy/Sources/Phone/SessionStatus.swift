@@ -36,8 +36,8 @@ extension SessionItem {
 
     var statusColor: Color {
         switch urgency {
-        case 0: .orange
-        case 1: .cyan
+        case 0: CoucouPalette.attention
+        case 1: CoucouPalette.question
         case 2: .red
         case 4: .green
         default: .secondary
