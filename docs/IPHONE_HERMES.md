@@ -113,6 +113,41 @@ again, studies, training and the English lesson). iOS decides when AXYON may loo
 iOS asks the first time for each thing it protects; **Settings → What AXYON may use on this iPhone** shows what is
 allowed.
 
+## Investing: the committee, the reader, your theses, the week and learning
+
+The **Wallet** tab is now AXYON's investing screen, in the design of a statistics screen: charcoal, a ring of thick
+rounded segments in soft colours with the total in its middle, a legend in two columns, a pill to choose **Portfolio**
+or **Dividends**, **Class | Asset**, a carousel of months for the dividends, and **History** under it (your positions,
+as before). Every number is computed by AXYON's code from the official sources; the brain only reads and votes, and
+says where each point comes from.
+
+- **The committee of five minds**: ask *"buy 100 shares of GGRC11?"*; a valuation analyst, a legal and governance
+  mind, a forensic accountant, a risk manager and a macro strategist each vote with how sure they are and up to three
+  points, each with its source (a fact the code computed, F3, or a document's page, D1 p.4); legal and risk can veto.
+  The chair gives the score (3 × 2), the losing side's best argument, what would change the picture, how it fits your
+  targets, and ends with a **question**: the decision is yours. The minds are archetypes, never real people.
+- **The intern who reads everything**: the monthly reports, material facts, assemblies and offerings of your funds
+  (FundosNet) and the material facts, notices and releases of your companies (the CVM's list, once a week) are
+  downloaded and read on the iPhone (PDFKit, scanned pages by the iPhone's own text recognition); the code finds the
+  figures with their pages (vacancy, default, dividend and result per share, LTV, cap rate, holders) and what changed
+  since the previous report; AXYON Core sums up only what matters, page by page.
+- **Living theses**: write why you hold an asset in your words (*"P/VP below 1.05; yield above 9%; vacancy up to
+  10%"*); each condition with a number is checked against the price and every new report. When a document that
+  matters comes or a thesis breaks, the committee **meets by itself** when AXYON Core is running, and you get a
+  notification (with **Settings → Superpowers** alerts on).
+- **Your week in three minutes**: a script AXYON's code makes from your records (the portfolio against a week ago,
+  the best and worst moves, the dividends that came and those ahead, what the reader read, the theses, the
+  committee), read aloud in the iPhone's voice; **Make the audio** saves it as a sound file to send (WhatsApp takes
+  it as audio), **WhatsApp** opens it with the text written, and a reminder every Sunday if you want one.
+- **Learn with your own portfolio**: apprentice mode (the committee, the reader and the week explain each term the
+  first time), a glossary with each term's value in your own assets, flashcards of your assets graded as you go, a
+  training portfolio with pretend money at the real prices (against your real one and the CDI), and your personal
+  score (when you say you are sure, how often you are right, from the decision journal).
+
+Your portfolio stays on the iPhone. The documents are public and read once on the iPhone; the brain you chose is
+asked only for a document's digest and the committee's meetings. Nothing is bought or sold: this is not an
+investment recommendation.
+
 ## The home straight from the iPhone (no computer)
 
 **Home → +** adds the devices the iPhone drives itself on the home's Wi-Fi: a **Samsung TV** (Tizen, 2016 on; it asks

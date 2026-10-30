@@ -559,14 +559,16 @@ fn watch(st: &mut State, today: Date, evening: bool, morning: bool, budget: Dura
 /// The largest document file read.
 const MOST_DOCUMENT: usize = 40 * 1024 * 1024;
 
-/// A document's file, downloaded with the engine's client (FundosNet's and the CVM's): a PDF saved for the app to read
-/// (`{"pdf": path}`, in the folder's documents/), or its text's pages (`{"pages": […]}`).
+/// A document's file, downloaded with the engine's client (FundosNet's and the CVM's) within `seconds` (25 unless
+/// given, 5 to 40): a PDF saved for the app to read (`{"pdf": path}`, in the folder's documents/), or its text's pages
+/// (`{"pages": […]}`).
 fn fetch_document(st: &State, input: &Value) -> Value {
     let Some(url) = input["pending"]["download"].as_str().filter(|u| u.starts_with("https://")) else {
         return json!({ "ok": false, "text": "The document has no address to download it from." });
     };
     let key = input["pending"]["key"].as_str().unwrap_or("document");
-    let body = match within(Instant::now() + ASSET_BUDGET, http().get(url)) {
+    let seconds = input["seconds"].as_u64().unwrap_or(25).clamp(5, 40);
+    let body = match within(Instant::now() + Duration::from_secs(seconds), http().get(url)) {
         None => return json!({ "ok": false, "text": "The download took too long." }),
         Some(Err(e)) => return json!({ "ok": false, "text": e }),
         Some(Ok(body)) if body.len() > MOST_DOCUMENT => return json!({ "ok": false, "text": "The document is too large." }),

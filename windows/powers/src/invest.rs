@@ -325,7 +325,8 @@ pub fn app(store: &mut Store, market: &Market, lib: &mut Library, tool: &str, in
                 Ok((json!({ "ok": true }), STORE))
             }
             _ => {
-                let pt = crate::text::plain(&language).starts_with("p");
+                // "pt-BR", "Portuguese", "Brazilian Portuguese": the script in Portuguese.
+                let pt = { let l = crate::text::plain(&language); l.starts_with("pt") || l.contains("portug") };
                 Ok((json!(weekly::script(store, market, Some(lib), today, pt)), Saved::default()))
             }
         },
@@ -474,6 +475,10 @@ mod tests {
         // The week's script, then told.
         let (week, _) = call(&mut store, &mut lib, "invest_weekly", json!({"language": "pt-BR"})).unwrap();
         assert!(week["text"].as_str().unwrap().contains("Isto não é recomendação de investimento"), "{week}");
+        let (week, _) = call(&mut store, &mut lib, "invest_weekly", json!({"language": "Brazilian Portuguese"})).unwrap();
+        assert!(week["text"].as_str().unwrap().starts_with("Seu resumo da semana"), "{week}");
+        let (week, _) = call(&mut store, &mut lib, "invest_weekly", json!({"language": "en-US"})).unwrap();
+        assert!(week["text"].as_str().unwrap().starts_with("Your week"), "{week}");
         call(&mut store, &mut lib, "invest_weekly", json!({"do": "told"})).unwrap();
         assert_eq!(view(&store, &market, Some(&lib), today)["weekly"]["told"], true);
         assert!(call(&mut store, &mut lib, "invest_nothing", json!({})).is_err());

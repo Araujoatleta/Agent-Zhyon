@@ -61,7 +61,12 @@ Os exemplos abaixo são frases que você pode mandar como estão, na ilha, no iP
 - "Monta a minha declaração de 2025" (bens e direitos com os códigos, isentos, JCP)
 
 **6. Comitê de investimento e diário de decisões**
-- "Quero comprar 50 cotas de GARE11. Faz o comitê." (quatro vozes: a favor, o cético, o risco, IR e custos; e a síntese)
+- "Quero comprar 50 cotas de GARE11. Faz o comitê." (cinco mentes: valuation, jurídico e governança, contador forense,
+  risco e macro, cada uma com o voto, quanta certeza tem e a fonte de cada ponto, o jurídico e o risco com veto; depois
+  o placar do presidente, o melhor argumento do lado que perdeu e uma pergunta para você)
+- "O que os relatórios disseram?" (`wealth_documents`: o que o estagiário do iPhone leu, página por página, e as suas
+  teses conferidas); "me explica P/VP com os meus fundos", "a minha carteira de treino", "o meu placar"
+  (`wealth_learn`).
 - "Registra: comprar 50 GARE11, porque o P/VP está abaixo de 1, confiança 70%."
 - Um mês, seis meses e um ano depois a decisão volta: "Revisa minhas decisões."
 

@@ -133,6 +133,19 @@ iPhone never shares the computer's.
   due). Each result Hermes' scheduler delivers becomes an iPhone notification (`cron.scheduler._deliver_result` is
   the iPhone's); `[SILENT]` stays silent.
 - `iphone_alerts`: the alerts above, turned on or off, or a look now, from the chat.
+- Investing (`Swift/AXYONInvest.swift`, `Swift/AXYONInvestViews.swift`, `app/axyon_hermes/invest.py`): the Wallet
+  tab's screen. The engine (`coucou_powers::invest::app`, through `axyon_powers_call` with `invest_*` names, never
+  offered to the model) gives the screen's JSON and keeps everything: the committee (`committee.rs`: five minds and a
+  chair, facts numbered with their sources, legal and risk veto), the reader's library (`library.rs`,
+  `powers-docs.json`: what is due from FundosNet and the CVM's IPE list, a download told apart, the figures with their
+  pages, what changed), the theses (`thesis.rs`), the learning (`learn.rs`) and the week's script (`weekly.rs`). The
+  engine downloads a document (`invest_docs` `fetch`); the app reads a PDF's pages (PDFKit, Vision for scans) and
+  gives them back (`ingest`). The brain is asked once, with no tools, by the host: `POST /v1/invest/digest {key}` and
+  `POST /v1/invest/committee {proposal, ticker, reason, document}` (the engine's brief, the brain's JSON, the engine
+  keeps the verdict). The reader runs when the app comes to the foreground (at most every half hour), one text-only
+  document in a background refresh; the brain's digests and the committee's own meetings once AXYON Core runs; the
+  reader's and the theses' news come with the alerts (`axyon_powers_watch`: kinds `document` and `thesis`). Hermes'
+  own tools `wealth_documents` and `wealth_learn` read the same library.
 - Hermes' own `memory`, `skills`, `todo`, `clarify`, `session_search`, `vision`, `delegation` and `image_gen` (with
   the brain's own image maker: ChatGPT's or OpenRouter's; the images made in a run go to the app as an `images`
   event and show under the answer).

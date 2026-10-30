@@ -54,8 +54,9 @@ struct AXYONTabs: View {
             Tab("Home", systemImage: "house.fill", value: AXYONTab.house) {
                 NavigationStack { AXYONHouseView() }
             }
-            Tab("Wallet", systemImage: "chart.line.uptrend.xyaxis", value: AXYONTab.wallet) {
-                NavigationStack { AXYONWalletView() }
+            Tab("Wallet", systemImage: "chart.pie.fill", value: AXYONTab.wallet) {
+                // The investing screen (AXYONInvestViews.swift); the positions, as before, under its History.
+                NavigationStack { AXYONInvestView() }
             }
             Tab("Settings", systemImage: "gearshape.fill", value: AXYONTab.settings) {
                 NavigationStack { AXYONSettingsView(link: link) }

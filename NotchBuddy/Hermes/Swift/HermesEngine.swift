@@ -159,6 +159,8 @@ final class HermesEngine {
                     await pushKeys()
                     await refreshSettings()
                     listenToBridge()
+                    // The documents read while AXYON Core started, digested now, and a meeting due held.
+                    Task { await AXYONInvest.shared.think() }
                     return
                 }
                 if let problem = health["problem"] as? String, !problem.isEmpty {
@@ -196,6 +198,12 @@ final class HermesEngine {
     func appBecameActive() {
         guard Self.available else { return }
         portfolioDate = HermesPortfolio.receivedAt()
+        // The reader looks for the assets' new documents, at most every half hour (AXYONInvest.swift), once the app
+        // has settled.
+        Task {
+            try? await Task.sleep(for: .seconds(15))
+            await AXYONInvest.shared.wake()
+        }
         if state == .off {
             // A moment after the launch, so the first screen draws first.
             Task {
@@ -332,6 +340,9 @@ final class HermesEngine {
         case "cronjob_manage": String(localized: "Scheduled tasks")
         case "delegate_task": String(localized: "A helper at work")
         case "image_generate": String(localized: "Making an image")
+        case "wealth_committee": String(localized: "The committee is meeting")
+        case "wealth_documents": String(localized: "Reading your assets' documents")
+        case "wealth_learn": String(localized: "Learning with your portfolio")
         default:
             tool.hasPrefix("wealth_") ? String(localized: "Superpowers: money")
                 : tool.hasPrefix("life_") ? String(localized: "Superpowers: your day") : tool
@@ -504,6 +515,21 @@ final class HermesEngine {
     func portfolioChanged() {
         portfolioDate = HermesPortfolio.receivedAt()
         if state == .ready { Task { await refreshPortfolio() } }
+    }
+
+    // MARK: Investing (AXYONInvest.swift)
+
+    /// The committee's meeting on a proposal (axyon_hermes/invest.py): the engine's brief, the brain's five minds, the
+    /// verdict the engine keeps. One long answer of the brain: up to five minutes.
+    func investCommittee(_ body: [String: Any]) async throws -> [String: Any] {
+        guard state == .ready else { throw HermesError.refused(String(localized: "AXYON Core is not running yet.")) }
+        return try await call("POST", "/v1/invest/committee", body, timeout: 300)
+    }
+
+    /// The brain's digest of a document the reader read, kept with it.
+    func investDigest(_ key: String, language: String) async throws -> [String: Any] {
+        guard state == .ready else { throw HermesError.refused(String(localized: "AXYON Core is not running yet.")) }
+        return try await call("POST", "/v1/invest/digest", ["key": key, "language": language], timeout: 240)
     }
 
     // MARK: The iPhone's own home

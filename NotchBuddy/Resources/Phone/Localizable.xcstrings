@@ -45,6 +45,28 @@
         }
       }
     },
+    "%@ at %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ a %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ à %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ a %@"
+          }
+        }
+      }
+    },
     "%@ can't be reached, at home or through Tailscale. Is Tailscale on, on this iPhone and on the computer, and the computer awake with the app running?": {
       "localizations": {
         "es": {
@@ -129,6 +151,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@ ainda não tem chave nem endereço de servidor para esse cérebro: adicione lá, em Configurações → Hermes Agent."
+          }
+        }
+      }
+    },
+    "%@ in 12 months": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ en 12 meses"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ sur 12 mois"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ em 12 meses"
           }
         }
       }
@@ -287,6 +331,28 @@
         }
       }
     },
+    "%@ since bought": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ desde la compra"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ depuis l'achat"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ desde a compra"
+          }
+        }
+      }
+    },
     "%@ up %@ today": {
       "localizations": {
         "es": {
@@ -353,6 +419,72 @@
         }
       }
     },
+    "%lld decisions": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld decisiones"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld décisions"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld decisões"
+          }
+        }
+      }
+    },
+    "%lld decisions judged": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld decisiones juzgadas"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld décisions jugées"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld decisões julgadas"
+          }
+        }
+      }
+    },
+    "%lld documents to read": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld documentos por leer"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld documents à lire"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld documentos para ler"
+          }
+        }
+      }
+    },
     "%lld files": {
       "localizations": {
         "es": {
@@ -397,6 +529,28 @@
         }
       }
     },
+    "%lld neutral": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld neutral(es)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld neutre(s)"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld neutro(s)"
+          }
+        }
+      }
+    },
     "%lld steps · show all": {
       "localizations": {
         "es": {
@@ -415,6 +569,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "%lld passos · mostrar todos"
+          }
+        }
+      }
+    },
+    "%lld to review": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld por repasar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld à revoir"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld para revisar"
+          }
+        }
+      }
+    },
+    "%lld to review today": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld por repasar hoy"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld à revoir aujourd'hui"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld para revisar hoje"
           }
         }
       }
@@ -529,6 +727,28 @@
         }
       }
     },
+    "A living thesis": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Una tesis viva"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Une thèse vivante"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uma tese viva"
+          }
+        }
+      }
+    },
     "A notification when an asset goes under your ceiling or back above it, on a strong day for an asset or your portfolio, and when one is under its ceiling; in the morning, your day. iOS decides when AXYON may look, a few times a day. Only B3, the CVM, FundosNet, the Banco Central and Google Finance are read; nothing about you is sent.": {
       "localizations": {
         "es": {
@@ -573,6 +793,28 @@
         }
       }
     },
+    "A pretend trade": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Una operación ficticia"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Une opération fictive"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uma operação de mentira"
+          }
+        }
+      }
+    },
     "A question for you": {
       "localizations": {
         "es": {
@@ -591,6 +833,72 @@
           "stringUnit": {
             "state": "translated",
             "value": "Uma pergunta para você"
+          }
+        }
+      }
+    },
+    "AXYON Core is not running yet.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON Core aún no está en marcha."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON Core ne tourne pas encore."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O AXYON Core ainda não está rodando."
+          }
+        }
+      }
+    },
+    "AXYON Core is reading %@…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON Core está leyendo %@…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON Core lit %@…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O AXYON Core está lendo %@…"
+          }
+        }
+      }
+    },
+    "AXYON Core summarizes it when it is running; what the code found is below.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON Core lo resume cuando esté en marcha; lo que encontró el código está abajo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON Core le résume quand il tourne ; ce que le code a trouvé est ci-dessous."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O AXYON Core resume quando estiver rodando; o que o código encontrou está abaixo."
           }
         }
       }
@@ -617,6 +925,28 @@
         }
       }
     },
+    "AXYON computes every number from the official sources, and the committee and the reader say where each point comes from. Nothing is bought or sold here: this is not an investment recommendation, the decision is yours.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON calcula cada número a partir de las fuentes oficiales, y el comité y el lector dicen de dónde viene cada punto. Aquí no se compra ni se vende nada: esto no es una recomendación de inversión, la decisión es tuya."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON calcule chaque chiffre à partir des sources officielles, et le comité et le lecteur disent d'où vient chaque point. Rien n'est acheté ni vendu ici : ce n'est pas une recommandation d'investissement, la décision vous appartient."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O AXYON calcula cada número a partir das fontes oficiais, e o comitê e o leitor dizem de onde vem cada ponto. Nada é comprado nem vendido aqui: isto não é recomendação de investimento, a decisão é sua."
+          }
+        }
+      }
+    },
     "AXYON looks for Samsung TVs, Android devices with network debugging on, and Home Assistant. iOS asks once to let it use the local network.": {
       "localizations": {
         "es": {
@@ -635,6 +965,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "O AXYON procura TVs Samsung, aparelhos Android com a depuração de rede ligada e o Home Assistant. O iOS pede uma vez para deixá-lo usar a rede local."
+          }
+        }
+      }
+    },
+    "AXYON makes cards from your own assets: what P/VP or the yield is, with your funds' values, and your portfolio's shape.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON hace tarjetas con tus propios activos: qué es el P/VP o la rentabilidad, con los valores de tus fondos, y la forma de tu cartera."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON fait des cartes avec vos propres actifs : ce qu'est le P/VP ou le rendement, avec les valeurs de vos fonds, et la forme de votre portefeuille."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O AXYON faz cards dos seus próprios ativos: o que é P/VP ou dividend yield, com os valores dos seus fundos, e o formato da sua carteira."
           }
         }
       }
@@ -723,6 +1075,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "AXYON, dentro do seu iPhone"
+          }
+        }
+      }
+    },
+    "AXYON-week": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON-semana"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON-semaine"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON-semana"
+          }
+        }
+      }
+    },
+    "About %lld min": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unos %lld min"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Environ %lld min"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cerca de %lld min"
           }
         }
       }
@@ -1035,6 +1431,50 @@
         }
       }
     },
+    "Against": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En contra"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contre"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contra"
+          }
+        }
+      }
+    },
+    "Against your own targets": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Frente a tus propias metas"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Face à vos propres objectifs"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diante das suas próprias metas"
+          }
+        }
+      }
+    },
     "Agents": {
       "localizations": {
         "es": {
@@ -1163,6 +1603,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tudo tranquilo"
+          }
+        }
+      }
+    },
+    "All the meetings": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todas las reuniones"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toutes les réunions"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todas as reuniões"
           }
         }
       }
@@ -1541,6 +2003,28 @@
         }
       }
     },
+    "Apprentice mode": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modo aprendiz"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mode apprenti"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modo aprendiz"
+          }
+        }
+      }
+    },
     "Approvals and questions always notify you. Mochi's sounds are the ones he makes in your Mac's notch.": {
       "localizations": {
         "es": {
@@ -1761,6 +2245,28 @@
         }
       }
     },
+    "Asset": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actif"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ativo"
+          }
+        }
+      }
+    },
     "Assistant": {
       "localizations": {
         "es": {
@@ -1955,6 +2461,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mordomo (formal e espirituoso)"
+          }
+        }
+      }
+    },
+    "Buy": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comprar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Acheter"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comprar"
+          }
+        }
+      }
+    },
+    "Buy 100 shares of GGRC11?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Comprar 100 cuotas de GGRC11?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Acheter 100 parts de GGRC11 ?"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comprar 100 cotas de GGRC11?"
           }
         }
       }
@@ -2619,6 +3169,28 @@
         }
       }
     },
+    "Class": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clase"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Classe"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Classe"
+          }
+        }
+      }
+    },
     "Claude waits about 2 minutes, then asks in the terminal.": {
       "localizations": {
         "es": {
@@ -2905,6 +3477,28 @@
         }
       }
     },
+    "Concentration, vacancy, credit, what could go wrong": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Concentración, vacancia, crédito, lo que puede salir mal"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Concentration, vacance, crédit, ce qui peut mal tourner"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Concentração, vacância, crédito, o que pode dar errado"
+          }
+        }
+      }
+    },
     "Connect %@ on your Mac": {
       "localizations": {
         "es": {
@@ -3165,6 +3759,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Controlar %1$@ em %2$@"
+          }
+        }
+      }
+    },
+    "Convene the committee": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reunir al comité"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réunir le comité"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reunir o comitê"
           }
         }
       }
@@ -3521,6 +4137,28 @@
         }
       }
     },
+    "Crypto": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cripto"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crypto"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cripto"
+          }
+        }
+      }
+    },
     "Custom": {
       "localizations": {
         "es": {
@@ -3807,6 +4445,28 @@
         }
       }
     },
+    "Dividends": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dividendos"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dividendes"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proventos"
+          }
+        }
+      }
+    },
     "Do it for me": {
       "localizations": {
         "es": {
@@ -3873,6 +4533,28 @@
         }
       }
     },
+    "Each condition with a number is checked against the price and every new report; the rest stays as your words, for the committee to read.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cada condición con número se comprueba con el precio y cada informe nuevo; el resto queda como tus palabras, para que el comité lo lea."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chaque condition chiffrée est vérifiée au prix et à chaque nouveau rapport ; le reste reste vos mots, que le comité lit."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cada condição com número é conferida no preço e em cada relatório novo; o resto fica como suas palavras, para o comitê ler."
+          }
+        }
+      }
+    },
     "Each one is a switch in Coucou's Settings → Phone on the computer, off until you turn it on there. Mochi's hands also need Settings → Mochi's hands, and Mochi's home needs Settings → Mochi's home.": {
       "localizations": {
         "es": {
@@ -3917,6 +4599,28 @@
         }
       }
     },
+    "Each term with its value in your assets": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cada término con su valor en tus activos"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chaque terme avec sa valeur dans vos actifs"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cada termo com o valor nos seus ativos"
+          }
+        }
+      }
+    },
     "Earlier turns": {
       "localizations": {
         "es": {
@@ -3935,6 +4639,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Turnos anteriores"
+          }
+        }
+      }
+    },
+    "Easy": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fácil"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Facile"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fácil"
           }
         }
       }
@@ -4023,6 +4749,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Toda ação pede o Face ID antes: o computador está configurado para perguntar antes de cada uma."
+          }
+        }
+      }
+    },
+    "Everything it read": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todo lo que leyó"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tout ce qu'il a lu"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tudo o que ele leu"
           }
         }
       }
@@ -4269,6 +5017,28 @@
         }
       }
     },
+    "Five minds that disagree in front of you, then the chair's score": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cinco mentes que discrepan delante de ti y luego el marcador del presidente"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cinq esprits qui se contredisent devant vous, puis le score du président"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cinco mentes que discordam na sua frente, e depois o placar do presidente"
+          }
+        }
+      }
+    },
     "Fix the errors": {
       "localizations": {
         "es": {
@@ -4287,6 +5057,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "Corrija os erros"
+          }
+        }
+      }
+    },
+    "Fixed income": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Renta fija"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revenu fixe"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Renda fixa"
+          }
+        }
+      }
+    },
+    "Flashcards": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tarjetas"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cartes mémoire"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Flashcards"
           }
         }
       }
@@ -4313,6 +5127,50 @@
         }
       }
     },
+    "For": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A favor"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pour"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A favor"
+          }
+        }
+      }
+    },
+    "Forensic accountant": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contador forense"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Expert-comptable judiciaire"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contador forense"
+          }
+        }
+      }
+    },
     "Forget this computer": {
       "localizations": {
         "es": {
@@ -4331,6 +5189,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Esquecer este computador"
+          }
+        }
+      }
+    },
+    "Forgot": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Olvidé"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oublié"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esqueci"
           }
         }
       }
@@ -4555,6 +5435,28 @@
         }
       }
     },
+    "Glossary": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Glosario"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Glossaire"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Glossário"
+          }
+        }
+      }
+    },
     "Gmail, Sheets, Drive, Docs and Calendar with your own Google sign-in, and the tasks AXYON runs for you on a schedule.": {
       "localizations": {
         "es": {
@@ -4595,6 +5497,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ir para a última mensagem"
+          }
+        }
+      }
+    },
+    "Good": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bien"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bien"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bom"
           }
         }
       }
@@ -4881,6 +5805,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Verde"
+          }
+        }
+      }
+    },
+    "Hard": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Difícil"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Difficile"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Difícil"
           }
         }
       }
@@ -5457,6 +6403,28 @@
         }
       }
     },
+    "How many shares?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Cuántas cuotas?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Combien de parts ?"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quantas cotas?"
+          }
+        }
+      }
+    },
     "How to connect your Mac": {
       "localizations": {
         "es": {
@@ -5677,6 +6645,28 @@
         }
       }
     },
+    "Investments": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inversiones"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Investissements"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Investimentos"
+          }
+        }
+      }
+    },
     "It asks first: confirm with Face ID to go on.": {
       "localizations": {
         "es": {
@@ -5761,6 +6751,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ele substitui %@, pareado antes."
+          }
+        }
+      }
+    },
+    "K": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "mil"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "k"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "mil"
           }
         }
       }
@@ -5941,6 +6953,72 @@
         }
       }
     },
+    "Learn with your own portfolio": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aprende con tu propia cartera"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apprenez avec votre propre portefeuille"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aprenda com a sua carteira"
+          }
+        }
+      }
+    },
+    "Learning with your portfolio": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aprendiendo con tu cartera"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apprendre avec votre portefeuille"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aprendendo com a sua carteira"
+          }
+        }
+      }
+    },
+    "Legal and governance": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Legal y gobernanza"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Juridique et gouvernance"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jurídico e governança"
+          }
+        }
+      }
+    },
     "Let AXYON see your calendar and reminders": {
       "localizations": {
         "es": {
@@ -6007,6 +7085,28 @@
         }
       }
     },
+    "Listen": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escuchar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Écouter"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ouvir"
+          }
+        }
+      }
+    },
     "Live Activities": {
       "localizations": {
         "es": {
@@ -6025,6 +7125,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Atividades ao Vivo"
+          }
+        }
+      }
+    },
+    "Living theses": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tesis vivas"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thèses vivantes"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Teses vivas"
           }
         }
       }
@@ -6271,6 +7393,138 @@
         }
       }
     },
+    "Looking for new documents…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscando documentos nuevos…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recherche de nouveaux documents…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Procurando documentos novos…"
+          }
+        }
+      }
+    },
+    "M": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "M"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "M"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "mi"
+          }
+        }
+      }
+    },
+    "Macro strategist": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Estratega macro"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stratège macro"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Estrategista macro"
+          }
+        }
+      }
+    },
+    "Made by AXYON's code from your own records; your portfolio stays on this iPhone. Not an investment recommendation.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hecho por el código de AXYON a partir de tus propios registros; tu cartera se queda en este iPhone. No es una recomendación de inversión."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fait par le code d'AXYON à partir de vos propres données ; votre portefeuille reste sur cet iPhone. Ce n'est pas une recommandation d'investissement."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feito pelo código do AXYON a partir dos seus próprios registros; sua carteira fica neste iPhone. Não é recomendação de investimento."
+          }
+        }
+      }
+    },
+    "Make my cards": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crear mis tarjetas"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Créer mes cartes"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Criar meus cards"
+          }
+        }
+      }
+    },
+    "Make the audio": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crear el audio"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Créer l'audio"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gerar o áudio"
+          }
+        }
+      }
+    },
     "Making an image": {
       "localizations": {
         "es": {
@@ -6289,6 +7543,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Criando uma imagem"
+          }
+        }
+      }
+    },
+    "Meeting due: %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reunión pendiente: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réunion à tenir : %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reunião pendente: %@"
           }
         }
       }
@@ -6623,6 +7899,28 @@
         }
       }
     },
+    "More": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Más"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plus"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mais"
+          }
+        }
+      }
+    },
     "More settings": {
       "localizations": {
         "es": {
@@ -6843,6 +8141,28 @@
         }
       }
     },
+    "Neutral": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neutral"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neutre"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neutro"
+          }
+        }
+      }
+    },
     "New chat": {
       "localizations": {
         "es": {
@@ -7041,6 +8361,28 @@
         }
       }
     },
+    "No card to review now": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ninguna tarjeta por repasar ahora"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucune carte à revoir maintenant"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhum card para revisar agora"
+          }
+        }
+      }
+    },
     "No computer paired": {
       "localizations": {
         "es": {
@@ -7125,6 +8467,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nenhum aparelho para o Mochi ainda"
+          }
+        }
+      }
+    },
+    "No dividend paid this month.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ningún dividendo pagado este mes."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucun dividende versé ce mois-ci."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhum provento pago neste mês."
           }
         }
       }
@@ -7239,6 +8603,28 @@
         }
       }
     },
+    "No text could be read from it.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo leer texto en él."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucun texte n'a pu en être lu."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível ler texto nele."
+          }
+        }
+      }
+    },
     "No turn yet": {
       "localizations": {
         "es": {
@@ -7345,6 +8731,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Não foi feito."
+          }
+        }
+      }
+    },
+    "Not judged yet": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nada juzgado aún"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rien de jugé encore"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nada julgado ainda"
           }
         }
       }
@@ -7477,6 +8885,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nada no seu calendário hoje."
+          }
+        }
+      }
+    },
+    "Nothing read yet: once your portfolio is in AXYON, the reader fetches its funds' and companies' documents from FundosNet and the CVM, and tells you what changed.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nada leído aún: cuando tu cartera esté en AXYON, el lector busca los documentos de tus fondos y empresas en FundosNet y la CVM, y te cuenta qué cambió."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rien de lu pour l'instant : une fois votre portefeuille dans AXYON, le lecteur récupère les documents de vos fonds et entreprises sur FundosNet et à la CVM, et vous dit ce qui a changé."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nada lido ainda: quando sua carteira estiver no AXYON, o leitor busca os documentos dos seus fundos e empresas no FundosNet e na CVM, e conta o que mudou."
           }
         }
       }
@@ -8273,6 +9703,28 @@
         }
       }
     },
+    "Open the document": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir el documento"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ouvrir le document"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir o documento"
+          }
+        }
+      }
+    },
     "OpenAI (API key)": {
       "localizations": {
         "es": {
@@ -8361,6 +9813,28 @@
         }
       }
     },
+    "Other": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Otros"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Autres"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Outros"
+          }
+        }
+      }
+    },
     "Other devices": {
       "localizations": {
         "es": {
@@ -8383,6 +9857,28 @@
         }
       }
     },
+    "Others": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Otros"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Autres"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Outros"
+          }
+        }
+      }
+    },
     "Over the internet, directly to your computer": {
       "localizations": {
         "es": {
@@ -8401,6 +9897,72 @@
           "stringUnit": {
             "state": "translated",
             "value": "Pela internet, direto para o seu computador"
+          }
+        }
+      }
+    },
+    "P/VP below 1.05; yield above 9%; vacancy up to 10%": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "P/VP por debajo de 1,05; rentabilidad por encima del 9%; vacancia hasta el 10%"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "P/VP sous 1,05 ; rendement au-dessus de 9% ; vacance jusqu'à 10%"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "P/VP abaixo de 1,05; DY acima de 9%; vacância até 10%"
+          }
+        }
+      }
+    },
+    "Paid": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pagado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Versé"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pago"
+          }
+        }
+      }
+    },
+    "Paid in %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pagado en %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Versé en %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pago em %@"
           }
         }
       }
@@ -8757,6 +10319,28 @@
         }
       }
     },
+    "Plain words, cards, a training portfolio and your own score": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Palabras sencillas, tarjetas, una cartera de práctica y tu propio marcador"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Des mots simples, des cartes, un portefeuille d'entraînement et votre propre score"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Palavras simples, flashcards, uma carteira de treino e o seu placar"
+          }
+        }
+      }
+    },
     "Plan usage": {
       "localizations": {
         "es": {
@@ -8999,6 +10583,28 @@
         }
       }
     },
+    "Practise with pretend money first": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Practica primero con dinero ficticio"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entraînez-vous d'abord avec de l'argent fictif"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Treine com dinheiro de mentira primeiro"
+          }
+        }
+      }
+    },
     "Previous channel": {
       "localizations": {
         "es": {
@@ -9017,6 +10623,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Canal anterior"
+          }
+        }
+      }
+    },
+    "Price against value: P/VP, yield, the ceilings": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Precio frente a valor: P/VP, rentabilidad, los precios techo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le prix face à la valeur : P/VP, rendement, les prix plafonds"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preço contra valor: P/VP, dividend yield, os preços-teto"
           }
         }
       }
@@ -9131,6 +10759,28 @@
         }
       }
     },
+    "Quantity": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cantidad"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quantité"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quantidade"
+          }
+        }
+      }
+    },
     "Question": {
       "localizations": {
         "es": {
@@ -9193,6 +10843,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Executada agora"
+          }
+        }
+      }
+    },
+    "Rates, inflation, against the Tesouro IPCA+": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tasas, inflación, frente al Tesouro IPCA+"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Taux, inflation, face au Tesouro IPCA+"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Juros, inflação, contra o Tesouro IPCA+"
           }
         }
       }
@@ -9263,6 +10935,72 @@
         }
       }
     },
+    "Read now": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leer ahora"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lire maintenant"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ler agora"
+          }
+        }
+      }
+    },
+    "Read the documents now": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leer los documentos ahora"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lire les documents maintenant"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ler os documentos agora"
+          }
+        }
+      }
+    },
+    "Reading %@'s documents…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leyendo los documentos de %@…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lecture des documents de %@…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lendo os documentos de %@…"
+          }
+        }
+      }
+    },
     "Reading a page": {
       "localizations": {
         "es": {
@@ -9325,6 +11063,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Lendo a carteira"
+          }
+        }
+      }
+    },
+    "Reading your assets' documents": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leyendo los documentos de tus activos"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lecture des documents de vos actifs"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lendo os documentos dos seus ativos"
           }
         }
       }
@@ -9417,6 +11177,28 @@
         }
       }
     },
+    "Real profit, payouts above earnings, the auditor's remarks": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beneficio real, repartos por encima de lo ganado, salvedades del auditor"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le vrai bénéfice, les distributions au-dessus des gains, les réserves de l'auditeur"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lucro de verdade, distribuição acima do ganho, ressalvas do auditor"
+          }
+        }
+      }
+    },
     "Recent turns": {
       "localizations": {
         "es": {
@@ -9461,6 +11243,28 @@
         }
       }
     },
+    "Refresh": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actualizar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actualiser"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atualizar"
+          }
+        }
+      }
+    },
     "Remind me": {
       "localizations": {
         "es": {
@@ -9501,6 +11305,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Me lembre às 18h de "
+          }
+        }
+      }
+    },
+    "Remind me every Sunday": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recordármelo cada domingo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Me le rappeler chaque dimanche"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Me lembrar todo domingo"
           }
         }
       }
@@ -9589,6 +11415,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Remover do AXYON"
+          }
+        }
+      }
+    },
+    "Remove the thesis": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quitar la tesis"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supprimer la thèse"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remover a tese"
           }
         }
       }
@@ -9703,6 +11551,28 @@
         }
       }
     },
+    "Risk manager": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gestor de riesgo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gestionnaire des risques"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gestor de risco"
+          }
+        }
+      }
+    },
     "Room (optional)": {
       "localizations": {
         "es": {
@@ -9765,6 +11635,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Rotinas"
+          }
+        }
+      }
+    },
+    "Rules, material facts, lawsuits, the manager's conflicts, dilution": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reglamento, hechos relevantes, juicios, conflictos del gestor, dilución"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Règlement, faits importants, procès, conflits du gérant, dilution"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Regulamento, fatos relevantes, processos, conflitos do gestor, diluição"
           }
         }
       }
@@ -9941,6 +11833,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Rodando fora do Coucou"
+          }
+        }
+      }
+    },
+    "Said nothing: short of data.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No dijo nada: faltan datos."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "N'a rien dit : il manque des données."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não disse nada: faltam dados."
           }
         }
       }
@@ -10253,6 +12167,28 @@
         }
       }
     },
+    "Sell": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vender"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vendre"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vender"
+          }
+        }
+      }
+    },
     "Send": {
       "localizations": {
         "es": {
@@ -10315,6 +12251,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Enviar resposta"
+          }
+        }
+      }
+    },
+    "Send the audio": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviar el audio"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Envoyer l'audio"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviar o áudio"
           }
         }
       }
@@ -11001,6 +12959,28 @@
         }
       }
     },
+    "Since %@ · cash %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desde %@ · efectivo %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Depuis le %@ · liquidités %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desde %@ · caixa %@"
+          }
+        }
+      }
+    },
     "Since you bought": {
       "localizations": {
         "es": {
@@ -11089,6 +13069,50 @@
         }
       }
     },
+    "Start again": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empezar de nuevo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recommencer"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recomeçar"
+          }
+        }
+      }
+    },
+    "Start with R$ 10.000 of pretend money: buy and sell at the real prices, nothing real moves.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empieza con R$ 10.000 ficticios: compra y vende a los precios reales, nada real se mueve."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Commencez avec 10 000 R$ fictifs : achetez et vendez aux vrais prix, rien de réel ne bouge."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comece com R$ 10.000 de mentira: compre e venda pelos preços reais, nada de verdade se mexe."
+          }
+        }
+      }
+    },
     "Starting…": {
       "localizations": {
         "es": {
@@ -11129,6 +13153,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ainda trabalhando…"
+          }
+        }
+      }
+    },
+    "Stocks": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Acciones"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actions"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ações"
           }
         }
       }
@@ -11375,6 +13421,28 @@
         }
       }
     },
+    "Sure at %lld%%": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seguro al %lld%%"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sûr à %lld%%"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Certeza de %lld%%"
+          }
+        }
+      }
+    },
     "Switch": {
       "localizations": {
         "es": {
@@ -11503,6 +13571,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "Toque em Escanear o código de pareamento abaixo e aponte a câmera para a tela do computador. Ou copie o link no computador e cole aqui."
+          }
+        }
+      }
+    },
+    "Tap to see the answer": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toca para ver la respuesta"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Touchez pour voir la réponse"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toque para ver a resposta"
+          }
+        }
+      }
+    },
+    "Tell AXYON in the chat what you decide and how sure you are, from 0 to 100: the decision journal judges each one later against the price and the CDI.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cuéntale a AXYON en el chat lo que decides y qué tan seguro estás, de 0 a 100: el diario de decisiones juzga cada una más tarde frente al precio y el CDI."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dites à AXYON dans le chat ce que vous décidez et à quel point vous êtes sûr, de 0 à 100 : le journal des décisions juge chacune plus tard face au prix et au CDI."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conte ao AXYON no chat o que você decidiu e quanta certeza tem, de 0 a 100: o diário de decisões julga cada uma depois, contra o preço e o CDI."
           }
         }
       }
@@ -11661,6 +13773,50 @@
         }
       }
     },
+    "The asset": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El activo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'actif"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O ativo"
+          }
+        }
+      }
+    },
+    "The chair": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El presidente"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le président"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O presidente"
+          }
+        }
+      }
+    },
     "The chat is off on %@: Settings → Phone → \"Let the phone chat with my AI providers\".": {
       "localizations": {
         "es": {
@@ -11701,6 +13857,160 @@
           "stringUnit": {
             "state": "translated",
             "value": "O código expirou: cancele e comece de novo."
+          }
+        }
+      }
+    },
+    "The committee": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El comité"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le comité"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O comitê"
+          }
+        }
+      }
+    },
+    "The committee is meeting": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El comité está reunido"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le comité se réunit"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O comitê está reunido"
+          }
+        }
+      }
+    },
+    "The committee is meeting on %@…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El comité está reunido sobre %@…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le comité se réunit sur %@…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O comitê está reunido sobre %@…"
+          }
+        }
+      }
+    },
+    "The committee met on %@: %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El comité se reunió sobre %@: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le comité s'est réuni sur %@ : %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O comitê se reuniu sobre %@: %@"
+          }
+        }
+      }
+    },
+    "The committee needs AXYON Core running with a brain: see Settings.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El comité necesita AXYON Core en marcha con un cerebro: mira en Ajustes."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le comité a besoin d'AXYON Core en marche avec un cerveau : voir Réglages."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O comitê precisa do AXYON Core rodando com um cérebro: veja em Ajustes."
+          }
+        }
+      }
+    },
+    "The committee never orders: its five minds are archetypes, every number is the code's and every point cites its source. Nothing is bought or sold; this is not an investment recommendation.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El comité nunca ordena: sus cinco mentes son arquetipos, cada número es del código y cada punto cita su fuente. No se compra ni se vende nada; esto no es una recomendación de inversión."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le comité n'ordonne jamais : ses cinq esprits sont des archétypes, chaque chiffre vient du code et chaque point cite sa source. Rien n'est acheté ni vendu ; ce n'est pas une recommandation d'investissement."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O comitê nunca manda: suas cinco mentes são arquétipos, cada número é do código e cada ponto cita a fonte. Nada é comprado nem vendido; isto não é recomendação de investimento."
+          }
+        }
+      }
+    },
+    "The committee, the reader and the week explain each term the first time": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El comité, el lector y la semana explican cada término la primera vez"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le comité, le lecteur et la semaine expliquent chaque terme la première fois"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O comitê, o leitor e a semana explicam cada termo na primeira vez"
           }
         }
       }
@@ -11815,6 +14125,116 @@
         }
       }
     },
+    "The figures, as the code found them": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las cifras, tal como las encontró el código"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les chiffres, tels que le code les a trouvés"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Os números, como o código os encontrou"
+          }
+        }
+      }
+    },
+    "The iPhone's voice could not record the summary.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La voz del iPhone no pudo grabar el resumen."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La voix de l'iPhone n'a pas pu enregistrer le résumé."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A voz do iPhone não conseguiu gravar o resumo."
+          }
+        }
+      }
+    },
+    "The intern who reads everything": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El becario que lo lee todo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le stagiaire qui lit tout"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O estagiário que lê tudo"
+          }
+        }
+      }
+    },
+    "The losing side's best argument": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El mejor argumento del lado que perdió"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le meilleur argument du camp perdant"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O melhor argumento do lado que perdeu"
+          }
+        }
+      }
+    },
+    "The portfolio, the dividends, what the reader read and the committee, aloud": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La cartera, los dividendos, lo que leyó el lector y el comité, en voz alta"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le portefeuille, les dividendes, ce que le lecteur a lu et le comité, à voix haute"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A carteira, os proventos, o que o leitor leu e o comitê, em voz alta"
+          }
+        }
+      }
+    },
     "The sign-in didn't work.": {
       "localizations": {
         "es": {
@@ -11833,6 +14253,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "O login não deu certo."
+          }
+        }
+      }
+    },
+    "The superpowers did not answer.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los superpoderes no respondieron."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les superpouvoirs n'ont pas répondu."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Os superpoderes não responderam."
           }
         }
       }
@@ -12097,6 +14539,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "Esta sessão terminou."
+          }
+        }
+      }
+    },
+    "Ticker": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Código"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Code"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Código"
+          }
+        }
+      }
+    },
+    "Ticker (GGRC11)": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Código (GGRC11)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Code (GGRC11)"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Código (GGRC11)"
           }
         }
       }
@@ -12387,6 +14873,28 @@
         }
       }
     },
+    "Total": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Total"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Total"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Total"
+          }
+        }
+      }
+    },
     "Total now": {
       "localizations": {
         "es": {
@@ -12405,6 +14913,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "Total agora"
+          }
+        }
+      }
+    },
+    "Training": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Práctica"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entraînement"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Treino"
+          }
+        }
+      }
+    },
+    "Training portfolio": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cartera de práctica"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Portefeuille d'entraînement"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Carteira de treino"
           }
         }
       }
@@ -12761,6 +15313,28 @@
         }
       }
     },
+    "Valuation analyst": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Analista de valoración"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Analyste valorisation"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Analista de valuation"
+          }
+        }
+      }
+    },
     "Version %@": {
       "localizations": {
         "es": {
@@ -12779,6 +15353,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "Versão %@"
+          }
+        }
+      }
+    },
+    "Vetoed by %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vetado por %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Veto de %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vetado por %@"
+          }
+        }
+      }
+    },
+    "Vetoed by %@ · %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vetado por %@ · %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Veto de %@ · %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vetado por %@ · %@"
           }
         }
       }
@@ -13157,6 +15775,28 @@
         }
       }
     },
+    "What changed since the previous one": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Qué cambió desde el anterior"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce qui a changé depuis le précédent"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O que mudou desde o anterior"
+          }
+        }
+      }
+    },
     "What do I have today and tomorrow?": {
       "localizations": {
         "es": {
@@ -13223,6 +15863,72 @@
         }
       }
     },
+    "What matters": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lo que importa"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce qui compte"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O que importa"
+          }
+        }
+      }
+    },
+    "What the reader read": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lo que leyó el lector"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce que le lecteur a lu"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O que o leitor leu"
+          }
+        }
+      }
+    },
+    "What would change the picture": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lo que cambiaría el panorama"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce qui changerait la donne"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O que mudaria o quadro"
+          }
+        }
+      }
+    },
     "What's in my Downloads folder?": {
       "localizations": {
         "es": {
@@ -13241,6 +15947,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "O que tem na minha pasta Downloads?"
+          }
+        }
+      }
+    },
+    "WhatsApp": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "WhatsApp"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "WhatsApp"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "WhatsApp"
+          }
+        }
+      }
+    },
+    "WhatsApp is not on this iPhone: send the audio instead.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "WhatsApp no está en este iPhone: envía el audio."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "WhatsApp n'est pas sur cet iPhone : envoyez plutôt l'audio."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O WhatsApp não está neste iPhone: envie o áudio."
           }
         }
       }
@@ -13289,6 +16039,50 @@
         }
       }
     },
+    "When you are sure, how often you are right": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cuando estás seguro, cuántas veces aciertas"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quand vous êtes sûr, combien de fois vous avez raison"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quando você tem certeza, quantas vezes acerta"
+          }
+        }
+      }
+    },
+    "When you say %@ sure": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cuando dices %@ de seguridad"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quand vous vous dites sûr à %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quando você diz %@ de certeza"
+          }
+        }
+      }
+    },
     "Which devices of my home are on?": {
       "localizations": {
         "es": {
@@ -13329,6 +16123,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "Quais dos meus ativos estão abaixo do preço teto?"
+          }
+        }
+      }
+    },
+    "Why you hold each asset, checked against every new report": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por qué tienes cada activo, comprobado con cada informe nuevo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pourquoi vous détenez chaque actif, vérifié à chaque nouveau rapport"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por que você tem cada ativo, conferido a cada relatório novo"
+          }
+        }
+      }
+    },
+    "Why you hold it": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por qué lo tienes"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pourquoi vous le détenez"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por que você tem"
           }
         }
       }
@@ -13439,6 +16277,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "Escreva uma mensagem curta dizendo que "
+          }
+        }
+      }
+    },
+    "Write a thesis": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escribir una tesis"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Écrire une thèse"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escrever uma tese"
+          }
+        }
+      }
+    },
+    "Write why you hold an asset in your own words (P/VP below 1.05; yield above 9%; vacancy up to 10%): AXYON checks it against each new report and the price, and tells you the day it breaks.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escribe con tus palabras por qué tienes un activo (P/VP por debajo de 1,05; rentabilidad por encima del 9%; vacancia hasta el 10%): AXYON lo comprueba con cada informe nuevo y con el precio, y te avisa el día que se rompa."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Écrivez avec vos mots pourquoi vous détenez un actif (P/VP sous 1,05 ; rendement au-dessus de 9% ; vacance jusqu'à 10%) : AXYON le vérifie à chaque nouveau rapport et au prix, et vous prévient le jour où elle casse."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escreva com suas palavras por que você tem um ativo (P/VP abaixo de 1,05; DY acima de 9%; vacância até 10%): o AXYON confere a cada relatório novo e no preço, e avisa no dia em que a tese quebrar."
           }
         }
       }
@@ -13619,6 +16501,28 @@
         }
       }
     },
+    "Your assets' reports, material facts and releases: only what changed": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Informes, hechos relevantes y resultados de tus activos: solo lo que cambió"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rapports, faits importants et résultats de vos actifs : seulement ce qui a changé"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Relatórios, fatos relevantes e RI dos seus ativos: só o que mudou"
+          }
+        }
+      }
+    },
     "Your computer": {
       "localizations": {
         "es": {
@@ -13637,6 +16541,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Seu computador"
+          }
+        }
+      }
+    },
+    "Your decisions made %@ on average; the CDI %@ over the same days.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tus decisiones rindieron %@ de media; el CDI, %@ en los mismos días."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vos décisions ont rapporté %@ en moyenne ; le CDI, %@ sur les mêmes jours."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suas decisões renderam %@ em média; o CDI, %@ nos mesmos dias."
           }
         }
       }
@@ -13773,6 +16699,72 @@
         }
       }
     },
+    "Your portfolio shows here once AXYON knows it: from your computer, or told in the chat.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu cartera aparece aquí cuando AXYON la conoce: desde tu ordenador o contada en el chat."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre portefeuille s'affiche ici dès qu'AXYON le connaît : par votre ordinateur, ou dit dans le chat."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua carteira aparece aqui quando o AXYON a conhece: pelo seu computador, ou contada no chat."
+          }
+        }
+      }
+    },
+    "Your portfolio's summary is ready: open AXYON to hear it or send it on WhatsApp.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El resumen de tu cartera está listo: abre AXYON para escucharlo o enviarlo por WhatsApp."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le résumé de votre portefeuille est prêt : ouvrez AXYON pour l'écouter ou l'envoyer sur WhatsApp."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O resumo da sua carteira está pronto: abra o AXYON para ouvir ou mandar pelo WhatsApp."
+          }
+        }
+      }
+    },
+    "Your portfolio's terms and shape": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los términos y la forma de tu cartera"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les termes et la forme de votre portefeuille"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Os termos e o formato da sua carteira"
+          }
+        }
+      }
+    },
     "Your portfolio, here": {
       "localizations": {
         "es": {
@@ -13791,6 +16783,116 @@
           "stringUnit": {
             "state": "translated",
             "value": "A sua carteira, aqui"
+          }
+        }
+      }
+    },
+    "Your real one": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La real"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le vôtre réel"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A sua real"
+          }
+        }
+      }
+    },
+    "Your score": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu marcador"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre score"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seu placar"
+          }
+        }
+      }
+    },
+    "Your thesis on %@ broke": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu tesis sobre %@ se rompió"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre thèse sur %@ est cassée"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua tese em %@ quebrou"
+          }
+        }
+      }
+    },
+    "Your week": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu semana"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre semaine"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua semana"
+          }
+        }
+      }
+    },
+    "Your week in three minutes": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu semana en tres minutos"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre semaine en trois minutes"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua semana em três minutos"
           }
         }
       }
@@ -13817,6 +16919,28 @@
         }
       }
     },
+    "assembly": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "asamblea"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "assemblée"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "assembleia"
+          }
+        }
+      }
+    },
     "assembly: your vote": {
       "localizations": {
         "es": {
@@ -13835,6 +16959,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "assembleia: seu voto"
+          }
+        }
+      }
+    },
+    "at risk": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "en riesgo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "en danger"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "em risco"
           }
         }
       }
@@ -13861,6 +17007,28 @@
         }
       }
     },
+    "broke": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "rota"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "cassée"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "quebrou"
+          }
+        }
+      }
+    },
     "buy": {
       "localizations": {
         "es": {
@@ -13879,6 +17047,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "comprar"
+          }
+        }
+      }
+    },
+    "by itself": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "por sí solo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "de lui-même"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "sozinho"
           }
         }
       }
@@ -13927,6 +17117,28 @@
         }
       }
     },
+    "document": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "documento"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "document"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "documento"
+          }
+        }
+      }
+    },
     "file": {
       "localizations": {
         "es": {
@@ -13971,6 +17183,28 @@
         }
       }
     },
+    "for × against": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "a favor × en contra"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "pour × contre"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "a favor × contra"
+          }
+        }
+      }
+    },
     "hold": {
       "localizations": {
         "es": {
@@ -13989,6 +17223,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "manter"
+          }
+        }
+      }
+    },
+    "holds": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "se sostiene"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "tient"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "de pé"
           }
         }
       }
@@ -14159,6 +17415,28 @@
         }
       }
     },
+    "of %lld decisions judged right": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "de %lld decisiones juzgadas acertadas"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "de %lld décisions jugées justes"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "de %lld decisões julgadas certas"
+          }
+        }
+      }
+    },
     "offering: your decision": {
       "localizations": {
         "es": {
@@ -14177,6 +17455,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "oferta: sua decisão"
+          }
+        }
+      }
+    },
+    "p. %lld": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "p. %lld"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "p. %lld"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "p. %lld"
           }
         }
       }
@@ -14203,6 +17503,28 @@
         }
       }
     },
+    "results release": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "informe de resultados"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "publication des résultats"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "release de resultados"
+          }
+        }
+      }
+    },
     "sell": {
       "localizations": {
         "es": {
@@ -14225,6 +17547,28 @@
         }
       }
     },
+    "share offering": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "oferta de cuotas"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "émission de parts"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "oferta de cotas"
+          }
+        }
+      }
+    },
     "soon": {
       "localizations": {
         "es": {
@@ -14243,6 +17587,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "em breve"
+          }
+        }
+      }
+    },
+    "thesis at risk": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "tesis en riesgo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "thèse en danger"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "tese em risco"
           }
         }
       }
@@ -14331,6 +17697,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "turnos"
+          }
+        }
+      }
+    },
+    "veto": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "veto"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "veto"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "veto"
           }
         }
       }

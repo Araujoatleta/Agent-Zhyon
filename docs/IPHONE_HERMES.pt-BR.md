@@ -121,6 +121,42 @@ na hora. Só a B3, a CVM, o FundosNet, o Banco Central e o Google Finance são l
 Cada coisa que o iPhone protege (calendário, lembretes, contatos, localização, notificações) o iOS pergunta na
 primeira vez. **Ajustes → O que o AXYON pode usar** mostra o que está liberado.
 
+## Investimentos: o comitê, o estagiário, as suas teses, a semana e o aprender
+
+A aba **Carteira** agora é a tela de investimentos do AXYON, no design de uma tela de estatísticas: grafite, um anel
+de segmentos grossos e arredondados em cores suaves com o total no meio, a legenda em duas colunas, uma pílula para
+escolher **Carteira** ou **Proventos**, **Classe | Ativo**, um carrossel de meses para os proventos e **Histórico**
+embaixo (as suas posições, como antes). Todo número é calculado pelo código do AXYON a partir das fontes oficiais;
+o cérebro só lê e vota, e diz de onde vem cada ponto.
+
+- **O comitê de cinco mentes**: pergunte *"comprar 100 cotas de GGRC11?"*; um analista de valuation, o jurídico e
+  governança, um contador forense, um gestor de risco e um estrategista macro votam, cada um com quanta certeza tem e
+  até três pontos, cada ponto com a fonte (um fato que o código calculou, F3, ou a página de um documento, D1 p.4); o
+  jurídico e o risco têm veto. O presidente dá o placar (3 × 2), o melhor argumento do lado que perdeu, o que mudaria
+  o quadro, como encaixa nas suas metas, e termina com uma **pergunta**: a decisão é sua. As mentes são arquétipos,
+  nunca pessoas reais.
+- **O estagiário que lê tudo**: os relatórios gerenciais, fatos relevantes, assembleias e ofertas dos seus fundos
+  (FundosNet) e os fatos relevantes, comunicados e releases das suas empresas (a lista da CVM, uma vez por semana) são
+  baixados e lidos no iPhone (PDFKit, as páginas escaneadas pelo reconhecimento de texto do próprio iPhone); o código
+  acha os números com as páginas (vacância, inadimplência, rendimento e resultado por cota, LTV, cap rate, cotistas) e
+  o que mudou desde o relatório anterior; o AXYON Core resume só o que importa, página por página.
+- **Tese viva**: escreva com as suas palavras por que você tem um ativo (*"P/VP abaixo de 1,05; DY acima de 9%;
+  vacância até 10%"*); cada condição com número é conferida no preço e a cada relatório novo. Quando sai um documento
+  que importa ou uma tese quebra, o comitê **se reúne sozinho** quando o AXYON Core está rodando, e você recebe uma
+  notificação (com os alertas de **Ajustes → Superpoderes** ligados).
+- **Sua semana em 3 minutos**: um roteiro feito pelo código do AXYON com os seus registros (a carteira contra a
+  semana passada, as maiores altas e quedas, os proventos que caíram e os que vêm, o que o estagiário leu, as teses,
+  o comitê), lido em voz alta pela voz do iPhone; **Gerar o áudio** salva um arquivo de som para enviar (o WhatsApp
+  recebe como áudio), **WhatsApp** abre com o texto escrito, e um lembrete todo domingo se você quiser.
+- **Aprenda com a sua carteira**: modo aprendiz (o comitê, o estagiário e a semana explicam cada termo na primeira
+  vez), um glossário com o valor de cada termo nos seus próprios ativos, flashcards dos seus ativos, uma carteira de
+  treino com dinheiro de mentira pelos preços reais (contra a sua real e o CDI) e o seu placar pessoal (quando você
+  diz que tem certeza, quantas vezes acerta, pelo diário de decisões).
+
+A sua carteira fica no iPhone. Os documentos são públicos e lidos uma vez no próprio iPhone; o cérebro que você
+escolheu só é chamado para resumir um documento e para as reuniões do comitê. Nada é comprado nem vendido: isto não é
+recomendação de investimento.
+
 ## A casa direto pelo iPhone (sem computador)
 
 Na aba **Casa → +** você adiciona os aparelhos que o próprio iPhone controla pelo Wi-Fi de casa:
@@ -150,7 +186,8 @@ Rede → Configurações avançadas).
 - **Chat**: a conversa com o Hermes, com cada passo que ele dá (lendo a carteira, agendando, pesquisando…), parar,
   ditado e leitura em voz alta.
 - **Casa**: os aparelhos que o iPhone controla sozinho e, com um computador pareado, a casa dele.
-- **Carteira**: total, o dia, desde a compra, cada posição com o seu preço teto e os ativos que você acompanha.
+- **Carteira**: os investimentos (o anel da carteira e dos proventos, o comitê, o estagiário, as teses, a semana e o
+  aprender); em **Histórico**, o total, o dia, cada posição com o seu preço teto e os ativos que você acompanha.
 - **Ajustes**: o cérebro, as permissões, os alertas dos superpoderes, o computador (opcional) e o resto dos ajustes
   do app.
 

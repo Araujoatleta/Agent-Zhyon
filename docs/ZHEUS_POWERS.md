@@ -44,8 +44,12 @@ Coucou keeps a copy before it replaces the list (the last 10, in `powers-backups
 5. **The tax auditor** (after importing Movimentação and Negociação) — "Do I have a DARF to pay this month?", "Any
    payout a fund announced that B3 does not show?", "Prepare my 2025 declaration".
 6. **An investment committee and a decision journal** — "I want to buy 50 shares of GARE11: run the committee."
-   (four voices and a synthesis), "Record it: buy, 70 % sure", and the decision comes back after a month, six months
-   and a year.
+   (five minds: valuation, legal and governance, a forensic accountant, risk and macro, each with its vote, how sure
+   it is and the source of each point, legal and risk with a veto; then the chair's score, the losing side's best
+   argument and a question for you), "Record it: buy, 70 % sure", and the decision comes back after a month, six
+   months and a year. "What did the reports say?" (`wealth_documents`: what the iPhone's reader read, page by page,
+   and your theses checked); "explain P/VP with my funds", "my training portfolio", "my score"
+   (`wealth_learn`).
 7. **A public exam, and what an hour of study is worth** — set the exam, its date, the salary, your hours and the
    subjects with their weights; then "What do I study today?", "I studied Economics for 50 min, 7 of 10 right".
 8. **English from your portfolio** — "Today's English lesson" (a company of your portfolio, its results to read in
