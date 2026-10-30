@@ -103,7 +103,8 @@ pub fn script(store: &Store, market: &Market, lib: Option<&Library>, today: Date
     let mut ahead = Vec::new();
     for p in store.portfolio.positions.iter().filter(|p| p.class == AssetClass::Fii && p.quantity > 0.0) {
         let Some(fund) = market.funds.get(&p.ticker) else { continue };
-        for pay in fund.payouts.iter().filter(|x| !x.amortization) {
+        let since = crate::invest::held_since(store, &p.ticker);
+        for pay in fund.payouts.iter().filter(|x| !x.amortization && since.is_none_or(|s| x.record >= s)) {
             if let Some(paid) = pay.payment {
                 if paid <= today && today.until(paid) > -7 {
                     let amount = pay.value * p.quantity;

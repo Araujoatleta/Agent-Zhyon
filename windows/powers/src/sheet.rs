@@ -37,6 +37,18 @@ pub struct Read {
     pub has_ceilings: bool,
     /// The assets in the order the sheet lists them (positions and watched ones).
     pub order: Vec<String>,
+    /// The share of the portfolio the user wants in each asset, percent ("% Ideal", "Meta").
+    pub targets: Vec<(String, f64)>,
+}
+
+/// The dividends a sheet records month by month (its "Proventos pagos" table): month ("2026-10") to R$, every month the
+/// table has a column for (an empty one is R$ 0); and month to ticker to R$ when it lists them asset by asset.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct SheetDividends {
+    pub months: std::collections::BTreeMap<String, f64>,
+    pub by_asset: std::collections::BTreeMap<String, std::collections::BTreeMap<String, f64>>,
+    /// Its "Total de Proventos", when it has one.
+    pub total: Option<f64>,
 }
 
 /// The spreadsheet ID from a link ("https://docs.google.com/spreadsheets/d/<ID>/edit#gid=0") or the ID itself.
@@ -93,6 +105,7 @@ enum Column {
     Invested,
     Ceiling,
     Status,
+    Target,
 }
 
 /// What a header cell names, by its words (any case, accents or not).
@@ -121,6 +134,8 @@ fn column(header: &str) -> Option<Column> {
         Column::Invested
     } else if is(&["status", "situacao", "estado"]) {
         Column::Status
+    } else if p.contains("ideal") || p.contains("alvo") || p.contains("objetivo") || is(&["meta", "meta %", "% meta", "meta (%)", "meta de alocacao", "target", "target %"]) || p.starts_with("meta ") {
+        Column::Target
     } else {
         return None;
     })
@@ -170,7 +185,7 @@ pub fn positions(rows: &[Vec<Value>]) -> Result<Read, String> {
         return Err(NO_HEADER.into());
     };
     let index = |k: Column| columns.iter().position(|c| *c == Some(k));
-    let (asset, quantity, average, class, value, invested, ceiling, status) = (
+    let (asset, quantity, average, class, value, invested, ceiling, status, target) = (
         index(Column::Asset).unwrap_or(0),
         index(Column::Quantity),
         index(Column::AveragePrice),
@@ -179,6 +194,7 @@ pub fn positions(rows: &[Vec<Value>]) -> Result<Read, String> {
         index(Column::Invested),
         index(Column::Ceiling),
         index(Column::Status),
+        index(Column::Target),
     );
     let mut read = Read { has_ceilings: ceiling.is_some(), ..Read::default() };
     for (i, row) in rows.iter().enumerate().skip(at + 1) {
@@ -199,6 +215,10 @@ pub fn positions(rows: &[Vec<Value>]) -> Result<Read, String> {
                 }
                 if !read.order.contains(&t) {
                     read.order.push(t.clone());
+                }
+                if let Some(x) = get(target).and_then(percent_of).filter(|x| *x > 0.0 && *x <= 100.0) {
+                    read.targets.retain(|(y, _)| *y != t);
+                    read.targets.push((t.clone(), x));
                 }
                 let Some(q) = get(quantity).and_then(cell_number).filter(|q| *q > 0.0) else {
                     // A ticker with no quantity: watched, not held.
@@ -254,6 +274,109 @@ pub fn positions(rows: &[Vec<Value>]) -> Result<Read, String> {
     Ok(read)
 }
 
+/// A percent as a cell holds it: "7,5%" written, or 0.075 from a cell formatted as a percent (read unformatted).
+fn percent_of(v: &Value) -> Option<f64> {
+    let n = cell_number(v)?;
+    let written = matches!(v, Value::String(s) if s.contains('%'));
+    Some(if !written && n > 0.0 && n <= 1.0 { n * 100.0 } else { n })
+}
+
+/// "out./26", "Outubro/2026", "10/2026", "2026-10", or a date the sheet keeps as its serial number: the month.
+fn month_of(v: &Value) -> Option<String> {
+    const NAMES: [&str; 12] = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+    match v {
+        Value::Number(n) => {
+            // Google Sheets' dates: days since 30/12/1899, between 2000 and 2100.
+            let serial = n.as_f64()?;
+            (36_526.0..=73_051.0).contains(&serial).then(|| crate::date::Date::from_days(serial.floor() as i64 - 25_569).month_key())
+        }
+        Value::String(s) => {
+            let p = plain(s);
+            let words: Vec<&str> = p.split(|c: char| !c.is_alphanumeric()).filter(|w| !w.is_empty()).collect();
+            let year = |w: &str| -> Option<i32> {
+                let y: i32 = w.parse().ok()?;
+                match w.len() {
+                    2 => Some(2000 + y),
+                    4 if (2000..=2100).contains(&y) => Some(y),
+                    _ => None,
+                }
+            };
+            match words.as_slice() {
+                [m, y] => {
+                    let month = NAMES.iter().position(|n| m.starts_with(n)).map(|i| i as u32 + 1).or_else(|| m.parse::<u32>().ok().filter(|m| (1..=12).contains(m)));
+                    let (month, year) = match (month, year(y)) {
+                        (Some(mo), Some(ye)) => (mo, ye),
+                        _ => {
+                            // "2026-10".
+                            let (ye, mo) = (year(m)?, y.parse::<u32>().ok().filter(|x| (1..=12).contains(x))?);
+                            (mo, ye)
+                        }
+                    };
+                    Some(format!("{year:04}-{month:02}"))
+                }
+                _ => None,
+            }
+        }
+        _ => None,
+    }
+}
+
+/// The sheet's "Proventos pagos" (or "Proventos recebidos", "Dividendos recebidos"…) table: a title, a row of months
+/// under it, and under those a row of amounts (the month's total) or a row per asset (its ticker first). None when the
+/// tab has no such table.
+pub fn dividends(rows: &[Vec<Value>]) -> Option<SheetDividends> {
+    let titled = |c: &Value| {
+        let p = plain(&cell_text(c));
+        let p = p.trim();
+        !p.contains("total") && (p.contains("proventos") || p.contains("dividendos") || p.contains("rendimentos")) && (p.contains("pago") || p.contains("recebid") || p.contains("mes a mes") || p.contains("historico") || p == "proventos" || p == "dividendos")
+    };
+    let title = rows.iter().enumerate().find_map(|(i, r)| r.iter().any(titled).then_some(i))?;
+    let (header, columns) = (title..(title + 5).min(rows.len())).find_map(|i| {
+        let cols: Vec<(usize, String)> = rows[i].iter().enumerate().filter_map(|(c, v)| month_of(v).map(|m| (c, m))).collect();
+        (cols.len() >= 2).then_some((i, cols))
+    })?;
+    let first = columns.iter().map(|(c, _)| *c).min().unwrap_or(0);
+    let mut found = SheetDividends::default();
+    let mut totals: Option<std::collections::BTreeMap<String, f64>> = None;
+    let mut blank = 0;
+    for row in rows.iter().skip(header + 1).take(60) {
+        let values: Vec<(String, Option<f64>)> = columns.iter().map(|(c, m)| (m.clone(), row.get(*c).and_then(cell_number))).collect();
+        if values.iter().all(|(_, v)| v.is_none()) {
+            blank += 1;
+            if blank >= 3 {
+                break;
+            }
+            continue;
+        }
+        blank = 0;
+        let label = row.iter().take(first).map(cell_text).find(|t| !t.is_empty()).unwrap_or_default();
+        match ticker(&label) {
+            Some(t) => {
+                for (m, v) in &values {
+                    if let Some(v) = v {
+                        *found.by_asset.entry(m.clone()).or_default().entry(t.clone()).or_insert(0.0) += v;
+                    }
+                }
+            }
+            None if totals.is_none() && (label.is_empty() || is_total(&label) || plain(&label).starts_with("total")) => {
+                totals = Some(values.iter().map(|(m, v)| (m.clone(), v.unwrap_or(0.0))).collect());
+            }
+            None => {}
+        }
+    }
+    found.months = match totals {
+        Some(t) => t,
+        None if !found.by_asset.is_empty() => columns.iter().map(|(_, m)| (m.clone(), found.by_asset.get(m).map(|x| x.values().sum()).unwrap_or(0.0))).collect(),
+        None => return None,
+    };
+    // "Total de Proventos = R$ 82,27": the first number to its right.
+    found.total = rows.iter().find_map(|r| {
+        let at = r.iter().position(|c| plain(&cell_text(c)).starts_with("total de proventos"))?;
+        r.iter().skip(at + 1).find_map(cell_number)
+    });
+    Some(found)
+}
+
 /// The sheet's positions with what AXYON already knows of each: the class it worked out (B3's own codes, the CVM's
 /// reports) where the sheet gives none, a fund's kind, a note. Read again unchanged, the sheet changes nothing.
 pub fn with_known(new: Vec<Position>, old: &[Position]) -> Vec<Position> {
@@ -283,6 +406,52 @@ mod tests {
 
     fn rows(v: Value) -> Vec<Vec<Value>> {
         values_of(&v)
+    }
+
+    #[test]
+    fn the_dividends_table_gives_each_months_total() {
+        // The user's "Meu Patrimônio" tab as gog reads it unformatted: the title, months as the sheet's own dates or as
+        // text, "#" columns between them, the amounts under, the total of the year elsewhere.
+        let t = rows(json!({"values": [
+            ["", "", "Total de Proventos =", 82.27],
+            [],
+            ["", "Proventos pagos"],
+            ["", "abr./26", "#", "mai./26", "#", 46174, "#", "jul./26", "#", "ago./26", "#", "set./26", "#", "out./26", "nov./26", "dez./26"],
+            ["", "", "", "", "", "", "", "", "", "", "", "", "", 82.27]
+        ]}));
+        let d = dividends(&t).unwrap();
+        assert_eq!(d.months.get("2026-10"), Some(&82.27));
+        assert_eq!(d.months.get("2026-06"), Some(&0.0), "a date serial (46174 = 01/06/2026) is a month too");
+        assert_eq!(d.months.get("2026-04"), Some(&0.0), "a month with a column and nothing in it: R$ 0");
+        assert_eq!(d.months.len(), 9);
+        assert!(d.months.get("2026-03").is_none(), "a month the table has no column for: no record");
+        assert_eq!(d.total, Some(82.27));
+        assert!(d.by_asset.is_empty());
+        // Asset by asset, the months' totals added up.
+        let t = rows(json!({"values": [
+            ["Dividendos recebidos"],
+            ["Ativo", "09/2026", "10/2026"],
+            ["GARE11", 16.93, 16.4],
+            ["GGRC11", "R$ 19,70", 19.7],
+        ]}));
+        let d = dividends(&t).unwrap();
+        assert_eq!(d.by_asset["2026-10"]["GARE11"], 16.4);
+        assert!((d.months["2026-09"] - 36.63).abs() < 1e-9);
+        assert!(dividends(&rows(json!({"values": [["Ativo", "Quantidade"], ["GARE11", 10]]}))).is_none());
+    }
+
+    #[test]
+    fn a_target_column_gives_each_assets_share() {
+        let t = rows(json!({"values": [
+            ["Ativo", "Quantidade", "Preço médio", "% Ideal"],
+            ["GARE11", 204, 8.95, 0.075],
+            ["GGRC11", 150, 9.2, "10%"],
+            ["KNSC11", 380, 9.1, ""]
+        ]}));
+        let read = positions(&t).unwrap();
+        assert_eq!(read.targets, [("GARE11".to_string(), 7.5), ("GGRC11".to_string(), 10.0)]);
+        let t = rows(json!({"values": [["Ticker", "Qtd", "Meta %"], ["GARE11", 204, 7.5]]}));
+        assert_eq!(positions(&t).unwrap().targets, [("GARE11".to_string(), 7.5)]);
     }
 
     #[test]

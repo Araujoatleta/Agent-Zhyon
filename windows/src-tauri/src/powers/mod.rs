@@ -99,6 +99,8 @@ pub struct Powers {
     sheet: Mutex<SheetState>,
     sheet_read: Mutex<Option<Instant>>,
     sheet_turn: tokio::sync::Mutex<()>,
+    /// When the sheet's other tables (the dividends month by month, the targets by asset) were last read.
+    extras_read: Mutex<Option<Instant>>,
     /// Counts the changes to the portfolio and the user's ceilings: a reading of the sheet that began before one does
     /// not undo it.
     version: AtomicU64,
@@ -164,6 +166,7 @@ impl Powers {
             looked_at: Mutex::new(None),
             sheet: Mutex::new(SheetState::default()),
             sheet_read: Mutex::new(None),
+            extras_read: Mutex::new(None),
             sheet_turn: tokio::sync::Mutex::new(()),
             version: AtomicU64::new(0),
         }
@@ -575,6 +578,9 @@ async fn sync_sheet(app: &AppHandle, write: bool) -> Option<Result<Round, String
     held(&powers.sheet).running = true;
     changed(app);
     let result = sheet_round(app, &link, write).await;
+    if result.is_ok() && since(&powers.extras_read, EXTRAS_EVERY) {
+        sheet_extras(app, &link).await;
+    }
     let now = clock_now();
     let (positions, watched) = read(app, |s, _| (s.portfolio.positions.len(), s.ceilings.manual.keys().filter(|t| s.portfolio.position(t).is_none()).count()));
     {
@@ -684,6 +690,50 @@ async fn sheet_round(app: &AppHandle, link: &SheetLink, write: bool) -> Result<R
         tell_sheet_ready(app, &notes);
     }
     Ok(Round { ours: true, wrote: !writes.is_empty(), made, skipped: found.map(|f| f.skipped).unwrap_or_default() })
+}
+
+/// How often the sheet's other tables are read.
+const EXTRAS_EVERY: Duration = Duration::from_secs(3 * 3600);
+
+/// The sheet's tables beside the positions, every three hours: the dividends month by month (a "Proventos pagos"
+/// table, in whichever tab has it: the record of what the user received) and the targets by asset (a "% Ideal" or
+/// "Meta" column), from every tab (twelve at most). Kept with the user's data; what a tab could not give leaves what
+/// was there.
+async fn sheet_extras(app: &AppHandle, link: &SheetLink) {
+    *held(&app.state::<Powers>().extras_read) = Some(Instant::now());
+    let names = match sheet::tabs(link).await {
+        Ok(names) => names,
+        Err(e) => {
+            log::line(format!("powers: the sheet's tabs could not be listed for its dividends: {e}"));
+            return;
+        }
+    };
+    let mut dividends: Option<(String, coucou_powers::sheet::SheetDividends)> = None;
+    let mut targets: Vec<(String, f64)> = Vec::new();
+    for name in names.iter().take(12) {
+        let Ok(sheet::Got::Rows(rows)) = sheet::get_tab(link, name).await else { continue };
+        if dividends.is_none() {
+            dividends = coucou_powers::sheet::dividends(&rows).map(|d| (name.clone(), d));
+        }
+        if let Ok(found) = coucou_powers::sheet::positions(&rows) {
+            for (t, x) in found.targets {
+                if !targets.iter().any(|(y, _)| *y == t) {
+                    targets.push((t, x));
+                }
+            }
+        }
+    }
+    let today = today();
+    let found = (dividends.as_ref().map(|d| d.1.months.len()).unwrap_or(0), targets.len());
+    change(app, |s, _| {
+        if let Some((tab, d)) = dividends {
+            s.recorded_dividends = coucou_powers::model::RecordedDividends { source: format!("Sua planilha — aba {tab}"), read: Some(today), months: d.months, by_asset: d.by_asset };
+        }
+        for (t, x) in targets {
+            s.portfolio.asset_targets.insert(t, x);
+        }
+    });
+    log::line(format!("powers: the sheet gives {} month(s) of dividends and {} target(s) by asset", found.0, found.1));
 }
 
 /// The user's other tabs (ten at most), read once when AXYON makes its own: what they list, the positions they give
@@ -1557,6 +1607,8 @@ fn phone_copy_of(s: &Store, m: &Market) -> Value {
     json!({
         "type": "portfolio",
         "positions": positions,
+        "assetTargets": s.portfolio.asset_targets,
+        "dividends": s.recorded_dividends,
         "ceilings": s.ceilings.manual,
         "prices": prices,
         "cash": p.cash,

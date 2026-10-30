@@ -17,6 +17,7 @@ pub mod content;
 pub mod date;
 pub mod day;
 pub mod engine;
+pub mod evidence;
 pub mod english;
 pub mod fii;
 pub mod gym;

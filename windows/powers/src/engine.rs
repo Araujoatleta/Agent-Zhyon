@@ -339,6 +339,28 @@ pub fn update(store: &mut Store, args: &Value, file: Option<Imported>, today: Da
             },
         }
     }
+    // The share of the portfolio wanted in one asset, percent; 0 takes it away. The positions' source stays.
+    let mut aims = false;
+    for (k, v) in args["asset_targets"].as_object().into_iter().flatten() {
+        let Some(t) = ticker(k) else {
+            notes.push(format!("\"{k}\" is not a ticker (like GARE11)."));
+            continue;
+        };
+        match v.as_f64().or_else(|| v.as_str().and_then(crate::text::num)) {
+            Some(x) if x > 100.0 => notes.push(format!("{t}: a target is a share of the portfolio, up to 100 %.")),
+            Some(x) if x > 0.0 => {
+                store.portfolio.asset_targets.insert(t.clone(), x);
+                notes.push(format!("Target for {t}: {} of the portfolio.", pct(x, 1)));
+                aims = true;
+            }
+            _ => {
+                if store.portfolio.asset_targets.remove(&t).is_some() {
+                    notes.push(format!("{t}: target taken away."));
+                    aims = true;
+                }
+            }
+        }
+    }
     for (key, label) in [("income_goal", "Passive income goal"), ("monthly_contribution", "Monthly contribution"), ("cash", "Cash at the broker")] {
         if let Some(x) = f(args, key) {
             match key {
@@ -350,8 +372,8 @@ pub fn update(store: &mut Store, args: &Value, file: Option<Imported>, today: Da
             touched = true;
         }
     }
-    if !touched && !cnpjs {
-        return Err(if notes.is_empty() { "Nothing to change: give positions, a text, a file, targets, income_goal, monthly_contribution, cash, remove or fund_cnpjs.".into() } else { notes.join(" ") });
+    if !touched && !cnpjs && !aims {
+        return Err(if notes.is_empty() { "Nothing to change: give positions, a text, a file, targets, asset_targets, income_goal, monthly_contribution, cash, remove or fund_cnpjs.".into() } else { notes.join(" ") });
     }
     if touched {
         store.portfolio.updated = Some(today);
@@ -1242,6 +1264,18 @@ mod tests {
     }
 
     #[test]
+    fn a_target_for_one_asset_through_the_tools() {
+        let mut store = Store { portfolio: fixtures::portfolio(), ..Store::default() };
+        let note = update(&mut store, &json!({"asset_targets": {"gare11": "7,5", "BTCI11": 120, "nada": 3}}), None, today()).unwrap();
+        assert!(note.contains("Target for GARE11: 7,5%") && note.contains("up to 100 %") && note.contains("not a ticker"), "{note}");
+        assert_eq!(store.portfolio.asset_targets.get("GARE11"), Some(&7.5));
+        assert!(!store.portfolio.asset_targets.contains_key("BTCI11"));
+        assert!(store.portfolio.updated.is_none(), "a target is not a change of the positions");
+        update(&mut store, &json!({"asset_targets": {"GARE11": 0}}), None, today()).unwrap();
+        assert!(store.portfolio.asset_targets.is_empty(), "0 takes it away");
+    }
+
+    #[test]
     fn trades_told_in_the_chat_and_ceilings_through_the_tools() {
         let mut store = Store { portfolio: fixtures::portfolio(), ..Store::default() };
         let mut market = fixtures::market();
@@ -1301,7 +1335,7 @@ mod tests {
         let list = decision(&mut store, &market, &json!({}), today()).unwrap();
         assert!(list.contains("buy GARE11"));
         let c = committee(&store, &market, &json!({"proposal": "comprar 50 cotas de GARE11"}), today()).unwrap();
-        assert!(c.contains("[valuation]") && c.contains("[risk]") && c.contains("Proposal: comprar 50 cotas de GARE11") && c.contains("would go from"), "{c}");
+        assert!(c.contains("[valuation]") && c.contains("[risk]") && c.contains("Proposta: comprar 50 cotas de GARE11") && c.contains("levaria GARE11 de"), "{c}");
         let st = study_view(
             &mut store,
             &market,

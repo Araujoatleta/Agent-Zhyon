@@ -127,6 +127,10 @@ pub struct Portfolio {
     /// Where it came from last: "chat", "B3", "Investidor10", "text", "file".
     #[serde(default)]
     pub source: String,
+    /// The share of the portfolio the user wants in each asset, percent (their sheet's "% Ideal" or "Meta" column, or
+    /// set in the app).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub asset_targets: BTreeMap<String, f64>,
 }
 
 impl Portfolio {
@@ -301,6 +305,39 @@ pub struct Snapshot {
 
 // ── The committee's verdicts, learning, the training portfolio ──────────────
 
+/// A point a mind made: what it says, the fact or page it rests on ("F3", "D1 p.4"), what kind of statement it is
+/// (fato, calculo, hipotese, estimativa, ausente), and what this code found when it checked it.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct MindPoint {
+    pub text: String,
+    pub source: String,
+    pub kind: String,
+    /// The source exists and holds the point's figures (None: not checked).
+    pub verified: Option<bool>,
+    /// What the check found, when something.
+    pub check: String,
+}
+
+/// A point as kept before the committee checked its points: `["text", "F3"]`.
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum PointKept {
+    Pair(String, String),
+    Full(MindPoint),
+}
+
+fn points_kept<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Vec<MindPoint>, D::Error> {
+    let kept = Vec::<PointKept>::deserialize(d)?;
+    Ok(kept
+        .into_iter()
+        .map(|p| match p {
+            PointKept::Pair(text, source) => MindPoint { text, source, ..MindPoint::default() },
+            PointKept::Full(p) => p,
+        })
+        .collect())
+}
+
 /// What one of the committee's minds said (committee.rs).
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
@@ -309,12 +346,60 @@ pub struct MindVote {
     pub id: String,
     /// "for", "against", "neutral".
     pub vote: String,
-    /// 0 to 100.
+    /// 0 to 100, as the evidence allows.
     pub confidence: u8,
-    /// A veto (legal and risk only).
+    /// A veto (legal and risk only), and its reason among the objective ones (committee.rs, VETO_REASONS).
     pub veto: bool,
-    /// Its points, each with the fact or the page it rests on ("F3", "D1 p.4").
-    pub points: Vec<(String, String)>,
+    pub veto_reason: String,
+    /// Why it voted so.
+    pub why: String,
+    /// Its points, each with the fact or the page it rests on.
+    #[serde(deserialize_with = "points_kept")]
+    pub points: Vec<MindPoint>,
+    /// The data it lacked that could change its view.
+    pub missing: Vec<String>,
+    /// Revised after the audit.
+    pub revised: bool,
+    /// Its vote before the audit or this code changed it, when one did.
+    pub was: String,
+}
+
+/// One of the committee's two opinions: on the asset (positivo, neutro, negativo) or on the portfolio (aumentar,
+/// manter, reduzir, evitar_novo_aporte).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct Opinion {
+    pub view: String,
+    pub why: String,
+    pub confidence: Option<u8>,
+    pub sources: Vec<String>,
+}
+
+/// What the audit found: by the auditor (the brain, checking the minds against each other and the sources) or by this
+/// code (sources that do not exist, figures not in their source, a vote on absent data, a veto without its criterion,
+/// sources that disagree). Severity: critico, material, observacao.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct AuditItem {
+    pub severity: String,
+    pub minds: Vec<String>,
+    pub text: String,
+    pub sources: Vec<String>,
+    /// "auditor" or "codigo".
+    pub by: String,
+}
+
+/// A document the committee read, as D1, D2…
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct DocRef {
+    pub id: String,
+    pub key: String,
+    pub title: String,
+    pub kind: String,
+    pub delivered: Option<Date>,
+    pub url: String,
+    pub pages: usize,
 }
 
 /// The committee's verdict on a proposal, kept for the app and the journal.
@@ -338,6 +423,17 @@ pub struct Verdict {
     pub reason: String,
     /// The document that called it, when one did.
     pub document: String,
+    /// 2: with the audit, the two opinions and the facts.
+    pub version: u8,
+    /// Opinion A, the asset's quality; opinion B, its fit in the user's portfolio.
+    pub asset: Opinion,
+    pub portfolio_fit: Opinion,
+    pub audit: Vec<AuditItem>,
+    /// What the user should check before deciding.
+    pub to_verify: Vec<String>,
+    /// The facts and documents the committee had, as it cited them.
+    pub facts: Vec<crate::evidence::Fact>,
+    pub documents: Vec<DocRef>,
 }
 
 impl Verdict {
@@ -350,6 +446,19 @@ impl Verdict {
     pub fn vetoed_by(&self) -> Vec<String> {
         self.minds.iter().filter(|m| m.veto).map(|m| m.id.clone()).collect()
     }
+}
+
+/// The dividends received as the user's sheet records them.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct RecordedDividends {
+    /// Where: "Sua planilha — aba Meu Patrimônio".
+    pub source: String,
+    pub read: Option<Date>,
+    /// Month ("2026-10") to the total received that month, R$.
+    pub months: BTreeMap<String, f64>,
+    /// Month to ticker to R$, when the sheet lists them asset by asset.
+    pub by_asset: BTreeMap<String, BTreeMap<String, f64>>,
 }
 
 /// A practice portfolio with pretend money, at the real prices (learn.rs).
@@ -582,6 +691,8 @@ pub struct Store {
     pub told_today: crate::alerts::Told,
     /// The committee's last verdicts, newest last (committee.rs).
     pub verdicts: Vec<Verdict>,
+    /// The dividends the user's own sheet records month by month ("Proventos pagos"): the record, when there is one.
+    pub recorded_dividends: RecordedDividends,
     pub learn: Learn,
     /// The documents and broken theses already told, by key (library.rs, thesis.rs).
     pub told_documents: Vec<String>,

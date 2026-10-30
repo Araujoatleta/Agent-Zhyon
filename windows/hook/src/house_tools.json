@@ -186,6 +186,13 @@
             "type": "number"
           }
         },
+        "asset_targets": {
+          "type": "object",
+          "description": "The share of the portfolio the user wants in one asset, percent, like {\"GARE11\": 7.5}; 0 takes it away. Only targets the user gave (the sheet's \"% Ideal\" column is read by itself).",
+          "additionalProperties": {
+            "type": "number"
+          }
+        },
         "income_goal": {
           "type": "number",
           "description": "Passive income wanted a month, R$."

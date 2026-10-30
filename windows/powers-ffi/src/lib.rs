@@ -20,7 +20,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use coucou_powers::date::{is_business_day, Date};
 use coucou_powers::library::{self, Library};
-use coucou_powers::model::{AssetClass, LivePrice, Market, Position, Store};
+use coucou_powers::model::{AssetClass, LivePrice, Market, Position, RecordedDividends, Store};
 use coucou_powers::sources::fetch::Http;
 use coucou_powers::{alerts, ceiling, committee, day, engine, invest, learn, refresh, sources, text, thesis};
 use serde::de::DeserializeOwned;
@@ -149,6 +149,16 @@ impl State {
         }
         if let Some(cash) = v["cash"].as_f64() {
             self.store.portfolio.cash = cash;
+        }
+        // The targets the sheet gives win over the ones set here; a target set only here stays.
+        if let Ok(targets) = serde_json::from_value::<BTreeMap<String, f64>>(v["assetTargets"].clone()) {
+            self.store.portfolio.asset_targets.extend(targets);
+        }
+        // The dividends the sheet records are the record: a copy without them (an older computer) keeps the last one.
+        if let Ok(recorded) = serde_json::from_value::<RecordedDividends>(v["dividends"].clone()) {
+            if !recorded.months.is_empty() {
+                self.store.recorded_dividends = recorded;
+            }
         }
         self.store.portfolio.updated = v["updated"].as_str().and_then(Date::parse).or(self.store.portfolio.updated);
         self.store.portfolio.source = COMPUTER.into();
@@ -818,15 +828,24 @@ mod tests {
         std::fs::write(&copy, json!({
             "type": "portfolio", "receivedAt": 1_793_000_000.0, "cash": 150.0, "updated": "2026-10-27", "source": "sheet",
             "positions": [{ "ticker": "GARE11", "class": "fii", "subtype": "", "quantity": 100.0, "averagePrice": 9.0, "currentValue": null, "note": "" }],
-            "ceilings": { "TIMS3": 21.5 }, "prices": {}, "notes": []
+            "ceilings": { "TIMS3": 21.5 }, "prices": {}, "notes": [],
+            "assetTargets": { "GARE11": 7.5 },
+            "dividends": { "source": "Sua planilha — aba Meu Patrimônio", "read": "2026-10-29", "months": { "2026-10": 82.27 } }
         }).to_string()).unwrap();
         let mut st = State::open(&dir);
+        st.store.portfolio.asset_targets.insert("TIMS3".into(), 5.0);
         st.take_copy(&copy);
         assert_eq!(st.store.portfolio.positions.len(), 1);
         assert_eq!(st.store.portfolio.positions[0].class, AssetClass::Fii);
         assert_eq!(st.store.ceilings.manual.get("TIMS3"), Some(&21.5));
         assert_eq!(st.store.portfolio.cash, 150.0);
         assert_eq!(st.store.portfolio.source, COMPUTER);
+        assert_eq!(st.store.portfolio.asset_targets.get("GARE11"), Some(&7.5), "the sheet's target");
+        assert_eq!(st.store.portfolio.asset_targets.get("TIMS3"), Some(&5.0), "a target set on the iPhone stays");
+        assert_eq!(st.store.recorded_dividends.months.get("2026-10"), Some(&82.27), "the sheet's record");
+        let months = invest::dividends(&st.store, &st.market, Date::parse("2026-10-30").unwrap(), 12);
+        assert_eq!(months[11]["total"], 82.27, "the wallet's October is the sheet's");
+        assert_eq!(months[11]["source"], "planilha");
         // A change on the iPhone stays until a newer copy comes.
         st.store.portfolio.positions.clear();
         st.take_copy(&copy);
