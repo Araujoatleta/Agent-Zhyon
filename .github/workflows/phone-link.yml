@@ -44,6 +44,8 @@ jobs:
       - run: npm ci
       - run: npx tsc --noEmit
       - run: npm test
+      # The app bundles both native executables as resources: its build script stops when one is missing.
+      - run: cargo build --release --locked -p coucou-edge-worker
       - run: cargo build --release -p coucou-hook
       - run: cargo test --workspace --locked
 

@@ -90,7 +90,7 @@ jobs:
           rm -rf "$APP/PlugIns"
           /usr/libexec/PlistBuddy -c 'Set :CFBundleIdentifier com.araujoatleta.agentzhyon.coucou' "$APP/Info.plist"
           # Fail if another executable bundle slipped into the package.
-          if find "$APP" -type d \\( -name '*.appex' -o -name '*.app' \\) | grep -v -Fx "$APP" | grep -q .; then
+          if find "$APP" -type d \( -name '*.appex' -o -name '*.app' \) | grep -v -Fx "$APP" | grep -q .; then
             echo "::error::Nested app or extension remains in standalone IPA"
             exit 1
           fi
