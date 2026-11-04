@@ -12,7 +12,8 @@ import Observation
 
 /// The engine's JSON, read without failing on a missing field.
 private enum WalletJSON {
-    static func num(_ value: Any?) -> Double? { (value as? NSNumber)?.doubleValue }
+    /// The number, -0 read as 0 (a screen would show "-R$ 0,00").
+    static func num(_ value: Any?) -> Double? { (value as? NSNumber).map { $0.doubleValue + 0.0 } }
     static func dbl(_ value: Any?) -> Double { num(value) ?? 0 }
     static func int(_ value: Any?) -> Int { Int(num(value) ?? 0) }
     static func str(_ value: Any?) -> String { value as? String ?? "" }

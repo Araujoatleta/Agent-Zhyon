@@ -316,6 +316,11 @@ fn proventos(store: &Store, market: &Market, today: Date) -> Vec<Paid> {
     out
 }
 
+/// A sum that is 0, not -0, when there is nothing to add (f64's own starts at -0.0, which a screen shows as "-R$ 0,00").
+fn sum(values: impl Iterator<Item = f64>) -> f64 {
+    values.fold(0.0, |a, b| a + b)
+}
+
 /// The consolidator's screen.
 pub fn view(store: &Store, market: &Market, today: Date) -> Value {
     let v = crate::portfolio::value(&store.portfolio, market);
@@ -324,9 +329,9 @@ pub fn view(store: &Store, market: &Market, today: Date) -> Value {
     let provisioned: Vec<&Paid> = all.iter().filter(|p| p.record <= today && p.payment.is_none_or(|d| d > today) && p.record.until(today) <= 180).collect();
     let announced: Vec<&Paid> = all.iter().filter(|p| p.record > today).collect();
     let year_ago = today.add_days(-365);
-    let twelve: f64 = received.iter().filter(|p| p.payment.is_some_and(|d| d > year_ago)).map(|p| p.net).sum();
-    let this_year: f64 = received.iter().filter(|p| p.payment.is_some_and(|d| d.y == today.y)).map(|p| p.net).sum();
-    let ahead: f64 = provisioned.iter().map(|p| p.net).sum();
+    let twelve = sum(received.iter().filter(|p| p.payment.is_some_and(|d| d > year_ago)).map(|p| p.net));
+    let this_year = sum(received.iter().filter(|p| p.payment.is_some_and(|d| d.y == today.y)).map(|p| p.net));
+    let ahead = sum(provisioned.iter().map(|p| p.net));
     // The months, the last twelve, by the day each was paid.
     let first = today.first_of_month().add_months(-11);
     let months: Vec<Value> = (0..12)
@@ -338,7 +343,7 @@ pub fn view(store: &Store, market: &Market, today: Date) -> Value {
             }
             let mut list: Vec<(String, f64)> = items.into_iter().collect();
             list.sort_by(|a, b| b.1.total_cmp(&a.1));
-            json!({ "month": key, "total": list.iter().map(|x| x.1).sum::<f64>(), "items": list.iter().map(|(t, v)| json!({ "ticker": t, "value": v })).collect::<Vec<_>>() })
+            json!({ "month": key, "total": sum(list.iter().map(|x| x.1)), "items": list.iter().map(|(t, v)| json!({ "ticker": t, "value": v })).collect::<Vec<_>>() })
         })
         .collect();
     // Each asset: its numbers, the quote and where it is from, its proventos.
@@ -351,7 +356,7 @@ pub fn view(store: &Store, market: &Market, today: Date) -> Value {
         let trades = of(store, t);
         let (book, results, _) = replay(&trades);
         realized += book.realized;
-        realized_year += trades.iter().filter(|x| x.date.y == today.y).filter_map(|x| results.get(&x.seq)).sum::<f64>();
+        realized_year += sum(trades.iter().filter(|x| x.date.y == today.y).filter_map(|x| results.get(&x.seq).copied()));
         if book.quantity <= 1e-9 && store.portfolio.position(t).is_none() {
             sold_out.push(json!({ "ticker": t, "realized": book.realized, "bought": book.bought, "sold": book.sold }));
         }
@@ -365,8 +370,8 @@ pub fn view(store: &Store, market: &Market, today: Date) -> Value {
             None => (None, None),
         };
         let mine: Vec<&Paid> = all.iter().filter(|p| p.ticker == h.ticker).collect();
-        let twelve: f64 = mine.iter().filter(|p| p.kind != "Amortização" && p.payment.is_some_and(|d| d <= today && d > year_ago)).map(|p| p.net).sum();
-        let ahead: f64 = mine.iter().filter(|p| p.record <= today && p.payment.is_none_or(|d| d > today) && p.record.until(today) <= 180).map(|p| p.net).sum();
+        let twelve = sum(mine.iter().filter(|p| p.kind != "Amortização" && p.payment.is_some_and(|d| d <= today && d > year_ago)).map(|p| p.net));
+        let ahead = sum(mine.iter().filter(|p| p.record <= today && p.payment.is_none_or(|d| d > today) && p.record.until(today) <= 180).map(|p| p.net));
         let (book, _, _) = replay(&trades);
         json!({
             "ticker": h.ticker,
@@ -459,7 +464,7 @@ pub fn view(store: &Store, market: &Market, today: Date) -> Value {
             "twelve": twelve,
             "year": this_year,
             "provisioned": ahead,
-            "announced": announced.iter().map(|p| p.net).sum::<f64>(),
+            "announced": sum(announced.iter().map(|p| p.net)),
             "yieldOnCost": (v.cost > 0.0 && twelve > 0.0).then(|| twelve / v.cost * 100.0),
             "months": months,
             "received": received.iter().take(60).map(|p| p.json()).collect::<Vec<_>>(),
@@ -506,6 +511,9 @@ mod tests {
         let (book, results, _) = replay(&of(&store, "GARE11"));
         assert!((results[&id] - 50.0 * (9.5 - 8.51)).abs() < 1e-9, "{results:?}");
         assert!((book.realized - 49.5).abs() < 1e-9);
+        // Nothing to receive is 0, never -0 (a screen would show "-R$ 0,00").
+        let screen = view(&store, &market, today).to_string();
+        assert!(!screen.contains("-0.0"), "{screen}");
         // Selling more than was held that day is refused; so is the same lançamento twice.
         let err = add(&mut store, &market, entry(&input("GARE11", "venda", "2026-04-01", 150.0, 9.0), today).unwrap(), today).unwrap_err();
         assert!(err.contains("você tinha 100 GARE11"), "{err}");

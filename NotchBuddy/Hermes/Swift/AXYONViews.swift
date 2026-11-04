@@ -785,8 +785,9 @@ struct WalletReport {
 }
 
 enum AXYONMoney {
+    /// "R$ 1.234,56"; -0 (a sum of nothing) as R$ 0,00.
     static func text(_ value: Double) -> String {
-        value.formatted(.currency(code: "BRL").locale(Locale(identifier: "pt_BR")))
+        (value + 0.0).formatted(.currency(code: "BRL").locale(Locale(identifier: "pt_BR")))
     }
 
     static func signed(_ value: Double) -> String {
