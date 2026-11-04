@@ -446,6 +446,45 @@ async fn live_reader() {
     }
 }
 
+/// The cash dividends companies announced on B3's listed-companies pages: the raw answer's start, then each one read
+/// (type, value, data-com, payment), matched to the share class by the ISIN B3's quotes give.
+#[tokio::test]
+#[ignore]
+async fn live_b3_dividends() {
+    use coucou_powers::sources::b3_dividends;
+    let http = Http::new();
+    let today = today();
+    let tickers: Vec<String> = ["BBAS3", "WIZC3", "ITSA4", "TAEE11", "PETR4"].iter().map(|t| t.to_string()).collect();
+    let quotes = sources::quotes(&http, today, false, &tickers, None).await.map(|(_, q)| q).unwrap_or_default();
+    let mut read = 0;
+    for t in &tickers {
+        let issuer = &t[..4];
+        section(&format!("{t}: B3's cash dividends ({issuer})"));
+        let raw = match http.text(&b3_dividends::url(issuer)).await {
+            Ok(raw) => raw,
+            Err(e) => {
+                println!("not read: {e}");
+                continue;
+            }
+        };
+        println!("{} bytes: {}", raw.len(), coucou_powers::text::clip(&raw, 1200));
+        let isin = quotes.get(t).map(|q| q.isin.clone()).unwrap_or_default();
+        match b3_dividends::parse(&raw) {
+            Ok(all) => {
+                read += 1;
+                println!("{} dividends; ISIN of {t} in B3's quotes: {isin:?}", all.len());
+                for d in all.iter().take(8) {
+                    println!("  {} {} R$ {} data-com {} pago {:?} aprovado {:?}", d.isin, d.label, d.value, d.record.br(), d.payment.map(|p| p.br()), d.approved.map(|p| p.br()));
+                }
+                let mine = b3_dividends::of_class(&all, &isin);
+                println!("{t}'s own: {} (provisioned: {})", mine.len(), mine.iter().filter(|p| p.payment.is_none_or(|d| d > today)).count());
+            }
+            Err(e) => println!("not parsed: {e}"),
+        }
+    }
+    assert!(read >= 3, "B3 gave the dividends of {read} of the {} companies", tickers.len());
+}
+
 /// The facts the committee is given, from today's sources: each with its source, its reference date and how the code
 /// computed it, for GARE11 (a made-up portfolio with a 7,5 % target for it) and GGRC11.
 #[tokio::test]

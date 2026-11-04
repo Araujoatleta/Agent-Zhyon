@@ -4,6 +4,7 @@
 //! and only while the user has them on.
 
 pub mod b3;
+pub mod b3_dividends;
 pub mod bcb;
 pub mod cvm_cia;
 pub mod cvm_fii;
