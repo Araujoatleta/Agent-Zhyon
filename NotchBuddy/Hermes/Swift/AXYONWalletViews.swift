@@ -50,6 +50,9 @@ struct AXYONWalletHome: View {
             .padding(.top, 8)
             .padding(.bottom, 28)
         }
+        #if targetEnvironment(simulator)
+        .defaultScrollAnchor(AXYONTestScreen.anchor)
+        #endif
         .scrollContentBackground(.hidden)
         .background { InvestBackdrop() }
         .navigationTitle("Wallet")
@@ -64,7 +67,13 @@ struct AXYONWalletHome: View {
         }
         .refreshable { await wallet.load() }
         .task {
+            #if targetEnvironment(simulator)
+            await AXYONTestScreen.seed(wallet)
+            #endif
             await wallet.load()
+            #if targetEnvironment(simulator)
+            open(AXYONTestScreen.base)
+            #endif
             // Like the sheet's GOOGLEFINANCE: the quotes again by themselves while the tab is open.
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(120))
@@ -77,6 +86,19 @@ struct AXYONWalletHome: View {
             WalletAssetView(wallet: wallet, ticker: picked.ticker)
         }
     }
+
+    #if targetEnvironment(simulator)
+    /// CI's screenshots: the part of the tab AXYON_TEST_TAB asks for (AXYONTestScreens.swift).
+    private func open(_ screen: String) {
+        switch screen {
+        case "wallet-trades": section = .trades
+        case "wallet-income": section = .income
+        case "wallet-asset": asset = overview.asset("BBAS3") ?? overview.assets.first
+        case "wallet-new": adding = true
+        default: break
+        }
+    }
+    #endif
 }
 
 // MARK: - The summary
@@ -610,6 +632,9 @@ struct WalletAssetView: View {
             .padding(.horizontal, 18)
             .padding(.vertical, 12)
         }
+        #if targetEnvironment(simulator)
+        .defaultScrollAnchor(AXYONTestScreen.anchor)
+        #endif
         .scrollContentBackground(.hidden)
         .background { InvestBackdrop() }
         .navigationTitle(ticker)

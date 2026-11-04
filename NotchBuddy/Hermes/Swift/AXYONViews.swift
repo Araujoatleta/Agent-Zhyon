@@ -19,8 +19,9 @@ enum AXYONTab: Hashable {
     /// (AXYON_TEST_TAB, Hermes/tests/simulator.sh).
     static var launch: AXYONTab {
         #if targetEnvironment(simulator)
-        switch ProcessInfo.processInfo.environment["AXYON_TEST_TAB"] {
-        case "invest": return .invest
+        let screen = ProcessInfo.processInfo.environment["AXYON_TEST_TAB"] ?? ""
+        if screen.hasPrefix("invest") { return .invest }
+        switch screen {
         case "chat": return .chat
         case "house": return .house
         case "settings": return .settings
@@ -48,7 +49,18 @@ struct AXYONTabs: View {
             }
             Tab("Investments", systemImage: "chart.pie.fill", value: AXYONTab.invest) {
                 // The investing screen (AXYONInvestViews.swift): the ring, the committee, the reader, the theses.
-                NavigationStack { AXYONInvestView() }
+                NavigationStack {
+                    #if targetEnvironment(simulator)
+                    // CI's screenshot of the committee's screen, with its example verdict (AXYONTestScreens.swift).
+                    if let verdict = AXYONTestScreen.verdict {
+                        InvestVerdictView(verdict: verdict)
+                    } else {
+                        AXYONInvestView()
+                    }
+                    #else
+                    AXYONInvestView()
+                    #endif
+                }
             }
             Tab("Chat", systemImage: "bubble.left.and.bubble.right.fill", value: AXYONTab.chat) {
                 NavigationStack { HermesChatView() }

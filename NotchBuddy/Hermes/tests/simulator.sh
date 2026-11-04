@@ -229,18 +229,48 @@ echo "${settings:0:600}"
 portfolio="$(call GET /v1/portfolio)" || fail "the portfolio did not answer"
 echo "${portfolio:0:400}"
 
-# What each tab looks like, for the eye (uploaded as the AXYON-screens artifact): the app opened again on each tab,
-# once Hermes is ready, with the conversation above kept. A screenshot that fails never fails the test.
-say "Screenshots of each tab"
+# What each screen looks like, for the eye (uploaded as the AXYON-screens artifact): the app opened again on each, with
+# the conversation above kept. The Wallet holds example lançamentos (screens/trades.json), entered through the app's own
+# engine, which reads their quotes and proventos from B3, Google Finance and FundosNet like any other's; the committee's
+# screen shows an example verdict the engine's committee made from its test facts (screens/verdict.json). A name ending
+# in -mid or -end is the same screen scrolled to its middle or its bottom (AXYONTestScreens.swift, Simulator builds
+# only). A screenshot that fails never fails the test.
+say "Screenshots of each screen"
 SHOTS="$RUNNER_TEMP/axyon-screens"
 mkdir -p "$SHOTS"
 xcrun simctl status_bar "$DEVICE" override --time 9:41 --dataNetwork wifi --wifiBars 3 --cellularBars 4 \
     --batteryState charged --batteryLevel 100 2>/dev/null || true
-shot() {  # tab
+open_app() {  # screen
     xcrun simctl terminate "$DEVICE" "$BUNDLE" 2>/dev/null || true
     sleep 2
     SIMCTL_CHILD_AXYON_TEST_PORT="$PORT" SIMCTL_CHILD_AXYON_TEST_TOKEN="$TOKEN" SIMCTL_CHILD_AXYON_TEST_TAB="$1" \
-        xcrun simctl launch "$DEVICE" "$BUNDLE" >/dev/null 2>&1 || return 0
+        xcrun simctl launch "$DEVICE" "$BUNDLE" >/dev/null 2>&1
+}
+DATA="$(data_dir)"
+if [ -n "$DATA" ] && mkdir -p "$DATA/tmp" 2>/dev/null; then
+    cp "$HERE/screens/trades.json" "$DATA/tmp/axyon-trades.json" || true
+    cp "$HERE/screens/verdict.json" "$DATA/tmp/axyon-verdict.json" || true
+    if open_app wallet; then
+        for i in $(seq 1 150); do
+            [ -f "$DATA/tmp/axyon-seeded" ] && break
+            sleep 2
+        done
+        if [ -f "$DATA/tmp/axyon-seeded" ]; then echo "The example lançamentos are in"; else echo "The example lançamentos did not finish in time"; fi
+    fi
+    # The investing screen reads what it rests on the first time it opens (closes, the documents' lists).
+    if open_app invest; then sleep 45; fi
+fi
+quick_shot() {  # screen: the Wallet's and the investing screens, which need the engine only
+    open_app "$1" || return 0
+    sleep 15
+    xcrun simctl io "$DEVICE" screenshot "$SHOTS/$1.png" >/dev/null 2>&1 || true
+}
+for screen in wallet wallet-end wallet-trades wallet-income wallet-income-end wallet-asset wallet-asset-end wallet-new \
+    invest invest-end invest-verdict invest-verdict-mid invest-verdict-end; do
+    quick_shot "$screen"
+done
+shot() {  # tab
+    open_app "$1" || return 0
     for i in $(seq 1 45); do
         state="$(curl -sS --max-time 3 -H "Authorization: Bearer $TOKEN" "$URL/health" 2>/dev/null | "$PYTHON" -c '
 import json, sys
@@ -255,7 +285,7 @@ except ValueError:
     sleep 5
     xcrun simctl io "$DEVICE" screenshot "$SHOTS/$1.png" >/dev/null 2>&1 || true
 }
-for tab in wallet invest chat house settings; do shot "$tab"; done
+for tab in chat house settings; do shot "$tab"; done
 ls -l "$SHOTS" || true
 
 kill "$MODEL_PID" 2>/dev/null || true

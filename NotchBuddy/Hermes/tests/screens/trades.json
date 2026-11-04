@@ -1,0 +1,12 @@
+[
+  {"ticker": "ITSA4", "kind": "buy", "date": "2025-02-12", "quantity": "200", "price": "10,12", "fees": "4,90"},
+  {"ticker": "GARE11", "kind": "buy", "date": "2025-03-12", "quantity": "150", "price": "8,62", "fees": ""},
+  {"ticker": "BBAS3", "kind": "buy", "date": "2025-04-15", "quantity": "100", "price": "27,40", "fees": "4,90"},
+  {"ticker": "GGRC11", "kind": "buy", "date": "2025-05-20", "quantity": "120", "price": "10,05", "fees": ""},
+  {"ticker": "BTLG11", "kind": "buy", "date": "2025-06-03", "quantity": "10", "price": "99,80", "fees": ""},
+  {"ticker": "TAEE11", "kind": "buy", "date": "2025-07-22", "quantity": "50", "price": "34,95", "fees": "4,90"},
+  {"ticker": "PETR4", "kind": "buy", "date": "2025-08-11", "quantity": "60", "price": "32,10", "fees": "4,90"},
+  {"ticker": "GARE11", "kind": "buy", "date": "2025-09-15", "quantity": "54", "price": "8,31", "fees": ""},
+  {"ticker": "BBAS3", "kind": "buy", "date": "2026-02-10", "quantity": "50", "price": "21,90", "fees": "4,90"},
+  {"ticker": "PETR4", "kind": "sell", "date": "2026-06-17", "quantity": "20", "price": "35,60", "fees": "4,90"}
+]

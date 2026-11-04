@@ -394,6 +394,9 @@ struct AXYONInvestView: View {
             .padding(.top, 8)
             .padding(.bottom, 28)
         }
+        #if targetEnvironment(simulator)
+        .defaultScrollAnchor(AXYONTestScreen.anchor)
+        #endif
         .scrollContentBackground(.hidden)
         .background { InvestBackdrop() }
         .navigationTitle("Investments")
@@ -995,6 +998,9 @@ struct InvestVerdictView: View {
             .padding(.horizontal, 18)
             .padding(.vertical, 12)
         }
+        #if targetEnvironment(simulator)
+        .defaultScrollAnchor(AXYONTestScreen.anchor)
+        #endif
         .background { InvestBackdrop() }
         .navigationTitle(verdict.ticker)
         .navigationBarTitleDisplayMode(.inline)

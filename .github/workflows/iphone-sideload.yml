@@ -236,7 +236,7 @@ jobs:
   # answer that takes a tool the app answers itself (NotchBuddy/Hermes/tests/simulator.sh).
   hermes-simulator:
     runs-on: macos-latest
-    timeout-minutes: 42
+    timeout-minutes: 52
     steps:
       - uses: actions/checkout@v7
         with:
@@ -289,12 +289,14 @@ jobs:
             }
 
       - name: Hermes inside iOS (start, health, an answer with the iPhone's own tool)
-        timeout-minutes: 24
+        # The screens' screenshots at its end take about ten minutes (simulator.sh).
+        timeout-minutes: 34
         env:
           PYTHON: python3.14
         run: bash NotchBuddy/Hermes/tests/simulator.sh build/Build/Products/Release-iphonesimulator/Coucou.app
 
-      # Each tab as the Simulator draws it, taken at the end of the test above.
+      # Each screen as the Simulator draws it, taken at the end of the test above (the Wallet with example
+      # lançamentos, the committee with an example verdict).
       - uses: actions/upload-artifact@v7
         if: always()
         with:
