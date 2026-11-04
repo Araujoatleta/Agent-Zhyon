@@ -7,18 +7,20 @@ import UIKit
 import UniformTypeIdentifiers
 import UserNotifications
 
-// The screens of AXYON with Hermes inside the iPhone (the build that carries it): the portfolio first, the chat, the
-// home and the settings, where a computer is one option among others. Black and Liquid Glass (AXYONStyle.swift); the
+// The screens of AXYON with Hermes inside the iPhone (the build that carries it): the consolidated portfolio first, the
+// investing screens (the committee, the reader, the theses), the chat, the home and the settings, where a computer is
+// one option among others. Black and Liquid Glass (AXYONStyle.swift); the
 // chat's bubbles are the computer chat's (PCChatBubble).
 
 enum AXYONTab: Hashable {
-    case wallet, chat, house, settings
+    case wallet, invest, chat, house, settings
 
     /// The tab AXYON opens on: the portfolio; in the Simulator, the one CI's screenshots ask for
     /// (AXYON_TEST_TAB, Hermes/tests/simulator.sh).
     static var launch: AXYONTab {
         #if targetEnvironment(simulator)
         switch ProcessInfo.processInfo.environment["AXYON_TEST_TAB"] {
+        case "invest": return .invest
         case "chat": return .chat
         case "house": return .house
         case "settings": return .settings
@@ -40,8 +42,12 @@ struct AXYONTabs: View {
 
     var body: some View {
         TabView(selection: $tab) {
-            Tab("Wallet", systemImage: "chart.pie.fill", value: AXYONTab.wallet) {
-                // The investing screen (AXYONInvestViews.swift); the positions, as before, under its History.
+            Tab("Wallet", systemImage: "briefcase.fill", value: AXYONTab.wallet) {
+                // The consolidator: lançamentos, positions, results, proventos (AXYONWalletViews.swift).
+                NavigationStack { AXYONWalletHome() }
+            }
+            Tab("Investments", systemImage: "chart.pie.fill", value: AXYONTab.invest) {
+                // The investing screen (AXYONInvestViews.swift): the ring, the committee, the reader, the theses.
                 NavigationStack { AXYONInvestView() }
             }
             Tab("Chat", systemImage: "bubble.left.and.bubble.right.fill", value: AXYONTab.chat) {

@@ -203,18 +203,127 @@ private struct InvestOutlineLabel: View {
     }
 }
 
-/// A small tag: where a point comes from ("F3", "D1 p.4"), a document's kind, a vote.
+/// A small tag: where a point comes from ("F3", "D1 p.4"), a document's kind, a vote. One line, its own width: a
+/// row too narrow for it moves it to the next line (InvestChips) instead of squeezing it into a column of letters.
 struct InvestTag: View {
     let text: String
     var color: Color = .white
 
     var body: some View {
         Text(text)
-            .font(.caption2.weight(.semibold).monospaced())
+            .font(.system(.caption2, design: .rounded).weight(.semibold))
             .foregroundStyle(color)
-            .padding(.horizontal, 7)
+            .lineLimit(1)
+            .fixedSize()
+            .padding(.horizontal, 8)
             .padding(.vertical, 3)
             .background(Capsule().fill(color.opacity(0.14)))
+    }
+}
+
+/// Chips in rows: each as wide as it is, the next row when one is full.
+struct InvestChips: Layout {
+    var spacing: CGFloat = 6
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let rows = arrange(subviews, width: proposal.width ?? .infinity)
+        let width = rows.map { $0.width }.max() ?? 0
+        let height = rows.reduce(0) { $0 + $1.height } + spacing * CGFloat(max(rows.count - 1, 0))
+        return CGSize(width: proposal.width.map { min($0, width) } ?? width, height: height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var y = bounds.minY
+        for row in arrange(subviews, width: bounds.width) {
+            var x = bounds.minX
+            for index in row.items {
+                let size = subviews[index].sizeThatFits(.unspecified)
+                subviews[index].place(at: CGPoint(x: x, y: y + (row.height - size.height) / 2), proposal: ProposedViewSize(size))
+                x += size.width + spacing
+            }
+            y += row.height + spacing
+        }
+    }
+
+    private struct Row {
+        var items: [Int] = []
+        var width: CGFloat = 0
+        var height: CGFloat = 0
+    }
+
+    private func arrange(_ subviews: Subviews, width: CGFloat) -> [Row] {
+        var rows: [Row] = []
+        var row = Row()
+        for index in subviews.indices {
+            let size = subviews[index].sizeThatFits(.unspecified)
+            let needed = row.items.isEmpty ? size.width : row.width + spacing + size.width
+            if needed > width, !row.items.isEmpty {
+                rows.append(row)
+                row = Row()
+            }
+            row.width = row.items.isEmpty ? size.width : row.width + spacing + size.width
+            row.height = max(row.height, size.height)
+            row.items.append(index)
+        }
+        if !row.items.isEmpty { rows.append(row) }
+        return rows
+    }
+}
+
+/// A titled block that opens and closes, its count beside the title: long lists stay out of the way until wanted.
+struct InvestFold<Content: View>: View {
+    let title: String
+    let icon: String
+    var count: Int?
+    var color: Color = .white
+    var tint: Color?
+    @State private var open: Bool
+    private let content: () -> Content
+
+    init(_ title: String, icon: String, count: Int? = nil, color: Color = .white, tint: Color? = nil, open: Bool = false,
+         @ViewBuilder content: @escaping () -> Content) {
+        self.title = title
+        self.icon = icon
+        self.count = count
+        self.color = color
+        self.tint = tint
+        _open = State(initialValue: open)
+        self.content = content
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Button {
+                withAnimation(.snappy(duration: 0.3)) { open.toggle() }
+            } label: {
+                HStack(spacing: 8) {
+                    Label(title, systemImage: icon).font(.headline).foregroundStyle(color)
+                    if let count {
+                        Text(verbatim: "\(count)")
+                            .font(.system(.caption, design: .rounded).weight(.bold))
+                            .foregroundStyle(color)
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 2)
+                            .background(Capsule().fill(color.opacity(0.15)))
+                    }
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.down")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(AXYONPalette.faint)
+                        .rotationEffect(.degrees(open ? 0 : -90))
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityAddTraits(.isHeader)
+            if open {
+                content()
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .axyonCard(cornerRadius: 22, tint: tint)
     }
 }
 
@@ -784,22 +893,28 @@ struct InvestVerdictRow: View {
     let verdict: InvestVerdict
 
     var body: some View {
-        HStack(spacing: 14) {
+        HStack(alignment: .top, spacing: 14) {
             InvestVoteRing(minds: verdict.minds, score: verdict.score)
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
-                    Text(verdict.ticker).font(.headline).foregroundStyle(.white)
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(verdict.ticker)
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .fixedSize()
+                    Spacer(minLength: 8)
+                    Text(investDay(verdict.date)).font(.caption2).foregroundStyle(AXYONPalette.faint).fixedSize()
+                }
+                InvestChips(spacing: 6) {
+                    if !verdict.portfolio.view.isEmpty {
+                        InvestTag(text: verdict.portfolio.viewName, color: InvestPalette.vote(verdict.portfolio.tone))
+                    }
                     if verdict.vetoed {
                         InvestTag(text: String(localized: "veto"), color: InvestPalette.against)
                     }
                     if verdict.reason == "document" || verdict.reason == "thesis" {
                         InvestTag(text: String(localized: "by itself"), color: InvestPalette.mixed)
                     }
-                    if !verdict.portfolio.view.isEmpty {
-                        InvestTag(text: verdict.portfolio.viewName, color: InvestPalette.vote(verdict.portfolio.tone))
-                    }
-                    Spacer(minLength: 0)
-                    Text(investDay(verdict.date)).font(.caption2).foregroundStyle(AXYONPalette.faint)
                 }
                 Text(verdict.question.isEmpty ? verdict.proposal : verdict.question)
                     .font(.footnote)
@@ -807,7 +922,10 @@ struct InvestVerdictRow: View {
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
             }
-            Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(AXYONPalette.faint)
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(AXYONPalette.faint)
+                .padding(.top, 4)
         }
         .contentShape(Rectangle())
     }
@@ -847,7 +965,7 @@ struct InvestVerdictView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 22) {
+            VStack(alignment: .leading, spacing: 16) {
                 header
                 if !verdict.asset.isEmpty || !verdict.portfolio.isEmpty {
                     VStack(spacing: 12) {
@@ -855,20 +973,27 @@ struct InvestVerdictView: View {
                         opinion("B", String(localized: "Opinion B · In your portfolio"), verdict.portfolio)
                     }
                 }
-                findings(String(localized: "Critical alerts"), "exclamationmark.octagon.fill", InvestPalette.against, verdict.critical)
-                findings(String(localized: "Material points"), "exclamationmark.triangle.fill", InvestPalette.mixed, verdict.material)
-                if !verdict.toVerify.isEmpty { toVerify }
                 chair
+                findings(String(localized: "Critical alerts"), "exclamationmark.octagon.fill", InvestPalette.against, verdict.critical, open: true)
+                findings(String(localized: "Material points"), "exclamationmark.triangle.fill", InvestPalette.mixed, verdict.material,
+                         open: verdict.critical.isEmpty)
+                if !verdict.toVerify.isEmpty { toVerify }
+                Text("The five minds")
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(.white)
+                    .padding(.top, 6)
                 ForEach(verdict.minds) { mind in
                     InvestMindCard(mind: mind) { opened = $0 }
                 }
-                findings(String(localized: "Notes"), "info.circle.fill", InvestPalette.neutral, verdict.notes)
+                findings(String(localized: "Notes"), "info.circle.fill", AXYONPalette.dim, verdict.notes, open: false)
                 if !verdict.facts.isEmpty || !verdict.documents.isEmpty { sources }
                 Text("The committee never orders: its five minds are archetypes, every number is the code's and every point cites its source. Nothing is bought or sold; this is not an investment recommendation.")
                     .font(.caption2)
                     .foregroundStyle(AXYONPalette.faint)
+                    .padding(.top, 4)
             }
-            .padding(20)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 12)
         }
         .background { InvestBackdrop() }
         .navigationTitle(verdict.ticker)
@@ -881,40 +1006,45 @@ struct InvestVerdictView: View {
 
     private var vetoes: String { verdict.vetoedBy.map { InvestMind.name($0) }.joined(separator: ", ") }
 
+    /// The score beside the proposal, in one card.
     private var header: some View {
-        VStack(spacing: 14) {
+        HStack(alignment: .center, spacing: 18) {
             ZStack {
                 InvestRing(values: appeared ? Array(repeating: 1.0, count: verdict.minds.count) : [],
-                           colors: verdict.minds.map { InvestPalette.vote($0.vote) }, lineWidth: 22, gap: 0.03, capacity: 5)
-                VStack(spacing: 2) {
+                           colors: verdict.minds.map { InvestPalette.vote($0.vote) }, lineWidth: 12, gap: 0.03, capacity: 5)
+                VStack(spacing: 0) {
                     Text(verdict.score)
-                        .font(.system(size: 44, weight: .bold, design: .rounded))
+                        .font(.system(size: 26, weight: .bold, design: .rounded))
                         .monospacedDigit()
                         .foregroundStyle(.white)
-                    Text("for × against").font(.caption.weight(.semibold)).foregroundStyle(AXYONPalette.dim)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                    Text("for × against").font(.caption2.weight(.semibold)).foregroundStyle(AXYONPalette.dim)
+                }
+                .padding(16)
+            }
+            .frame(width: 118, height: 118)
+            VStack(alignment: .leading, spacing: 8) {
+                Text(verdict.proposal)
+                    .font(.callout.weight(.medium))
+                    .foregroundStyle(.white)
+                    .lineLimit(4)
+                InvestChips(spacing: 6) {
                     if verdict.neutral > 0 {
-                        Text("\(verdict.neutral) neutral").font(.caption2).foregroundStyle(AXYONPalette.faint)
+                        InvestTag(text: String(localized: "\(verdict.neutral) neutral"), color: AXYONPalette.dim)
+                    }
+                    if verdict.vetoed {
+                        InvestTag(text: String(localized: "Vetoed by \(vetoes)"), color: InvestPalette.against)
                     }
                 }
+                if !verdict.date.isEmpty {
+                    Text("Committee of \(investDay(verdict.date))").font(.caption2).foregroundStyle(AXYONPalette.faint)
+                }
             }
-            .frame(width: 210, height: 210)
-            if verdict.vetoed {
-                Label(String(localized: "Vetoed by \(vetoes)"), systemImage: "hand.raised.fill")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(InvestPalette.against)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 8)
-                    .background(Capsule().fill(InvestPalette.against.opacity(0.14)))
-            }
-            Text("“\(verdict.proposal)”")
-                .font(.callout)
-                .foregroundStyle(AXYONPalette.dim)
-                .multilineTextAlignment(.center)
-            if !verdict.date.isEmpty {
-                Text("Committee of \(investDay(verdict.date))").font(.caption2).foregroundStyle(AXYONPalette.faint)
-            }
+            Spacer(minLength: 0)
         }
-        .frame(maxWidth: .infinity)
+        .padding(16)
+        .axyonCard(cornerRadius: 24)
     }
 
     /// One of the two opinions, each on its own: a vote against buying more is not a call to sell.
@@ -923,25 +1053,28 @@ struct InvestVerdictView: View {
         if !given.isEmpty {
             let color = InvestPalette.vote(given.tone)
             VStack(alignment: .leading, spacing: 10) {
-                HStack(spacing: 10) {
+                HStack(alignment: .top, spacing: 10) {
                     Text(verbatim: letter)
                         .font(.caption.weight(.heavy))
                         .foregroundStyle(.black)
                         .frame(width: 24, height: 24)
                         .background(Circle().fill(color))
-                    Text(title).font(.headline).foregroundStyle(.white)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(AXYONPalette.dim)
+                        Text(given.viewName).font(.title3.weight(.bold)).foregroundStyle(color)
+                    }
                     Spacer(minLength: 4)
-                    InvestTag(text: given.viewName, color: color)
+                    if let confidence = given.confidence {
+                        Text("\(confidence)%")
+                            .font(.system(.footnote, design: .rounded).weight(.bold))
+                            .foregroundStyle(AXYONPalette.dim)
+                            .accessibilityLabel(Text("Confidence \(confidence)%"))
+                    }
                 }
                 if !given.why.isEmpty {
                     Text(given.why).font(.callout).foregroundStyle(Color.white.opacity(0.88))
                 }
-                HStack(spacing: 6) {
-                    if let confidence = given.confidence {
-                        Text("Confidence \(confidence)%").font(.caption2.weight(.semibold)).foregroundStyle(AXYONPalette.faint)
-                    }
-                    InvestCitations(text: given.sources.joined(separator: ", ")) { opened = $0 }
-                }
+                InvestCitations(text: given.sources.joined(separator: ", ")) { opened = $0 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(16)
@@ -949,53 +1082,49 @@ struct InvestVerdictView: View {
         }
     }
 
-    /// What the audit found at one severity, by the auditor or by AXYON's code.
+    /// What the audit found at one severity, by the auditor or by AXYON's code: folded, its count beside the title.
     @ViewBuilder
-    private func findings(_ title: String, _ icon: String, _ color: Color, _ items: [InvestAuditItem]) -> some View {
+    private func findings(_ title: String, _ icon: String, _ color: Color, _ items: [InvestAuditItem], open: Bool) -> some View {
         if !items.isEmpty {
-            VStack(alignment: .leading, spacing: 12) {
-                Label(title, systemImage: icon).font(.headline).foregroundStyle(color)
-                ForEach(items) { item in
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(item.text).font(.callout).foregroundStyle(Color.white.opacity(0.9))
-                        HStack(spacing: 6) {
-                            InvestTag(text: item.by == "auditor" ? String(localized: "auditor") : String(localized: "AXYON's code"),
-                                      color: AXYONPalette.dim)
-                            if !item.minds.isEmpty {
-                                Text(item.minds.map { InvestMind.name($0) }.joined(separator: ", "))
-                                    .font(.caption2)
-                                    .foregroundStyle(AXYONPalette.faint)
-                                    .lineLimit(1)
+            InvestFold(title, icon: icon, count: items.count, color: color, tint: color == AXYONPalette.dim ? nil : color, open: open) {
+                VStack(alignment: .leading, spacing: 14) {
+                    ForEach(items) { item in
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(item.text).font(.callout).foregroundStyle(Color.white.opacity(0.9))
+                            InvestChips(spacing: 5) {
+                                InvestTag(text: item.by == "auditor" ? String(localized: "auditor") : String(localized: "AXYON's code"),
+                                          color: AXYONPalette.dim)
+                                ForEach(item.minds, id: \.self) { mind in
+                                    InvestTag(text: InvestMind.name(mind), color: AXYONPalette.dim)
+                                }
+                                ForEach(InvestCitation.parse(item.sources.joined(separator: ", "))) { citation in
+                                    Button { opened = citation } label: { InvestTag(text: citation.label) }
+                                        .buttonStyle(.plain)
+                                }
                             }
-                            InvestCitations(text: item.sources.joined(separator: ", ")) { opened = $0 }
                         }
                     }
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(16)
-            .axyonCard(cornerRadius: 22, tint: color == InvestPalette.neutral ? nil : color)
         }
     }
 
     private var toVerify: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Label("To verify", systemImage: "checklist").font(.headline).foregroundStyle(.white)
-            ForEach(Array(verdict.toVerify.enumerated()), id: \.offset) { _, line in
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Image(systemName: "circle").font(.caption2).foregroundStyle(AXYONPalette.faint)
-                    Text(line).font(.callout).foregroundStyle(Color.white.opacity(0.88))
+        InvestFold(String(localized: "To verify"), icon: "checklist", count: verdict.toVerify.count, open: false) {
+            VStack(alignment: .leading, spacing: 10) {
+                ForEach(Array(verdict.toVerify.enumerated()), id: \.offset) { _, line in
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Image(systemName: "circle").font(.caption2).foregroundStyle(AXYONPalette.faint)
+                        Text(line).font(.callout).foregroundStyle(Color.white.opacity(0.88))
+                    }
                 }
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
-        .axyonCard(cornerRadius: 22)
     }
 
     private var chair: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Label("The chair", systemImage: "person.3.fill").font(.headline).foregroundStyle(.white)
+            Label("The chair", systemImage: "person.3.fill").font(.subheadline.weight(.semibold)).foregroundStyle(AXYONPalette.dim)
             if !verdict.question.isEmpty {
                 Text(verdict.question).font(.title3.weight(.semibold)).foregroundStyle(.white)
             }
@@ -1020,43 +1149,41 @@ struct InvestVerdictView: View {
 
     /// The facts the committee was given and the documents it read, each with its dates; a tap opens one.
     private var sources: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Label("Sources", systemImage: "books.vertical.fill").font(.headline).foregroundStyle(.white)
-            ForEach(verdict.documents) { doc in
-                Button { opened = InvestCitation(ref: doc.id, page: nil) } label: {
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        InvestTag(text: doc.id)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(doc.title).font(.callout).foregroundStyle(.white).multilineTextAlignment(.leading)
-                            Text([AXYONInvest.kindName(doc.kind), investDay(doc.delivered)].filter { !$0.isEmpty }.joined(separator: " · "))
-                                .font(.caption2)
-                                .foregroundStyle(AXYONPalette.faint)
+        InvestFold(String(localized: "Sources"), icon: "books.vertical.fill", count: verdict.facts.count + verdict.documents.count, open: false) {
+            VStack(alignment: .leading, spacing: 12) {
+                ForEach(verdict.documents) { doc in
+                    Button { opened = InvestCitation(ref: doc.id, page: nil) } label: {
+                        HStack(alignment: .firstTextBaseline, spacing: 10) {
+                            InvestTag(text: doc.id)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(doc.title).font(.callout).foregroundStyle(.white).multilineTextAlignment(.leading)
+                                Text([AXYONInvest.kindName(doc.kind), investDay(doc.delivered)].filter { !$0.isEmpty }.joined(separator: " · "))
+                                    .font(.caption2)
+                                    .foregroundStyle(AXYONPalette.faint)
+                            }
+                            Spacer(minLength: 0)
+                            Image(systemName: "chevron.right").font(.caption2.weight(.semibold)).foregroundStyle(AXYONPalette.faint)
                         }
-                        Spacer(minLength: 0)
-                        Image(systemName: "chevron.right").font(.caption2.weight(.semibold)).foregroundStyle(AXYONPalette.faint)
+                        .contentShape(Rectangle())
                     }
-                    .contentShape(Rectangle())
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
-            }
-            ForEach(verdict.facts) { fact in
-                Button { opened = InvestCitation(ref: fact.id, page: nil) } label: {
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        InvestTag(text: fact.id, color: InvestPalette.status(fact.status))
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(fact.text).font(.footnote).foregroundStyle(Color.white.opacity(0.88)).multilineTextAlignment(.leading)
-                            Text(InvestSourceSheet.dates(fact)).font(.caption2).foregroundStyle(AXYONPalette.faint).multilineTextAlignment(.leading)
+                ForEach(verdict.facts) { fact in
+                    Button { opened = InvestCitation(ref: fact.id, page: nil) } label: {
+                        HStack(alignment: .firstTextBaseline, spacing: 10) {
+                            InvestTag(text: fact.id, color: InvestPalette.status(fact.status))
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(fact.text).font(.footnote).foregroundStyle(Color.white.opacity(0.88)).multilineTextAlignment(.leading)
+                                Text(InvestSourceSheet.dates(fact)).font(.caption2).foregroundStyle(AXYONPalette.faint).multilineTextAlignment(.leading)
+                            }
+                            Spacer(minLength: 0)
                         }
-                        Spacer(minLength: 0)
+                        .contentShape(Rectangle())
                     }
-                    .contentShape(Rectangle())
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
-        .axyonCard(cornerRadius: 22)
     }
 }
 
@@ -1068,7 +1195,7 @@ struct InvestCitations: View {
     var body: some View {
         let found = InvestCitation.parse(text)
         if !found.isEmpty {
-            HStack(spacing: 4) {
+            InvestChips(spacing: 5) {
                 ForEach(found) { citation in
                     Button { open(citation) } label: { InvestTag(text: citation.label) }
                         .buttonStyle(.plain)
@@ -1091,87 +1218,116 @@ extension InvestPalette {
     }
 }
 
-/// One mind: who it is and what it watches, its vote and how sure it is, why, its veto's criterion, each point with
-/// its kind, whether AXYON's code found it in its source, and the source to open; what it lacked; and when the audit
-/// revised it, its vote before.
+/// One mind: who it is, its vote and how sure it is, and why, in a few lines; a tap opens its points (each with its
+/// kind, whether AXYON's code found it in its source, and the source to open), its veto's criterion, what it lacked,
+/// and when the audit revised it, its vote before.
 struct InvestMindCard: View {
     let mind: InvestMind
     var open: (InvestCitation) -> Void = { _ in }
+    @State private var expanded = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 12) {
-                Image(systemName: mind.symbol)
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(.black)
-                    .frame(width: 38, height: 38)
-                    .background(Circle().fill(InvestPalette.vote(mind.vote)))
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(mind.name).font(.headline).foregroundStyle(.white)
-                    Text(mind.role).font(.caption).foregroundStyle(AXYONPalette.dim).lineLimit(2)
-                }
-                Spacer(minLength: 4)
-                VStack(alignment: .trailing, spacing: 4) {
-                    InvestTag(text: InvestMind.voteName(mind.vote), color: InvestPalette.vote(mind.vote))
-                    if mind.veto {
-                        InvestTag(text: String(localized: "veto"), color: InvestPalette.against)
-                    }
-                    if mind.revised {
-                        InvestTag(text: String(localized: "revised"), color: InvestPalette.mixed)
-                    }
-                }
-            }
-            // How sure it is.
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(Color.white.opacity(0.08))
-                    Capsule().fill(InvestPalette.vote(mind.vote)).frame(width: geo.size.width * CGFloat(min(max(mind.confidence, 0), 100)) / 100)
-                }
-            }
-            .frame(height: 5)
-            .accessibilityLabel(Text("Sure at \(mind.confidence)%"))
-            if mind.revised, !mind.was.isEmpty {
-                Text("The audit changed its vote: it was \(InvestMind.voteName(mind.was)).")
-                    .font(.caption)
-                    .foregroundStyle(InvestPalette.mixed)
-            }
-            if !mind.why.isEmpty {
-                Text(mind.why).font(.callout).foregroundStyle(.white)
-            }
-            if mind.veto, !mind.vetoReason.isEmpty {
-                Label(String(localized: "Veto: \(InvestMind.vetoName(mind.vetoReason))"), systemImage: "hand.raised.fill")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(InvestPalette.against)
-            }
-            ForEach(mind.points) { point in
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        mark(point)
-                        Text(point.text).font(.callout).foregroundStyle(Color.white.opacity(0.88))
-                        Spacer(minLength: 0)
-                    }
-                    HStack(spacing: 4) {
-                        if !point.kind.isEmpty {
-                            InvestTag(text: InvestMind.kindName(point.kind), color: AXYONPalette.dim)
+            Button {
+                withAnimation(.snappy(duration: 0.3)) { expanded.toggle() }
+            } label: {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(spacing: 12) {
+                        Image(systemName: mind.symbol)
+                            .font(.callout.weight(.semibold))
+                            .foregroundStyle(.black)
+                            .frame(width: 34, height: 34)
+                            .background(Circle().fill(InvestPalette.vote(mind.vote)))
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(mind.name).font(.headline).foregroundStyle(.white).lineLimit(1)
+                            Text(mind.role).font(.caption).foregroundStyle(AXYONPalette.dim).lineLimit(1)
                         }
-                        InvestCitations(text: point.source, open: open)
+                        Spacer(minLength: 4)
+                        InvestTag(text: InvestMind.voteName(mind.vote), color: InvestPalette.vote(mind.vote))
                     }
-                    .padding(.leading, 18)
-                    if point.verified == false, !point.check.isEmpty {
-                        Text(point.check).font(.caption2).foregroundStyle(InvestPalette.mixed).padding(.leading, 18)
+                    // How sure it is.
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Capsule().fill(Color.white.opacity(0.08))
+                            Capsule().fill(InvestPalette.vote(mind.vote))
+                                .frame(width: geo.size.width * CGFloat(min(max(mind.confidence, 0), 100)) / 100)
+                        }
+                    }
+                    .frame(height: 4)
+                    .accessibilityLabel(Text("Sure at \(mind.confidence)%"))
+                    if mind.veto || mind.revised {
+                        InvestChips(spacing: 6) {
+                            if mind.veto {
+                                InvestTag(text: mind.vetoReason.isEmpty ? String(localized: "veto")
+                                                                        : String(localized: "Veto: \(InvestMind.vetoName(mind.vetoReason))"),
+                                          color: InvestPalette.against)
+                            }
+                            if mind.revised {
+                                InvestTag(text: mind.was.isEmpty ? String(localized: "revised")
+                                                                 : String(localized: "The audit changed its vote: it was \(InvestMind.voteName(mind.was))."),
+                                          color: InvestPalette.mixed)
+                            }
+                        }
+                    }
+                    if !mind.why.isEmpty {
+                        Text(mind.why)
+                            .font(.callout)
+                            .foregroundStyle(Color.white.opacity(0.9))
+                            .lineLimit(expanded ? nil : 3)
+                            .multilineTextAlignment(.leading)
+                    }
+                    HStack(spacing: 6) {
+                        Text(expanded ? String(localized: "Fewer details") : String(localized: "Points and sources (\(mind.points.count))"))
+                            .font(.footnote.weight(.semibold))
+                        Image(systemName: "chevron.down").font(.caption2.weight(.bold)).rotationEffect(.degrees(expanded ? 180 : 0))
+                    }
+                    .foregroundStyle(AXYONPalette.dim)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            if expanded {
+                VStack(alignment: .leading, spacing: 12) {
+                    ForEach(mind.points) { point in
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                                mark(point)
+                                Text(point.text).font(.callout).foregroundStyle(Color.white.opacity(0.88))
+                                Spacer(minLength: 0)
+                            }
+                            InvestChips(spacing: 5) {
+                                if !point.kind.isEmpty {
+                                    InvestTag(text: InvestMind.kindName(point.kind), color: AXYONPalette.dim)
+                                }
+                                ForEach(point.citationsList) { citation in
+                                    Button { open(citation) } label: { InvestTag(text: citation.label) }
+                                        .buttonStyle(.plain)
+                                        .accessibilityLabel(Text("Open the source \(citation.label)"))
+                                }
+                            }
+                            .padding(.leading, 20)
+                            if !point.check.isEmpty {
+                                Text(point.check)
+                                    .font(.caption2)
+                                    .foregroundStyle(point.verified == true ? InvestPalette.favor : InvestPalette.mixed)
+                                    .padding(.leading, 20)
+                            }
+                        }
+                    }
+                    if mind.points.isEmpty {
+                        Text("Said nothing: short of data.").font(.footnote).foregroundStyle(AXYONPalette.faint)
+                    }
+                    if !mind.missing.isEmpty {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Missing data that could change its vote").font(.caption.weight(.semibold)).foregroundStyle(AXYONPalette.faint)
+                            ForEach(Array(mind.missing.enumerated()), id: \.offset) { _, missing in
+                                Text("· \(missing)").font(.footnote).foregroundStyle(AXYONPalette.dim)
+                            }
+                        }
                     }
                 }
-            }
-            if mind.points.isEmpty {
-                Text("Said nothing: short of data.").font(.footnote).foregroundStyle(AXYONPalette.faint)
-            }
-            if !mind.missing.isEmpty {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Missing data that could change its vote").font(.caption.weight(.semibold)).foregroundStyle(AXYONPalette.faint)
-                    ForEach(Array(mind.missing.enumerated()), id: \.offset) { _, missing in
-                        Text("· \(missing)").font(.footnote).foregroundStyle(AXYONPalette.dim)
-                    }
-                }
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
         .padding(16)
@@ -1385,15 +1541,17 @@ struct InvestDocRow: View {
                 .fill(InvestPalette.tone(doc.tone))
                 .frame(width: 10, height: 10)
                 .padding(.top, 5)
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
-                    Text(doc.ticker).font(.subheadline.weight(.bold)).foregroundStyle(.white)
+            VStack(alignment: .leading, spacing: 5) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(doc.ticker).font(.subheadline.weight(.bold)).foregroundStyle(.white).lineLimit(1).fixedSize()
+                    Spacer(minLength: 8)
+                    Text(investDay(doc.delivered)).font(.caption2).foregroundStyle(AXYONPalette.faint).fixedSize()
+                }
+                InvestChips(spacing: 6) {
                     InvestTag(text: AXYONInvest.kindName(doc.kind))
                     if doc.thesisRisk {
                         InvestTag(text: String(localized: "thesis at risk"), color: InvestPalette.against)
                     }
-                    Spacer(minLength: 0)
-                    Text(investDay(doc.delivered)).font(.caption2).foregroundStyle(AXYONPalette.faint)
                 }
                 Text(doc.headline).font(.footnote.weight(.semibold)).foregroundStyle(.white).lineLimit(2)
                 if let first = doc.changes.first ?? doc.points.first?.text {

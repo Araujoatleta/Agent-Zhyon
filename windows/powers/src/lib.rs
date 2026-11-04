@@ -37,6 +37,7 @@ pub mod table;
 pub mod text;
 pub mod thesis;
 pub mod trades;
+pub mod wallet;
 pub mod weekly;
 pub mod workspace;
 pub mod xlsx;

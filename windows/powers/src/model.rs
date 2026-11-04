@@ -792,6 +792,17 @@ pub struct Market {
     /// The prices read during the session (Google Finance), by ticker. Each is the price while it is newer than B3's
     /// last close of the ticker; once B3 publishes that day's close, the close is the price again.
     pub live: BTreeMap<String, LivePrice>,
+    /// The cash dividends the companies held announced on B3 (dividendos, JCP), by ticker.
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub company_payouts: BTreeMap<String, CompanyPayouts>,
+}
+
+/// A company's announced cash dividends for one share class, as B3 lists them, and when they were read.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct CompanyPayouts {
+    pub checked: Option<Date>,
+    pub payouts: Vec<Payout>,
 }
 
 /// A price read during the session.

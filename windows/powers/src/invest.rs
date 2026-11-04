@@ -231,6 +231,9 @@ pub fn documents_tool(store: &mut Store, market: &Market, lib: Option<&Library>,
 /// The JSON object in a brain's answer: alone, in a ```json fence, or with words around it (braces among them too),
 /// a trailing comma forgiven.
 pub fn json_in(text: &str) -> Option<Value> {
+    // The replacement character a broken encoding leaves ("69,394�%") never reaches the user.
+    let cleaned = text.replace('\u{FFFD}', "");
+    let text = cleaned.as_str();
     let end = text.rfind('}')?;
     for (start, _) in text.match_indices('{').take(20) {
         if start >= end {
@@ -319,6 +322,7 @@ fn theses_json(store: &Store, market: &Market, lib: Option<&Library>, today: Dat
 /// The iPhone app's own calls, never the brain's tools (the brain's answers come through them, from the app's host):
 /// `invest_view`; `invest_docs` (do: due, ingest, failed, brief, digest, undigested, document, page); `invest_committee`
 /// (do: brief, audit, verdict, meetings); `invest_thesis` (do: write, remove); `invest_target` (ticker, target);
+/// `invest_wallet` and `invest_quotes` (the consolidator); `invest_trade` (do: add, remove);
 /// `invest_learn` (do: view, apprentice, cards, grade, paper, reset); `invest_weekly` (do: script, told). The answer,
 /// and what it changed.
 pub fn app(store: &mut Store, market: &Market, lib: &mut Library, tool: &str, input: &Value, today: Date) -> Result<(Value, Saved), String> {
@@ -444,6 +448,25 @@ pub fn app(store: &mut Store, market: &Market, lib: &mut Library, tool: &str, in
                 other => return Err(format!("invest_learn has no \"{other}\".")),
             };
             Ok((learn::view(store, market, Some(lib), today), saved))
+        }
+        // The consolidator: its screen (its quotes read first by the bridge for invest_quotes), and a lançamento added
+        // (do: add, ticker, kind buy|sell, date, quantity, price, fees, opening) or removed (do: remove, id).
+        "invest_wallet" | "invest_quotes" => {
+            let changed = crate::wallet::ensure_seqs(store);
+            Ok((crate::wallet::view(store, market, today), if changed { STORE } else { Saved::default() }))
+        }
+        "invest_trade" => {
+            match what.as_str() {
+                "remove" => {
+                    let id = input["id"].as_u64().ok_or("Qual lançamento remover?")?;
+                    crate::wallet::remove(store, market, id, today)?;
+                }
+                _ => {
+                    let e = crate::wallet::entry(input, today)?;
+                    crate::wallet::add(store, market, e, today)?;
+                }
+            }
+            Ok((crate::wallet::view(store, market, today), STORE))
         }
         // The share of the portfolio the user wants in one asset, percent; none (or 0) takes it away.
         "invest_target" => {

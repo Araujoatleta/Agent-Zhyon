@@ -162,6 +162,9 @@ struct InvestMind: Identifiable, Equatable {
         var verified: Bool?
         /// What AXYON's code found when it checked the point.
         var check = ""
+
+        /// The sources its "F3, D1 p.4" names.
+        var citationsList: [InvestCitation] { InvestCitation.parse(source) }
     }
 
     let id: String

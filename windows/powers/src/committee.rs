@@ -438,6 +438,33 @@ fn holds(figure: &Figure, text: &str, values: &[f64]) -> bool {
     figures_in(text).iter().any(|y| same(figure, y.value)) || values.iter().any(|v| same(figure, *v))
 }
 
+/// A calculation's result the sources do not state but that comes out of two figures they do: their ratio (as is, in
+/// percent, or as the change from one to the other), product, sum or difference. How, when it does.
+fn derived(figure: &Figure, operands: &[f64]) -> Option<String> {
+    for (i, a) in operands.iter().enumerate() {
+        for (j, b) in operands.iter().enumerate() {
+            if i == j {
+                continue;
+            }
+            let ratio = (*b != 0.0).then(|| a / b);
+            let candidates = [
+                ratio.map(|r| (r, format!("{} ÷ {}", grouped(*a, 2), grouped(*b, 2)))),
+                ratio.map(|r| (r * 100.0, format!("{} ÷ {} × 100", grouped(*a, 2), grouped(*b, 2)))),
+                ratio.map(|r| ((r - 1.0) * 100.0, format!("({} ÷ {} − 1) × 100", grouped(*a, 2), grouped(*b, 2)))),
+                Some((a * b, format!("{} × {}", grouped(*a, 2), grouped(*b, 2)))),
+                Some((a - b, format!("{} − {}", grouped(*a, 2), grouped(*b, 2)))),
+                Some((a + b, format!("{} + {}", grouped(*a, 2), grouped(*b, 2)))),
+            ];
+            for (v, how) in candidates.into_iter().flatten() {
+                if v.is_finite() && v != 0.0 && same(figure, v) {
+                    return Some(how);
+                }
+            }
+        }
+    }
+    None
+}
+
 /// Each point checked against its sources: the source exists, and each figure it states is in it. Marks the points
 /// and returns what was found.
 pub fn check_points(minds: &mut [MindVote], facts: &[Fact], docs: &[DocRef], lib: Option<&Library>) -> Vec<AuditItem> {
@@ -465,6 +492,16 @@ pub fn check_points(minds: &mut [MindVote], facts: &[Fact], docs: &[DocRef], lib
             for fig in figures_in(&p.text) {
                 if !texts.iter().any(|(t, v)| holds(&fig, t, v)) {
                     missing.push(fig);
+                }
+            }
+            // A calculation states its result: it holds when the result comes out of the figures its sources give.
+            if p.kind == "calculo" && !missing.is_empty() {
+                let operands: Vec<f64> = texts.iter().flat_map(|(t, v)| figures_in(t).into_iter().map(|f| f.value).chain(v.iter().copied())).collect();
+                let hows: Vec<Option<String>> = missing.iter().map(|f| derived(f, &operands)).collect();
+                if hows.iter().all(Option::is_some) {
+                    p.verified = Some(true);
+                    p.check = format!("conta conferida: {}", hows.into_iter().flatten().collect::<Vec<_>>().join("; "));
+                    continue;
                 }
             }
             if missing.is_empty() {
@@ -878,6 +915,29 @@ mod tests {
         wrong["portfolio"] = json!({"view": "aumentar", "why": "Barato"});
         let v = finalize(&wrong, None, b.facts.clone(), b.documents.clone(), None, "GARE11", "comprar 100 cotas de GARE11", "asked", "", day(2026, 10, 30)).unwrap();
         assert!(v.audit.iter().any(|x| x.severity == "material" && x.text.contains("propõe aumentar GARE11")), "{:#?}", v.audit);
+    }
+
+    #[test]
+    fn a_calculation_holds_when_its_result_comes_out_of_its_sources() {
+        let fact = |id: &str, text: &str, value: f64| Fact { id: id.into(), text: text.into(), value: Some(value), status: "confirmado".into(), ..Fact::default() };
+        let facts = vec![fact("F1", "Lucro líquido dos últimos 12 meses: R$ 346,5 milhões.", 346_500_000.0), fact("F2", "Dividendos pagos nos últimos 12 meses: R$ 240,6 milhões.", 240_600_000.0)];
+        let answer = minds_with(json!({
+            "forensic": {"vote": "neutral", "confidence": 50, "why": "…", "points": [
+                {"text": "Cobertura dos dividendos pelo lucro: R$ 346,5 milhões ÷ R$ 240,6 milhões = 1,440149626x", "source": "F1, F2", "kind": "calculo"},
+                {"text": "Payout de 69,44% do lucro", "source": "F1; F2", "kind": "calculo"},
+                {"text": "Cobertura de 1,60x", "source": "F1, F2", "kind": "calculo"},
+                {"text": "Cobertura de 1,44x", "source": "F1, F2", "kind": "fato"}
+            ]}
+        }));
+        let mut minds = parse_minds(&answer).unwrap();
+        check_points(&mut minds, &facts, &[], None);
+        let p = &minds.iter().find(|m| m.id == "forensic").unwrap().points;
+        assert_eq!(p[0].verified, Some(true), "346,5 ÷ 240,6 = 1,4401…: {}", p[0].check);
+        assert!(p[0].check.starts_with("conta conferida"), "{}", p[0].check);
+        assert_eq!(p[1].verified, Some(true), "240,6 ÷ 346,5 × 100 = 69,44 %: {}", p[1].check);
+        assert_eq!(p[2].verified, Some(false), "1,60 comes out of nothing");
+        assert_eq!(p[3].verified, Some(false), "a fact must be in its source, not worked out");
+        assert_eq!(crate::invest::json_in("{\"payout\": \"69,394\u{FFFD}%\"}").unwrap()["payout"], "69,394%");
     }
 
     #[test]

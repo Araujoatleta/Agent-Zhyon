@@ -22,7 +22,7 @@ use coucou_powers::date::{is_business_day, Date};
 use coucou_powers::library::{self, Library};
 use coucou_powers::model::{AssetClass, LivePrice, Market, Position, RecordedDividends, Store};
 use coucou_powers::sources::fetch::Http;
-use coucou_powers::{alerts, ceiling, committee, day, engine, invest, learn, refresh, sources, text, thesis};
+use coucou_powers::{alerts, ceiling, committee, day, engine, invest, learn, refresh, sources, text, thesis, wallet};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use serde_json::{json, Value};
@@ -34,6 +34,8 @@ const QUICK_BUDGET: Duration = Duration::from_secs(6);
 /// An asset asked about and not held: its quote, its fund's documents or its company's statements.
 const ASSET_BUDGET: Duration = Duration::from_secs(40);
 const LIVE_EVERY: Duration = Duration::from_secs(5 * 60);
+/// The consolidator open on the screen asks for its quotes again this often at most (Google's are 15 minutes late).
+const QUOTES_EVERY: Duration = Duration::from_secs(2 * 60);
 const LIVE_PAUSE: Duration = Duration::from_millis(400);
 const LIVE_MOST: usize = 40;
 const LIVE_BUDGET: Duration = Duration::from_secs(15);
@@ -165,6 +167,8 @@ impl State {
         }
         self.store.portfolio.updated = v["updated"].as_str().and_then(Date::parse).or(self.store.portfolio.updated);
         self.store.portfolio.source = COMPUTER.into();
+        // The assets whose lançamentos were made in the consolidator keep the positions those make.
+        wallet::apply_ledger(&mut self.store, &self.market);
         self.save_store();
         let _ = std::fs::write(mark, at.to_string());
     }
@@ -291,6 +295,18 @@ fn ensure_asset(st: &mut State, ticker: &str, today: Date, evening: bool) {
     st.save_market();
 }
 
+/// The cash dividends B3 lists for the shares held (provisioned and paid), once a day each, within `deadline`.
+fn read_company_payouts(st: &mut State, today: Date, deadline: Instant) {
+    let due = refresh::company_payouts_due(&st.store, &st.market, today);
+    if due.is_empty() {
+        return;
+    }
+    if let Some(read) = within(deadline, refresh::company_payouts(http(), &due, &st.market)) {
+        refresh::merge_company_payouts(&mut st.market, read, today);
+        st.save_market();
+    }
+}
+
 /// The CVM's list of the documents of the companies followed (IPE: material facts, releases, assemblies), once a week
 /// each, within `deadline`.
 fn read_company_documents(st: &mut State, today: Date, deadline: Instant) {
@@ -346,8 +362,9 @@ fn asked_asset(tool: &str, input: &Value) -> Option<String> {
     match tool {
         "wealth_fii" | "wealth_company" | "wealth_ceiling" | "wealth_documents" | "wealth_learn" => named,
         "wealth_committee" => named.or_else(|| engine::s(input, "proposal").and_then(|p| text::tickers_in(&p).into_iter().next())),
-        // The app's own calls: the committee's brief, a thesis written, a pretend trade.
+        // The app's own calls: the committee's brief, a thesis written, a pretend trade, a lançamento.
         "invest_committee" if engine::s(input, "do").as_deref() == Some("brief") => named.or_else(|| engine::s(input, "proposal").and_then(|p| text::tickers_in(&p).into_iter().next())),
+        "invest_trade" if engine::s(input, "do").as_deref() != Some("remove") => named,
         "invest_thesis" if engine::s(input, "do").as_deref() != Some("remove") => named,
         "invest_learn" if engine::s(input, "do").as_deref() == Some("paper") => named,
         _ => None,
@@ -619,11 +636,26 @@ fn app(st: &mut State, tool: &str, input: &Value, today: Date, evening: bool, re
                 if session_open() && st.live_read.is_none_or(|t| t.elapsed() >= LIVE_EVERY) {
                     read_live(st, Instant::now() + LIVE_BUDGET.min(READ_BUDGET / 4));
                 }
+                read_company_payouts(st, today, deadline);
                 read_company_documents(st, today, deadline);
+            }
+            // The consolidator: what its numbers rest on (closes, the funds' and companies' dividends), then the
+            // session's quotes when they are older than QUOTES_EVERY.
+            "invest_wallet" | "invest_quotes" => {
+                let deadline = Instant::now() + READ_BUDGET;
+                if tool == "invest_wallet" || needs_reading(&st.store, &st.market) {
+                    let budget = if needs_reading(&st.store, &st.market) { READ_BUDGET / 2 } else { QUICK_BUDGET };
+                    read_due(st, today, evening, budget);
+                    read_company_payouts(st, today, deadline);
+                }
+                if session_open() && st.live_read.is_none_or(|t| t.elapsed() >= QUOTES_EVERY) {
+                    read_live(st, Instant::now() + LIVE_BUDGET);
+                }
             }
             "invest_committee" if engine::s(input, "do").as_deref() == Some("brief") => {
                 let budget = if needs_reading(&st.store, &st.market) { READ_BUDGET } else { QUICK_BUDGET };
                 read_due(st, today, evening, budget);
+                read_company_payouts(st, today, Instant::now() + QUICK_BUDGET);
             }
             _ => {}
         }
@@ -857,6 +889,32 @@ mod tests {
         assert!(st.store.portfolio.positions.is_empty());
         let reopened = State::open(&dir);
         assert_eq!(reopened.store.portfolio.positions.len(), 1, "the copy was saved");
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn the_consolidators_lancamentos_stand_over_the_computers_copy() {
+        let dir = folder("wallet");
+        let today = Date::parse("2026-11-04").unwrap();
+        let mut st = State::open(&dir);
+        let added = app(&mut st, "invest_trade", &json!({ "do": "add", "ticker": "gare11", "kind": "buy", "date": "2026-10-01", "quantity": 10, "price": "9,00" }), today, false, false);
+        assert_eq!(added["ok"], json!(true), "{added}");
+        assert_eq!(added["data"]["trades"][0]["ticker"], "GARE11");
+        let id = added["data"]["trades"][0]["id"].clone();
+        let copy = dir.join("portfolio.json");
+        std::fs::write(&copy, json!({
+            "type": "portfolio", "receivedAt": 1_793_000_000.0,
+            "positions": [{ "ticker": "GARE11", "class": "fii", "subtype": "", "quantity": 100.0, "averagePrice": 9.0, "currentValue": null, "note": "" }],
+            "ceilings": {}
+        }).to_string()).unwrap();
+        st.take_copy(&copy);
+        assert_eq!(st.store.portfolio.position("GARE11").unwrap().quantity, 10.0, "the lançamentos made here stand");
+        assert_eq!(app(&mut st, "invest_wallet", &json!({}), today, false, false)["ok"], json!(true));
+        let sold = app(&mut st, "invest_trade", &json!({ "do": "add", "ticker": "GARE11", "kind": "sell", "date": "2026-09-01", "quantity": 5, "price": 9 }), today, false, false);
+        assert_eq!(sold["ok"], json!(false), "nothing held on 01/09: {sold}");
+        let removed = app(&mut st, "invest_trade", &json!({ "do": "remove", "id": id }), today, false, false);
+        assert_eq!(removed["ok"], json!(true), "{removed}");
+        assert!(State::open(&dir).store.trades.is_empty(), "kept in powers.json");
         let _ = std::fs::remove_dir_all(dir);
     }
 

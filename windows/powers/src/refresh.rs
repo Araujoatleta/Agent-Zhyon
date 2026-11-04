@@ -230,6 +230,50 @@ pub fn merge_quotes(market: &mut Market, day: Date, quotes: HashMap<String, b3::
     }
 }
 
+/// The shares (and units) held or recorded whose dividends on B3 are due: never read, or not today.
+pub fn company_payouts_due(store: &Store, market: &Market, today: Date) -> Vec<String> {
+    let mut tickers = store.portfolio.tickers(None);
+    for t in store.trades.iter().map(|t| t.ticker.to_uppercase()) {
+        if !tickers.contains(&t) {
+            tickers.push(t);
+        }
+    }
+    tickers
+        .into_iter()
+        .filter(|t| !market.funds.contains_key(t))
+        .filter(|t| match market.quotes.get(t) {
+            Some(q) => b3::kind_of(q) == "acao",
+            None => store.portfolio.position(t).is_some_and(|p| p.class == AssetClass::Acao),
+        })
+        .filter(|t| market.company_payouts.get(t).and_then(|c| c.checked) != Some(today))
+        .collect()
+}
+
+/// The dividends B3 lists for `tickers`, each company asked once, each share class its own (by the ISIN of B3's
+/// quotes). A company that could not be read is left out (tried again tomorrow).
+pub async fn company_payouts(http: &Http, tickers: &[String], market: &Market) -> BTreeMap<String, Vec<fnet::Payout>> {
+    let mut by_issuer: BTreeMap<String, Option<Vec<sources::b3_dividends::CashDividend>>> = BTreeMap::new();
+    let mut out = BTreeMap::new();
+    for t in tickers {
+        let issuer: String = t.chars().take(4).collect();
+        if !by_issuer.contains_key(&issuer) {
+            let read = http.text(&sources::b3_dividends::url(&issuer)).await.ok().and_then(|raw| sources::b3_dividends::parse(&raw).ok());
+            by_issuer.insert(issuer.clone(), read);
+        }
+        if let Some(Some(all)) = by_issuer.get(&issuer) {
+            let isin = market.quotes.get(t).map(|q| q.isin.as_str()).unwrap_or("");
+            out.insert(t.clone(), sources::b3_dividends::of_class(all, isin));
+        }
+    }
+    out
+}
+
+pub fn merge_company_payouts(market: &mut Market, read: BTreeMap<String, Vec<fnet::Payout>>, today: Date) {
+    for (t, payouts) in read {
+        market.company_payouts.insert(t, crate::model::CompanyPayouts { checked: Some(today), payouts });
+    }
+}
+
 /// A company's statements: its CNPJ from the CVM's register when not known (`known`), then its last three years.
 pub async fn company(http: &Http, ticker: &str, known: &BTreeMap<String, (String, String)>, today: Date) -> Result<(CompanyData, Option<HashMap<String, (String, String)>>), String> {
     let mut register = None;

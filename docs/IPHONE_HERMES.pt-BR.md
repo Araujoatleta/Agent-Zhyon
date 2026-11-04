@@ -121,9 +121,40 @@ na hora. Só a B3, a CVM, o FundosNet, o Banco Central e o Google Finance são l
 Cada coisa que o iPhone protege (calendário, lembretes, contatos, localização, notificações) o iOS pergunta na
 primeira vez. **Ajustes → O que o AXYON pode usar** mostra o que está liberado.
 
+## A Carteira: a sua carteira consolidada
+
+A aba **Carteira**, a primeira, onde o AXYON abre, é um consolidador de carteira no estilo do Investidor10: você lança
+as suas compras e vendas e o código do AXYON calcula o resto.
+
+- **Lançamentos**: **+** (ou **Novo lançamento**): Compra ou Venda, o código (GARE11, BBAS3…), a data, a quantidade, o
+  preço por cota e os custos (corretagem, taxas; opcional). O preço médio inclui os custos, como na nota de
+  corretagem; uma venda realiza o resultado contra o preço médio do dia; uma venda de mais cotas do que você tinha
+  naquela data, ou o mesmo lançamento duas vezes, é recusada com o motivo. Toque e segure um lançamento para apagar
+  (recusado enquanto uma venda posterior precisa daquelas cotas).
+- **O que a sua planilha já tem**: quando o ativo já está na carteira que o computador lê da sua planilha, o primeiro
+  lançamento pergunta se é **uma compra nova, somada às N que você tem** (essas cotas entram antes como **Saldo
+  inicial**, pelo preço médio da planilha) ou **parte do histórico dessas N** (lance todas as compras e vendas: a
+  posição passa a ser o que elas somam). Os lançamentos feitos no iPhone valem acima da cópia do computador.
+- **Cotações sozinhas**, como o GOOGLEFINANCE da planilha, de graça e com atraso: durante o pregão da B3 o AXYON lê o
+  Google Finance (cerca de 15 minutos de atraso) e lê de novo a cada 2 minutos enquanto a aba está aberta; depois do
+  pregão, o fechamento da B3. A linha embaixo do patrimônio diz de onde e de quando é a cotação.
+- **Patrimônio e resultado**: o total, a variação do dia, o investido, o resultado (R$ e %), o realizado nas vendas
+  (tudo e o do ano), os proventos de 12 meses e o yield on cost; classe por classe e ativo por ativo: quantidade,
+  preço médio, cotação, dia, valor, resultado, peso e meta.
+- **Proventos recebidos, provisionados e anunciados**, contados pelas cotas que você tinha no fim de cada data-com:
+  **A receber** (a data-com passou e o pagamento ainda vai cair: os provisionados do Investidor10), **Anunciados,
+  data-com à frente**, **Recebidos**, e um ano deles em barras, mês a mês. Fundos: os rendimentos e amortizações do
+  FundosNet; ações: os dividendos e JCP que a empresa anunciou na B3, com data-com e data de pagamento. O JCP aparece
+  líquido dos 15% de IR retidos na fonte. O provento de um ativo sem lançamento é contado pelas cotas de hoje e marcado
+  **estimado**.
+- Toque num ativo: a cotação, os números, **Comprar** / **Vender**, e os proventos e lançamentos só dele.
+
+Os lançamentos ficam no iPhone: não são escritos na sua planilha nem mandados para o computador. Renda fixa não tem
+lançamento (fica como a planilha tem). Nada é comprado nem vendido aqui.
+
 ## Investimentos: o comitê, o estagiário, as suas teses, a semana e o aprender
 
-A aba **Carteira**, a primeira, onde o AXYON abre, é a tela de investimentos, no design de uma tela de estatísticas:
+A aba **Investimentos**, a segunda, é a tela de investimentos do AXYON, no design de uma tela de estatísticas:
 grafite, um anel de segmentos grossos e arredondados em cores suaves com o total no meio, a legenda em duas colunas,
 uma pílula para escolher **Carteira** ou **Proventos**, **Classe | Ativo**, um carrossel de meses para os proventos e
 **Histórico** embaixo (as suas posições, como antes). Todo número é calculado pelo código do AXYON a partir das
@@ -134,8 +165,8 @@ fontes oficiais; o cérebro só lê e vota, e diz de onde vem cada ponto. Os rel
   da carteira; o anel mostra esses valores (R$ 82,27 em outubro, se é o que a planilha diz), indica **Sua planilha ·
   consultado em …**, e um mês em que os anúncios dos fundos discordam mostra os dois. Sem a tabela, os anúncios vezes
   o que você tinha.
-- **Metas por ativo**: a coluna **Percentual Ideal** (ou **Meta**) da sua planilha, ou **… → Metas por ativo** na
-  Carteira. O comitê pesa cada ativo contra a meta antes de qualquer parecer sobre comprar mais.
+- **Metas por ativo**: a coluna **Percentual Ideal** (ou **Meta**) da sua planilha, ou **… → Metas por ativo** na aba
+  Investimentos. O comitê pesa cada ativo contra a meta antes de qualquer parecer sobre comprar mais.
 - **O comitê de cinco mentes, auditado**: pergunte *"comprar 100 cotas de GGRC11?"*. Antes, o código junta os
   **fatos**, numerados (F1…), cada um com a fonte, a data de referência, o dia da consulta, a conta (o P/VP diz o dia
   do preço e o mês do VP; R$ 0,083 continua R$ 0,083 até o DY; o DY de 12 meses e o anualizado pelo último rendimento
@@ -198,9 +229,10 @@ Rede → Configurações avançadas).
 
 ## As telas
 
-- **Carteira** (a primeira, onde o app abre): os investimentos (o anel da carteira e dos proventos, o comitê, o
-  estagiário, as teses, a semana e o aprender); em **Histórico**, o total, o dia, cada posição com o seu preço teto e
-  os ativos que você acompanha.
+- **Carteira** (a primeira, onde o app abre): o consolidador: patrimônio, resultado, os ativos por classe, os
+  lançamentos mês a mês e os proventos recebidos, a receber e anunciados, com as cotações atualizando sozinhas.
+- **Investimentos**: o anel da carteira e dos proventos, o comitê, o estagiário, as teses, a semana e o aprender; em
+  **Histórico**, o total, o dia, cada posição com o seu preço teto e os ativos que você acompanha.
 - **Chat**: a conversa com o Hermes, com cada passo que ele dá (lendo a carteira, agendando, pesquisando…), parar,
   ditado e leitura em voz alta.
 - **Casa**: os aparelhos que o iPhone controla sozinho e, com um computador pareado, a casa dele.

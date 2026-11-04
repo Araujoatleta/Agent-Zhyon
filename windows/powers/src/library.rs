@@ -60,6 +60,19 @@ impl DocKind {
         }
     }
 
+    /// The kind in Portuguese, for what the user reads (a committee's proposal).
+    pub fn label_pt(self) -> &'static str {
+        match self {
+            DocKind::MaterialFact => "fato relevante",
+            DocKind::Report => "relatório gerencial",
+            DocKind::Release => "divulgação de resultados",
+            DocKind::Assembly => "assembleia",
+            DocKind::Offering => "oferta pública",
+            DocKind::Notice => "comunicado",
+            DocKind::Other => "documento",
+        }
+    }
+
     /// Worth telling the user as soon as it is read.
     pub fn urgent(self) -> bool {
         matches!(self, DocKind::MaterialFact | DocKind::Assembly | DocKind::Offering)
@@ -217,6 +230,10 @@ impl Listed {
             None
         } else if category.contains("dados economico") || rest.contains("release") || rest.contains("apresentacao de resultados") || rest.contains("apresentacoes a analistas") {
             Some(DocKind::Release)
+        } else if category.contains("negociados e detidos") || rest.contains("negociados e detidos") {
+            // The monthly report of what the company's managers and controllers traded (art. 11 of CVM's Instruction
+            // 358): no news of the company itself.
+            None
         } else if category.contains("oferta") || category.contains("valores mobiliarios") || rest.contains("oferta publica de distribuicao") {
             Some(DocKind::Offering)
         } else if category.contains("comunicado") || category.contains("aviso aos acionistas") {
@@ -1071,5 +1088,7 @@ mod tests {
         assert_eq!(kind("Aviso aos Acionistas", "Outros avisos", "Dividendos/Juros sobre Capital Próprio"), Some(DocKind::Notice));
         assert_eq!(kind("Assembleia", "AGE", "Edital de Convocação"), Some(DocKind::Assembly));
         assert_eq!(kind("Dados Econômico-Financeiros", "Release", ""), Some(DocKind::Release));
+        // WIZC3's monthly report of its managers' trades (03/09/2026 and 09/10/2026): not an offering.
+        assert_eq!(kind("Valores Mobiliários negociados e detidos (art. 11 da Instr. CVM nº 358)", "Posição Consolidada", ""), None);
     }
 }

@@ -316,13 +316,14 @@ pub fn to_meet(store: &Store, market: &Market, lib: &Library, today: Date, most:
         let worth = d.kind.urgent() || d.digest.as_ref().is_some_and(|g| g.thesis_risk);
         let met = store.verdicts.iter().any(|v| v.document == d.key) || last(&d.ticker).is_some_and(|v| d.read.is_some_and(|r| r <= v) && d.delivered.is_some_and(|x| x <= v));
         if worth && !met && !out.iter().any(|m| m.ticker == d.ticker) {
-            out.push(Meeting { ticker: d.ticker.clone(), reason: "document".into(), document: d.key.clone(), about: format!("{} ({}): {}", d.ticker, d.kind.label(), d.headline()) });
+            let when = d.delivered.map(|x| format!(" de {}", x.br())).unwrap_or_default();
+            out.push(Meeting { ticker: d.ticker.clone(), reason: "document".into(), document: d.key.clone(), about: format!("Reavaliar {} depois do {}{}: {}", d.ticker, d.kind.label_pt(), when, d.headline()) });
         }
     }
     for s in states(store, market, Some(lib), today) {
         if s.broken > 0 && !out.iter().any(|m| m.ticker == s.ticker) && last(&s.ticker).is_none_or(|v| v.until(today) >= 7) {
             let what: Vec<String> = s.checks.iter().filter(|c| c.holds == Some(false)).map(|c| c.label.clone()).collect();
-            out.push(Meeting { ticker: s.ticker.clone(), reason: "thesis".into(), document: String::new(), about: format!("{}: the user's thesis broke ({})", s.ticker, what.join("; ")) });
+            out.push(Meeting { ticker: s.ticker.clone(), reason: "thesis".into(), document: String::new(), about: format!("Reavaliar {}: a sua tese quebrou ({})", s.ticker, what.join("; ")) });
         }
     }
     out.truncate(most);

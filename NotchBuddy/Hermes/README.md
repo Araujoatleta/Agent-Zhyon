@@ -133,8 +133,17 @@ iPhone never shares the computer's.
   due). Each result Hermes' scheduler delivers becomes an iPhone notification (`cron.scheduler._deliver_result` is
   the iPhone's); `[SILENT]` stays silent.
 - `iphone_alerts`: the alerts above, turned on or off, or a look now, from the chat.
-- Investing (`Swift/AXYONInvest.swift`, `Swift/AXYONInvestViews.swift`, `app/axyon_hermes/invest.py`): the Wallet
-  tab's screen, the first tab. The engine (`coucou_powers::invest::app`, through `axyon_powers_call` with `invest_*`
+- The consolidator (`Swift/AXYONWallet.swift`, `Swift/AXYONWalletViews.swift`): the Wallet tab, the first. The engine
+  (`coucou_powers::wallet`) replays the user's lançamentos (`invest_trade` `add`/`remove`, refused in words when a sale
+  would sell more than was held that day) into each asset's position, average price with the costs, realized and open
+  results, and counts the proventos on the shares held at each data-com: received, provisioned (data-com passed,
+  payment ahead) and announced; the funds' from FundosNet, the companies' from B3's listed-companies service
+  (`sources/b3_dividends.rs`, the share class picked by its ISIN). `invest_wallet` reads what is due and gives the
+  screen; `invest_quotes`, every two minutes while the tab is open, reads Google Finance's delayed quotes during B3's
+  session only. An asset held from the sheet gets an opening lot at the sheet's average price before its first new
+  buy; lançamentos made here (`source` `app`/`opening`) stand over the computer's copy (`wallet::apply_ledger`).
+- Investing (`Swift/AXYONInvest.swift`, `Swift/AXYONInvestViews.swift`, `app/axyon_hermes/invest.py`): the Investments
+  tab's screen, the second tab. The engine (`coucou_powers::invest::app`, through `axyon_powers_call` with `invest_*`
   names, never offered to the model) gives the screen's JSON and keeps everything: the facts (`evidence.rs`: each
   numbered with its source, reference and consultation dates, calculation and status), the committee (`committee.rs`:
   five minds, the code's checks of their points against the facts and pages, objective vetoes, the auditor's revision,

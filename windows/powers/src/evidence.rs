@@ -514,6 +514,65 @@ pub fn gather(store: &Store, market: &Market, lib: Option<&Library>, ticker: &st
         }
     }
 
+    // A company's proventos, as B3 lists them: the last ones with their dates, a year of them against the price, and
+    // what is still to be paid.
+    if let Some(cp) = market.company_payouts.get(t).filter(|c| !c.payouts.is_empty()) {
+        let b3 = "B3 — proventos em dinheiro";
+        let mut list: Vec<&crate::sources::fnet::Payout> = cp.payouts.iter().filter(|p| p.record <= today).collect();
+        list.sort_by(|a, b| b.record.cmp(&a.record).then(b.value.total_cmp(&a.value)));
+        let kind = |p: &crate::sources::fnet::Payout| if p.period.is_empty() { "provento".to_string() } else { p.period.to_lowercase() };
+        for (i, pay) in list.iter().take(3).enumerate() {
+            out.push(
+                Fact::new(
+                    "proventos",
+                    CONFIRMED,
+                    format!(
+                        "{} provento de {t}: {} de {} por ação (data-com {}; {}).",
+                        if i == 0 { "Último" } else { "Anterior" },
+                        kind(pay),
+                        brl_exact(pay.value),
+                        pay.record.br(),
+                        match pay.payment {
+                            Some(d) if d > today => format!("a pagar em {}", d.br()),
+                            Some(d) => format!("pago em {}", d.br()),
+                            None => "pagamento a definir".to_string(),
+                        }
+                    ),
+                    b3,
+                )
+                .at(pay.record.br())
+                .read(cp.checked),
+            );
+        }
+        let year: Vec<&&crate::sources::fnet::Payout> = list.iter().filter(|p| p.record > today.add_days(-365)).collect();
+        if let (Some(pr), false) = (&now, year.is_empty()) {
+            let sum: f64 = year.iter().map(|p| p.value).sum();
+            let dy = sum / pr.value * 100.0;
+            let first = year.last().map(|p| p.record.br()).unwrap_or_default();
+            let last = year.first().map(|p| p.record.br()).unwrap_or_default();
+            let mut f = Fact::new("proventos", COMPUTED, format!("DY dos últimos 12 meses (proventos por data-com): {}.", pct(dy, 2)), "B3 e preço")
+                .by(format!("{} proventos ({first} a {last}) somam {} por ação ÷ preço {} = {}", year.len(), brl_exact(sum), brl_exact(pr.value), pct(dy, 2)))
+                .at(format!("proventos até {last}; preço {}", pr.when))
+                .worth(dy);
+            if year.iter().any(|p| p.tax_free == Some(false)) {
+                f = f.warn("inclui juros sobre capital próprio brutos (15% de IR na fonte)");
+            }
+            out.push(f);
+        }
+        for pay in cp.payouts.iter().filter(|p| p.record <= today && p.payment.is_none_or(|d| d > today)) {
+            out.push(
+                Fact::new(
+                    "proventos",
+                    CONFIRMED,
+                    format!("Provento a receber de {t}: {} de {} por ação (data-com {}; {}).", kind(pay), brl_exact(pay.value), pay.record.br(), pay.payment.map(|d| format!("pagamento em {}", d.br())).unwrap_or_else(|| "pagamento a definir".into())),
+                    b3,
+                )
+                .at(pay.record.br())
+                .read(cp.checked),
+            );
+        }
+    }
+
     // The economy.
     let e = &market.economy;
     let bc = "Banco Central (SGS e Focus)";
@@ -765,6 +824,21 @@ mod tests {
         let d = find(&facts, "Divergência no rendimento");
         assert_eq!(d.status, DIVERGENT);
         assert!(d.text.contains("R$ 0,083") && d.text.contains("R$ 0,08") && d.text.contains("p. 2"), "{}", d.text);
+    }
+
+    #[test]
+    fn a_companys_proventos_come_from_b3_with_their_dates() {
+        let (store, mut market) = gare11();
+        let all = crate::sources::b3_dividends::parse(crate::sources::b3_dividends::fixtures::BBAS).unwrap();
+        market.company_payouts.insert("BBAS3".into(), crate::model::CompanyPayouts { checked: Some(day(2026, 10, 30)), payouts: crate::sources::b3_dividends::of_class(&all, "BRBBASACNOR3") });
+        let facts = number(gather(&store, &market, None, "BBAS3", "", day(2026, 10, 30)));
+        let last = find(&facts, "Último provento de BBAS3");
+        assert!(last.text.contains("juros sobre capital próprio de R$ 0,2347") && last.text.contains("data-com 10/10/2026; a pagar em 27/11/2026"), "{}", last.text);
+        assert_eq!(last.source, "B3 — proventos em dinheiro");
+        let dy = find(&facts, "DY dos últimos 12 meses (proventos por data-com)");
+        assert!(dy.formula.contains("2 proventos") && dy.warning.contains("juros sobre capital próprio"), "{dy:?}");
+        assert!(find(&facts, "Provento a receber de BBAS3").text.contains("pagamento em 27/11/2026"));
+        assert!(!facts.iter().any(|f| f.text.contains("07/11/2026")), "a data-com ahead is not a provento yet");
     }
 
     #[test]

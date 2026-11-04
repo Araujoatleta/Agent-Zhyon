@@ -113,9 +113,40 @@ again, studies, training and the English lesson). iOS decides when AXYON may loo
 iOS asks the first time for each thing it protects; **Settings → What AXYON may use on this iPhone** shows what is
 allowed.
 
+## The Wallet: your consolidated portfolio
+
+The **Wallet** tab, the first one AXYON opens on, is a portfolio consolidator in the manner of Investidor10: you enter
+your buys and sales, and AXYON's code works out the rest.
+
+- **Lançamentos**: **+** (or **New lançamento**): Purchase or Sale, the ticker (GARE11, BBAS3…), the date, the
+  quantity, the price per share and the costs (brokerage, fees; optional). The average price takes the costs in, as
+  a broker's statement does; a sale realizes its result against the average price of its day; a sale of more shares
+  than were held that day, or the same lançamento twice, is refused with the reason. Touch and hold a lançamento to
+  delete it (refused while a later sale needs its shares).
+- **What your sheet already holds**: when the asset is already in the portfolio the computer reads from your sheet,
+  its first lançamento asks whether it is **a new buy, added to the N you hold** (those shares come first as an
+  **Opening balance** at the sheet's average price) or **part of the history of those N** (enter every buy and sale:
+  the position becomes what they make). The lançamentos made on the iPhone stand over the computer's copy.
+- **Quotes by themselves**, like the sheet's GOOGLEFINANCE, free and delayed: during B3's session AXYON reads Google
+  Finance (about 15 minutes late) and reads it again every two minutes while the tab is open; after the session, B3's
+  close. The line under the net worth says where the quote is from and when.
+- **Net worth and result**: the total, the day's change, what was invested, the result (R$ and %), what the sales
+  realized (all of it and this year's), the proventos of 12 months and the yield on cost; class by class and asset by
+  asset: quantity, average price, quote, day, value, result, weight and target.
+- **Proventos received, provisioned and announced**, counted on the shares held at the end of each data-com: **To
+  receive** (the data-com passed, the payment is ahead: what Investidor10 calls provisioned), **Announced, data-com
+  ahead**, **Received**, and a year of them in bars, month by month. Funds: the income and amortizations on
+  FundosNet; companies: the dividends and interest on equity (JCP) they announced on B3, with their data-com and
+  payment date. JCP shows net of the 15% income tax held at the source. A provento of an asset with no lançamento is
+  counted on the shares held now and marked **estimated**.
+- Tap an asset: its quote, its figures, **Buy** / **Sell**, and its own proventos and lançamentos.
+
+The lançamentos stay on the iPhone: they are not written to your sheet or sent to the computer. Fixed income takes no
+lançamento (it stays as your sheet has it). Nothing is bought or sold here.
+
 ## Investing: the committee, the reader, your theses, the week and learning
 
-The **Wallet** tab, the first one AXYON opens on, is its investing screen, in the design of a statistics screen:
+The **Investments** tab, the second, is AXYON's investing screen, in the design of a statistics screen:
 charcoal, a ring of thick rounded segments in soft colours with the total in its middle, a legend in two columns, a
 pill to choose **Portfolio** or **Dividends**, **Class | Asset**, a carousel of months for the dividends, and
 **History** under it (your positions, as before). Every number is computed by AXYON's code from the official sources;
@@ -127,7 +158,7 @@ Portuguese, and the app itself speaks Portuguese (set once; iOS **Settings → A
   shows those amounts (R$ 82,27 in October if that is what the sheet says), says **Your sheet · read on …**, and a month
   the funds' announcements disagree on shows both. Without the table, the announcements times what you held.
 - **Targets per asset**: your sheet's **Percentual Ideal** (or **Meta**) column, or **… → Targets per asset** on the
-  Wallet. The committee weighs every asset against its target before any opinion on buying more.
+  Investments tab. The committee weighs every asset against its target before any opinion on buying more.
 
 - **The committee of five minds, audited**: ask *"buy 100 shares of GGRC11?"*. The code first gathers the **facts**,
   each numbered (F1…) with its source, its reference date, the day it was read, the calculation (P/VP names the price's
