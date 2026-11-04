@@ -322,10 +322,86 @@ fn theses_json(store: &Store, market: &Market, lib: Option<&Library>, today: Dat
         .collect()
 }
 
+/// The folders: every asset AXYON keeps something about (held, its lançamentos, a verdict, a document read, a thesis,
+/// a decision), with how much each holds, when it last changed and its last verdict; the held first, then the newest.
+pub fn folders(store: &Store, market: &Market, lib: Option<&Library>) -> Value {
+    let mut tickers: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+    tickers.extend(store.portfolio.positions.iter().filter(|p| p.quantity > 0.0 && p.class.quoted()).map(|p| p.ticker.clone()));
+    tickers.extend(store.trades.iter().map(|t| t.ticker.to_uppercase()));
+    tickers.extend(store.verdicts.iter().map(|v| v.ticker.clone()));
+    tickers.extend(store.theses.iter().map(|t| t.ticker.clone()));
+    tickers.extend(store.decisions.iter().map(|d| d.ticker.clone()));
+    if let Some(l) = lib {
+        tickers.extend(l.docs.iter().map(|d| d.ticker.clone()));
+    }
+    tickers.retain(|t| !t.is_empty());
+    let mut out: Vec<Value> = tickers
+        .into_iter()
+        .map(|t| {
+            let verdicts: Vec<&Verdict> = store.verdicts.iter().filter(|v| v.ticker == t).collect();
+            let documents: Vec<&crate::library::Doc> = lib.map(|l| l.docs.iter().filter(|d| d.ticker == t).collect()).unwrap_or_default();
+            let decisions = store.decisions.iter().filter(|d| d.ticker == t).count();
+            let trades: Vec<&crate::model::Trade> = store.trades.iter().filter(|x| x.ticker.eq_ignore_ascii_case(&t)).collect();
+            let thesis = store.theses.iter().find(|x| x.ticker == t);
+            let last = verdicts
+                .iter()
+                .filter_map(|v| v.date)
+                .chain(documents.iter().filter_map(|d| d.read.or(d.delivered)))
+                .chain(store.decisions.iter().filter(|d| d.ticker == t).map(|d| d.date))
+                .chain(trades.iter().map(|x| x.date))
+                .chain(thesis.map(|x| x.written))
+                .max();
+            let held = store.portfolio.position(&t).is_some_and(|p| p.quantity > 0.0);
+            let class = store.portfolio.position(&t).map(|p| p.class).unwrap_or_else(|| crate::trades::class_of(&t, market).0);
+            let latest = verdicts.last().map(|v| {
+                let (f, a, n) = v.score();
+                json!({ "date": v.date, "for": f, "against": a, "neutral": n, "asset": v.asset.view, "portfolio": v.portfolio_fit.view, "vetoed": !v.vetoed_by().is_empty() })
+            });
+            json!({
+                "ticker": t,
+                "class": class.id(),
+                "held": held,
+                "verdicts": verdicts.len(),
+                "documents": documents.len(),
+                "thesis": thesis.is_some(),
+                "decisions": decisions,
+                "trades": trades.len(),
+                "last": last,
+                "latest": latest,
+            })
+        })
+        .collect();
+    out.sort_by(|a, b| {
+        b["held"].as_bool().cmp(&a["held"].as_bool()).then(b["last"].as_str().cmp(&a["last"].as_str())).then(a["ticker"].as_str().cmp(&b["ticker"].as_str()))
+    });
+    Value::Array(out)
+}
+
+/// An asset's folder: its position, every verdict the committee gave on it (newest first), the documents the reader
+/// read with their digests, the thesis checked now and the decisions written in the journal.
+pub fn folder(store: &Store, market: &Market, lib: Option<&Library>, ticker: &str, today: Date) -> Value {
+    let position = crate::portfolio::value(&store.portfolio, market).holdings.into_iter().find(|h| h.ticker == ticker).map(|h| {
+        json!({ "quantity": h.quantity, "average": h.average_price, "price": h.price, "value": h.value, "gain": h.gain, "gainPct": h.gain_pct, "weight": h.weight, "target": store.portfolio.asset_targets.get(ticker) })
+    });
+    let mut docs: Vec<&crate::library::Doc> = lib.map(|l| l.docs.iter().filter(|d| d.ticker == ticker).collect()).unwrap_or_default();
+    docs.sort_by(|a, b| b.delivered.cmp(&a.delivered));
+    let class = store.portfolio.position(ticker).map(|p| p.class).unwrap_or_else(|| crate::trades::class_of(ticker, market).0);
+    json!({
+        "ticker": ticker,
+        "class": class.id(),
+        "position": position,
+        "verdicts": store.verdicts.iter().rev().filter(|v| v.ticker == ticker).map(verdict_json).collect::<Vec<_>>(),
+        "documents": lib.map(|l| docs.iter().take(40).map(|d| document(l, &d.key)).collect::<Vec<_>>()).unwrap_or_default(),
+        "thesis": theses_json(store, market, lib, today).into_iter().find(|t| t["ticker"] == ticker),
+        "decisions": store.decisions.iter().rev().filter(|d| d.ticker == ticker).filter_map(|d| serde_json::to_value(d).ok()).collect::<Vec<_>>(),
+    })
+}
+
 /// The iPhone app's own calls, never the brain's tools (the brain's answers come through them, from the app's host):
 /// `invest_view`; `invest_docs` (do: due, ingest, failed, brief, digest, undigested, document, page); `invest_committee`
 /// (do: brief, audit, verdict, meetings); `invest_thesis` (do: write, remove); `invest_target` (ticker, target);
-/// `invest_wallet` and `invest_quotes` (the consolidator); `invest_trade` (do: add, remove);
+/// `invest_wallet` and `invest_quotes` (the consolidator); `invest_trade` (do: add, remove, since);
+/// `invest_folders` and `invest_folder` (ticker): every asset's analyses kept as a folder;
 /// `invest_learn` (do: view, apprentice, cards, grade, paper, reset); `invest_weekly` (do: script, told). The answer,
 /// and what it changed.
 pub fn app(store: &mut Store, market: &Market, lib: &mut Library, tool: &str, input: &Value, today: Date) -> Result<(Value, Saved), String> {
@@ -337,6 +413,12 @@ pub fn app(store: &mut Store, market: &Market, lib: &mut Library, tool: &str, in
     let key = || s("key").ok_or_else(|| "the document's key is missing".to_string());
     match tool {
         "invest_view" => Ok((view(store, market, Some(lib), today), Saved::default())),
+        // The folders, every asset AXYON keeps something about; and one of them, opened.
+        "invest_folders" => Ok((folders(store, market, Some(lib)), Saved::default())),
+        "invest_folder" => {
+            let ticker = s("ticker").and_then(|t| crate::text::ticker(&t)).ok_or("Qual ativo?")?;
+            Ok((folder(store, market, Some(lib), &ticker, today), Saved::default()))
+        }
         "invest_docs" => match what.as_str() {
             "due" => Ok((json!(lib.pending(store, market, today, most.unwrap_or(6))), Saved::default())),
             "ingest" => {
@@ -551,6 +633,39 @@ pub fn view(store: &Store, market: &Market, lib: Option<&Library>, today: Date) 
 mod tests {
     use super::*;
     use crate::portfolio::fixtures;
+
+    #[test]
+    fn each_assets_analyses_are_kept_in_its_folder() {
+        let today = Date::new(2026, 10, 21).unwrap();
+        let market = fixtures::market();
+        let mut store = Store { portfolio: fixtures::portfolio(), ..Store::default() };
+        let held = store.portfolio.positions[0].ticker.clone();
+        let verdict = |ticker: &str, day: u32| -> Verdict {
+            serde_json::from_value(json!({"ticker": ticker, "date": format!("2026-10-{day:02}"), "reason": "asked", "minds": [{"id": "risk", "vote": "against", "points": [["Concentração", "F2"]]}]})).unwrap()
+        };
+        // Fourteen meetings on one asset: its folder keeps the last twelve; another asset's stays.
+        for day in 1..=14 {
+            crate::committee::keep(&mut store, verdict(&held, day));
+        }
+        crate::committee::keep(&mut store, verdict("WIZC3", 20));
+        assert_eq!(store.verdicts.iter().filter(|v| v.ticker == held).count(), crate::committee::KEPT_PER_ASSET);
+        let list = folders(&store, &market, Some(&Library::default()));
+        let list = list.as_array().unwrap();
+        assert_eq!(list[0]["held"], true, "the held first: {list:?}");
+        let mine = list.iter().find(|f| f["ticker"] == held.as_str()).unwrap();
+        assert_eq!(mine["verdicts"], 12);
+        assert_eq!(mine["latest"]["against"], 1);
+        assert_eq!(mine["last"], "2026-10-14");
+        let wizc = list.iter().find(|f| f["ticker"] == "WIZC3").unwrap();
+        assert_eq!((wizc["held"].as_bool(), wizc["verdicts"].as_u64()), (Some(false), Some(1)), "analysed, not held: a folder too");
+        let opened = folder(&store, &market, Some(&Library::default()), &held, today);
+        let verdicts = opened["verdicts"].as_array().unwrap();
+        assert_eq!(verdicts.len(), 12);
+        assert_eq!(verdicts[0]["date"], "2026-10-14", "newest first");
+        assert!(opened["position"]["quantity"].as_f64().unwrap() > 0.0);
+        let (answer, _) = app(&mut store, &market, &mut Library::default(), "invest_folder", &json!({"ticker": held.to_lowercase()}), today).unwrap();
+        assert_eq!(answer["ticker"], held.as_str());
+    }
 
     #[test]
     fn the_screen_has_the_rings_the_dividends_and_the_rest() {

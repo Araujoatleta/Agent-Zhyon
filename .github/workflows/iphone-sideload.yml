@@ -304,3 +304,37 @@ jobs:
           path: ${{ runner.temp }}/axyon-screens
           retention-days: 14
           if-no-files-found: ignore
+
+  # The screens the Simulator drew, also kept at refs/axyon-screens/latest: not a branch, one commit with the images
+  # (halved), replaced at each run, so that they can be fetched with git where an artifact cannot be downloaded
+  # (git fetch origin refs/axyon-screens/latest). The only job that writes, and only that ref.
+  screens:
+    needs: hermes-simulator
+    if: always() && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          name: AXYON-screens
+          path: screens
+      - name: Keep the screens at refs/axyon-screens/latest
+        env:
+          TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN: ${{ github.run_id }}
+          SHA: ${{ github.sha }}
+        run: |
+          shopt -s nullglob
+          cd screens 2>/dev/null || { echo "No screens in this run"; exit 0; }
+          files=(*.png)
+          [ ${#files[@]} -gt 0 ] || { echo "No screens in this run"; exit 0; }
+          mogrify -resize 50% "${files[@]}"
+          git init -q
+          git add .
+          git -c user.name="AXYON screens" -c user.email="actions@users.noreply.github.com" commit -qm "Screens of run $RUN ($SHA)"
+          git push -f "https://x-access-token:${TOKEN}@github.com/${REPO}" HEAD:refs/axyon-screens/latest
+          ls -l

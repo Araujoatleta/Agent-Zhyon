@@ -56,7 +56,7 @@ struct AXYONWalletHome: View {
         .scrollContentBackground(.hidden)
         .background { InvestBackdrop() }
         .navigationTitle("Wallet")
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button { adding = true } label: {
@@ -109,70 +109,151 @@ struct WalletSummaryCard: View {
     let updated: Date?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Net worth")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(AXYONPalette.dim)
-                Text(AXYONMoney.text(overview.total))
-                    .font(.system(size: 38, weight: .bold, design: .rounded))
-                    .monospacedDigit()
+        let theme = AXYONTheme.current
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Net worth")
+                        .font(.caption.weight(.semibold))
+                        .textCase(.uppercase)
+                        .tracking(1.4)
+                        .foregroundStyle(AXYONPalette.dim)
+                    Text(AXYONMoney.text(overview.total))
+                        .font(.system(size: 40, weight: .bold))
+                        .monospacedDigit()
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                        .contentTransition(.numericText())
+                        .animation(.snappy, value: overview.total)
+                }
+                Spacer(minLength: 4)
+                Image(systemName: "arrow.up.right")
+                    .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(.white)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-                    .contentTransition(.numericText())
-                    .animation(.snappy, value: overview.total)
-                if let day = overview.day {
-                    Label {
-                        Text("\(WalletNumber.signed(day)) (\(WalletNumber.percent(overview.dayPct ?? 0, places: 2))) today")
-                    } icon: {
-                        Image(systemName: day >= 0 ? "arrowtriangle.up.fill" : "arrowtriangle.down.fill")
-                    }
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(day >= 0 ? AXYONPalette.up : AXYONPalette.down)
-                }
+                    .frame(width: 36, height: 36)
+                    .background(Circle().fill(.white.opacity(0.08)))
+                    .overlay(Circle().strokeBorder(.white.opacity(0.18), lineWidth: 0.8))
+                    .accessibilityHidden(true)
             }
-            Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: 14) {
+            if let day = overview.day {
+                dayPill(day)
+            }
+            if !overview.classes.isEmpty {
+                allocation
+            }
+            Grid(alignment: .leading, horizontalSpacing: 10, verticalSpacing: 10) {
                 GridRow {
-                    metric(String(localized: "Invested"), AXYONMoney.text(overview.cost))
-                    metric(String(localized: "Result"), WalletNumber.result(overview.gain, overview.gainPct),
-                           color: overview.gain >= 0 ? AXYONPalette.up : AXYONPalette.down)
+                    tile(String(localized: "Invested"), AXYONMoney.text(overview.cost), icon: "banknote.fill")
+                    tile(String(localized: "Result"), WalletNumber.result(overview.gain, overview.gainPct),
+                         icon: overview.gain >= 0 ? "chart.line.uptrend.xyaxis" : "chart.line.downtrend.xyaxis",
+                         color: overview.gain >= 0 ? AXYONPalette.up : AXYONPalette.down)
                 }
                 GridRow {
-                    metric(String(localized: "Proventos in 12 months"), AXYONMoney.text(overview.twelve))
-                    metric(String(localized: "To receive"), AXYONMoney.text(overview.provisioned),
-                           color: overview.provisioned > 0 ? InvestPalette.favor : .white)
+                    tile(String(localized: "Proventos in 12 months"), AXYONMoney.text(overview.twelve), icon: "arrow.down.circle.fill")
+                    tile(String(localized: "To receive"), AXYONMoney.text(overview.provisioned), icon: "clock.fill",
+                         color: overview.provisioned > 0 ? InvestPalette.favor : .white)
                 }
                 if overview.realized != 0 {
                     GridRow {
-                        metric(String(localized: "Realized in sales"), WalletNumber.signed(overview.realized),
-                               color: overview.realized >= 0 ? AXYONPalette.up : AXYONPalette.down)
-                        metric(String(localized: "Yield on cost"), overview.yieldOnCost.map { WalletNumber.percent($0, places: 2) } ?? "—")
+                        tile(String(localized: "Realized in sales"), WalletNumber.signed(overview.realized), icon: "checkmark.seal.fill",
+                             color: overview.realized >= 0 ? AXYONPalette.up : AXYONPalette.down)
+                        tile(String(localized: "Yield on cost"), overview.yieldOnCost.map { WalletNumber.percent($0, places: 2) } ?? "—",
+                             icon: "percent")
                     }
                 }
             }
-            Divider().overlay(Color.white.opacity(0.08))
             quotes
         }
-        .padding(18)
+        .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .axyonCard(cornerRadius: 26)
+        .background(alignment: .topTrailing) {
+            // The accent's light inside the glass, as the designs light a card from within.
+            Circle()
+                .fill(RadialGradient(colors: [theme.accent.opacity(0.42), theme.accent.opacity(0)],
+                                     center: .center, startRadius: 0, endRadius: 150))
+                .frame(width: 300, height: 300)
+                .offset(x: 110, y: -120)
+                .allowsHitTesting(false)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
+        .axyonCard(cornerRadius: 30)
     }
 
-    private func metric(_ title: String, _ value: String, color: Color = .white) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(title).font(.caption).foregroundStyle(AXYONPalette.dim).lineLimit(1).minimumScaleFactor(0.8)
+    private func dayPill(_ day: Double) -> some View {
+        let color = day >= 0 ? AXYONPalette.up : AXYONPalette.down
+        return Label {
+            Text("\(WalletNumber.signed(day)) (\(WalletNumber.percent(overview.dayPct ?? 0, places: 2))) today")
+        } icon: {
+            Image(systemName: day >= 0 ? "arrow.up.right" : "arrow.down.right")
+        }
+        .font(.subheadline.weight(.semibold))
+        .monospacedDigit()
+        .foregroundStyle(color)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 7)
+        .background(Capsule().fill(color.opacity(0.14)))
+        .overlay(Capsule().strokeBorder(color.opacity(0.32), lineWidth: 0.8))
+    }
+
+    /// The share of each class, as a bar of light and a legend.
+    private var allocation: some View {
+        let classes = overview.classes.filter { $0.value > 0 }
+        let series = AXYONTheme.current.series
+        return VStack(alignment: .leading, spacing: 10) {
+            GeometryReader { geo in
+                let room = max(geo.size.width - CGFloat(max(classes.count - 1, 0)) * 4, 0)
+                HStack(spacing: 4) {
+                    ForEach(Array(classes.enumerated()), id: \.element.id) { index, group in
+                        let color = series[index % series.count]
+                        Capsule()
+                            .fill(LinearGradient(colors: [color, color.opacity(0.65)], startPoint: .top, endPoint: .bottom))
+                            .frame(width: max(8, room * group.weight / 100))
+                            .shadow(color: color.opacity(0.55), radius: 6)
+                    }
+                }
+            }
+            .frame(height: 10)
+            InvestChips(spacing: 12) {
+                ForEach(Array(classes.enumerated()), id: \.element.id) { index, group in
+                    HStack(spacing: 5) {
+                        Circle().fill(series[index % series.count]).frame(width: 7, height: 7)
+                        Text(group.label).foregroundStyle(AXYONPalette.dim)
+                        Text(WalletNumber.percent(group.weight, places: 0)).foregroundStyle(.white).monospacedDigit()
+                    }
+                    .font(.caption.weight(.semibold))
+                }
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private func tile(_ title: String, _ value: String, icon: String, color: Color = .white) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Image(systemName: icon)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(AXYONTheme.current.accent)
+                .frame(width: 26, height: 26)
+                .background(Circle().fill(AXYONTheme.current.accent.opacity(0.16)))
             Text(value)
-                .font(.subheadline.weight(.semibold))
+                .font(.headline)
                 .monospacedDigit()
                 .foregroundStyle(color)
                 .lineLimit(1)
-                .minimumScaleFactor(0.7)
+                .minimumScaleFactor(0.65)
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(AXYONPalette.dim)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
         }
+        .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(.white.opacity(0.055)))
+        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(.white.opacity(0.09), lineWidth: 0.8))
     }
 
-    /// Where the quotes are from, and when.
+    /// Where the quotes are from, and when: a light that glows while they are the session's.
     private var quotes: some View {
         HStack(spacing: 8) {
             if reading {
@@ -181,6 +262,7 @@ struct WalletSummaryCard: View {
                 Circle()
                     .fill(overview.liveAt != nil ? AXYONPalette.up : AXYONPalette.faint)
                     .frame(width: 7, height: 7)
+                    .shadow(color: overview.liveAt != nil ? AXYONPalette.up : .clear, radius: 4)
             }
             Group {
                 if let at = overview.liveAt {
@@ -200,6 +282,27 @@ struct WalletSummaryCard: View {
     }
 }
 
+/// An asset as the designs draw a person: a circle of its colour with its letters.
+struct WalletAvatar: View {
+    let ticker: String
+    var color: Color = AXYONTheme.current.accent
+    var size: CGFloat = 42
+
+    var body: some View {
+        Text(String(ticker.prefix(4)))
+            .font(.system(size: size * 0.26, weight: .heavy, design: .rounded))
+            .foregroundStyle(.white)
+            .lineLimit(1)
+            .minimumScaleFactor(0.6)
+            .frame(width: size, height: size)
+            .background(Circle().fill(LinearGradient(colors: [color.opacity(0.95), color.opacity(0.35)],
+                                                     startPoint: .topLeading, endPoint: .bottomTrailing)))
+            .overlay(Circle().strokeBorder(.white.opacity(0.32), lineWidth: 0.8))
+            .shadow(color: color.opacity(0.5), radius: 8)
+            .accessibilityHidden(true)
+    }
+}
+
 // MARK: - The assets
 
 struct WalletAssetsList: View {
@@ -212,10 +315,14 @@ struct WalletAssetsList: View {
             if overview.classes.isEmpty {
                 WalletEmpty(add: add)
             }
-            ForEach(overview.classes) { group in
+            ForEach(Array(overview.classes.enumerated()), id: \.element.id) { position, group in
+                let color = AXYONTheme.current.series[position % AXYONTheme.current.series.count]
                 VStack(alignment: .leading, spacing: 10) {
                     HStack(alignment: .firstTextBaseline) {
-                        Text(group.label).font(.title3.weight(.bold)).foregroundStyle(.white)
+                        HStack(spacing: 8) {
+                            Circle().fill(color).frame(width: 9, height: 9).shadow(color: color, radius: 5)
+                            Text(group.label).font(.title3.weight(.bold)).foregroundStyle(.white)
+                        }
                         Spacer(minLength: 8)
                         VStack(alignment: .trailing, spacing: 2) {
                             Text(AXYONMoney.text(group.value)).font(.subheadline.weight(.semibold)).monospacedDigit().foregroundStyle(.white)
@@ -225,7 +332,7 @@ struct WalletAssetsList: View {
                     VStack(spacing: 0) {
                         ForEach(Array(group.assets.enumerated()), id: \.element.id) { index, item in
                             if index > 0 { Divider().overlay(Color.white.opacity(0.07)).padding(.leading, 14) }
-                            Button { open(item) } label: { WalletAssetRow(asset: item) }
+                            Button { open(item) } label: { WalletAssetRow(asset: item, color: color) }
                                 .buttonStyle(.plain)
                         }
                     }
@@ -247,9 +354,11 @@ struct WalletAssetsList: View {
 
 struct WalletAssetRow: View {
     let asset: WalletAsset
+    var color: Color = AXYONTheme.current.accent
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
+            WalletAvatar(ticker: asset.ticker, color: color)
             VStack(alignment: .leading, spacing: 4) {
                 Text(asset.ticker).font(.headline).foregroundStyle(.white).lineLimit(1).fixedSize()
                 Text("Qty \(WalletNumber.quantity(asset.quantity)) · avg \(WalletNumber.price(asset.average))")
@@ -500,10 +609,12 @@ struct WalletIncomeView: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Month by month").font(.headline).foregroundStyle(.white)
             Chart(overview.months) { month in
-                BarMark(x: .value("Month", month.short), y: .value("R$", month.total))
-                    .foregroundStyle(InvestPalette.favor.gradient)
-                    .cornerRadius(5)
+                BarMark(x: .value("Month", month.short), y: .value("R$", month.total), width: .ratio(0.55))
+                    .foregroundStyle(LinearGradient(colors: [AXYONTheme.current.accent, AXYONTheme.current.accentDeep.opacity(0.45)],
+                                                    startPoint: .top, endPoint: .bottom))
+                    .cornerRadius(6)
             }
+            .shadow(color: AXYONTheme.current.accent.opacity(0.45), radius: 8)
             .chartYAxis {
                 AxisMarks(position: .leading) { _ in
                     AxisGridLine().foregroundStyle(Color.white.opacity(0.08))
@@ -631,6 +742,25 @@ struct WalletAssetView: View {
                     action(String(localized: "Buy"), "plus") { selling = false; adding = true }
                     action(String(localized: "Sell"), "minus") { selling = true; adding = true }
                 }
+                NavigationLink {
+                    InvestFolderView(ticker: ticker)
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "folder.fill")
+                            .font(.title3)
+                            .foregroundStyle(AXYONTheme.current.accentGradient)
+                            .axyonGlow(radius: 8)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Open \(ticker)'s folder").font(.subheadline.weight(.semibold)).foregroundStyle(.white)
+                            Text("The committee's analyses, the documents read, the thesis").font(.caption).foregroundStyle(AXYONPalette.dim)
+                        }
+                        Spacer(minLength: 4)
+                        Image(systemName: "chevron.right").font(.caption.weight(.bold)).foregroundStyle(AXYONPalette.faint)
+                    }
+                    .padding(16)
+                    .axyonCard(cornerRadius: 20)
+                }
+                .buttonStyle(.plain)
                 WalletIncomeView(overview: overview, ticker: ticker)
                 if !trades.isEmpty {
                     WalletTradesList(wallet: wallet, trades: trades, add: { selling = false; adding = true })

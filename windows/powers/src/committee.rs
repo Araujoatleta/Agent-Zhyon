@@ -749,12 +749,20 @@ pub fn parse_verdict(v: &Value, ticker: &str, proposal: &str, reason: &str, docu
 }
 
 /// The most verdicts kept.
-pub const KEPT: usize = 40;
+pub const KEPT: usize = 150;
+/// The verdicts an asset's folder keeps, its last ones.
+pub const KEPT_PER_ASSET: usize = 12;
 
 /// A verdict kept (one per ticker and day and reason replaces the one before it).
 pub fn keep(store: &mut Store, verdict: Verdict) {
     store.verdicts.retain(|x| !(x.ticker == verdict.ticker && x.date == verdict.date && x.reason == verdict.reason));
+    let ticker = verdict.ticker.clone();
     store.verdicts.push(verdict);
+    // Each asset's folder keeps its last ones; the oldest of all go past the total.
+    while store.verdicts.iter().filter(|v| v.ticker == ticker).count() > KEPT_PER_ASSET {
+        let Some(at) = store.verdicts.iter().position(|v| v.ticker == ticker) else { break };
+        store.verdicts.remove(at);
+    }
     let extra = store.verdicts.len().saturating_sub(KEPT);
     store.verdicts.drain(..extra);
 }

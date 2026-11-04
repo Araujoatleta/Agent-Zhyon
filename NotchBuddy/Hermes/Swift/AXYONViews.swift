@@ -19,7 +19,8 @@ enum AXYONTab: Hashable {
     /// (AXYON_TEST_TAB, Hermes/tests/simulator.sh).
     static var launch: AXYONTab {
         #if targetEnvironment(simulator)
-        let screen = ProcessInfo.processInfo.environment["AXYON_TEST_TAB"] ?? ""
+        AXYONTestScreen.applyTheme()
+        let screen = AXYONTestScreen.name
         if screen.hasPrefix("invest") { return .invest }
         switch screen {
         case "chat": return .chat
@@ -40,20 +41,28 @@ struct AXYONTabs: View {
     let link: PhoneLink
     @Binding var tab: AXYONTab
     @Binding var sessionPath: [String]
+    @AppStorage(AXYONTheme.key) private var chosen = AXYONTheme.aurora.rawValue
+    /// The keyboard is up: the floating bar steps aside.
+    @State private var typing = false
 
     var body: some View {
         TabView(selection: $tab) {
             Tab("Wallet", systemImage: "briefcase.fill", value: AXYONTab.wallet) {
                 // The consolidator: lançamentos, positions, results, proventos (AXYONWalletViews.swift).
-                NavigationStack { AXYONWalletHome() }
+                stack { AXYONWalletHome() }
             }
             Tab("Investments", systemImage: "chart.pie.fill", value: AXYONTab.invest) {
-                // The investing screen (AXYONInvestViews.swift): the ring, the committee, the reader, the theses.
-                NavigationStack {
+                // The investing screen (AXYONInvestViews.swift): the ring, the folders, the committee, the reader.
+                stack {
                     #if targetEnvironment(simulator)
-                    // CI's screenshot of the committee's screen, with its example verdict (AXYONTestScreens.swift).
+                    // CI's screenshots: the committee's screen with its example verdict, an asset's folder
+                    // (AXYONTestScreens.swift).
                     if let verdict = AXYONTestScreen.verdict {
                         InvestVerdictView(verdict: verdict)
+                    } else if AXYONTestScreen.base == "invest-folders" {
+                        InvestFoldersView()
+                    } else if AXYONTestScreen.base == "invest-folder" {
+                        InvestFolderView(ticker: "GARE11")
                     } else {
                         AXYONInvestView()
                     }
@@ -62,28 +71,54 @@ struct AXYONTabs: View {
                     #endif
                 }
             }
-            Tab("Chat", systemImage: "bubble.left.and.bubble.right.fill", value: AXYONTab.chat) {
-                NavigationStack { HermesChatView() }
+            Tab("Chat", systemImage: "sparkles", value: AXYONTab.chat) {
+                stack { HermesChatView() }
             }
             Tab("Home", systemImage: "house.fill", value: AXYONTab.house) {
-                NavigationStack { AXYONHouseView() }
+                stack { AXYONHouseView() }
             }
             Tab("Settings", systemImage: "gearshape.fill", value: AXYONTab.settings) {
-                NavigationStack { AXYONSettingsView(link: link) }
+                stack { AXYONSettingsView(link: link) }
             }
         }
-        .coucouMinimizingTabBar()
+        // The designs' floating bar of glass, over the screens, in place of the system's.
+        .overlay(alignment: .bottom) {
+            if !typing {
+                AXYONTabBar(selection: $tab)
+                    .padding(.bottom, 2)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+            withAnimation(.snappy) { typing = true }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            withAnimation(.snappy) { typing = false }
+        }
         .safeAreaInset(edge: .top, spacing: 0) { AXYONApprovalBanner(link: link) }
         .sheet(isPresented: Binding(get: { !sessionPath.isEmpty }, set: { if !$0 { sessionPath = [] } })) {
             if let id = sessionPath.first {
                 NavigationStack { SessionDetailView(link: link, sessionId: id) }
             }
         }
-        // White for every control, as Apple's own dark apps; switches stay the system's green.
+        // White for the controls; the accent of the chosen look glows where it is drawn.
         .tint(.white)
         .toggleStyle(AXYONSwitch())
         .preferredColorScheme(.dark)
         .environment(HermesEngine.shared)
+        // A new look is drawn from the top.
+        .id(chosen)
+    }
+
+    /// A tab's screens: their own navigation, the system's tab bar hidden, room at the bottom for the floating one.
+    private func stack<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        NavigationStack {
+            content().toolbar(.hidden, for: .tabBar)
+        }
+        .toolbar(.hidden, for: .tabBar)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                Color.clear.frame(height: typing ? 0 : AXYONTabBar.height + 14)
+            }
     }
 }
 
@@ -968,6 +1003,15 @@ struct AXYONSettingsView: View {
                 .padding(.vertical, 4)
             }
             .listRowBackground(Color.clear)
+
+            Section {
+                AXYONThemePicker()
+            } header: {
+                Text("Appearance")
+            } footer: {
+                Text("Three looks after the designs you chose: the night behind the screens, the glass's colour and the accent that glows.")
+            }
+            .listRowBackground(GlassRowBackground())
 
             Section {
                 NavigationLink {

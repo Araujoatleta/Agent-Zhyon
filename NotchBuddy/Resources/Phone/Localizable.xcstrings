@@ -529,6 +529,28 @@
         }
       }
     },
+    "%lld analyses": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld análisis"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld analyses"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld análises"
+          }
+        }
+      }
+    },
     "%lld decisions": {
       "localizations": {
         "es": {
@@ -569,6 +591,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "%lld decisões julgadas"
+          }
+        }
+      }
+    },
+    "%lld documents": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld documentos"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld documents"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld documentos"
           }
         }
       }
@@ -1739,6 +1783,28 @@
         }
       }
     },
+    "All": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todas"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toutes"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todas"
+          }
+        }
+      }
+    },
     "All day": {
       "localizations": {
         "es": {
@@ -2223,6 +2289,28 @@
         }
       }
     },
+    "Appearance": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apariencia"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apparence"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aparência"
+          }
+        }
+      }
+    },
     "Apprentice mode": {
       "localizations": {
         "es": {
@@ -2575,6 +2663,28 @@
         }
       }
     },
+    "Aurora": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aurora"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aurore"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aurora"
+          }
+        }
+      }
+    },
     "Average price": {
       "localizations": {
         "es": {
@@ -2593,6 +2703,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Preço médio"
+          }
+        }
+      }
+    },
+    "Avoid": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Evitar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Éviter"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Evitar"
           }
         }
       }
@@ -4203,6 +4335,28 @@
         }
       }
     },
+    "Copper": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cobre"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cuivre"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cobre"
+          }
+        }
+      }
+    },
     "Copy": {
       "localizations": {
         "es": {
@@ -4687,6 +4841,28 @@
         }
       }
     },
+    "Dark wood and an ember of orange": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Madera oscura y una brasa naranja"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bois sombre et une braise orange"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Madeira escura e uma brasa laranja"
+          }
+        }
+      }
+    },
     "Date": {
       "localizations": {
         "es": {
@@ -4727,6 +4903,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Suas decisões"
+          }
+        }
+      }
+    },
+    "Deep navy glass and an electric blue": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vidrio azul marino y un azul eléctrico"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verre bleu nuit et un bleu électrique"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vidro azul-marinho e um azul elétrico"
           }
         }
       }
@@ -5083,6 +5281,28 @@
         }
       }
     },
+    "Documents read": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Documentos leídos"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Documents lus"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Documentos lidos"
+          }
+        }
+      }
+    },
     "Done": {
       "localizations": {
         "es": {
@@ -5123,6 +5343,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Feito."
+          }
+        }
+      }
+    },
+    "Each asset gets its folder: the committee's analyses, the documents read, its thesis and your decisions, kept to open again.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cada activo tiene su carpeta: los análisis del comité, los documentos leídos, su tesis y tus decisiones, guardados para abrir de nuevo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chaque actif a son dossier : les analyses du comité, les documents lus, sa thèse et tes décisions, gardés pour les rouvrir."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cada ativo ganha a sua pasta: as análises do comitê, os documentos lidos, a tese e as suas decisões, guardados para abrir de novo."
           }
         }
       }
@@ -5805,6 +6047,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Lanterna"
+          }
+        }
+      }
+    },
+    "Folders": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Carpetas"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dossiers"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pastas"
           }
         }
       }
@@ -7063,6 +7327,28 @@
         }
       }
     },
+    "Hold": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mantener"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Garder"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manter"
+          }
+        }
+      }
+    },
     "Home": {
       "localizations": {
         "es": {
@@ -7327,6 +7613,28 @@
         }
       }
     },
+    "In your portfolio": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En tu cartera"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dans ton portefeuille"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Na sua carteira"
+          }
+        }
+      }
+    },
     "Income": {
       "localizations": {
         "es": {
@@ -7367,6 +7675,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Aumentar"
+          }
+        }
+      }
+    },
+    "Indigo night, a sphere of violet and blue light": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Noche índigo, una esfera de luz violeta y azul"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nuit indigo, une sphère de lumière violette et bleue"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Noite índigo, uma esfera de luz violeta e azul"
           }
         }
       }
@@ -7785,6 +8115,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Última mensagem"
+          }
+        }
+      }
+    },
+    "Last on %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Última el %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dernière le %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Última em %@"
           }
         }
       }
@@ -10033,6 +10385,28 @@
         }
       }
     },
+    "Nothing analysed yet. Ask AXYON in the chat (\"buy 100 shares of %@?\"): the committee meets and its analysis is kept here, with the documents the reader reads.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nada analizado aún. Pregunta a AXYON en el chat (\"¿comprar 100 cuotas de %@?\"): el comité se reúne y su análisis se guarda aquí, con los documentos que lee el lector."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rien d'analysé pour l'instant. Demande à AXYON dans le chat (« acheter 100 parts de %@ ? ») : le comité se réunit et son analyse est gardée ici, avec les documents que le lecteur lit."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nada analisado ainda. Pergunte ao AXYON no chat (\"comprar 100 cotas de %@?\"): o comitê se reúne e a análise fica guardada aqui, com os documentos que o estagiário lê."
+          }
+        }
+      }
+    },
     "Nothing found: is the device on, on this Wi-Fi? Or add it by its address.": {
       "localizations": {
         "es": {
@@ -10271,6 +10645,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "OKs dados"
+          }
+        }
+      }
+    },
+    "Ocean": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Océano"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Océan"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oceano"
           }
         }
       }
@@ -10777,6 +11173,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Abrir"
+          }
+        }
+      }
+    },
+    "Open %@'s folder": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir la carpeta de %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ouvrir le dossier de %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir a pasta de %@"
           }
         }
       }
@@ -12211,6 +12629,28 @@
         }
       }
     },
+    "Proventos and lançamentos": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dividendos y movimientos"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dividendes et opérations"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proventos e lançamentos"
+          }
+        }
+      }
+    },
     "Proventos counted since %@": {
       "localizations": {
         "es": {
@@ -12383,6 +12823,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Horário de silêncio"
+          }
+        }
+      }
+    },
+    "Quote": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cotización"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cours"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cotação"
           }
         }
       }
@@ -15929,6 +16391,50 @@
         }
       }
     },
+    "The committee's analyses": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Análisis del comité"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Analyses du comité"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Análises do comitê"
+          }
+        }
+      }
+    },
+    "The committee's analyses, the documents read, the thesis": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los análisis del comité, los documentos leídos, la tesis"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les analyses du comité, les documents lus, la thèse"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As análises do comitê, os documentos lidos, a tese"
+          }
+        }
+      }
+    },
     "The committee, the reader and the week explain each term the first time": {
       "localizations": {
         "es": {
@@ -16325,6 +16831,28 @@
         }
       }
     },
+    "Thesis": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tesis"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thèse"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tese"
+          }
+        }
+      }
+    },
     "This QR code isn't a Coucou pairing code. Use the one in Settings → Phone (Android and iPhone) on the computer.": {
       "localizations": {
         "es": {
@@ -16607,6 +17135,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "No ano"
+          }
+        }
+      }
+    },
+    "Three looks after the designs you chose: the night behind the screens, the glass's colour and the accent that glows.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tres estilos según los diseños que elegiste: la noche detrás de las pantallas, el color del vidrio y el acento que brilla."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trois styles d'après les designs que tu as choisis : la nuit derrière les écrans, la couleur du verre et l'accent qui brille."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Três visuais a partir dos designs que você escolheu: a noite atrás das telas, a cor do vidro e o acento que brilha."
           }
         }
       }
@@ -17953,6 +18503,28 @@
         }
       }
     },
+    "Weight": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Peso"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Poids"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Peso"
+          }
+        }
+      }
+    },
     "What AXYON may use on this iPhone": {
       "localizations": {
         "es": {
@@ -18851,6 +19423,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sua carteira consolidada"
+          }
+        }
+      }
+    },
+    "Your decisions": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tus decisiones"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tes décisions"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suas decisões"
           }
         }
       }
@@ -20231,6 +20825,28 @@
         }
       }
     },
+    "no analysis yet": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "sin análisis aún"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "pas encore d'analyse"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "sem análise ainda"
+          }
+        }
+      }
+    },
     "no purchase date": {
       "localizations": {
         "es": {
@@ -20605,6 +21221,28 @@
         }
       }
     },
+    "sure at %lld%%": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld%% de certeza"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "sûr à %lld %%"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld%% de certeza"
+          }
+        }
+      }
+    },
     "target %@": {
       "localizations": {
         "es": {
@@ -20623,6 +21261,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "meta %@"
+          }
+        }
+      }
+    },
+    "thesis": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "tesis"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "thèse"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "tese"
           }
         }
       }

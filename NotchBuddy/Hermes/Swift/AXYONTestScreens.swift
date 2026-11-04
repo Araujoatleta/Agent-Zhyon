@@ -6,8 +6,23 @@ import SwiftUI
 /// where to scroll it, with the example lançamentos and committee verdict the script leaves in the app's temporary
 /// folder (Hermes/tests/screens). Compiled for the Simulator only: no build for an iPhone carries it.
 enum AXYONTestScreen {
-    /// "wallet", "wallet-income-end", "invest-verdict-mid"…: a screen, then where it is scrolled to.
-    static var name: String { ProcessInfo.processInfo.environment["AXYON_TEST_TAB"] ?? "" }
+    /// What the script asked for: "wallet", "wallet-income-end", "invest~copper"…
+    static var raw: String { ProcessInfo.processInfo.environment["AXYON_TEST_TAB"] ?? "" }
+
+    /// A screen, then where it is scrolled to: "invest-verdict-mid".
+    static var name: String { String(raw.split(separator: "~").first ?? "") }
+
+    /// The look to draw it in ("copper" of "wallet~copper"); Aurora when none is named.
+    static var theme: String? {
+        let parts = raw.split(separator: "~")
+        return parts.count > 1 ? String(parts[1]) : nil
+    }
+
+    /// The look the script asked for, set before anything is drawn (a run with no screen asked leaves the choice).
+    static func applyTheme() {
+        guard !raw.isEmpty else { return }
+        UserDefaults.standard.set(theme ?? AXYONTheme.aurora.rawValue, forKey: AXYONTheme.key)
+    }
 
     /// The screen, without where it is scrolled to.
     static var base: String {
@@ -51,6 +66,11 @@ enum AXYONTestScreen {
             } catch {
                 print("AXYON screens: \(ticker) not entered: \(AXYONInvest.describe(error))")
             }
+        }
+        // A meeting of the committee on GARE11 (screens/committee.json: its facts and the minds' and the auditor's
+        // answers), kept by the engine as any other: its verdict on the investing screen and in GARE11's folder.
+        if let meeting = try? Data(contentsOf: file("axyon-committee.json")) {
+            _ = await HermesPowers.call("invest_committee", input: meeting)
         }
         // What the screens rest on (the closes, the funds' and the companies' proventos), read over a few calls.
         for _ in 0..<3 {

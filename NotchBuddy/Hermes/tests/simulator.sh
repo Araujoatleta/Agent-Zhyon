@@ -250,6 +250,7 @@ DATA="$(data_dir)"
 if [ -n "$DATA" ] && mkdir -p "$DATA/tmp" 2>/dev/null; then
     cp "$HERE/screens/trades.json" "$DATA/tmp/axyon-trades.json" || true
     cp "$HERE/screens/verdict.json" "$DATA/tmp/axyon-verdict.json" || true
+    cp "$HERE/screens/committee.json" "$DATA/tmp/axyon-committee.json" || true
     if open_app wallet; then
         for i in $(seq 1 150); do
             [ -f "$DATA/tmp/axyon-seeded" ] && break
@@ -290,7 +291,8 @@ quick_shot() {  # screen: the Wallet's and the investing screens, which need the
     xcrun simctl io "$DEVICE" screenshot "$SHOTS/$1.png" >/dev/null 2>&1 || true
 }
 for screen in wallet wallet-end wallet-trades wallet-income wallet-income-end wallet-asset wallet-asset-end wallet-new \
-    invest invest-end invest-verdict invest-verdict-mid invest-verdict-end; do
+    invest invest-mid invest-end invest-folders invest-folder invest-folder-end invest-verdict invest-verdict-mid \
+    invest-verdict-end 'wallet~copper' 'wallet~ocean' 'invest~copper' 'invest~ocean'; do
     quick_shot "$screen"
 done
 shot() {  # tab

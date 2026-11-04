@@ -7,24 +7,21 @@ import SwiftUI
 
 // MARK: - The look
 
-/// The charcoal behind the investing screens, a little lighter at the top.
+/// The night and its lights behind the investing screens: the same as every AXYON screen (AXYONBackdrop).
 struct InvestBackdrop: View {
     var body: some View {
-        LinearGradient(colors: [Color(hex: "#202023"), Color(hex: "#141416")], startPoint: .top, endPoint: .bottom)
-            .ignoresSafeArea()
-            .allowsHitTesting(false)
-            .accessibilityHidden(true)
+        AXYONBackdrop()
     }
 }
 
-/// The ring's soft colours, in the order slices take them.
+/// The ring's and the charts' colours (the chosen look's), and the votes': mint for, coral against, slate neutral,
+/// amber mixed.
 enum InvestPalette {
-    static let colors: [Color] = ["#F2F5C4", "#C5E8B7", "#E5CCFF", "#E8836B", "#9B9B9B", "#DDF6FA", "#B3B3F2", "#FBE2B6"]
-        .map { Color(hex: $0) }
-    static let favor = Color(hex: "#C5E8B7")
-    static let against = Color(hex: "#E8836B")
-    static let neutral = Color(hex: "#9B9B9B")
-    static let mixed = Color(hex: "#FBE2B6")
+    static var colors: [Color] { AXYONTheme.current.series }
+    static let favor = Color(hex: "#5EE6A8")
+    static let against = Color(hex: "#FF7A85")
+    static let neutral = Color(hex: "#9AA4B8")
+    static let mixed = Color(hex: "#FFC56B")
 
     static func color(_ index: Int) -> Color { colors[index % colors.count] }
 
@@ -150,13 +147,19 @@ struct InvestSegments<Value: Hashable>: View {
                 } label: {
                     Text(option.title)
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(chosen ? Color.black : Color.white.opacity(0.65))
+                        .foregroundStyle(chosen ? Color.white : Color.white.opacity(0.62))
                         .lineLimit(1)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
+                        .minimumScaleFactor(0.85)
+                        .padding(.horizontal, 15)
+                        .padding(.vertical, 9)
+                        .frame(maxWidth: .infinity)
                         .background {
                             if chosen {
-                                Capsule().fill(Color.white).matchedGeometryEffect(id: "pill", in: pill)
+                                Capsule()
+                                    .fill(AXYONTheme.current.accentGradient)
+                                    .overlay(Capsule().strokeBorder(.white.opacity(0.30), lineWidth: 0.8))
+                                    .axyonGlow(radius: 10, strength: 0.55)
+                                    .matchedGeometryEffect(id: "pill", in: pill)
                             }
                         }
                         .contentShape(Capsule())
@@ -165,8 +168,9 @@ struct InvestSegments<Value: Hashable>: View {
                 .accessibilityAddTraits(chosen ? .isSelected : [])
             }
         }
-        .padding(3)
-        .background(Capsule().fill(Color.white.opacity(0.08)))
+        .padding(4)
+        .coucouGlass(.regular, in: Capsule(), tint: AXYONTheme.current.glass)
+        .overlay(Capsule().strokeBorder(AXYONPalette.rim, lineWidth: 0.8).allowsHitTesting(false))
     }
 }
 
@@ -215,9 +219,12 @@ struct InvestTag: View {
             .foregroundStyle(color)
             .lineLimit(1)
             .fixedSize()
-            .padding(.horizontal, 8)
-            .padding(.vertical, 3)
-            .background(Capsule().fill(color.opacity(0.14)))
+            .padding(.horizontal, 9)
+            .padding(.vertical, 3.5)
+            .background {
+                Capsule().fill(color.opacity(0.16))
+                Capsule().strokeBorder(color.opacity(0.32), lineWidth: 0.7)
+            }
     }
 }
 
@@ -379,6 +386,7 @@ struct AXYONInvestView: View {
                 controls
                 if shown == .dividends { InvestMonthsBar(months: overview.dividends, index: $month) }
                 ringBlock
+                InvestFoldersSection()
                 InvestCommitteeCard(invest: invest)
                 InvestReaderCard(invest: invest)
                 InvestThesesCard(invest: invest, writing: $writing)
@@ -400,7 +408,7 @@ struct AXYONInvestView: View {
         .scrollContentBackground(.hidden)
         .background { InvestBackdrop() }
         .navigationTitle("Investments")
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
