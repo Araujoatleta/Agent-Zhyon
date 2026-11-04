@@ -316,6 +316,11 @@ jobs:
     permissions:
       contents: write
     steps:
+      # keep-screens.sh: only the workflows' folder.
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: .github
       - uses: actions/download-artifact@v8
         continue-on-error: true
         with:

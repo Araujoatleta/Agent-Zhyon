@@ -59,9 +59,9 @@ struct InvestMonth: Identifiable, Equatable {
     }
 
     /// "Out", as the carousel shows it.
-    var short: String { date?.formatted(.dateTime.month(.abbreviated)).capitalized ?? id }
+    var short: String { date?.formatted(.dateTime.month(.abbreviated)).axyonFirstUpper ?? id }
     /// "Outubro de 2026".
-    var long: String { date?.formatted(.dateTime.month(.wide).year()).capitalized ?? id }
+    var long: String { date?.formatted(.dateTime.month(.wide).year()).axyonFirstUpper ?? id }
 }
 
 /// A document the reader read, with the brain's digest when there is one.

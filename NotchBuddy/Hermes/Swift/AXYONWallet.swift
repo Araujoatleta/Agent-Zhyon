@@ -192,9 +192,9 @@ struct WalletMonth: Identifiable, Equatable {
     }
 
     /// "Out".
-    var short: String { date?.formatted(.dateTime.month(.abbreviated)).capitalized ?? id }
+    var short: String { date?.formatted(.dateTime.month(.abbreviated)).axyonFirstUpper ?? id }
     /// "Outubro de 2026".
-    var long: String { date?.formatted(.dateTime.month(.wide).year()).capitalized ?? id }
+    var long: String { date?.formatted(.dateTime.month(.wide).year()).axyonFirstUpper ?? id }
 }
 
 /// The consolidator's screen, as the engine computes it.
@@ -384,4 +384,9 @@ enum WalletNumber {
         let goal = percent(target)
         return percent(weight) + " · " + String(localized: "target \(goal)")
     }
+}
+
+extension String {
+    /// The first letter in capitals and nothing else: "Junho de 2026", where `capitalized` gives "Junho De 2026".
+    var axyonFirstUpper: String { self.prefix(1).uppercased() + self.dropFirst() }
 }

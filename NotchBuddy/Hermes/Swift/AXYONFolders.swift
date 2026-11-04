@@ -230,7 +230,7 @@ struct InvestFolderCard: View {
     var wide = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top) {
                 WalletAvatar(ticker: folder.ticker, color: color, size: 40)
                 Spacer(minLength: 4)
@@ -264,7 +264,7 @@ struct InvestFolderCard: View {
         }
         .padding(.top, 24)
         .padding([.horizontal, .bottom], 14)
-        .frame(width: wide ? nil : 170, height: 196, alignment: .topLeading)
+        .frame(width: wide ? nil : 170, height: 212, alignment: .topLeading)
         .frame(maxWidth: wide ? .infinity : nil, alignment: .topLeading)
         .modifier(FolderGlass(color: color))
         .contentShape(FolderShape())
