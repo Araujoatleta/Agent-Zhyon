@@ -76,7 +76,7 @@ struct AXYONHouseView: View {
                 }
                 if let house = engine.house {
                     if house.devices.isEmpty {
-                        empty
+                        empty(waiting: nil)
                     }
                     if !house.own.isEmpty {
                         AXYONHeader(title: String(localized: "On this iPhone's Wi-Fi"))
@@ -92,16 +92,10 @@ struct AXYONHouseView: View {
                             .foregroundStyle(AXYONPalette.dim)
                             .padding(.horizontal, 6)
                     }
-                } else if engine.state == .ready {
-                    ProgressView()
-                        .frame(maxWidth: .infinity)
-                        .padding(.top, 60)
                 } else {
-                    Label("Hermes is waking up inside the iPhone…", systemImage: "hourglass")
-                        .font(.footnote)
-                        .foregroundStyle(AXYONPalette.dim)
-                        .frame(maxWidth: .infinity)
-                        .padding(.top, 60)
+                    // The home is read once Hermes is up: the card is there already, with what it waits for.
+                    empty(waiting: engine.state == .ready ? String(localized: "Looking for your devices…")
+                                                          : String(localized: "Hermes is waking up inside the iPhone…"))
                 }
             }
             .padding(.horizontal, 20)
@@ -134,11 +128,34 @@ struct AXYONHouseView: View {
         await engine.refreshHouse(quick: !device.fromAssistant)
     }
 
-    private var empty: some View {
-        VStack(spacing: 14) {
-            Image(systemName: "house.and.flag.fill")
-                .font(.system(size: 44, weight: .light))
-                .foregroundStyle(.white)
+    /// No device yet: a lit house in a sphere of the accent's light, what AXYON reaches, and the way to add one;
+    /// `waiting` while the home is still being read.
+    private func empty(waiting: String?) -> some View {
+        let theme = AXYONTheme.current
+        return VStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(RadialGradient(colors: [theme.accent.opacity(0.45), theme.accent.opacity(0)],
+                                         center: .center, startRadius: 20, endRadius: 70))
+                    .frame(width: 140, height: 140)
+                Circle()
+                    .fill(RadialGradient(colors: [theme.accent, theme.accentDeep, theme.night.last ?? .black],
+                                         center: UnitPoint(x: 0.36, y: 0.3), startRadius: 2, endRadius: 52))
+                    .frame(width: 84, height: 84)
+                    .overlay(Circle().strokeBorder(.white.opacity(0.35), lineWidth: 0.8))
+                    .overlay(alignment: .topLeading) {
+                        Ellipse()
+                            .fill(LinearGradient(colors: [.white.opacity(0.7), .white.opacity(0)], startPoint: .top, endPoint: .bottom))
+                            .frame(width: 34, height: 15)
+                            .offset(x: 16, y: 9)
+                            .blur(radius: 1)
+                    }
+                    .shadow(color: theme.accent.opacity(0.7), radius: 18)
+                Image(systemName: "house.fill")
+                    .font(.system(size: 32, weight: .semibold))
+                    .foregroundStyle(.white)
+            }
+            .frame(height: 120)
             Text("Your home, from the iPhone").font(.title3.weight(.semibold))
             Text("Add your Samsung TV, your Android TV or box, or your Home Assistant: AXYON reaches them from this iPhone on your Wi-Fi, with no computer. Then ask in the chat: “turn on the living room TV”.")
                 .font(.callout)
@@ -152,6 +169,13 @@ struct AXYONHouseView: View {
             }
             .coucouGlassButton(prominent: true)
             .disabled(engine.state != .ready)
+            if let waiting {
+                HStack(spacing: 8) {
+                    ProgressView().controlSize(.small)
+                    Text(waiting).font(.footnote).foregroundStyle(AXYONPalette.dim)
+                }
+                .padding(.top, 2)
+            }
         }
         .padding(28)
         .frame(maxWidth: .infinity)

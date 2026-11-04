@@ -166,9 +166,9 @@ enum AXYONMood: Equatable {
     var glow: Color { self == .trouble ? AXYONPalette.down : AXYONTheme.current.accent }
 }
 
-/// Hermes' orb: a sphere of dark glass lit from the top left, a light breathing inside it, and an arc of light running
-/// around its edge while he works. White on black, red only when he could not start. Drawn in code; `still` draws it
-/// once, for the many small ones (an older message's), which then cost nothing.
+/// Hermes' orb: a sphere of glass full of the accent's light, brightest at the top left, a light breathing inside it,
+/// and an arc of light running around its edge while he works; red only when he could not start. Drawn in code;
+/// `still` draws it once, for the many small ones (an older message's), which then cost nothing.
 struct AXYONOrb: View {
     var mood: AXYONMood
     var size: CGFloat = 120
@@ -194,18 +194,27 @@ struct AXYONOrb: View {
     private func sphere(at t: TimeInterval) -> some View {
         let breath = 0.5 + 0.5 * sin(t * (mood.turns ? 2.4 : 1.1))
         let lit = mood.light * (0.65 + 0.35 * breath)
+        let deep = mood == .trouble ? AXYONPalette.down.opacity(0.55) : AXYONTheme.current.accentDeep
         return ZStack {
-            // The light it gives off, faint.
+            // The light it gives off, as the designs' spheres do.
             Circle()
-                .fill(RadialGradient(colors: [mood.glow.opacity(0.16 * lit), .clear],
-                                     center: .center, startRadius: size * 0.35, endRadius: size * 0.9))
+                .fill(RadialGradient(colors: [mood.glow.opacity(0.34 * lit), .clear],
+                                     center: .center, startRadius: size * 0.3, endRadius: size * 0.9))
                 .frame(width: size * 1.8, height: size * 1.8)
-            // The ball: dark glass, deeper at its edge, a light inside it.
+            // The ball: glass full of the accent's light, brightest at the top left, deep at its edge.
             Circle()
-                .fill(RadialGradient(colors: [mood.glow.opacity(0.30 * lit), .white.opacity(0.04), .black.opacity(0.55)],
-                                     center: UnitPoint(x: 0.5, y: 0.46), startRadius: 0, endRadius: size * 0.52))
+                .fill(RadialGradient(colors: [mood.glow.opacity(0.30 + 0.6 * lit), deep.opacity(0.25 + 0.6 * lit),
+                                              (AXYONTheme.current.night.last ?? .black).opacity(0.92)],
+                                     center: UnitPoint(x: 0.4, y: 0.34), startRadius: 0, endRadius: size * 0.62))
                 .frame(width: size, height: size)
                 .coucouGlass(.clear, in: Circle())
+            // The light gathered at its bottom, through the glass.
+            Ellipse()
+                .fill(RadialGradient(colors: [mood.glow.opacity(0.55 * lit), .clear],
+                                     center: .center, startRadius: 0, endRadius: size * 0.34))
+                .frame(width: size * 0.7, height: size * 0.3)
+                .offset(y: size * 0.3)
+                .blur(radius: size < 40 ? 0.5 : 3)
             // Its edge: a hairline, brightest where the light comes from.
             Circle()
                 .strokeBorder(AngularGradient(colors: [.white.opacity(0.75), .white.opacity(0.06), .white.opacity(0.28),

@@ -8733,6 +8733,28 @@
         }
       }
     },
+    "Looking for your devices…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscando tus dispositivos…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recherche de vos appareils…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Procurando seus aparelhos…"
+          }
+        }
+      }
+    },
     "M": {
       "localizations": {
         "es": {
