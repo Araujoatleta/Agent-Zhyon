@@ -56,6 +56,9 @@ enum AXYONTestScreen {
         for _ in 0..<3 {
             await wallet.load()
         }
+        // For the test's log: the screen as the engine gives it.
+        let screen = await HermesPowers.call("invest_wallet", input: Data("{}".utf8))
+        try? screen.write(to: file("axyon-wallet.json"))
         try? Data("ok".utf8).write(to: file("axyon-seeded"))
     }
 

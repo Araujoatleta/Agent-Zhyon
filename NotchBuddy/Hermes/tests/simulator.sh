@@ -257,6 +257,30 @@ if [ -n "$DATA" ] && mkdir -p "$DATA/tmp" 2>/dev/null; then
         done
         if [ -f "$DATA/tmp/axyon-seeded" ]; then echo "The example lançamentos are in"; else echo "The example lançamentos did not finish in time"; fi
     fi
+    # What the Wallet shows, in words: the quotes, the proventos and the lançamentos the engine read.
+    if [ -f "$DATA/tmp/axyon-wallet.json" ]; then
+        "$PYTHON" - "$DATA/tmp/axyon-wallet.json" <<'EOF' || true
+import json, sys
+o = json.load(open(sys.argv[1]))
+d = o.get("data") or {}
+print("Wallet:", "ok" if o.get("ok") else o.get("text"), "| total", d.get("total"), "| cost", d.get("cost"), "| gain", d.get("gain"),
+      "| day", d.get("day"), "| priced on", d.get("pricedOn"), "| live at", d.get("liveAt"), "| realized", d.get("realized"))
+for c in d.get("classes", []):
+    print(" ", c.get("label"), c.get("value"), f"{c.get('weight', 0):.1f}%")
+    for a in c.get("assets", []):
+        print(f"    {a.get('ticker'):7} {a.get('quantity'):>6} x avg {a.get('average', 0):.2f} | price {a.get('price')}"
+              f" ({'live' if a.get('live') else a.get('closeDay')}) | day {a.get('dayPct')} | 12m {a.get('dividends12')}"
+              f" | to receive {a.get('provisioned')}")
+inc = d.get("income") or {}
+print("Proventos: 12m", inc.get("twelve"), "| year", inc.get("year"), "| to receive", inc.get("provisioned"), "| announced",
+      inc.get("announced"), "| received", len(inc.get("received", [])), "| pending", len(inc.get("pending", [])), "| ahead",
+      len(inc.get("ahead", [])), "| months", len(inc.get("months", [])))
+for p in (inc.get("pending", []) + inc.get("ahead", []) + inc.get("received", [])[:6]):
+    print("   ", p.get("ticker"), p.get("kind"), p.get("perShare"), "x", p.get("quantity"), "= net", round(p.get("net", 0), 2),
+          "| data-com", p.get("record"), "| payment", p.get("payment"), "| estimated" if p.get("estimated") else "")
+print("Lançamentos:", len(d.get("trades", [])))
+EOF
+    fi
     # The investing screen reads what it rests on the first time it opens (closes, the documents' lists).
     if open_app invest; then sleep 45; fi
 fi
