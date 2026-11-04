@@ -83,7 +83,7 @@ enum HermesArms {
         let refresh = UIApplication.shared.backgroundRefreshStatus == .available
         switch what {
         case "on":
-            let granted = (try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])) ?? false
+            let granted = await axyonAskNotifications()
             UserDefaults.standard.set(true, forKey: AXYONAlerts.enabledKey)
             AXYONAlerts.schedule()
             return ["on": true, "notifications": granted, "backgroundRefresh": refresh,
@@ -115,7 +115,7 @@ enum HermesArms {
     nonisolated private static func notify(_ request: Data) async -> Data {
         let r = object(request)
         let center = UNUserNotificationCenter.current()
-        let granted = (try? await center.requestAuthorization(options: [.alert, .sound, .badge])) ?? false
+        let granted = await axyonAskNotifications()
         guard granted else { return data(["error": "Notifications are off for AXYON in the iPhone's Settings."]) }
         let content = UNMutableNotificationContent()
         content.title = String((r["title"] as? String ?? "AXYON").prefix(120))

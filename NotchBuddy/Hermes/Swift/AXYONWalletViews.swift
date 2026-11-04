@@ -364,7 +364,10 @@ struct WalletAssetRow: View {
                 Text("Qty \(WalletNumber.quantity(asset.quantity)) · avg \(WalletNumber.price(asset.average))")
                     .font(.caption)
                     .foregroundStyle(AXYONPalette.dim)
+                    .monospacedDigit()
                     .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .layoutPriority(1)
                 HStack(spacing: 6) {
                     Text(asset.price.map(WalletNumber.price) ?? "—").foregroundStyle(Color.white.opacity(0.8))
                     if let day = asset.dayPct {
@@ -899,13 +902,12 @@ struct WalletTradeSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    Picker(selection: $sell) {
-                        Text("Purchase").tag(false)
-                        Text("Sale").tag(true)
-                    } label: { EmptyView() }
-                    .pickerStyle(.segmented)
+                    InvestSegments<Bool>(options: [.init(value: false, title: String(localized: "Purchase")),
+                                                   .init(value: true, title: String(localized: "Sale"))],
+                                         selection: $sell)
                 }
                 .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets())
                 Section {
                     TextField(String(localized: "Ticker (GARE11, BBAS3…)"), text: $ticker)
                         .textInputAutocapitalization(.characters)
@@ -927,6 +929,7 @@ struct WalletTradeSheet: View {
                     TextField(String(localized: "Costs (brokerage, fees) — optional"), text: $fees)
                         .keyboardType(.decimalPad)
                 }
+                .listRowBackground(GlassRowBackground())
                 if asksOpening, let held {
                     Section {
                         Picker(selection: $opening) {
@@ -941,6 +944,7 @@ struct WalletTradeSheet: View {
                              ? String(localized: "The shares you hold come first, as an opening balance at their average price; this buy is added to them.")
                              : String(localized: "Enter every buy and sale of those shares: the position becomes what they make."))
                     }
+                    .listRowBackground(GlassRowBackground())
                 }
                 if let total {
                     Section {
@@ -950,11 +954,13 @@ struct WalletTradeSheet: View {
                             Text(AXYONMoney.text(total)).font(.headline).monospacedDigit()
                         }
                     }
+                    .listRowBackground(GlassRowBackground(tint: AXYONTheme.current.accent))
                 }
                 if let problem {
                     Section {
                         Text(problem).foregroundStyle(InvestPalette.against)
                     }
+                    .listRowBackground(GlassRowBackground())
                 }
             }
             .scrollContentBackground(.hidden)

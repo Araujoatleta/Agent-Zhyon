@@ -260,7 +260,7 @@ final class HermesEngine {
                 if case .tool = event { self.acting = true }
                 if case .tool(let name, _) = event, name == "cronjob_manage" || name == "iphone_alerts" {
                     // Their answers come as notifications, also with AXYON closed: iOS asks now, with the user here.
-                    Task { _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) }
+                    Task { _ = await axyonAskNotifications() }
                 }
                 if case .toolDone = event { self.acting = false }
                 self.conversation.apply(event, to: answer, label: Self.label)

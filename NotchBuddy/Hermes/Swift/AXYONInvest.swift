@@ -1053,7 +1053,7 @@ enum AXYONWeeklyAudio {
         center.removePendingNotificationRequests(withIdentifiers: ["axyon-weekly"])
         UserDefaults.standard.set(on, forKey: remindKey)
         guard on else { return }
-        _ = try? await center.requestAuthorization(options: [.alert, .sound])
+        _ = await axyonAskNotifications([.alert, .sound])
         let content = UNMutableNotificationContent()
         content.title = String(localized: "Your week in three minutes")
         content.body = String(localized: "Your portfolio's summary is ready: open AXYON to hear it or send it on WhatsApp.")

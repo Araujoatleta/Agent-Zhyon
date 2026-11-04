@@ -111,14 +111,16 @@ struct AXYONTabs: View {
     }
 
     /// A tab's screens: their own navigation, the system's tab bar hidden, room at the bottom for the floating one.
+    /// The room is a margin under every list and scroll of the tab, the screens it pushes included (a margin set
+    /// here reaches them; an inset does not), and what stays at a screen's bottom, as the chat's field, reads it.
     private func stack<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
-        NavigationStack {
+        let room = typing ? 0 : AXYONTabBar.height + 14
+        return NavigationStack {
             content().toolbar(.hidden, for: .tabBar)
         }
         .toolbar(.hidden, for: .tabBar)
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                Color.clear.frame(height: typing ? 0 : AXYONTabBar.height + 14)
-            }
+        .contentMargins(.bottom, room, for: .scrollContent)
+        .environment(\.axyonBarRoom, room)
     }
 }
 
@@ -171,6 +173,8 @@ struct AXYONApprovalBanner: View {
 
 struct HermesChatView: View {
     @Environment(HermesEngine.self) private var engine
+    /// The floating bar's room: the field sits above it.
+    @Environment(\.axyonBarRoom) private var barRoom
     @State private var text = ""
     @FocusState private var focused: Bool
     @State private var dictation = Dictation()
@@ -229,6 +233,8 @@ struct HermesChatView: View {
                 .padding(.bottom, 8)
             }
             .scrollDismissesKeyboard(.interactively)
+            // The field (below) makes the room for the bar already.
+            .contentMargins(.bottom, 0, for: .scrollContent)
             .onAppear { proxy.scrollTo(Self.end, anchor: .bottom) }
             .onChange(of: followKey) { proxy.scrollTo(Self.end, anchor: .bottom) }
             .onChange(of: engine.mailAsk?.id) { proxy.scrollTo(Self.end, anchor: .bottom) }
@@ -518,7 +524,7 @@ struct HermesChatView: View {
         }
         .padding(.horizontal, 12)
         .padding(.top, 10)
-        .padding(.bottom, 6)
+        .padding(.bottom, 6 + barRoom)
         .animation(.spring(duration: 0.35, bounce: 0.2), value: running || !empty)
         .background(alignment: .bottom) {
             LinearGradient(colors: [.clear, .black.opacity(0.85), .black], startPoint: .top, endPoint: .bottom)
@@ -1234,7 +1240,7 @@ final class AXYONPermissions {
     }
 
     func askNotifications() async {
-        _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])
+        _ = await axyonAskNotifications()
         await load()
     }
 

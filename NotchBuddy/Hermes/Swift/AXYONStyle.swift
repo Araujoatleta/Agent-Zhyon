@@ -1,4 +1,5 @@
 import SwiftUI
+import UserNotifications
 
 // AXYON's look on the iPhone with Hermes inside (the build that carries it), after the designs the user chose: a night
 // with coloured lights behind every screen (AXYONTheme), frosted glass cards that let those lights through with an
@@ -472,5 +473,31 @@ struct AXYONTabBar: View {
         .buttonStyle(.plain)
         .accessibilityLabel(Text("Chat"))
         .accessibilityAddTraits(chosen ? .isSelected : [])
+    }
+}
+
+// MARK: - Asking for notifications
+
+/// Asks iOS to let AXYON notify; in CI's Simulator runs (Hermes/tests/simulator.sh), where nobody would answer and the
+/// alert would stay over every screenshot, it does not ask.
+func axyonAskNotifications(_ options: UNAuthorizationOptions = [.alert, .sound, .badge]) async -> Bool {
+    #if targetEnvironment(simulator)
+    if ProcessInfo.processInfo.environment["AXYON_TEST_PORT"] != nil { return false }
+    #endif
+    return (try? await UNUserNotificationCenter.current().requestAuthorization(options: options)) ?? false
+}
+
+// MARK: - Room for the floating bar
+
+private struct AXYONBarRoomKey: EnvironmentKey {
+    static let defaultValue: CGFloat = 0
+}
+
+extension EnvironmentValues {
+    /// How much of the bottom the floating bar covers (none while the keyboard is up): what stays at the bottom of a
+    /// screen, as the chat's field, sits above it.
+    var axyonBarRoom: CGFloat {
+        get { self[AXYONBarRoomKey.self] }
+        set { self[AXYONBarRoomKey.self] = newValue }
     }
 }

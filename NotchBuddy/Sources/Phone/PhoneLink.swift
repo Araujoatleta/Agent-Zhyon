@@ -139,7 +139,12 @@ final class PhoneLink {
         // The fetch starts right away, not after the notification prompt: the
         // intro hides it and should end as soon as everything is there.
         let authorization = Task {
+            #if HERMES
+            // AXYON's ask: quiet in CI's Simulator runs, where nobody answers (AXYONStyle.swift).
+            await axyonAskNotifications()
+            #else
             (try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])) ?? false
+            #endif
         }
         await refresh()
         notificationsAllowed = await authorization.value
