@@ -26,6 +26,9 @@ fn held_on(store: &Store, ticker: &str, day: Date) -> f64 {
 /// The day the user's records show `ticker` first held: its first purchase, or the first snapshot to list it once the
 /// snapshots list prices (a fund bought after AXYON began keeping them). None: unknown, every payout counts.
 pub fn held_since(store: &Store, ticker: &str) -> Option<Date> {
+    if let Some(day) = store.held_from.get(ticker) {
+        return Some(*day);
+    }
     let bought = store.trades.iter().filter(|t| t.ticker == ticker && t.kind != TradeKind::Sell).map(|t| t.date).min();
     let mut priced: Vec<&crate::model::Snapshot> = store.snapshots.iter().filter(|s| !s.prices.is_empty()).collect();
     priced.sort_by_key(|s| s.date);
@@ -460,6 +463,15 @@ pub fn app(store: &mut Store, market: &Market, lib: &mut Library, tool: &str, in
                 "remove" => {
                     let id = input["id"].as_u64().ok_or("Qual lançamento remover?")?;
                     crate::wallet::remove(store, market, id, today)?;
+                }
+                // Since when an asset of the sheet is held (date "" takes it back): its proventos count from then.
+                "since" => {
+                    let ticker = s("ticker").and_then(|t| crate::text::ticker(&t)).ok_or("Informe o código do ativo.")?;
+                    let day = match s("date").filter(|d| !d.is_empty()) {
+                        Some(d) => Some(Date::parse(&d).ok_or("A data não é válida.")?),
+                        None => None,
+                    };
+                    crate::wallet::set_held_from(store, &ticker, day, today)?;
                 }
                 _ => {
                     let e = crate::wallet::entry(input, today)?;

@@ -699,7 +699,7 @@ pub mod fixtures {
     }
 
     fn payout(record: Date, value: f64) -> Payout {
-        Payout { record, payment: Some(record.add_days(14)), value, amortization: false, tax_free: Some(true), period: String::new(), document: 1 }
+        Payout { record, payment: Some(record.add_days(14)), value, amortization: false, tax_free: Some(true), period: String::new(), document: 1, code: Some(String::new()) }
     }
 
     /// GARE11 as the committee saw it on 30/10/2026 (its shape, not its real figures): held at 19,5 % of the
@@ -845,7 +845,7 @@ mod tests {
     fn the_funds_events_are_told_in_portuguese_with_their_links() {
         let (store, mut market) = gare11();
         let gare = market.funds.get_mut("GARE11").unwrap();
-        gare.payouts.push(crate::sources::fnet::Payout { record: day(2026, 11, 3), payment: Some(day(2026, 11, 10)), value: 0.083, amortization: false, tax_free: Some(true), period: String::new(), document: 77 });
+        gare.payouts.push(crate::sources::fnet::Payout { record: day(2026, 11, 3), payment: Some(day(2026, 11, 10)), value: 0.083, amortization: false, tax_free: Some(true), period: String::new(), document: 77, code: Some(String::new()) });
         gare.documents.push(crate::sources::fnet::Document {
             id: 78,
             category: "Fato Relevante".into(),

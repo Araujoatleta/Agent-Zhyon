@@ -488,7 +488,7 @@ mod tests {
     }
 
     fn payout(record: &str, value: f64) -> Payout {
-        Payout { record: d(record), payment: Some(d(record).add_days(7)), value, amortization: false, tax_free: Some(true), period: String::new(), document: 7 }
+        Payout { record: d(record), payment: Some(d(record).add_days(7)), value, amortization: false, tax_free: Some(true), period: String::new(), document: 7, code: Some(String::new()) }
     }
 
     fn fund(vps: &[f64], dividends: &[f64]) -> FundData {
@@ -572,8 +572,8 @@ mod tests {
     fn the_guardian_lists_what_needs_the_user() {
         let today = d("2026-10-21");
         let mut f = fund(&[9.5; 13], &[0.088; 12]);
-        f.payouts.push(Payout { record: d("2026-10-30"), payment: Some(d("2026-11-07")), value: 0.09, amortization: false, tax_free: Some(true), period: String::new(), document: 11 });
-        f.payouts.push(Payout { record: d("2026-10-30"), payment: Some(d("2026-11-07")), value: 0.05, amortization: true, tax_free: None, period: String::new(), document: 12 });
+        f.payouts.push(Payout { record: d("2026-10-30"), payment: Some(d("2026-11-07")), value: 0.09, amortization: false, tax_free: Some(true), period: String::new(), document: 11, code: Some(String::new()) });
+        f.payouts.push(Payout { record: d("2026-10-30"), payment: Some(d("2026-11-07")), value: 0.05, amortization: true, tax_free: None, period: String::new(), document: 12, code: Some(String::new()) });
         let doc = |id: u64, topic: Topic, category: &str, reference: &str, delivered: &str| Document {
             id,
             category: category.into(),

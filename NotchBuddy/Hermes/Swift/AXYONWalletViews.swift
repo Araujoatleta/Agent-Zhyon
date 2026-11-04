@@ -279,6 +279,9 @@ struct WalletAssetRow: View {
                 if asset.provisioned > 0 {
                     InvestTag(text: String(localized: "\(AXYONMoney.text(asset.provisioned)) to receive"), color: InvestPalette.favor)
                 }
+                if asset.needsDate {
+                    InvestTag(text: String(localized: "no purchase date"), color: InvestPalette.mixed)
+                }
             }
         }
         .padding(.horizontal, 14)
@@ -588,8 +591,9 @@ struct WalletPaidRow: View {
     /// "204 × R$ 0,0831", and whether it was counted on the shares held now.
     private var amount: String {
         let line = WalletNumber.quantity(paid.quantity) + " × " + WalletNumber.price(paid.perShare)
-        guard paid.estimated else { return line }
-        return line + " · " + String(localized: "estimated")
+        if paid.estimated { return line + " · " + String(localized: "estimated") }
+        if paid.basis == "planilha" { return line + " · " + String(localized: "checked with your sheet") }
+        return line
     }
 
     private var dates: String {
@@ -618,6 +622,9 @@ struct WalletAssetView: View {
             VStack(alignment: .leading, spacing: 18) {
                 if let asset {
                     header(asset)
+                    if asset.trades == 0 {
+                        WalletSinceCard(wallet: wallet, asset: asset)
+                    }
                     figures(asset)
                 }
                 HStack(spacing: 12) {
@@ -849,6 +856,81 @@ struct WalletTradeSheet: View {
                 try await wallet.add(ticker: code, sell: sell, date: date, quantity: quantity, price: price, fees: fees,
                                      opening: sell || !asksOpening || opening)
                 dismiss()
+            } catch {
+                problem = AXYONInvest.describe(error)
+            }
+        }
+    }
+}
+
+// MARK: - Since when an asset of the sheet is held
+
+/// An asset from the sheet, with no lançamento: since when it is held, so that no provento from before the purchase
+/// counts. The proventos of a month the sheet's "Proventos pagos" records come from it either way.
+struct WalletSinceCard: View {
+    let wallet: AXYONWallet
+    let asset: WalletAsset
+    @State private var date = Date.now
+    @State private var editing = false
+    @State private var saving = false
+    @State private var problem: String?
+
+    private var asking: Bool { asset.needsDate || editing }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if asking {
+                Label(String(localized: "Since when do you hold \(asset.ticker)?"), systemImage: "calendar.badge.clock")
+                    .font(.headline)
+                    .foregroundStyle(.white)
+                Text("Only the proventos whose data-com came after your purchase are yours. Tell the day of your first purchase (or enter your buys as lançamentos).")
+                    .font(.footnote)
+                    .foregroundStyle(AXYONPalette.dim)
+                DatePicker(String(localized: "First purchase"), selection: $date, in: ...Date.now, displayedComponents: .date)
+                    .tint(InvestPalette.favor)
+                HStack {
+                    if editing {
+                        Button(String(localized: "Cancel")) { editing = false }
+                            .buttonStyle(.borderless)
+                    }
+                    Spacer()
+                    Button {
+                        save(date)
+                    } label: {
+                        if saving { ProgressView() } else { Text("Save") }
+                    }
+                    .coucouProminentButton()
+                    .disabled(saving)
+                }
+            } else {
+                HStack(spacing: 10) {
+                    Image(systemName: "calendar").foregroundStyle(InvestPalette.favor)
+                    Text("Proventos counted since \(investDay(asset.heldFrom))")
+                        .font(.subheadline)
+                        .foregroundStyle(.white)
+                    Spacer(minLength: 4)
+                    Button(String(localized: "Change")) { editing = true }
+                        .font(.footnote.weight(.semibold))
+                        .buttonStyle(.borderless)
+                }
+            }
+            if let problem {
+                Text(problem).font(.footnote).foregroundStyle(InvestPalette.against)
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .axyonCard(cornerRadius: 22, tint: asset.needsDate ? InvestPalette.mixed : nil)
+    }
+
+    private func save(_ day: Date) {
+        saving = true
+        problem = nil
+        Task {
+            defer { saving = false }
+            do {
+                try await wallet.since(asset.ticker, date: day)
+                editing = false
             } catch {
                 problem = AXYONInvest.describe(error)
             }

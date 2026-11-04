@@ -3125,6 +3125,28 @@
         }
       }
     },
+    "Change": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cambiar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modifier"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alterar"
+          }
+        }
+      }
+    },
     "Change the assistant": {
       "localizations": {
         "es": {
@@ -5651,6 +5673,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Concluir"
+          }
+        }
+      }
+    },
+    "First purchase": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Primera compra"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Premier achat"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Primeira compra"
           }
         }
       }
@@ -10671,6 +10715,28 @@
         }
       }
     },
+    "Only the proventos whose data-com came after your purchase are yours. Tell the day of your first purchase (or enter your buys as lançamentos).": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Solo son tuyos los dividendos con fecha de corte posterior a tu compra. Indica el día de tu primera compra (o registra tus compras como movimientos)."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seuls les dividendes dont la date de détachement suit ton achat sont à toi. Indique le jour de ton premier achat (ou saisis tes achats comme opérations)."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Só são seus os proventos com data-com depois da sua compra. Informe o dia da primeira compra (ou lance suas compras como lançamentos)."
+          }
+        }
+      }
+    },
     "Only this computer is accepted: its certificate is checked at every connection. If its address changes, Coucou finds it again on the local network.": {
       "localizations": {
         "es": {
@@ -12141,6 +12207,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Proventos"
+          }
+        }
+      }
+    },
+    "Proventos counted since %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dividendos contados desde %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dividendes comptés depuis %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proventos contados desde %@"
           }
         }
       }
@@ -14715,6 +14803,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Desde %@ · caixa %@"
+          }
+        }
+      }
+    },
+    "Since when do you hold %@?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Desde cuándo tienes %@?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Depuis quand as-tu %@ ?"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desde quando você tem %@?"
           }
         }
       }
@@ -19405,6 +19515,28 @@
         }
       }
     },
+    "checked with your sheet": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "verificado con tu planilla"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "vérifié avec ta feuille"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "conferido com a planilha"
+          }
+        }
+      }
+    },
     "computed": {
       "localizations": {
         "es": {
@@ -20095,6 +20227,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "líquido de IR"
+          }
+        }
+      }
+    },
+    "no purchase date": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "sin fecha de compra"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "sans date d'achat"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "sem data de compra"
           }
         }
       }

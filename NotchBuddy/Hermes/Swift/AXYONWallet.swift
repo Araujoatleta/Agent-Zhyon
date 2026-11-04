@@ -48,6 +48,10 @@ struct WalletAsset: Identifiable, Equatable, Hashable {
     let managed: Bool
     let realized: Double
     let unpriced: Bool
+    /// Since when its proventos count ("2026-10-01"): its first lançamento, or the day the user gave.
+    let heldFrom: String
+    /// From the sheet, with neither: the app asks since when it is held.
+    let needsDate: Bool
 
     init(_ o: [String: Any]) {
         id = WalletJSON.str(o["ticker"])
@@ -73,6 +77,8 @@ struct WalletAsset: Identifiable, Equatable, Hashable {
         managed = o["managed"] as? Bool ?? false
         realized = WalletJSON.dbl(o["realized"])
         unpriced = o["unpriced"] as? Bool ?? false
+        heldFrom = WalletJSON.str(o["heldFrom"])
+        needsDate = o["needsDate"] as? Bool ?? false
     }
 
     var ticker: String { id }
@@ -148,6 +154,8 @@ struct WalletPaid: Identifiable, Equatable {
     let net: Double
     /// Counted on the shares held now: no lançamento tells what was held at the data-com.
     let estimated: Bool
+    /// How its shares are known: lancamentos, planilha (what the sheet records that month), posicao, estimado.
+    let basis: String
 
     init(_ o: [String: Any]) {
         ticker = WalletJSON.str(o["ticker"])
@@ -159,6 +167,7 @@ struct WalletPaid: Identifiable, Equatable {
         gross = WalletJSON.dbl(o["gross"])
         net = WalletJSON.dbl(o["net"])
         estimated = o["estimated"] as? Bool ?? false
+        basis = WalletJSON.str(o["basis"])
         id = "\(ticker)-\(kind)-\(record)-\(payment ?? "")-\(perShare)"
     }
 
@@ -318,6 +327,18 @@ final class AXYONWallet {
 
     func remove(_ trade: WalletTrade) async throws {
         take(try await engine("invest_trade", ["do": "remove", "id": trade.id]))
+    }
+
+    /// Since when an asset of the sheet is held (nil takes the day back): its proventos count from then.
+    func since(_ ticker: String, date: Date?) async throws {
+        var iso = ""
+        if let date {
+            var day = Calendar(identifier: .gregorian)
+            day.timeZone = .current
+            let parts = day.dateComponents([.year, .month, .day], from: date)
+            iso = String(format: "%04d-%02d-%02d", parts.year ?? 2000, parts.month ?? 1, parts.day ?? 1)
+        }
+        take(try await engine("invest_trade", ["do": "since", "ticker": ticker, "date": iso]))
     }
 }
 

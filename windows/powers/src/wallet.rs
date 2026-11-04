@@ -234,6 +234,30 @@ pub fn remove(store: &mut Store, market: &Market, seq: u64, today: Date) -> Resu
     Ok(())
 }
 
+/// How a provento's shares are known.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Basis {
+    /// The lançamentos: what was held at the end of its data-com.
+    Lancamentos,
+    /// The user's sheet records what the asset paid that month: the shares are what that amount implies.
+    Sheet,
+    /// What is held now, held since before its data-com (the day the user gave, or ahead of its data-com).
+    Now,
+    /// What is held now, the day of purchase unknown.
+    Estimated,
+}
+
+impl Basis {
+    fn id(self) -> &'static str {
+        match self {
+            Basis::Lancamentos => "lancamentos",
+            Basis::Sheet => "planilha",
+            Basis::Now => "posicao",
+            Basis::Estimated => "estimado",
+        }
+    }
+}
+
 /// One provento as the consolidator shows it.
 #[derive(Debug, Clone, PartialEq)]
 struct Paid {
@@ -245,8 +269,7 @@ struct Paid {
     quantity: f64,
     gross: f64,
     net: f64,
-    /// Counted on the shares held now (no lançamento tells what was held at the data-com).
-    estimated: bool,
+    basis: Basis,
 }
 
 impl Paid {
@@ -260,15 +283,21 @@ impl Paid {
             "quantity": self.quantity,
             "gross": self.gross,
             "net": self.net,
-            "estimated": self.estimated,
+            "basis": self.basis.id(),
+            "estimated": self.basis == Basis::Estimated,
         })
     }
 }
 
-/// The payouts an asset announced: a fund's on FundosNet, a company's on B3.
+/// The payouts an asset announced: a fund's on FundosNet (its own share's, not its other classes'), a company's on B3.
 fn payouts_of<'a>(market: &'a Market, ticker: &str) -> Vec<(&'a Payout, String)> {
     if let Some(f) = market.funds.get(ticker) {
-        return f.payouts.iter().map(|p| (p, if p.amortization { "Amortização".to_string() } else { "Rendimento".to_string() })).collect();
+        return f
+            .payouts
+            .iter()
+            .filter(|p| p.of_share(ticker))
+            .map(|p| (p, if p.amortization { "Amortização".to_string() } else { "Rendimento".to_string() }))
+            .collect();
     }
     market
         .company_payouts
@@ -277,7 +306,17 @@ fn payouts_of<'a>(market: &'a Market, ticker: &str) -> Vec<(&'a Payout, String)>
         .unwrap_or_default()
 }
 
-/// Every provento of what is or was held, with the quantity at its data-com.
+/// What a payout pays a share net: a company's interest on equity less its 15 % of income tax.
+fn net_per_share(p: &Payout, fund: bool) -> f64 {
+    if p.tax_free == Some(false) && !p.amortization && !fund { p.value * JCP_NET } else { p.value }
+}
+
+/// Every provento of what is or was held, with the shares held at its data-com. An asset with lançamentos: what they
+/// held then. An asset of the user's sheet, with none: a payout before it was bought is never counted. In a month the
+/// sheet's "Proventos pagos" records asset by asset, it counts only when the sheet records that asset paying that
+/// month, on the shares that amount implies; out of the record, from the day the user said they began holding it (or
+/// the snapshots show it arrived); with no proof of holding, a payout already paid is left out, and one still to be
+/// paid is counted on what is held now, said to be an estimate.
 fn proventos(store: &Store, market: &Market, today: Date) -> Vec<Paid> {
     let mut tickers: Vec<String> = store.portfolio.tickers(None);
     for t in store.trades.iter().map(|t| t.ticker.to_uppercase()) {
@@ -285,35 +324,92 @@ fn proventos(store: &Store, market: &Market, today: Date) -> Vec<Paid> {
             tickers.push(t);
         }
     }
+    let record = &store.recorded_dividends;
+    let covered: Vec<&str> = record.by_asset.iter().filter(|(_, m)| m.values().any(|v| *v > 0.0)).map(|(k, _)| k.as_str()).collect();
+    let last_covered = covered.last().copied();
+    let recorded = |month: &str, t: &str| record.by_asset.get(month).and_then(|m| m.get(t)).copied().filter(|v| *v > 0.0);
     let mut out = Vec::new();
     for t in tickers {
         let trades = of(store, &t);
-        let since = crate::invest::held_since(store, &t);
+        let fund = market.funds.contains_key(&t);
         let now = store.portfolio.position(&t).map(|p| p.quantity).unwrap_or(0.0);
-        for (p, kind) in payouts_of(market, &t) {
-            if p.value <= 0.0 {
-                continue;
+        let given = store.held_from.get(&t).copied();
+        let from = crate::invest::held_since(store, &t);
+        let held_lately = last_covered.is_some_and(|m| recorded(m, &t).is_some());
+        let payouts: Vec<(&Payout, String)> = payouts_of(market, &t).into_iter().filter(|(p, _)| p.value > 0.0).collect();
+        // What the asset's payouts of each month pay a share, net: the sheet's amount for the month over it is the
+        // shares held.
+        let mut per_month: BTreeMap<String, f64> = BTreeMap::new();
+        for (p, _) in payouts.iter().filter(|(p, _)| !p.amortization) {
+            if let Some(d) = p.payment {
+                *per_month.entry(d.month_key()).or_default() += net_per_share(p, fund);
             }
-            // Ahead of its data-com, what is held now; after it, what was held at its end.
-            let (quantity, estimated) = if p.record > today {
-                (now, false)
+        }
+        for (p, kind) in payouts {
+            let month = p.payment.map(|d| d.month_key());
+            let in_record = month.as_deref().is_some_and(|m| covered.contains(&m));
+            let (quantity, basis) = if p.record > today {
+                // Ahead of its data-com: what is held now.
+                (now, Basis::Now)
             } else if !trades.is_empty() {
-                (held_at(&trades, p.record), false)
-            } else if since.is_none_or(|s| s <= p.record) {
-                (now, true)
+                (held_at(&trades, p.record), Basis::Lancamentos)
+            } else if given.is_some_and(|g| p.record < g) {
+                // Before the day the user said they bought it.
+                (0.0, Basis::Now)
+            } else if in_record {
+                let m = month.as_deref().unwrap_or_default();
+                match recorded(m, &t).filter(|_| !p.amortization) {
+                    Some(amount) => {
+                        let each = per_month.get(m).copied().unwrap_or(0.0);
+                        (if each > 0.0 { (amount / each).round() } else { 0.0 }, Basis::Sheet)
+                    }
+                    // The sheet records nothing from it that month: it was not held at the data-com.
+                    None => (0.0, Basis::Sheet),
+                }
+            } else if let Some(from) = from {
+                (if from <= p.record { now } else { 0.0 }, Basis::Now)
+            } else if held_lately && month.as_deref().zip(last_covered).is_some_and(|(m, l)| m > l) {
+                // Paid after the sheet's last month, which records the asset paying: held already.
+                (now, Basis::Estimated)
+            } else if p.payment.is_none_or(|d| d > today) {
+                // Still to be paid, the day of purchase unknown: an estimate on what is held now.
+                (now, Basis::Estimated)
             } else {
-                (0.0, true)
+                // Paid with no proof the asset was held then: not the user's.
+                (0.0, Basis::Estimated)
             };
             if quantity <= 1e-9 {
                 continue;
             }
             let gross = p.value * quantity;
-            let net = if p.tax_free == Some(false) && !p.amortization && !market.funds.contains_key(&t) { gross * JCP_NET } else { gross };
-            out.push(Paid { ticker: t.clone(), kind, record: p.record, payment: p.payment, per_share: p.value, quantity, gross, net, estimated });
+            let net = net_per_share(p, fund) * quantity;
+            out.push(Paid { ticker: t.clone(), kind, record: p.record, payment: p.payment, per_share: p.value, quantity, gross, net, basis });
         }
     }
     out.sort_by(|a, b| b.payment.unwrap_or(b.record).cmp(&a.payment.unwrap_or(a.record)).then(a.ticker.cmp(&b.ticker)));
     out
+}
+
+/// Sets, or takes back (None), the day the user began holding an asset of their sheet: its proventos count from then.
+/// An asset with lançamentos has its days in them.
+pub fn set_held_from(store: &mut Store, ticker: &str, day: Option<Date>, today: Date) -> Result<(), String> {
+    if !of(store, ticker).is_empty() {
+        return Err(format!("{ticker} tem lançamentos: a data da compra vem deles."));
+    }
+    match day {
+        Some(d) if d > today => Err("A data da compra não pode estar no futuro.".into()),
+        Some(d) => {
+            if store.portfolio.position(ticker).is_none_or(|p| p.quantity <= 1e-9) {
+                return Err(format!("{ticker} não está na sua carteira."));
+            }
+            store.held_from.insert(ticker.to_string(), d);
+            Ok(())
+        }
+        None => {
+            store.held_from.remove(ticker);
+            Ok(())
+        }
+    }
 }
 
 /// A sum that is 0, not -0, when there is nothing to add (f64's own starts at -0.0, which a screen shows as "-R$ 0,00").
@@ -397,6 +493,10 @@ pub fn view(store: &Store, market: &Market, today: Date) -> Value {
             "managed": managed(store, &h.ticker),
             "realized": book.realized,
             "unpriced": h.unpriced,
+            // Since when its proventos count: the first lançamento, or the day the user gave.
+            "heldFrom": trades.first().map(|t| t.date).or_else(|| store.held_from.get(&h.ticker).copied()),
+            // Neither a lançamento nor a day given: the app asks since when it is held.
+            "needsDate": trades.is_empty() && !store.held_from.contains_key(&h.ticker) && h.quantity > 1e-9 && h.class.quoted(),
         })
     };
     let classes: Vec<Value> = v
@@ -557,18 +657,64 @@ mod tests {
     }
 
     #[test]
+    fn a_sheet_assets_proventos_never_come_from_before_it_was_bought() {
+        let today = day(2026, 11, 4);
+        let mut market = fixtures::market();
+        let payout = |record: Date, payment: Date, value: f64| Payout { record, payment: Some(payment), value, amortization: false, tax_free: Some(true), period: String::new(), document: 1, code: Some("GGRC11".into()) };
+        let fund = market.funds.get_mut("GGRC11").unwrap();
+        fund.payouts = vec![
+            payout(day(2026, 6, 7), day(2026, 6, 15), 0.10),
+            payout(day(2026, 8, 31), day(2026, 9, 8), 0.10),
+            payout(day(2026, 9, 30), day(2026, 10, 8), 0.10),
+            payout(day(2026, 10, 30), day(2026, 11, 3), 0.10),
+            payout(day(2026, 10, 31), day(2026, 11, 13), 0.10),
+            // Another class of the fund (a subscription receipt): not the share's.
+            Payout { code: Some("GGRC13".into()), ..payout(day(2026, 9, 30), day(2026, 10, 8), 0.05) },
+        ];
+        let sheet = |q: f64| Position { ticker: "GGRC11".into(), class: AssetClass::Fii, quantity: q, average_price: 9.0, subtype: String::new(), current_value: None, note: String::new() };
+        let mut store = Store::default();
+        store.portfolio.positions.push(sheet(197.0));
+        // No record, no lançamento, no day given: nothing already paid is the user's; what is to be paid, an estimate.
+        let screen = view(&store, &market, today);
+        assert!(screen["income"]["received"].as_array().unwrap().is_empty(), "{}", screen["income"]);
+        let pending = screen["income"]["pending"].as_array().unwrap();
+        assert_eq!(pending.len(), 1);
+        assert_eq!((pending[0]["basis"].as_str(), pending[0]["estimated"].as_bool()), (Some("estimado"), Some(true)));
+        assert_eq!(screen["classes"][0]["assets"][0]["needsDate"], true);
+        // The sheet records September and October asset by asset: GGRC11 paid only in October, R$ 19,70.
+        store.recorded_dividends.by_asset.insert("2026-09".into(), BTreeMap::from([("GARE11".to_string(), 16.93)]));
+        store.recorded_dividends.by_asset.insert("2026-10".into(), BTreeMap::from([("GGRC11".to_string(), 19.70), ("GARE11".to_string(), 16.93)]));
+        let screen = view(&store, &market, today);
+        let received = screen["income"]["received"].as_array().unwrap();
+        let mine: Vec<&Value> = received.iter().filter(|p| p["ticker"] == "GGRC11").collect();
+        assert_eq!(mine.len(), 2, "October's, from the sheet, and November 3's, after the sheet, held in it: {received:?}");
+        let october = mine.iter().find(|p| p["payment"] == "2026-10-08").unwrap();
+        assert_eq!((october["quantity"].as_f64(), october["basis"].as_str()), (Some(197.0), Some("planilha")), "R$ 19,70 ÷ R$ 0,10");
+        assert!(!received.iter().any(|p| p["payment"] == "2026-09-08" || p["payment"] == "2026-06-15"), "not held then");
+        assert!(!received.iter().any(|p| (p["perShare"].as_f64().unwrap() - 0.05).abs() < 1e-9), "GGRC13's is not GGRC11's");
+        // The day the user gives comes first: bought on 01/11, October's data-com was before it.
+        set_held_from(&mut store, "GGRC11", Some(day(2026, 11, 1)), today).unwrap();
+        let screen = view(&store, &market, today);
+        assert!(!screen["income"]["received"].as_array().unwrap().iter().any(|p| p["ticker"] == "GGRC11"), "{}", screen["income"]);
+        assert!(screen["income"]["pending"].as_array().unwrap().is_empty(), "the 31/10 data-com came before 01/11: the user had none then");
+        assert_eq!(screen["classes"][0]["assets"][0]["heldFrom"], "2026-11-01");
+        assert!(set_held_from(&mut store, "GGRC11", Some(day(2026, 12, 1)), today).is_err(), "not in the future");
+        assert!(set_held_from(&mut store, "PETR4", Some(day(2026, 10, 1)), today).is_err(), "not held");
+    }
+
+    #[test]
     fn proventos_count_what_was_held_at_the_data_com_received_and_provisioned() {
         let today = day(2026, 11, 4);
         let mut market = fixtures::market();
         let fund = market.funds.get_mut("GGRC11").unwrap();
-        let payout = |record: Date, payment: Option<Date>, value: f64| Payout { record, payment, value, amortization: false, tax_free: Some(true), period: String::new(), document: 1 };
+        let payout = |record: Date, payment: Option<Date>, value: f64| Payout { record, payment, value, amortization: false, tax_free: Some(true), period: String::new(), document: 1, code: None };
         fund.payouts = vec![
             payout(day(2026, 9, 30), Some(day(2026, 10, 7)), 0.10),
             payout(day(2026, 10, 30), Some(day(2026, 11, 7)), 0.11),
             payout(day(2026, 11, 28), Some(day(2026, 12, 5)), 0.12),
         ];
         // A company's JCP on B3: 15 % held at the source.
-        market.company_payouts.insert("TIMS3".into(), crate::model::CompanyPayouts { checked: Some(today), payouts: vec![Payout { record: day(2026, 10, 1), payment: Some(day(2026, 10, 20)), value: 1.0, amortization: false, tax_free: Some(false), period: "Juros sobre capital próprio".into(), document: 0 }] });
+        market.company_payouts.insert("TIMS3".into(), crate::model::CompanyPayouts { checked: Some(today), payouts: vec![Payout { record: day(2026, 10, 1), payment: Some(day(2026, 10, 20)), value: 1.0, amortization: false, tax_free: Some(false), period: "Juros sobre capital próprio".into(), document: 0, code: None }] });
         let mut store = Store::default();
         add(&mut store, &market, entry(&input("GGRC11", "compra", "2026-09-01", 100.0, 9.0), today).unwrap(), today).unwrap();
         // Bought after September's data-com: those 50 do not get September's.

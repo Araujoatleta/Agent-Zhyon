@@ -65,7 +65,7 @@ pub fn due(store: &Store, market: &Market, today: Date, evening: bool, force: bo
     let funds: Vec<String> = store.portfolio.tickers(Some(AssetClass::Fii));
     let funds_due: Vec<String> = funds
         .iter()
-        .filter(|t| force || cnpj_changed(store, market, t) || market.funds.get(*t).and_then(|f| f.checked).is_none_or(|d| d < today))
+        .filter(|t| force || cnpj_changed(store, market, t) || unchecked_payouts(market, t) || market.funds.get(*t).and_then(|f| f.checked).is_none_or(|d| d < today))
         .cloned()
         .collect();
     let missing_cnpj = funds.iter().any(|t| cnpj_of(store, market, t).is_none());
@@ -92,6 +92,8 @@ pub struct Funds {
     pub months: HashMap<String, Vec<cvm_fii::FiiMonth>>,
     pub documents: HashMap<String, Vec<fnet::Document>>,
     pub payouts: HashMap<String, Vec<fnet::Payout>>,
+    /// The structured notices read, by ticker: what they held is in `payouts`, the fund's own share's or not.
+    pub notices: HashMap<String, Vec<u64>>,
     pub months_read: bool,
     pub errors: Vec<String>,
 }
@@ -147,11 +149,15 @@ pub async fn funds(http: &Http, tickers: &[String], roots: &BTreeMap<String, Str
             Ok(docs) => {
                 let known = known_documents.get(t).cloned().unwrap_or_default();
                 let mut payouts = Vec::new();
+                let mut notices = Vec::new();
                 // The newest notices first, a few at a time: FundosNet can be slow, and the rest come at the next
                 // reading. A notice that does not come stops this fund's for now.
                 for d in docs.iter().filter(|d| d.structured && d.topic == fnet::Topic::Payout && !known.contains(&d.id)).take(PAYOUTS_PER_READING) {
                     match sources::payouts_of(http, d).await {
-                        Ok(p) => payouts.extend(p),
+                        Ok(p) => {
+                            notices.push(d.id);
+                            payouts.extend(p);
+                        }
                         Err(e) => {
                             out.errors.push(format!("{t}: {e}"));
                             break;
@@ -159,6 +165,7 @@ pub async fn funds(http: &Http, tickers: &[String], roots: &BTreeMap<String, Str
                     }
                 }
                 out.payouts.insert(t.clone(), payouts);
+                out.notices.insert(t.clone(), notices);
                 out.documents.insert(t.clone(), docs);
             }
             Err(e) => out.errors.push(format!("{t}: {e}")),
@@ -167,9 +174,22 @@ pub async fn funds(http: &Http, tickers: &[String], roots: &BTreeMap<String, Str
     out
 }
 
-/// The documents of each fund whose dividends were read already.
+/// The documents of each fund whose dividends were read already. A payout read before the share codes were kept
+/// (code None) does not count: its notice is read again, to tell the fund's own share's from its other classes'.
 pub fn known_documents(market: &Market) -> HashMap<String, Vec<u64>> {
-    market.funds.iter().map(|(t, f)| (t.clone(), f.payouts.iter().map(|p| p.document).collect())).collect()
+    market
+        .funds
+        .iter()
+        .map(|(t, f)| {
+            let known: std::collections::BTreeSet<u64> = f.notices.iter().copied().chain(f.payouts.iter().filter(|p| p.code.is_some()).map(|p| p.document)).collect();
+            (t.clone(), known.into_iter().collect())
+        })
+        .collect()
+}
+
+/// A fund with payouts read before the share codes were kept: its notices are read again.
+pub fn unchecked_payouts(market: &Market, ticker: &str) -> bool {
+    market.funds.get(ticker).is_some_and(|f| f.payouts.iter().any(|p| p.code.is_none()))
 }
 
 pub fn merge_funds(market: &mut Market, read: Funds, today: Date) {
@@ -203,7 +223,20 @@ pub fn merge_funds(market: &mut Market, read: Funds, today: Date) {
             f.checked = Some(today);
         }
         if let Some(p) = read.payouts.get(&t) {
-            for payout in p {
+            // A notice read again replaces what was kept of it; it is not read a third time.
+            let notices = read.notices.get(&t).cloned().unwrap_or_default();
+            f.payouts.retain(|x| !notices.contains(&x.document));
+            for n in notices {
+                if !f.notices.contains(&n) {
+                    f.notices.push(n);
+                }
+            }
+            if f.notices.len() > 200 {
+                let extra = f.notices.len() - 200;
+                f.notices.drain(..extra);
+            }
+            // Another class's dividends (a subscription receipt's, BTLG13 for BTLG11) are not the share's.
+            for payout in p.iter().filter(|x| x.of_share(&t)) {
                 // The same payout in another document (a notice published again) is kept once, from the newest one.
                 let same = |x: &fnet::Payout| x.record == payout.record && x.amortization == payout.amortization && (x.value - payout.value).abs() < 1e-6;
                 match f.payouts.iter_mut().find(|x| same(x)) {
@@ -441,6 +474,7 @@ mod tests {
             tax_free: None,
             period: String::new(),
             document: doc,
+            code: Some("GGRC11".into()),
         };
         let read = Funds {
             roots: [("GGRC".to_string(), "111".to_string())].into(),
@@ -449,6 +483,7 @@ mod tests {
             months: [("GGRC11".to_string(), vec![cvm_fii::FiiMonth { cnpj: "111".into(), date: today.first_of_month(), segment: "Logística".into(), ..Default::default() }])].into(),
             documents: [("GGRC11".to_string(), vec![])].into(),
             payouts: [("GGRC11".to_string(), vec![payout(1, "2026-09-14"), payout(2, "2026-10-14")])].into(),
+            notices: [("GGRC11".to_string(), vec![1, 2])].into(),
             months_read: true,
             errors: vec![],
         };
@@ -465,6 +500,20 @@ mod tests {
         let f = &market.funds["GGRC11"];
         assert_eq!(f.payouts.len(), 2);
         assert_eq!(f.payouts.iter().find(|p| p.record == Date::parse("2026-10-14").unwrap()).unwrap().document, 5);
+        // Kept before the share codes were: the notice is read again, and another class's payout in it goes.
+        let old = |value: f64| fnet::Payout { value, code: None, document: 7, ..payout(7, "2026-08-14") };
+        market.funds.get_mut("GGRC11").unwrap().payouts.extend([old(0.09), old(0.05)]);
+        assert!(unchecked_payouts(&market, "GGRC11") && !known_documents(&market)["GGRC11"].contains(&7));
+        let reread = Funds {
+            payouts: [("GGRC11".to_string(), vec![fnet::Payout { value: 0.09, ..payout(7, "2026-08-14") }, fnet::Payout { value: 0.05, code: Some("GGRC13".into()), ..payout(7, "2026-08-14") }])].into(),
+            notices: [("GGRC11".to_string(), vec![7])].into(),
+            ..Funds::default()
+        };
+        merge_funds(&mut market, reread, today);
+        let f = &market.funds["GGRC11"];
+        let august: Vec<f64> = f.payouts.iter().filter(|p| p.document == 7).map(|p| p.value).collect();
+        assert_eq!(august, vec![0.09], "GGRC13's subscription receipt is not GGRC11's");
+        assert!(!unchecked_payouts(&market, "GGRC11") && known_documents(&market)["GGRC11"].contains(&7));
         let mut store = Store::default();
         store.portfolio.positions.push(Position { ticker: "GGRC11".into(), class: AssetClass::Etf, quantity: 1.0, average_price: 9.0, subtype: String::new(), current_value: None, note: "guessed".into() });
         assert_eq!(fix_classes(&mut store, &market), vec!["GGRC11"]);

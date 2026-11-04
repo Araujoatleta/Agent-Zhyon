@@ -50,7 +50,7 @@ impl CashDividend {
 
     /// As the engine keeps a payout (FundosNet's shape): JCP is not tax free; the type goes in `period`.
     pub fn payout(&self) -> Payout {
-        Payout { record: self.record, payment: self.payment, value: self.value, amortization: false, tax_free: Some(!self.is_jcp()), period: self.kind_pt().into(), document: 0 }
+        Payout { record: self.record, payment: self.payment, value: self.value, amortization: false, tax_free: Some(!self.is_jcp()), period: self.kind_pt().into(), document: 0, code: None }
     }
 }
 

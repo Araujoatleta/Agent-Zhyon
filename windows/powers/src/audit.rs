@@ -617,7 +617,7 @@ mod tests {
         let trades = vec![trade("2026-01-05", "GGRC11", TradeKind::Buy, 150.0, 9.20)];
         let events = vec![event("2026-08-21", "GGRC11", EventKind::Income, 150.0, 13.2), event("2026-10-01", "GGRC11", EventKind::Income, 150.0, 1.0)];
         let mut market = Market::default();
-        let payout = |rec: &str, pay: &str| Payout { record: d(rec), payment: Some(d(pay)), value: 0.088, amortization: false, tax_free: Some(true), period: String::new(), document: 1 };
+        let payout = |rec: &str, pay: &str| Payout { record: d(rec), payment: Some(d(pay)), value: 0.088, amortization: false, tax_free: Some(true), period: String::new(), document: 1, code: Some(String::new()) };
         market.funds.insert(
             "GGRC11".into(),
             FundData { ticker: "GGRC11".into(), cnpj: "1".into(), payouts: vec![payout("2026-08-14", "2026-08-21"), payout("2026-09-14", "2026-09-21")], ..FundData::default() },

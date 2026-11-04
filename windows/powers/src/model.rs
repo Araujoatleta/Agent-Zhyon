@@ -693,6 +693,10 @@ pub struct Store {
     pub verdicts: Vec<Verdict>,
     /// The dividends the user's own sheet records month by month ("Proventos pagos"): the record, when there is one.
     pub recorded_dividends: RecordedDividends,
+    /// The day the user says they began holding an asset of their sheet (one with no lançamento): its proventos count
+    /// from then (wallet.rs, invest::held_since).
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub held_from: BTreeMap<String, Date>,
     pub learn: Learn,
     /// The documents and broken theses already told, by key (library.rs, thesis.rs).
     pub told_documents: Vec<String>,
@@ -738,11 +742,14 @@ pub struct FundData {
     /// Newest first.
     #[serde(default)]
     pub documents: Vec<Document>,
-    /// Oldest first.
+    /// Oldest first: the fund's own share's, not its other classes'.
     #[serde(default)]
     pub payouts: Vec<Payout>,
     #[serde(default)]
     pub checked: Option<Date>,
+    /// The structured notices read, whatever they held (another class's dividends, nothing): not read again.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub notices: Vec<u64>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]

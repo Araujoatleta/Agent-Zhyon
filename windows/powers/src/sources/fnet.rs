@@ -159,6 +159,17 @@ pub struct Payout {
     pub period: String,
     /// The document it came from.
     pub document: u64,
+    /// The share code its notice names ("BTLG11"; "" when it names none). A fund's other classes, such as its
+    /// subscription receipts (BTLG13), have notices of their own. None: read before the code was kept, to read again.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub code: Option<String>,
+}
+
+impl Payout {
+    /// The share `ticker`'s own: its notice names that code, or none.
+    pub fn of_share(&self, ticker: &str) -> bool {
+        self.code.as_deref().is_none_or(|c| c.is_empty() || c == ticker)
+    }
 }
 
 /// A downloaded document: FundosNet sends base64 of the file; anything that is not base64 is taken as it is.
@@ -197,6 +208,7 @@ fn base64_decode(input: &[u8]) -> Option<Vec<u8>> {
 /// The dividends and amortizations of a structured notice ("Rendimentos e Amortizações"), from its XML.
 pub fn parse_payouts(xml: &str, document: u64) -> Vec<Payout> {
     let root = tree(xml);
+    let code = Some(ticker_in(xml).unwrap_or_default());
     let mut out = Vec::new();
     for (tag, amortization) in [("Rendimento", false), ("Amortizacao", true)] {
         for node in root.all(tag) {
@@ -215,6 +227,7 @@ pub fn parse_payouts(xml: &str, document: u64) -> Vec<Payout> {
                 tax_free,
                 period,
                 document,
+                code: code.clone(),
             });
         }
     }

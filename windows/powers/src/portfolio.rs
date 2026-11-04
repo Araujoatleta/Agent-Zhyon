@@ -599,6 +599,7 @@ pub mod fixtures {
             tax_free: Some(true),
             period: String::new(),
             document: 1,
+            code: Some(String::new()),
         };
         for (t, values) in [("GGRC11", 0.088), ("GARE11", 0.075), ("BTCI11", 0.10), ("PORD11", 0.11)] {
             let mut f = FundData { ticker: t.into(), ..FundData::default() };
