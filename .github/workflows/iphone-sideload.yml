@@ -321,20 +321,12 @@ jobs:
         with:
           name: AXYON-screens
           path: screens
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
       - name: Keep the screens at refs/axyon-screens/latest
         env:
           TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
-          RUN: ${{ github.run_id }}
-          SHA: ${{ github.sha }}
-        run: |
-          shopt -s nullglob
-          cd screens 2>/dev/null || { echo "No screens in this run"; exit 0; }
-          files=(*.png)
-          [ ${#files[@]} -gt 0 ] || { echo "No screens in this run"; exit 0; }
-          mogrify -resize 50% "${files[@]}"
-          git init -q
-          git add .
-          git -c user.name="AXYON screens" -c user.email="actions@users.noreply.github.com" commit -qm "Screens of run $RUN ($SHA)"
-          git push -f "https://x-access-token:${TOKEN}@github.com/${REPO}" HEAD:refs/axyon-screens/latest
-          ls -l
+          NOTE: Screens of run ${{ github.run_id }} (${{ github.sha }})
+        run: bash .github/workflows/keep-screens.sh screens

@@ -47,9 +47,9 @@ enum AXYONTheme: String, CaseIterable, Identifiable, Sendable {
     /// The night behind everything, from the top down.
     var night: [Color] {
         switch self {
-        case .aurora: [Color(hex: "#05060F"), Color(hex: "#090B1F"), Color(hex: "#0C0E26")]
+        case .aurora: [Color(hex: "#05051A"), Color(hex: "#0C0C23"), Color(hex: "#151338")]
         case .copper: [Color(hex: "#0B0706"), Color(hex: "#140C08"), Color(hex: "#1B100A")]
-        case .ocean: [Color(hex: "#040812"), Color(hex: "#071024"), Color(hex: "#0A1631")]
+        case .ocean: [Color(hex: "#08090E"), Color(hex: "#11141C"), Color(hex: "#181D28")]
         }
     }
 
@@ -57,38 +57,38 @@ enum AXYONTheme: String, CaseIterable, Identifiable, Sendable {
     var lights: [AXYONLight] {
         switch self {
         case .aurora:
-            [AXYONLight(color: Color(hex: "#4F46E5"), x: 0.10, y: 0.02, reach: 0.62, strength: 0.55),
-             AXYONLight(color: Color(hex: "#2563EB"), x: 1.00, y: 0.30, reach: 0.50, strength: 0.42),
-             AXYONLight(color: Color(hex: "#7C3AED"), x: 0.20, y: 0.92, reach: 0.58, strength: 0.40),
-             AXYONLight(color: Color(hex: "#F59E0B"), x: 0.95, y: 0.98, reach: 0.30, strength: 0.16)]
+            [AXYONLight(color: Color(hex: "#5B5FC7"), x: 0.15, y: 0.04, reach: 0.66, strength: 0.60),
+             AXYONLight(color: Color(hex: "#6D73B0"), x: 1.00, y: 0.32, reach: 0.52, strength: 0.48),
+             AXYONLight(color: Color(hex: "#3F3A8C"), x: 0.15, y: 0.95, reach: 0.60, strength: 0.50),
+             AXYONLight(color: Color(hex: "#A3AED7"), x: 0.55, y: 0.18, reach: 0.26, strength: 0.14)]
         case .copper:
             [AXYONLight(color: Color(hex: "#F97316"), x: 0.92, y: 0.00, reach: 0.60, strength: 0.50),
              AXYONLight(color: Color(hex: "#B45309"), x: 0.00, y: 0.45, reach: 0.55, strength: 0.42),
              AXYONLight(color: Color(hex: "#EA580C"), x: 0.60, y: 1.00, reach: 0.55, strength: 0.38),
              AXYONLight(color: Color(hex: "#FDE68A"), x: 0.10, y: 0.05, reach: 0.25, strength: 0.08)]
         case .ocean:
-            [AXYONLight(color: Color(hex: "#2563EB"), x: 0.08, y: 0.06, reach: 0.65, strength: 0.55),
-             AXYONLight(color: Color(hex: "#E11D48"), x: 1.00, y: 0.42, reach: 0.40, strength: 0.22),
-             AXYONLight(color: Color(hex: "#0EA5E9"), x: 0.40, y: 1.00, reach: 0.55, strength: 0.36),
-             AXYONLight(color: Color(hex: "#6366F1"), x: 0.95, y: 0.95, reach: 0.35, strength: 0.20)]
+            [AXYONLight(color: Color(hex: "#3B5BDB"), x: 0.10, y: 0.05, reach: 0.62, strength: 0.42),
+             AXYONLight(color: Color(hex: "#E0405A"), x: 1.00, y: 0.40, reach: 0.38, strength: 0.18),
+             AXYONLight(color: Color(hex: "#2F6FB0"), x: 0.40, y: 1.00, reach: 0.55, strength: 0.30),
+             AXYONLight(color: Color(hex: "#8796B4"), x: 0.90, y: 0.92, reach: 0.34, strength: 0.12)]
         }
     }
 
     /// What glows: the chosen tab, the one button to tap, a chart's bars.
     var accent: Color {
         switch self {
-        case .aurora: Color(hex: "#8B8CFF")
-        case .copper: Color(hex: "#FF8A3D")
-        case .ocean: Color(hex: "#4C8DFF")
+        case .aurora: Color(hex: "#7689F8")
+        case .copper: Color(hex: "#F48A48")
+        case .ocean: Color(hex: "#4F6BFF")
         }
     }
 
     /// The accent's deeper end, for its gradient.
     var accentDeep: Color {
         switch self {
-        case .aurora: Color(hex: "#5B3DF5")
-        case .copper: Color(hex: "#E2530A")
-        case .ocean: Color(hex: "#1E5BEF")
+        case .aurora: Color(hex: "#4B4FD6")
+        case .copper: Color(hex: "#D9601E")
+        case .ocean: Color(hex: "#2944D6")
         }
     }
 
@@ -104,9 +104,9 @@ enum AXYONTheme: String, CaseIterable, Identifiable, Sendable {
     /// The glass's own colour.
     var glass: Color {
         switch self {
-        case .aurora: Color(hex: "#151A3D")
-        case .copper: Color(hex: "#2A170E")
-        case .ocean: Color(hex: "#0E1E45")
+        case .aurora: Color(hex: "#1E1A3C")
+        case .copper: Color(hex: "#3A2E28")
+        case .ocean: Color(hex: "#262C39")
         }
     }
 

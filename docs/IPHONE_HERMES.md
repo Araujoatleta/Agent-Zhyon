@@ -139,7 +139,18 @@ your buys and sales, and AXYON's code works out the rest.
   FundosNet; companies: the dividends and interest on equity (JCP) they announced on B3, with their data-com and
   payment date. JCP shows net of the 15% income tax held at the source. A provento of an asset with no lançamento is
   counted on the shares held now and marked **estimated**.
-- Tap an asset: its quote, its figures, **Buy** / **Sell**, and its own proventos and lançamentos.
+- Tap an asset: its quote, its figures, **Buy** / **Sell**, its own proventos and lançamentos, and its folder.
+- **Never a provento from before the purchase**: an asset with lançamentos counts what they held at each data-com. An
+  asset of your sheet with none: a month your sheet's **Proventos pagos** records decides it (only if it records
+  that asset paying that month, on the shares that amount implies); out of the record, the day you give on the asset
+  (**Since when do you hold it?**) or the day it arrived; with no proof, nothing already paid is counted, and what is
+  still to be paid is an estimate. A fund's other classes (subscription receipts such as BTLG13) are not the share's.
+- **Folders**: every asset AXYON keeps something about has its folder (on the Investments screen, and from the
+  asset): the committee's verdicts (its last twelve), the documents read with their digests, its thesis and your
+  decisions, to open again whenever you want.
+- **Appearance** (Settings): three looks after the designs chosen, Aurora, Copper and Ocean: the night with its
+  lights behind every screen, frosted glass with an edge of light, an accent that glows, and a floating bar of glass
+  with the chat as a sphere of light in its middle.
 
 The lançamentos stay on the iPhone: they are not written to your sheet or sent to the computer. Fixed income takes no
 lançamento (it stays as your sheet has it). Nothing is bought or sold here.

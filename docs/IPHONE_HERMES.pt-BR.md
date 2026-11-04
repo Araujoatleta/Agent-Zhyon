@@ -147,7 +147,19 @@ as suas compras e vendas e o código do AXYON calcula o resto.
   FundosNet; ações: os dividendos e JCP que a empresa anunciou na B3, com data-com e data de pagamento. O JCP aparece
   líquido dos 15% de IR retidos na fonte. O provento de um ativo sem lançamento é contado pelas cotas de hoje e marcado
   **estimado**.
-- Toque num ativo: a cotação, os números, **Comprar** / **Vender**, e os proventos e lançamentos só dele.
+- Toque num ativo: a cotação, os números, **Comprar** / **Vender**, os proventos e lançamentos só dele, e a pasta dele.
+- **Nunca um provento de antes da compra**: um ativo com lançamentos conta o que eles tinham em cada data-com. Um
+  ativo da planilha sem lançamento: num mês que a sua tabela **Proventos pagos** registra, ela decide (só conta se
+  ela registra aquele ativo pagando naquele mês, pelas cotas que o valor indica); fora do registro, vale o dia que
+  você informar no ativo (**Desde quando você tem?**) ou o dia em que ele chegou; sem prova, nada já pago é contado, e
+  o que ainda vai ser pago é uma estimativa. As outras classes de um fundo (recibos de subscrição como BTLG13) não
+  são a cota.
+- **Pastas**: cada ativo de que o AXYON guarda algo tem a sua pasta (na aba Investimentos e a partir do ativo): os
+  vereditos do comitê (os 12 últimos), os documentos lidos com os resumos, a tese e as suas decisões, para abrir de
+  novo quando quiser.
+- **Aparência** (Ajustes): três visuais a partir dos designs escolhidos, Aurora, Cobre e Oceano: a noite com as suas
+  luzes atrás de cada tela, vidro fosco com borda de luz, um acento que brilha e uma barra de vidro flutuante com o
+  chat como uma esfera de luz no meio.
 
 Os lançamentos ficam no iPhone: não são escritos na sua planilha nem mandados para o computador. Renda fixa não tem
 lançamento (fica como a planilha tem). Nada é comprado nem vendido aqui.

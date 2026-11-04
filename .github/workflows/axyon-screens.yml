@@ -1,0 +1,52 @@
+name: AXYON screens
+
+# The Simulator's screens of the newest iPhone run of this branch that still has them, kept at
+# refs/axyon-screens/latest (not a branch: one commit, replaced each time) so that they can be fetched with git where
+# an artifact cannot be downloaded. The iPhone workflow keeps them itself after each run; this one fetches a run's
+# again (when that run could not), at a push of this file or by hand.
+
+on:
+  push:
+    paths:
+      - '.github/workflows/axyon-screens.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  keep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: .github
+      - name: The newest run with screens
+        id: find
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          run=$(gh api "repos/$REPO/actions/artifacts?name=AXYON-screens&per_page=30" \
+            --jq '[.artifacts[] | select(.expired == false and .workflow_run.head_branch == $ENV.BRANCH)][0].workflow_run.id')
+          echo "Screens of run $run"
+          echo "run=$run" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v8
+        with:
+          name: AXYON-screens
+          path: screens
+          run-id: ${{ steps.find.outputs.run }}
+          github-token: ${{ github.token }}
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Keep them at refs/axyon-screens/latest
+        env:
+          TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          NOTE: Screens of run ${{ steps.find.outputs.run }}
+        run: bash .github/workflows/keep-screens.sh screens

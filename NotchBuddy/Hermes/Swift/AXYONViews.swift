@@ -500,10 +500,14 @@ struct HermesChatView: View {
                         } label: {
                             Image(systemName: running ? "stop.fill" : "arrow.up")
                                 .font(.body.weight(.bold))
-                                .foregroundStyle(running ? Color.white : Color.black)
+                                .foregroundStyle(Color.white)
                                 .frame(width: 46, height: 46)
                                 .contentTransition(.symbolEffect(.replace))
-                                .coucouGlass(.prominent, in: Circle(), tint: running ? AXYONPalette.down : .white)
+                                .background {
+                                    Circle().fill(running ? AnyShapeStyle(AXYONPalette.down) : AnyShapeStyle(AXYONTheme.current.accentGradient))
+                                        .shadow(color: (running ? AXYONPalette.down : AXYONTheme.current.accent).opacity(0.6), radius: 10)
+                                }
+                                .overlay(Circle().strokeBorder(.white.opacity(0.3), lineWidth: 0.8))
                         }
                         .buttonStyle(PressableButtonStyle())
                         .disabled(!running && (!engine.canChat || adding > 0))

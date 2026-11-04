@@ -175,7 +175,7 @@ struct AXYONDeviceTile: View {
             HStack(alignment: .top) {
                 Image(systemName: AXYONDeviceTile.icon(device.kind))
                     .font(.title2)
-                    .foregroundStyle(lit ? Color.black : AXYONPalette.dim)
+                    .foregroundStyle(lit ? Color.white : AXYONPalette.dim)
                 Spacer()
                 if device.can("turn_on") || device.can("toggle") || device.can("run") {
                     Button(action: power) {
@@ -189,7 +189,7 @@ struct AXYONDeviceTile: View {
                         }
                         .foregroundStyle(.white)
                         .frame(width: 36, height: 36)
-                        .background(lit ? Color.black.opacity(0.82) : Color.white.opacity(0.12), in: Circle())
+                        .background(lit ? Color.white.opacity(0.24) : Color.white.opacity(0.12), in: Circle())
                     }
                     .buttonStyle(PressableButtonStyle())
                     .disabled(busy)
@@ -199,11 +199,11 @@ struct AXYONDeviceTile: View {
             Spacer(minLength: 0)
             Text(device.name)
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(lit ? Color.black : Color.white)
+                .foregroundStyle(Color.white)
                 .lineLimit(2)
             Text(status)
                 .font(.caption)
-                .foregroundStyle(lit ? Color.black.opacity(0.6) : AXYONPalette.dim)
+                .foregroundStyle(lit ? Color.white.opacity(0.8) : AXYONPalette.dim)
                 .lineLimit(1)
         }
         .padding(14)
@@ -214,14 +214,20 @@ struct AXYONDeviceTile: View {
         .animation(.spring(duration: 0.35), value: lit)
     }
 
-    /// Off: dark glass. On: the glass lit almost white, as the Home app's tiles.
+    /// Off: frosted glass. On: lit with the accent's light, glowing, as the designs draw what is on.
     private struct DeviceSurface: ViewModifier {
         let lit: Bool
 
         @ViewBuilder func body(content: Content) -> some View {
+            let shape = RoundedRectangle(cornerRadius: 22, style: .continuous)
             if lit {
-                content.coucouGlass(.prominent, cornerRadius: 22, tint: .white)
-                    .background(Color.white.opacity(0.55), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+                content
+                    .background {
+                        shape.fill(AXYONTheme.current.accentGradient)
+                            .shadow(color: AXYONTheme.current.accent.opacity(0.6), radius: 16)
+                        shape.fill(LinearGradient(colors: [.white.opacity(0.22), .white.opacity(0)], startPoint: .top, endPoint: .center))
+                    }
+                    .overlay(shape.strokeBorder(.white.opacity(0.35), lineWidth: 1))
             } else {
                 content.axyonCard(cornerRadius: 22)
             }
