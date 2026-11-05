@@ -153,15 +153,15 @@ class PowersBridge:
 
 tools = powers.load_tools()
 names = [t["name"] for t in tools]
-check("the computer's tools, wealth_ and life_", len(names) == 19 and "wealth_portfolio" in names and "life_gym" in names
-      and "wealth_documents" in names and "wealth_learn" in names)
+check("the computer's tools, wealth_ and life_", len(names) == 20 and "wealth_portfolio" in names and "life_gym" in names
+      and "wealth_documents" in names and "wealth_learn" in names and "wealth_wallet" in names)
 check("the content kit stays on the computer", "life_content" not in names and not any(n.startswith("home_") for n in names))
 check("each with its schema", all(t.get("inputSchema", {}).get("type") == "object" for t in tools))
 check("no tool file: no tools", powers.load_tools(["/nonexistent/house_tools.json"]) == [])
 registered.clear()
 pb = PowersBridge({"ok": True, "text": "GARE11 · 204 cotas"})
 powers.Powers(pb).register(FakeRegistry())
-check("registered in Coucou's toolset", len(registered) == 19 and all(t == "coucou" for t, _, _ in registered.values()))
+check("registered in Coucou's toolset", len(registered) == 20 and all(t == "coucou" for t, _, _ in registered.values()))
 check("the schema the model sees", registered["wealth_trade"][1]["parameters"]["type"] == "object")
 out = registered["wealth_portfolio"][2]({})
 check("the call goes to the app's engine, with time to read the sources",

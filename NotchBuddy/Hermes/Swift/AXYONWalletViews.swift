@@ -14,6 +14,8 @@ struct AXYONWalletHome: View {
     private let wallet = AXYONWallet.shared
     @State private var section = WalletSection.assets
     @State private var adding = false
+    @State private var recording = false
+    @State private var backingUp = false
     @State private var asset: WalletAsset?
 
     private var overview: WalletOverview { wallet.overview ?? WalletOverview() }
@@ -58,8 +60,21 @@ struct AXYONWalletHome: View {
         .navigationTitle("Wallet")
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button { backingUp = true } label: {
+                    Image(systemName: "externaldrive.fill.badge.checkmark").font(.body.weight(.semibold))
+                }
+                .accessibilityLabel(Text("Backup"))
+            }
             ToolbarItem(placement: .topBarTrailing) {
-                Button { adding = true } label: {
+                Menu {
+                    Button { adding = true } label: {
+                        Label("Purchase or sale", systemImage: "arrow.left.arrow.right")
+                    }
+                    Button { recording = true } label: {
+                        Label("Provento received", systemImage: "banknote")
+                    }
+                } label: {
                     Image(systemName: "plus").font(.body.weight(.bold))
                 }
                 .accessibilityLabel(Text("New lançamento"))
@@ -82,6 +97,8 @@ struct AXYONWalletHome: View {
             }
         }
         .sheet(isPresented: $adding) { WalletTradeSheet(wallet: wallet) }
+        .sheet(isPresented: $recording) { WalletProventoSheet() }
+        .sheet(isPresented: $backingUp) { WalletBackupSheet() }
         .navigationDestination(item: $asset) { picked in
             WalletAssetView(wallet: wallet, ticker: picked.ticker)
         }
@@ -95,6 +112,8 @@ struct AXYONWalletHome: View {
         case "wallet-income": section = .income
         case "wallet-asset": asset = overview.asset("BBAS3") ?? overview.assets.first
         case "wallet-new": adding = true
+        case "wallet-provento": recording = true
+        case "wallet-backup": backingUp = true
         default: break
         }
     }
@@ -563,6 +582,8 @@ struct WalletTradeRow: View {
 struct WalletIncomeView: View {
     let overview: WalletOverview
     var ticker: String?
+    @State private var recording = false
+    @State private var problem: String?
 
     private func only(_ list: [WalletPaid]) -> [WalletPaid] {
         guard let ticker else { return list }
@@ -575,6 +596,10 @@ struct WalletIncomeView: View {
                 summary
                 chart
             }
+            recordButton
+            if let problem {
+                Text(problem).font(.footnote).foregroundStyle(InvestPalette.against)
+            }
             section(String(localized: "To receive"), icon: "clock.fill", color: InvestPalette.favor, only(overview.pending),
                     empty: String(localized: "Nothing provisioned: no data-com passed with the payment still ahead."))
             section(String(localized: "Announced, data-com ahead"), icon: "calendar.badge.clock", color: InvestPalette.mixed, only(overview.ahead),
@@ -582,6 +607,35 @@ struct WalletIncomeView: View {
             section(String(localized: "Received"), icon: "checkmark.circle.fill", color: .white, Array(only(overview.received).prefix(24)),
                     empty: String(localized: "No provento received in what AXYON has read yet."))
         }
+    }
+
+    /// A provento received elsewhere (the broker's statement, Investidor10): it counts as the user gives it.
+    private var recordButton: some View {
+        Button {
+            recording = true
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "plus.circle.fill")
+                    .font(.title3)
+                    .foregroundStyle(.white)
+                    .frame(width: 40, height: 40)
+                    .background(Circle().fill(AXYONTheme.current.accentGradient))
+                    .axyonGlow(radius: 8, strength: 0.5)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Record a provento received").font(.subheadline.weight(.semibold)).foregroundStyle(.white)
+                    Text("As your broker or Investidor10 shows it: it counts in place of the one AXYON found.")
+                        .font(.caption)
+                        .foregroundStyle(AXYONPalette.dim)
+                        .multilineTextAlignment(.leading)
+                }
+                Spacer(minLength: 4)
+                Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(AXYONPalette.faint)
+            }
+            .padding(14)
+            .axyonCard(cornerRadius: 20)
+        }
+        .buttonStyle(PressableButtonStyle())
+        .sheet(isPresented: $recording) { WalletProventoSheet(ticker: ticker ?? "") }
     }
 
     private var summary: some View {
@@ -656,6 +710,23 @@ struct WalletIncomeView: View {
                         ForEach(Array(list.enumerated()), id: \.element.id) { index, paid in
                             if index > 0 { Divider().overlay(Color.white.opacity(0.07)).padding(.leading, 14) }
                             WalletPaidRow(paid: paid)
+                                .contentShape(Rectangle())
+                                .contextMenu {
+                                    if paid.recorded {
+                                        Button(role: .destructive) {
+                                            Task {
+                                                do {
+                                                    try await AXYONWallet.shared.removeProvento(paid)
+                                                    problem = nil
+                                                } catch {
+                                                    problem = AXYONInvest.describe(error)
+                                                }
+                                            }
+                                        } label: {
+                                            Label("Remove this provento", systemImage: "trash")
+                                        }
+                                    }
+                                }
                         }
                     }
                     .axyonCard(cornerRadius: 20)
@@ -674,6 +745,9 @@ struct WalletPaidRow: View {
                 HStack(spacing: 8) {
                     Text(paid.ticker).font(.subheadline.weight(.bold)).foregroundStyle(.white).lineLimit(1).fixedSize()
                     InvestTag(text: kind, color: paid.isJCP ? InvestPalette.mixed : AXYONPalette.dim)
+                    if paid.recorded {
+                        InvestTag(text: String(localized: "recorded by you"), color: AXYONTheme.current.accent)
+                    }
                 }
                 Text(dates).font(.caption).foregroundStyle(AXYONPalette.dim)
                 Text(amount)
@@ -704,6 +778,7 @@ struct WalletPaidRow: View {
 
     /// "204 × R$ 0,0831", and whether it was counted on the shares held now.
     private var amount: String {
+        if paid.recorded && paid.quantity <= 0 { return String(localized: "as your statement shows it") }
         let line = WalletNumber.quantity(paid.quantity) + " × " + WalletNumber.price(paid.perShare)
         if paid.estimated { return line + " · " + String(localized: "estimated") }
         if paid.basis == "planilha" { return line + " · " + String(localized: "checked with your sheet") }
@@ -715,7 +790,134 @@ struct WalletPaidRow: View {
         let record = String(localized: "data-com \(day)")
         guard let payment = paid.payment else { return record + " · " + String(localized: "payment to be set") }
         let paidOn = investDay(payment)
+        if paid.record.isEmpty { return String(localized: "paid on \(paidOn)") }
         return record + " · " + String(localized: "paid on \(paidOn)")
+    }
+}
+
+/// A provento received, entered as the user's statement shows it (their broker's, Investidor10's): the asset, when it
+/// was paid, its data-com when known, and what was received, in all or per share.
+struct WalletProventoSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var ticker: String
+    @State private var kind = "rendimento"
+    @State private var payment = Date.now
+    @State private var knowsRecord = false
+    @State private var record = Date.now
+    @State private var perShareWay = false
+    @State private var value = ""
+    @State private var perShare = ""
+    @State private var quantity = ""
+    @State private var saving = false
+    @State private var problem: String?
+
+    init(ticker: String = "") {
+        _ticker = State(initialValue: ticker)
+        _kind = State(initialValue: ticker.hasSuffix("11") || ticker.isEmpty ? "rendimento" : "dividendo")
+    }
+
+    private var code: String { ticker.trimmingCharacters(in: .whitespaces).uppercased() }
+
+    private var total: Double? {
+        if perShareWay {
+            guard let p = WalletNumber.parse(perShare), let q = WalletNumber.parse(quantity), p > 0, q > 0 else { return nil }
+            return p * q
+        }
+        return WalletNumber.parse(value).flatMap { $0 > 0 ? $0 : nil }
+    }
+
+    private var ready: Bool { !code.isEmpty && total != nil && !saving }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    TextField(String(localized: "Ticker (BTCI11, BBAS3…)"), text: $ticker)
+                        .textInputAutocapitalization(.characters)
+                        .autocorrectionDisabled()
+                    Picker(String(localized: "Kind"), selection: $kind) {
+                        Text("Income").tag("rendimento")
+                        Text("Dividend").tag("dividendo")
+                        Text(verbatim: "JCP").tag("jcp")
+                        Text("Amortization").tag("amortizacao")
+                    }
+                    DatePicker(String(localized: "Paid on"), selection: $payment, displayedComponents: .date)
+                    Toggle(String(localized: "I know the data-com"), isOn: $knowsRecord.animation())
+                    if knowsRecord {
+                        DatePicker(String(localized: "Data-com"), selection: $record, in: ...payment, displayedComponents: .date)
+                    }
+                }
+                .listRowBackground(GlassRowBackground())
+                Section {
+                    InvestSegments<Bool>(options: [.init(value: false, title: String(localized: "Amount received")),
+                                                   .init(value: true, title: String(localized: "Per share"))],
+                                         selection: $perShareWay)
+                }
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets())
+                Section {
+                    if perShareWay {
+                        TextField(String(localized: "R$ per share"), text: $perShare).keyboardType(.decimalPad)
+                        TextField(String(localized: "Shares"), text: $quantity).keyboardType(.decimalPad)
+                    } else {
+                        TextField(String(localized: "Amount received, R$"), text: $value).keyboardType(.decimalPad)
+                    }
+                } footer: {
+                    Text("It counts as received on the day it was paid, in place of the one AXYON's sources give for that asset and day. Hold it down in the list to remove it.")
+                }
+                .listRowBackground(GlassRowBackground())
+                if let total {
+                    Section {
+                        HStack {
+                            Text("You received")
+                            Spacer()
+                            Text(AXYONMoney.text(total)).font(.headline).monospacedDigit()
+                        }
+                    }
+                    .listRowBackground(GlassRowBackground(tint: AXYONTheme.current.accent))
+                }
+                if let problem {
+                    Section {
+                        Text(problem).foregroundStyle(InvestPalette.against)
+                    }
+                    .listRowBackground(GlassRowBackground())
+                }
+            }
+            .scrollContentBackground(.hidden)
+            .background { InvestBackdrop() }
+            .navigationTitle(String(localized: "Provento received"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    if saving {
+                        ProgressView()
+                    } else {
+                        Button("Save") { save() }.disabled(!ready)
+                    }
+                }
+            }
+        }
+        .presentationDetents([.large])
+    }
+
+    private func save() {
+        saving = true
+        problem = nil
+        Task {
+            defer { saving = false }
+            do {
+                try await AXYONWallet.shared.addProvento(ticker: code, kind: kind, payment: payment, record: knowsRecord ? record : nil,
+                                                         value: perShareWay ? "" : value, perShare: perShareWay ? perShare : "",
+                                                         quantity: perShareWay ? quantity : "")
+                Haptics.success()
+                dismiss()
+            } catch {
+                problem = AXYONInvest.describe(error)
+            }
+        }
     }
 }
 

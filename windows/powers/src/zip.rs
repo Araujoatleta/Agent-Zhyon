@@ -157,14 +157,21 @@ impl<'a> Archive<'a> {
     }
 }
 
-/// A small archive, for the tests and the fixtures: each file stored or deflated (`deflate`).
+/// An archive of `files`, each stored or deflated (`deflate`), with its checksum: what Excel, Numbers and Google
+/// Sheets open (the workbooks AXYON exports, backup.rs), and the tests' fixtures.
 pub fn build(files: &[(&str, &[u8])], deflate: bool) -> Vec<u8> {
     use flate2::write::DeflateEncoder;
     use flate2::Compression;
     use std::io::Write;
+    // 01/01/1980 00:00, the first day a ZIP knows.
+    let stamp: [u8; 4] = [0, 0, 33, 0];
     let mut out = Vec::new();
     let mut central = Vec::new();
     for (name, data) in files {
+        let mut crc = flate2::Crc::new();
+        crc.update(data);
+        let mut checked = stamp.to_vec();
+        checked.extend_from_slice(&crc.sum().to_le_bytes());
         let payload = if deflate {
             let mut enc = DeflateEncoder::new(Vec::new(), Compression::default());
             enc.write_all(data).expect("in memory");
@@ -178,7 +185,7 @@ pub fn build(files: &[(&str, &[u8])], deflate: bool) -> Vec<u8> {
         out.extend_from_slice(&20u16.to_le_bytes());
         out.extend_from_slice(&0u16.to_le_bytes());
         out.extend_from_slice(&method.to_le_bytes());
-        out.extend_from_slice(&[0; 8]); // time, date, crc (not checked)
+        out.extend_from_slice(&checked); // time, date, crc
         out.extend_from_slice(&(payload.len() as u32).to_le_bytes());
         out.extend_from_slice(&(data.len() as u32).to_le_bytes());
         out.extend_from_slice(&(name.len() as u16).to_le_bytes());
@@ -190,7 +197,7 @@ pub fn build(files: &[(&str, &[u8])], deflate: bool) -> Vec<u8> {
         central.extend_from_slice(&20u16.to_le_bytes());
         central.extend_from_slice(&0u16.to_le_bytes());
         central.extend_from_slice(&method.to_le_bytes());
-        central.extend_from_slice(&[0; 8]);
+        central.extend_from_slice(&checked);
         central.extend_from_slice(&(payload.len() as u32).to_le_bytes());
         central.extend_from_slice(&(data.len() as u32).to_le_bytes());
         central.extend_from_slice(&(name.len() as u16).to_le_bytes());

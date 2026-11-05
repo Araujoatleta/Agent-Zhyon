@@ -12,7 +12,7 @@ use std::collections::BTreeMap;
 use serde_json::{json, Value};
 
 use crate::date::Date;
-use crate::model::{AssetClass, Market, Position, Store, Trade, TradeKind};
+use crate::model::{AssetClass, Market, Position, ProventoEntry, Store, Trade, TradeKind};
 use crate::sources::fnet::Payout;
 
 /// A lançamento made in the consolidator.
@@ -245,6 +245,8 @@ enum Basis {
     Now,
     /// What is held now, the day of purchase unknown.
     Estimated,
+    /// Recorded by the user (or the brain at their word): as their statement shows it.
+    Recorded,
 }
 
 impl Basis {
@@ -254,6 +256,7 @@ impl Basis {
             Basis::Sheet => "planilha",
             Basis::Now => "posicao",
             Basis::Estimated => "estimado",
+            Basis::Recorded => "lancado",
         }
     }
 }
@@ -263,21 +266,26 @@ impl Basis {
 struct Paid {
     ticker: String,
     kind: String,
+    /// Its data-com; a recorded one's payment day when the user gave none (`record_known` false).
     record: Date,
+    record_known: bool,
     payment: Option<Date>,
     per_share: f64,
     quantity: f64,
     gross: f64,
     net: f64,
     basis: Basis,
+    /// A recorded one's id.
+    id: Option<u64>,
 }
 
 impl Paid {
     fn json(&self) -> Value {
         json!({
+            "id": self.id,
             "ticker": self.ticker,
             "kind": self.kind,
-            "record": self.record,
+            "record": self.record_known.then_some(self.record),
             "payment": self.payment,
             "perShare": self.per_share,
             "quantity": self.quantity,
@@ -383,8 +391,28 @@ fn proventos(store: &Store, market: &Market, today: Date) -> Vec<Paid> {
             }
             let gross = p.value * quantity;
             let net = net_per_share(p, fund) * quantity;
-            out.push(Paid { ticker: t.clone(), kind, record: p.record, payment: p.payment, per_share: p.value, quantity, gross, net, basis });
+            out.push(Paid { ticker: t.clone(), kind, record: p.record, record_known: true, payment: p.payment, per_share: p.value, quantity, gross, net, basis, id: None });
         }
+    }
+    // The ones the user recorded: as their statement shows them, in place of the sources' of the same asset and day.
+    for m in &store.proventos {
+        let Some(day) = m.payment.or(m.record) else { continue };
+        out.retain(|p| !(p.ticker == m.ticker && (p.payment == m.payment && m.payment.is_some() || m.record.is_some_and(|r| r == p.record))));
+        let quantity = m.quantity.or_else(|| m.per_share.filter(|x| *x > 0.0).map(|x| (m.value / x).round())).unwrap_or(0.0);
+        let per_share = m.per_share.or_else(|| (quantity > 0.0).then(|| m.value / quantity)).unwrap_or(0.0);
+        out.push(Paid {
+            ticker: m.ticker.clone(),
+            kind: m.kind.clone(),
+            record: m.record.unwrap_or(day),
+            record_known: m.record.is_some(),
+            payment: m.payment,
+            per_share,
+            quantity,
+            gross: m.value,
+            net: m.value,
+            basis: Basis::Recorded,
+            id: Some(m.id),
+        });
     }
     out.sort_by(|a, b| b.payment.unwrap_or(b.record).cmp(&a.payment.unwrap_or(a.record)).then(a.ticker.cmp(&b.ticker)));
     out
@@ -410,6 +438,78 @@ pub fn set_held_from(store: &mut Store, ticker: &str, day: Option<Date>, today: 
             Ok(())
         }
     }
+}
+
+/// A provento the user recorded, read from the app's or the brain's JSON: the ticker, the day it was paid (or its
+/// data-com), and what was received (`value`, or `per_share` times `quantity`). The kind is the fund's "Rendimento" or
+/// the company's "Dividendo" unless told ("jcp", "amortização").
+pub fn provento_entry(input: &Value, market: &Market, today: Date) -> Result<ProventoEntry, String> {
+    let s = |k: &str| input[k].as_str().map(str::trim).unwrap_or("").to_string();
+    let n = |k: &str| input[k].as_f64().or_else(|| input[k].as_str().and_then(crate::text::num)).filter(|x| *x > 0.0);
+    let day = |k: &str| -> Result<Option<Date>, String> {
+        let t = s(k);
+        if t.is_empty() { Ok(None) } else { Date::parse(&t).map(Some).ok_or_else(|| format!("A data \"{t}\" não é válida.")) }
+    };
+    let ticker = crate::text::ticker(&s("ticker")).ok_or("Informe o código do ativo (como GARE11 ou BBAS3).")?;
+    let payment = day("payment")?.or(day("paid")?).or(day("date")?);
+    let record = day("record")?.or(day("data_com")?);
+    if payment.is_none() && record.is_none() {
+        return Err("Informe a data de pagamento (ou a data-com) do provento.".into());
+    }
+    if let (Some(p), Some(r)) = (payment, record) {
+        if r > p {
+            return Err("A data-com vem antes do pagamento.".into());
+        }
+    }
+    if record.is_some_and(|r| r > today.add_days(400)) || payment.is_some_and(|p| p > today.add_days(400)) {
+        return Err("A data está longe demais no futuro.".into());
+    }
+    let quantity = n("quantity");
+    let per_share = n("per_share").or(n("perShare"));
+    let value = n("value").or(n("total")).or_else(|| per_share.zip(quantity).map(|(a, b)| a * b)).ok_or("Informe o valor recebido (ou o valor por cota e a quantidade).")?;
+    let kind = {
+        let k = crate::text::plain(&s("kind"));
+        if k.contains("jcp") || k.contains("juros") {
+            "Juros sobre capital próprio".to_string()
+        } else if k.contains("amortiz") {
+            "Amortização".to_string()
+        } else if k.contains("dividend") {
+            "Dividendo".to_string()
+        } else if k.contains("rendiment") {
+            "Rendimento".to_string()
+        } else if market.funds.contains_key(&ticker) || ticker.ends_with("11") && market.quotes.get(&ticker).is_none_or(|q| crate::sources::b3::kind_of(q) != "acao") {
+            "Rendimento".to_string()
+        } else {
+            "Dividendo".to_string()
+        }
+    };
+    let source = match s("source").as_str() {
+        "chat" => "chat",
+        "import" => "import",
+        _ => "app",
+    };
+    Ok(ProventoEntry { id: 0, ticker, kind, record, payment, per_share, quantity, value: (value * 100.0).round() / 100.0, source: source.into() })
+}
+
+/// Records a provento; the same one twice (asset, day and value) is refused. Its id.
+pub fn add_provento(store: &mut Store, mut e: ProventoEntry) -> Result<u64, String> {
+    let same = store.proventos.iter().any(|m| m.ticker == e.ticker && m.payment.or(m.record) == e.payment.or(e.record) && (m.value - e.value).abs() < 0.005);
+    if same {
+        let day = e.payment.or(e.record).map(|d| d.br()).unwrap_or_default();
+        return Err(format!("Este provento ({} em {day}) já está lançado.", e.ticker));
+    }
+    e.id = store.proventos.iter().map(|m| m.id).max().unwrap_or(0) + 1;
+    let id = e.id;
+    store.proventos.push(e);
+    store.proventos.sort_by(|a, b| a.payment.or(a.record).cmp(&b.payment.or(b.record)).then(a.id.cmp(&b.id)));
+    Ok(id)
+}
+
+/// Removes a recorded provento by its id: the sources' own for that asset and day count again.
+pub fn remove_provento(store: &mut Store, id: u64) -> Result<(), String> {
+    let at = store.proventos.iter().position(|m| m.id == id).ok_or("Provento lançado não encontrado.")?;
+    store.proventos.remove(at);
+    Ok(())
 }
 
 /// A sum that is 0, not -0, when there is nothing to add (f64's own starts at -0.0, which a screen shows as "-R$ 0,00").
@@ -700,6 +800,59 @@ mod tests {
         assert_eq!(screen["classes"][0]["assets"][0]["heldFrom"], "2026-11-01");
         assert!(set_held_from(&mut store, "GGRC11", Some(day(2026, 12, 1)), today).is_err(), "not in the future");
         assert!(set_held_from(&mut store, "PETR4", Some(day(2026, 10, 1)), today).is_err(), "not held");
+    }
+
+    #[test]
+    fn a_provento_the_user_records_counts_and_takes_the_place_of_the_sources_one() {
+        let today = day(2026, 11, 4);
+        let mut market = fixtures::market();
+        let fund = market.funds.get_mut("GGRC11").unwrap();
+        fund.payouts = vec![Payout { record: day(2026, 10, 1), payment: Some(day(2026, 10, 8)), value: 0.10, amortization: false, tax_free: Some(true), period: String::new(), document: 1, code: None }];
+        let mut store = Store::default();
+        add(&mut store, &market, entry(&input("GGRC11", "compra", "2026-09-01", 197.0, 9.0), today).unwrap(), today).unwrap();
+        // BTCI11, held and sold before: AXYON's sources have none of its payouts; Investidor10 shows R$ 16,82 on 15/10.
+        let btci = json!({ "ticker": "btci11", "payment": "15/10/2026", "record": "08/10/2026", "per_share": 0.095, "quantity": 177 });
+        let e = provento_entry(&btci, &market, today).unwrap();
+        assert_eq!((e.ticker.as_str(), e.kind.as_str(), e.value), ("BTCI11", "Rendimento", 16.82), "R$ 0,095 × 177, a fund's rendimento");
+        let first = add_provento(&mut store, e.clone()).unwrap();
+        assert!(add_provento(&mut store, e).unwrap_err().contains("já está lançado"), "the same one twice");
+        // GGRC11's October one as the user's statement shows it: in place of the sources' one, not beside it.
+        let ggrc = provento_entry(&json!({ "ticker": "GGRC11", "payment": "2026-10-08", "value": "19,70" }), &market, today).unwrap();
+        let second = add_provento(&mut store, ggrc).unwrap();
+        let screen = view(&store, &market, today);
+        let received = screen["income"]["received"].as_array().unwrap();
+        assert_eq!(received.len(), 2, "{received:?}");
+        let b = received.iter().find(|p| p["ticker"] == "BTCI11").unwrap();
+        assert_eq!((b["basis"].as_str(), b["id"].as_u64(), b["record"].as_str()), (Some("lancado"), Some(first), Some("2026-10-08")));
+        let g: Vec<&Value> = received.iter().filter(|p| p["ticker"] == "GGRC11").collect();
+        assert_eq!(g.len(), 1, "one GGRC11 for 08/10, the user's");
+        assert_eq!((g[0]["net"].as_f64(), g[0]["record"].is_null()), (Some(19.70), true), "no data-com given: none shown");
+        assert!((screen["income"]["twelve"].as_f64().unwrap() - 36.52).abs() < 1e-9);
+        // Taken back: the sources' own counts again.
+        remove_provento(&mut store, second).unwrap();
+        let screen = view(&store, &market, today);
+        let g = screen["income"]["received"].as_array().unwrap().iter().find(|p| p["ticker"] == "GGRC11").unwrap().clone();
+        assert_eq!((g["basis"].as_str(), g["quantity"].as_f64()), (Some("lancamentos"), Some(197.0)));
+        assert!(remove_provento(&mut store, 99).is_err());
+        // Refused before anything changes: no day, no amount, a data-com after the payment.
+        assert!(provento_entry(&json!({ "ticker": "GARE11", "value": 10 }), &market, today).is_err());
+        assert!(provento_entry(&json!({ "ticker": "GARE11", "payment": "09/11/2026" }), &market, today).is_err());
+        assert!(provento_entry(&json!({ "ticker": "GARE11", "payment": "01/10/2026", "record": "05/10/2026", "value": 1 }), &market, today).is_err());
+        // A company's JCP and a share's dividend by default.
+        assert_eq!(provento_entry(&json!({ "ticker": "BBAS3", "payment": "01/10/2026", "value": 5, "kind": "JCP" }), &market, today).unwrap().kind, "Juros sobre capital próprio");
+        assert_eq!(provento_entry(&json!({ "ticker": "BBAS3", "payment": "01/10/2026", "value": 5 }), &market, today).unwrap().kind, "Dividendo");
+    }
+
+    #[test]
+    fn a_fund_sold_still_has_its_notices_read_for_the_proventos_it_paid_while_held() {
+        let today = day(2026, 11, 4);
+        let market = fixtures::market();
+        let mut store = Store::default();
+        add(&mut store, &market, Entry { class: Some(AssetClass::Fii), ..entry(&input("RZTR11", "compra", "2026-08-01", 15.0, 95.0), today).unwrap() }, today).unwrap();
+        add(&mut store, &market, entry(&input("RZTR11", "venda", "2026-10-20", 15.0, 96.0), today).unwrap(), today).unwrap();
+        assert!(store.portfolio.position("RZTR11").is_none(), "sold");
+        assert!(crate::refresh::fund_tickers(&store, today).contains(&"RZTR11".to_string()));
+        assert!(!crate::refresh::fund_tickers(&store, day(2028, 1, 1)).contains(&"RZTR11".to_string()), "not after thirteen months");
     }
 
     #[test]

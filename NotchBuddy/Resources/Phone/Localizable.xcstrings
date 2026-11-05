@@ -901,6 +901,28 @@
         }
       }
     },
+    "* recorded by you, as your statement shows it.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "* registrado por ti, como lo muestra tu extracto."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "* saisi par vous, tel que votre relevé l'indique."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "* lançado por você, como mostra o seu extrato."
+          }
+        }
+      }
+    },
     "1 file": {
       "localizations": {
         "es": {
@@ -2177,6 +2199,94 @@
         }
       }
     },
+    "Amount received": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Monto recibido"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Montant reçu"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valor recebido"
+          }
+        }
+      }
+    },
+    "Amount received, R$": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Monto recibido, R$"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Montant reçu, R$"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valor recebido, R$"
+          }
+        }
+      }
+    },
+    "An AXYON backup (Excel or CSV) brings the Carteira back as it was. B3's Negociação and Movimentação files add their lançamentos and proventos.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un respaldo de AXYON (Excel o CSV) devuelve la cartera tal como estaba. Los archivos de Negociação y Movimentação de B3 suman sus operaciones y proventos."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Une sauvegarde AXYON (Excel ou CSV) rétablit le portefeuille tel qu'il était. Les fichiers Negociação et Movimentação de la B3 ajoutent leurs opérations et revenus."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Um backup do AXYON (Excel ou CSV) traz a carteira de volta como era. Os arquivos de Negociação e Movimentação da B3 somam os lançamentos e proventos deles."
+          }
+        }
+      }
+    },
+    "An AXYON backup replaces the Carteira of this iPhone with the file's; a copy of the one here is kept first. A B3 file adds its lançamentos and proventos.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un respaldo de AXYON reemplaza la cartera de este iPhone por la del archivo; antes se guarda una copia de la actual. Un archivo de B3 suma sus operaciones y proventos."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Une sauvegarde AXYON remplace le portefeuille de cet iPhone par celui du fichier ; une copie de l'actuel est gardée avant. Un fichier de la B3 ajoute ses opérations et revenus."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Um backup do AXYON substitui a carteira deste iPhone pela do arquivo; antes, uma cópia da atual é guardada. Um arquivo da B3 soma os lançamentos e proventos dele."
+          }
+        }
+      }
+    },
     "Android TV or box": {
       "localizations": {
         "es": {
@@ -2481,6 +2591,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Apps"
+          }
+        }
+      }
+    },
+    "As your broker or Investidor10 shows it: it counts in place of the one AXYON found.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Como lo muestran tu corredora o Investidor10: cuenta en lugar del que AXYON encontró."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comme votre courtier ou Investidor10 l'indique : il compte à la place de celui qu'AXYON a trouvé."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Como a sua corretora ou o Investidor10 mostram: vale no lugar do que o AXYON encontrou."
           }
         }
       }
@@ -2815,6 +2947,28 @@
         }
       }
     },
+    "Avg price": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Precio medio"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prix moyen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PM"
+          }
+        }
+      }
+    },
     "Avoid": {
       "localizations": {
         "es": {
@@ -2925,6 +3079,28 @@
         }
       }
     },
+    "Backup": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Respaldo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sauvegarde"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Backup"
+          }
+        }
+      }
+    },
     "Blue": {
       "localizations": {
         "es": {
@@ -2987,6 +3163,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Brilho"
+          }
+        }
+      }
+    },
+    "Bring it back": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recuperar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La récupérer"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trazer de volta"
           }
         }
       }
@@ -3075,6 +3273,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Pelo endereço"
+          }
+        }
+      }
+    },
+    "CSV": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CSV"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CSV"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CSV"
           }
         }
       }
@@ -3273,6 +3493,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "Cancelar login"
+          }
+        }
+      }
+    },
+    "Carteira": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cartera"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Portefeuille"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Carteira"
+          }
+        }
+      }
+    },
+    "Carteira restored.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cartera restaurada."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Portefeuille rétabli."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Carteira restaurada."
           }
         }
       }
@@ -4971,6 +5235,28 @@
         }
       }
     },
+    "Data-com": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fecha de corte"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Date de détachement"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Data-com"
+          }
+        }
+      }
+    },
     "Date": {
       "localizations": {
         "es": {
@@ -5759,6 +6045,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tudo o que ele leu"
+          }
+        }
+      }
+    },
+    "Excel, complete": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Excel, completo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Excel, complet"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Excel, completo"
           }
         }
       }
@@ -7633,6 +7941,28 @@
         }
       }
     },
+    "I know the data-com": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sé la fecha de corte"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je connais la date de détachement"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sei a data-com"
+          }
+        }
+      }
+    },
     "If the page did not finish": {
       "localizations": {
         "es": {
@@ -7651,6 +7981,72 @@
           "stringUnit": {
             "state": "translated",
             "value": "Se a página não terminou"
+          }
+        }
+      }
+    },
+    "Import %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importar %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importer %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importar %@"
+          }
+        }
+      }
+    },
+    "Import a file": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importar un archivo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importer un fichier"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importar um arquivo"
+          }
+        }
+      }
+    },
+    "Import this file?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Importar este archivo?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importer ce fichier ?"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importar este arquivo?"
           }
         }
       }
@@ -7937,6 +8333,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ele pede confirmação: confirme com o Face ID para continuar."
+          }
+        }
+      }
+    },
+    "It counts as received on the day it was paid, in place of the one AXYON's sources give for that asset and day. Hold it down in the list to remove it.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cuenta como recibido el día del pago, en lugar del que dan las fuentes de AXYON para ese activo y día. Mantenlo presionado en la lista para quitarlo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il compte comme perçu le jour du paiement, à la place de celui que les sources d'AXYON donnent pour cet actif et ce jour. Maintenez-le appuyé dans la liste pour le retirer."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conta como recebido no dia do pagamento, no lugar do que as fontes do AXYON dão para esse ativo e dia. Para remover, segure-o na lista."
           }
         }
       }
@@ -9591,6 +10009,28 @@
         }
       }
     },
+    "Net": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neto"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Net"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Líquido"
+          }
+        }
+      }
+    },
     "Net worth": {
       "localizations": {
         "es": {
@@ -10669,6 +11109,28 @@
         }
       }
     },
+    "Nothing yet.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nada todavía."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rien pour l'instant."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nada ainda."
+          }
+        }
+      }
+    },
     "Notifications": {
       "localizations": {
         "es": {
@@ -11637,6 +12099,28 @@
         }
       }
     },
+    "Operation": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Operación"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opération"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Operação"
+          }
+        }
+      }
+    },
     "Opinion A · The asset": {
       "localizations": {
         "es": {
@@ -11813,6 +12297,28 @@
         }
       }
     },
+    "PDF report": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Informe en PDF"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rapport PDF"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Relatório em PDF"
+          }
+        }
+      }
+    },
     "Page %lld of %lld": {
       "localizations": {
         "es": {
@@ -11875,6 +12381,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Pago em %@"
+          }
+        }
+      }
+    },
+    "Paid on": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pagado el"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Payé le"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pago em"
           }
         }
       }
@@ -12139,6 +12667,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Pausada"
+          }
+        }
+      }
+    },
+    "Per share": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por cuota"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Par part"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por cota"
           }
         }
       }
@@ -12517,6 +13067,28 @@
         }
       }
     },
+    "Positions, lançamentos and proventos in sheets, and a hidden sheet with everything AXYON keeps (the committee's analyses too): importing it brings it all back.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Posiciones, operaciones y proventos en hojas, y una hoja oculta con todo lo que AXYON guarda (también los análisis del comité): al importarlo, vuelve todo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Positions, opérations et revenus en onglets, et un onglet caché avec tout ce qu'AXYON garde (les analyses du comité aussi) : en l'important, tout revient."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Posições, lançamentos e proventos em abas, e uma aba oculta com tudo o que o AXYON guarda (as análises do comitê também): ao importar, volta tudo."
+          }
+        }
+      }
+    },
     "Positive": {
       "localizations": {
         "es": {
@@ -12601,6 +13173,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Canal anterior"
+          }
+        }
+      }
+    },
+    "Price": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cotización"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cours"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cotação"
           }
         }
       }
@@ -12737,6 +13331,28 @@
         }
       }
     },
+    "Provento received": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Provento recibido"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revenu perçu"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Provento recebido"
+          }
+        }
+      }
+    },
     "Proventos": {
       "localizations": {
         "es": {
@@ -12825,6 +13441,28 @@
         }
       }
     },
+    "Proventos received": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proventos recibidos"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revenus perçus"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proventos recebidos"
+          }
+        }
+      }
+    },
     "Purchase": {
       "localizations": {
         "es": {
@@ -12847,6 +13485,28 @@
         }
       }
     },
+    "Purchase or sale": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compra o venta"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Achat ou vente"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compra ou venda"
+          }
+        }
+      }
+    },
     "Purple": {
       "localizations": {
         "es": {
@@ -12865,6 +13525,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Roxo"
+          }
+        }
+      }
+    },
+    "Qty": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cant."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Qté"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Qtd."
           }
         }
       }
@@ -13019,6 +13701,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "R$"
+          }
+        }
+      }
+    },
+    "R$ per share": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "R$ por cuota"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "R$ par part"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "R$ por cota"
           }
         }
       }
@@ -13529,6 +14233,28 @@
         }
       }
     },
+    "Record a provento received": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registrar un provento recibido"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saisir un revenu perçu"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lançar um provento recebido"
+          }
+        }
+      }
+    },
     "Reduce the position": {
       "localizations": {
         "es": {
@@ -13767,6 +14493,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Remover a tese"
+          }
+        }
+      }
+    },
+    "Remove this provento": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quitar este provento"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retirer ce revenu"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remover este provento"
           }
         }
       }
@@ -14339,6 +15087,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Salvar nome e tom"
+          }
+        }
+      }
+    },
+    "Save the file in Files, iCloud Drive or send it to yourself. If AXYON is ever reinstalled or something goes wrong, import it and everything comes back.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guarda el archivo en Archivos, en iCloud Drive o envíatelo. Si AXYON se reinstala o algo falla, impórtalo y vuelve todo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enregistrez le fichier dans Fichiers, iCloud Drive ou envoyez-le-vous. Si AXYON est réinstallé ou qu'un problème survient, importez-le et tout revient."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salve o arquivo no Arquivos, no iCloud Drive ou mande para você mesmo. Se o AXYON for reinstalado ou der algum problema, importe e volta tudo."
           }
         }
       }
@@ -15043,6 +15813,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Compartilhar a imagem"
+          }
+        }
+      }
+    },
+    "Shares": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cuotas"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Parts"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cotas"
           }
         }
       }
@@ -15993,6 +16785,28 @@
         }
       }
     },
+    "Take it out": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exportar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exporter"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exportar"
+          }
+        }
+      }
+    },
     "Tap Pair, then accept AXYON on the TV when it asks.": {
       "localizations": {
         "es": {
@@ -16719,6 +17533,28 @@
         }
       }
     },
+    "The file could not be made.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo generar el archivo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le fichier n'a pas pu être créé."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível gerar o arquivo."
+          }
+        }
+      }
+    },
     "The five minds": {
       "localizations": {
         "es": {
@@ -16873,6 +17709,28 @@
         }
       }
     },
+    "The positions, lançamentos, proventos recorded, purchase days and targets, one per line: Excel and Google Sheets open it, and importing it brings the Carteira back.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las posiciones, operaciones, proventos registrados, fechas de compra y metas, uno por línea: Excel y Google Sheets lo abren, y al importarlo la cartera vuelve."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les positions, opérations, revenus saisis, dates d'achat et objectifs, un par ligne : Excel et Google Sheets l'ouvrent, et en l'important le portefeuille revient."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As posições, os lançamentos, os proventos lançados, as datas de compra e as metas, um por linha: o Excel e o Google Planilhas abrem, e ao importar a carteira volta."
+          }
+        }
+      }
+    },
     "The shares you hold come first, as an opening balance at their average price; this buy is added to them.": {
       "localizations": {
         "es": {
@@ -16913,6 +17771,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "O login não deu certo."
+          }
+        }
+      }
+    },
+    "The summary, the positions, the proventos and the lançamentos on A4 pages, to read, print or send.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El resumen, las posiciones, los proventos y las operaciones en páginas A4, para leer, imprimir o enviar."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le résumé, les positions, les revenus et les opérations sur des pages A4, à lire, imprimer ou envoyer."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O resumo, as posições, os proventos e os lançamentos em páginas A4, para ler, imprimir ou enviar."
           }
         }
       }
@@ -17089,6 +17969,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Este aparelho ou rotina não está mais compartilhado com o celular."
+          }
+        }
+      }
+    },
+    "This file is too big to be a Carteira.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este archivo es demasiado grande para ser una cartera."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce fichier est trop gros pour être un portefeuille."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este arquivo é grande demais para ser uma carteira."
           }
         }
       }
@@ -17313,6 +18215,28 @@
         }
       }
     },
+    "Ticker (BTCI11, BBAS3…)": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Código (BTCI11, BBAS3…)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Code (BTCI11, BBAS3…)"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Código (BTCI11, BBAS3…)"
+          }
+        }
+      }
+    },
     "Ticker (GARE11, BBAS3…)": {
       "localizations": {
         "es": {
@@ -17441,6 +18365,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "A receber"
+          }
+        }
+      }
+    },
+    "To restore the Carteira, import the Excel or CSV file in AXYON → Carteira → Backup. This report is for reading.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para restaurar la cartera, importa el archivo Excel o CSV en AXYON → Cartera → Respaldo. Este informe es para leer."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pour rétablir le portefeuille, importez le fichier Excel ou CSV dans AXYON → Portefeuille → Sauvegarde. Ce rapport est à lire."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para restaurar a carteira, importe o arquivo Excel ou CSV em AXYON → Carteira → Backup. Este relatório é para leitura."
           }
         }
       }
@@ -18189,6 +19135,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Analista de valuation"
+          }
+        }
+      }
+    },
+    "Value": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valor"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valeur"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valor"
           }
         }
       }
@@ -19337,6 +20305,28 @@
         }
       }
     },
+    "You received": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recibiste"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vous avez reçu"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você recebeu"
+          }
+        }
+      }
+    },
     "You · %@": {
       "localizations": {
         "es": {
@@ -19355,6 +20345,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "Você · %@"
+          }
+        }
+      }
+    },
+    "Your Carteira": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu cartera"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre portefeuille"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua carteira"
+          }
+        }
+      }
+    },
+    "Your Carteira, safe outside the app": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu cartera, segura fuera de la app"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre portefeuille, en sûreté hors de l'app"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua carteira, segura fora do app"
           }
         }
       }
@@ -20015,6 +21049,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "amortização"
+          }
+        }
+      }
+    },
+    "as your statement shows it": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "como lo muestra tu extracto"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "tel que votre relevé l'indique"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "como mostra o seu extrato"
           }
         }
       }
@@ -21193,6 +22249,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "consultado em %@"
+          }
+        }
+      }
+    },
+    "recorded by you": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "registrado por ti"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "saisi par vous"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "lançado por você"
           }
         }
       }

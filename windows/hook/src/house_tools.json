@@ -309,6 +309,130 @@
     }
   },
   {
+    "name": "wealth_wallet",
+    "title": "Zheus: the Carteira (lançamentos and proventos)",
+    "description": "The Carteira, AXYON's consolidator (the iPhone app's first tab), as the app shows it: its lançamentos (buys and sales with their ids) and the proventos received, to receive and recorded by the user, with how each was counted. Use it to fix the Carteira when the user asks: do=add_provento records proventos they received as their broker or Investidor10 shows them (an asset held or already sold: ticker, payment date, data-com, and the amount received, or the value per share and the quantity); it takes the place of the one AXYON's sources give for that asset and day. do=remove_provento takes one back by its id. do=add_trade records lançamentos as the app's \"+\" does (several at once); do=remove_trade removes one by its id (a wrong one, a duplicate). do=since sets the day an asset of the user's sheet was bought (its proventos count from then). Only what the user said or pasted, with their figures: never invent a provento or a trade, and read do=view first to find an id or to avoid recording again what is there. This only changes AXYON's record: nothing is bought or sold.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "do": {
+          "type": "string",
+          "enum": [
+            "view",
+            "add_provento",
+            "remove_provento",
+            "add_trade",
+            "remove_trade",
+            "since"
+          ],
+          "description": "view (the default) shows the Carteira with the ids."
+        },
+        "proventos": {
+          "type": "array",
+          "description": "For add_provento: the proventos the user received, as they gave them.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "ticker": {
+                "type": "string",
+                "description": "The B3 ticker (\"BTCI11\")."
+              },
+              "payment": {
+                "type": "string",
+                "description": "The day it was paid, DD/MM/YYYY."
+              },
+              "record": {
+                "type": "string",
+                "description": "Its data-com, DD/MM/YYYY, when known."
+              },
+              "value": {
+                "type": "number",
+                "description": "What was received in all, R$ (net)."
+              },
+              "per_share": {
+                "type": "number",
+                "description": "R$ a share, when given."
+              },
+              "quantity": {
+                "type": "number",
+                "description": "The shares it was paid on, when given."
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "rendimento",
+                  "dividendo",
+                  "jcp",
+                  "amortizacao"
+                ],
+                "description": "A fund's rendimento, a company's dividend or JCP, an amortization; left out, a fund's rendimento or a company's dividend."
+              }
+            },
+            "required": [
+              "ticker"
+            ]
+          }
+        },
+        "trades": {
+          "type": "array",
+          "description": "For add_trade: the lançamentos, as the user gave them.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "ticker": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "buy",
+                  "sell"
+                ]
+              },
+              "date": {
+                "type": "string",
+                "description": "DD/MM/YYYY."
+              },
+              "quantity": {
+                "type": "number"
+              },
+              "price": {
+                "type": "number",
+                "description": "R$ a share."
+              },
+              "fees": {
+                "type": "number",
+                "description": "Brokerage and fees, R$."
+              },
+              "opening": {
+                "type": "boolean",
+                "description": "For an asset of the sheet with no lançamento yet: true (the default) keeps the shares held as an opening balance and adds this one; false makes this part of their history (enter every buy and sale then)."
+              }
+            },
+            "required": [
+              "ticker",
+              "kind",
+              "quantity",
+              "price"
+            ]
+          }
+        },
+        "id": {
+          "type": "number",
+          "description": "For remove_trade and remove_provento: the id do=view shows."
+        },
+        "ticker": {
+          "type": "string",
+          "description": "For since: the asset."
+        },
+        "date": {
+          "type": "string",
+          "description": "For since: the day it was bought, DD/MM/YYYY (empty forgets it)."
+        }
+      }
+    }
+  },
+  {
     "name": "wealth_ceiling",
     "title": "Zheus: ceiling prices and opportunities",
     "description": "Ceiling prices (\"preço teto\") of the user's shares and funds, or of one ticker, by classic methods worked out from the official data: Bazin (a year of dividends a share over the yield wanted: 6 % for shares; for funds the CDI after the 15 % income tax, unless the user chose another), projected Bazin (a fund's dividends at the pace of its last three months; a share's earnings grown as in the last year and paid out as then), Graham (√(22,5 × LPA × VPA)), Peter Lynch (LPA × (growth + DY)), and P/VP for funds. Each comes with what it was worked out from and how far the B3 close is above or below it, and the answer lists the opportunities: the close below a watched ceiling (the island and the morning briefing tell them by themselves). It also saves the user's choices: stock_yield, fund_yield (0 goes back to the CDI's), max_pvp, margin, the methods to watch, and their own ceiling for a ticker (ceiling: 0 removes it; a ticker with its own ceiling is watched even if not held; with their Google Sheet linked it is written to the \"Meu teto\" column of its AXYON tab). For a company the CVM does not cover, pass the eps, bvps, dps and growth the user gave. Rules of thumb on the user's own assumptions, never a recommendation: tell the user which method and figures each ceiling comes from.",

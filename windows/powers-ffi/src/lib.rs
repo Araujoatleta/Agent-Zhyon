@@ -235,7 +235,7 @@ fn read_due(st: &mut State, today: Date, evening: bool, budget: Duration) {
         }
     }
     if due.fund_months || !due.funds.is_empty() {
-        let mine = st.store.portfolio.tickers(Some(AssetClass::Fii));
+        let mine = refresh::fund_tickers(&st.store, today);
         let known = refresh::known_documents(&st.market);
         let job = refresh::funds(http(), &due.funds, &st.market.fund_cnpjs, &st.store.fund_cnpjs, due.fund_months.then_some(mine.as_slice()), &known, today);
         if let Some(read) = within(deadline, job) {
@@ -277,7 +277,7 @@ fn ensure_asset(st: &mut State, ticker: &str, today: Date, evening: bool) {
         let months = given || (!read_today && have.as_ref().is_none_or(|f| f.months.is_empty()));
         if months || !read_today {
             let mut all = vec![ticker.to_string()];
-            all.extend(st.store.portfolio.tickers(Some(AssetClass::Fii)).into_iter().filter(|t| t != ticker));
+            all.extend(refresh::fund_tickers(&st.store, today).into_iter().filter(|t| t != ticker));
             let known = refresh::known_documents(&st.market);
             let job = refresh::funds(http(), &one, &st.market.fund_cnpjs, &st.store.fund_cnpjs, months.then_some(all.as_slice()), &known, today);
             if let Some(read) = within(deadline, job) {
@@ -445,6 +445,10 @@ fn run(st: &mut State, tool: &str, input: &Value, today: Date, evening: bool, re
         },
         "wealth_trade" => {
             let out = engine::trade_view(&mut st.store, &st.market, input, today);
+            changed(st, out)
+        }
+        "wealth_wallet" => {
+            let out = engine::wallet_view(&mut st.store, &st.market, input, today);
             changed(st, out)
         }
         "wealth_ceiling" => {

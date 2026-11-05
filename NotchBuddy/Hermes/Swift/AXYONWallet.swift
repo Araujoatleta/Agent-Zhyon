@@ -154,8 +154,11 @@ struct WalletPaid: Identifiable, Equatable {
     let net: Double
     /// Counted on the shares held now: no lançamento tells what was held at the data-com.
     let estimated: Bool
-    /// How its shares are known: lancamentos, planilha (what the sheet records that month), posicao, estimado.
+    /// How its shares are known: lancamentos, planilha (what the sheet records that month), posicao, estimado; lancado,
+    /// recorded by the user.
     let basis: String
+    /// A recorded one's id: what it is taken back by.
+    let entry: Int?
 
     init(_ o: [String: Any]) {
         ticker = WalletJSON.str(o["ticker"])
@@ -168,10 +171,13 @@ struct WalletPaid: Identifiable, Equatable {
         net = WalletJSON.dbl(o["net"])
         estimated = o["estimated"] as? Bool ?? false
         basis = WalletJSON.str(o["basis"])
-        id = "\(ticker)-\(kind)-\(record)-\(payment ?? "")-\(perShare)"
+        entry = (o["id"] as? NSNumber)?.intValue
+        id = "\(ticker)-\(kind)-\(record)-\(payment ?? "")-\(perShare)-\(entry ?? 0)"
     }
 
     var isJCP: Bool { kind.localizedCaseInsensitiveContains("juros") }
+    /// Recorded by the user, as their statement shows it.
+    var recorded: Bool { basis == "lancado" }
 }
 
 /// The proventos received in one month, asset by asset.
@@ -327,6 +333,31 @@ final class AXYONWallet {
 
     func remove(_ trade: WalletTrade) async throws {
         take(try await engine("invest_trade", ["do": "remove", "id": trade.id]))
+    }
+
+    /// A provento received, as the user's statement shows it: it counts in place of the one AXYON's sources give for
+    /// that asset and day. `value` is what was received; or `perShare` and `quantity`.
+    func addProvento(ticker: String, kind: String, payment: Date, record: Date?, value: String, perShare: String,
+                     quantity: String) async throws {
+        var input: [String: Any] = ["do": "provento", "ticker": ticker, "kind": kind, "payment": Self.iso(payment)]
+        if let record { input["record"] = Self.iso(record) }
+        if !value.trimmingCharacters(in: .whitespaces).isEmpty { input["value"] = value }
+        if !perShare.trimmingCharacters(in: .whitespaces).isEmpty { input["per_share"] = perShare }
+        if !quantity.trimmingCharacters(in: .whitespaces).isEmpty { input["quantity"] = quantity }
+        take(try await engine("invest_trade", input))
+    }
+
+    func removeProvento(_ paid: WalletPaid) async throws {
+        guard let entry = paid.entry else { return }
+        take(try await engine("invest_trade", ["do": "provento_remove", "id": entry]))
+    }
+
+    /// "2026-10-15", the engine's way.
+    static func iso(_ date: Date) -> String {
+        var day = Calendar(identifier: .gregorian)
+        day.timeZone = .current
+        let parts = day.dateComponents([.year, .month, .day], from: date)
+        return String(format: "%04d-%02d-%02d", parts.year ?? 2000, parts.month ?? 1, parts.day ?? 1)
     }
 
     /// Since when an asset of the sheet is held (nil takes the day back): its proventos count from then.

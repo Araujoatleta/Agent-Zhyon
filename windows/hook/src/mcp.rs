@@ -31,7 +31,8 @@ against Brazil's official data (B3, the CVM, FundosNet, the Banco Central), and 
 With their Google Sheet linked, the portfolio is kept with them in its AXYON tab: AXYON reads their edits back and \
 writes there every change made with these tools, with the price now, the result and the ceilings beside. They only \
 read and keep the user's own records: they never buy, sell, pay, send or post anything. Call wealth_portfolio before \
-talking about the user's investments, wealth_trade when they tell a buy or a sale they made, wealth_ceiling for \
+talking about the user's investments, wealth_trade when they tell a buy or a sale they made, wealth_wallet to read \
+or fix the Carteira (a provento they received, a lançamento to remove or correct), wealth_ceiling for \
 ceiling prices and to set their own, wealth_update to add or remove an asset, and life_day for their day. Change the \
 portfolio with these tools rather than by editing the AXYON tab with another tool: AXYON writes it.";
 
@@ -203,7 +204,7 @@ mod tests {
         let list = answer(&json!({"jsonrpc": "2.0", "id": "a", "method": "tools/list"}), &mut client, &|_| Relayed::Closed).unwrap();
         let names: Vec<&str> = list["result"]["tools"].as_array().unwrap().iter().map(|t| t["name"].as_str().unwrap()).collect();
         assert_eq!(&names[..5], ["home_devices", "home_control", "home_routine", "zheus_world", "zheus_mission"]);
-        assert_eq!(names.len(), 25, "and the twenty superpowers");
+        assert_eq!(names.len(), 26, "and the twenty-one superpowers");
         assert!(names[5..].iter().all(|n| n.starts_with("wealth_") || n.starts_with("life_")));
         assert!(list["result"]["tools"].as_array().unwrap().iter().all(|t| t["inputSchema"]["type"] == "object"));
         let other = answer(&json!({"jsonrpc": "2.0", "id": 3, "method": "resources/list"}), &mut client, &|_| Relayed::Closed).unwrap();

@@ -515,6 +515,8 @@ final class HermesEngine {
     func portfolioChanged() {
         portfolioDate = HermesPortfolio.receivedAt()
         if state == .ready { Task { await refreshPortfolio() } }
+        // What AXYON Core changed in the Carteira (wealth_wallet, wealth_trade) is on its screen at once.
+        Task { await AXYONWallet.shared.load() }
     }
 
     // MARK: Investing (AXYONInvest.swift)

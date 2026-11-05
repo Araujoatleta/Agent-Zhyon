@@ -125,6 +125,7 @@ pub const POWER_TOOLS: &[&str] = &[
     "wealth_portfolio",
     "wealth_update",
     "wealth_trade",
+    "wealth_wallet",
     "wealth_ceiling",
     "wealth_fii",
     "wealth_events",

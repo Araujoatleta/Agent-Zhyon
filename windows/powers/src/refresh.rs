@@ -47,6 +47,20 @@ pub fn quoted(store: &Store) -> Vec<String> {
     t
 }
 
+/// The funds whose notices are read: those held, and those with a lançamento in the last thirteen months (one sold
+/// since still paid its proventos while held).
+pub fn fund_tickers(store: &Store, today: Date) -> Vec<String> {
+    let mut out = store.portfolio.tickers(Some(AssetClass::Fii));
+    let since = today.add_days(-400);
+    for t in store.trades.iter().filter(|t| t.class == Some(AssetClass::Fii) && t.date >= since) {
+        let ticker = t.ticker.to_uppercase();
+        if !out.contains(&ticker) {
+            out.push(ticker);
+        }
+    }
+    out
+}
+
 /// The CNPJ a fund's ticker is read under: the one the user gave, or the one learned from the sources.
 pub fn cnpj_of<'a>(store: &'a Store, market: &'a Market, ticker: &str) -> Option<&'a String> {
     let root = crate::text::ticker_root(ticker);
@@ -62,7 +76,7 @@ pub fn due(store: &Store, market: &Market, today: Date, evening: bool, force: bo
     let tickers = quoted(store);
     let latest_day = if evening { today } else { previous_business_day(today, true) };
     let quotes_stale = market.quotes_day.is_none_or(|d| d < previous_business_day(latest_day.add_days(1), true)) || tickers.iter().any(|t| !market.quotes.contains_key(t));
-    let funds: Vec<String> = store.portfolio.tickers(Some(AssetClass::Fii));
+    let funds: Vec<String> = fund_tickers(store, today);
     let funds_due: Vec<String> = funds
         .iter()
         .filter(|t| force || cnpj_changed(store, market, t) || unchecked_payouts(market, t) || market.funds.get(*t).and_then(|f| f.checked).is_none_or(|d| d < today))

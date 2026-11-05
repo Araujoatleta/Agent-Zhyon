@@ -179,6 +179,28 @@ pub struct Trade {
     pub average: Option<f64>,
 }
 
+/// A provento the user recorded themselves (one received as their broker or Investidor10 shows it, of an asset held
+/// or already sold): it counts as received on its payment day, in place of the one the sources give for the same asset
+/// and day (wallet.rs).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct ProventoEntry {
+    /// What the app and the brain remove it by.
+    pub id: u64,
+    pub ticker: String,
+    /// "Rendimento", "Dividendo", "Juros sobre capital próprio", "Amortização".
+    pub kind: String,
+    /// Its data-com, when known.
+    pub record: Option<Date>,
+    pub payment: Option<Date>,
+    pub per_share: Option<f64>,
+    pub quantity: Option<f64>,
+    /// What was received, net, R$.
+    pub value: f64,
+    /// "app", "chat" or "import".
+    pub source: String,
+}
+
 /// Something that happened to a holding other than a trade.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -697,6 +719,9 @@ pub struct Store {
     /// from then (wallet.rs, invest::held_since).
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub held_from: BTreeMap<String, Date>,
+    /// The proventos the user recorded themselves (wallet.rs).
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub proventos: Vec<ProventoEntry>,
     pub learn: Learn,
     /// The documents and broken theses already told, by key (library.rs, thesis.rs).
     pub told_documents: Vec<String>,

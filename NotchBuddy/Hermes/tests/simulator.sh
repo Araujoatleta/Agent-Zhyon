@@ -291,6 +291,7 @@ quick_shot() {  # screen: the Wallet's and the investing screens, which need the
     xcrun simctl io "$DEVICE" screenshot "$SHOTS/$1.png" >/dev/null 2>&1 || true
 }
 for screen in wallet wallet-end wallet-trades wallet-income wallet-income-end wallet-asset wallet-asset-end wallet-new \
+    wallet-provento wallet-backup \
     invest invest-mid invest-end invest-folders invest-folder invest-folder-end invest-verdict invest-verdict-mid \
     invest-verdict-end 'wallet~copper' 'wallet~ocean' 'invest~copper' 'invest~ocean'; do
     quick_shot "$screen"

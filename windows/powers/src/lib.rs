@@ -10,6 +10,7 @@
 
 pub mod alerts;
 pub mod audit;
+pub mod backup;
 pub mod ceiling;
 pub mod committee;
 pub mod company;

@@ -28,7 +28,7 @@ enum HermesArms {
             let tool = r["tool"] as? String ?? ""
             let answer = await HermesPowers.call(tool, input: data(r["input"] as? [String: Any] ?? [:]))
             // The wallet shows the record these change.
-            if ["wealth_update", "wealth_trade", "wealth_ceiling"].contains(tool) { HermesEngine.shared.portfolioChanged() }
+            if ["wealth_update", "wealth_trade", "wealth_wallet", "wealth_ceiling"].contains(tool) { HermesEngine.shared.portfolioChanged() }
             return answer
         default: return data(["error": "The app does not know \(kind)."])
         }

@@ -535,7 +535,8 @@ pub fn app(store: &mut Store, market: &Market, lib: &mut Library, tool: &str, in
             Ok((learn::view(store, market, Some(lib), today), saved))
         }
         // The consolidator: its screen (its quotes read first by the bridge for invest_quotes), and a lançamento added
-        // (do: add, ticker, kind buy|sell, date, quantity, price, fees, opening) or removed (do: remove, id).
+        // (do: add, ticker, kind buy|sell, date, quantity, price, fees, opening) or removed (do: remove, id); since when
+        // a sheet's asset is held (do: since); a provento the user recorded (do: provento) or took back (provento_remove).
         "invest_wallet" | "invest_quotes" => {
             let changed = crate::wallet::ensure_seqs(store);
             Ok((crate::wallet::view(store, market, today), if changed { STORE } else { Saved::default() }))
@@ -555,12 +556,38 @@ pub fn app(store: &mut Store, market: &Market, lib: &mut Library, tool: &str, in
                     };
                     crate::wallet::set_held_from(store, &ticker, day, today)?;
                 }
+                // A provento received as the user's statement shows it (ticker, payment, record, value or per_share and
+                // quantity, kind), or one of them taken back (id).
+                "provento" => {
+                    let e = crate::wallet::provento_entry(input, market, today)?;
+                    crate::wallet::add_provento(store, e)?;
+                }
+                "provento remove" => {
+                    let id = input["id"].as_u64().ok_or("Qual provento remover?")?;
+                    crate::wallet::remove_provento(store, id)?;
+                }
                 _ => {
                     let e = crate::wallet::entry(input, today)?;
                     crate::wallet::add(store, market, e, today)?;
                 }
             }
             Ok((crate::wallet::view(store, market, today), STORE))
+        }
+        // The Carteira as a file (format xlsx: the workbook with everything, to restore it whole; csv: its records), its
+        // bytes in base64; and a file brought back (name, base64): AXYON's own restores, B3's adds its lançamentos.
+        "invest_export" => {
+            let (name, bytes) = match s("format").as_deref() {
+                Some("csv") => (crate::backup::file_name(today, "csv"), crate::backup::csv(store, market, today).into_bytes()),
+                _ => (crate::backup::file_name(today, "xlsx"), crate::backup::workbook(store, market, today)),
+            };
+            Ok((json!({ "name": name, "base64": crate::backup::base64(&bytes) }), Saved::default()))
+        }
+        "invest_import" => {
+            let bytes = s("base64").and_then(|b| crate::backup::unbase64(&b)).ok_or("O arquivo não chegou inteiro.")?;
+            let note = crate::backup::restore(store, market, &s("name").unwrap_or_default(), &bytes, today)?;
+            let mut screen = crate::wallet::view(store, market, today);
+            screen["note"] = json!(note);
+            Ok((screen, STORE))
         }
         // The share of the portfolio the user wants in one asset, percent; none (or 0) takes it away.
         "invest_target" => {
@@ -633,6 +660,29 @@ pub fn view(store: &Store, market: &Market, lib: Option<&Library>, today: Date) 
 mod tests {
     use super::*;
     use crate::portfolio::fixtures;
+
+    #[test]
+    fn the_app_records_a_provento_and_takes_the_carteira_out_and_back() {
+        let today = Date::new(2026, 11, 5).unwrap();
+        let market = fixtures::market();
+        let mut lib = Library::default();
+        let mut store = Store { portfolio: fixtures::portfolio(), ..Store::default() };
+        let (screen, saved) = app(&mut store, &market, &mut lib, "invest_trade", &json!({"do": "provento", "ticker": "RZTR11", "payment": "2026-10-07", "per_share": "0,85", "quantity": "15"}), today).unwrap();
+        assert!(saved.store);
+        let id = screen["income"]["received"].as_array().unwrap().iter().find(|p| p["ticker"] == "RZTR11").unwrap()["id"].as_u64().unwrap();
+        let (book, _) = app(&mut store, &market, &mut lib, "invest_export", &json!({"format": "xlsx"}), today).unwrap();
+        assert_eq!(book["name"], "AXYON-carteira-2026-11-05.xlsx");
+        let (csv, _) = app(&mut store, &market, &mut lib, "invest_export", &json!({"format": "csv"}), today).unwrap();
+        assert!(String::from_utf8(crate::backup::unbase64(csv["base64"].as_str().unwrap()).unwrap()).unwrap().contains("provento lançado;RZTR11"));
+        app(&mut store, &market, &mut lib, "invest_trade", &json!({"do": "provento_remove", "id": id}), today).unwrap();
+        assert!(store.proventos.is_empty());
+        // The app lost it all: the workbook brings it back.
+        let mut lost = Store::default();
+        let (screen, saved) = app(&mut lost, &market, &mut lib, "invest_import", &json!({"name": book["name"], "base64": book["base64"]}), today).unwrap();
+        assert!(saved.store && screen["note"].as_str().unwrap().contains("por inteiro"));
+        assert_eq!(lost.proventos.len(), 1);
+        assert!(app(&mut lost, &market, &mut lib, "invest_import", &json!({"name": "x.csv", "base64": "%%%"}), today).is_err());
+    }
 
     #[test]
     fn each_assets_analyses_are_kept_in_its_folder() {

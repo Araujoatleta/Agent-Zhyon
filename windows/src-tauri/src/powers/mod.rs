@@ -355,7 +355,7 @@ pub async fn refresh(app: &AppHandle, force: bool) -> RefreshState {
     }
     if due.fund_months || !due.funds.is_empty() {
         // The documents of the funds due; the CVM's months for all of them when those are due.
-        let mine = store.portfolio.tickers(Some(AssetClass::Fii));
+        let mine = refresh::fund_tickers(&store, today);
         let read = refresh::funds(&powers.http, &due.funds, &market.fund_cnpjs, &store.fund_cnpjs, due.fund_months.then_some(mine.as_slice()), &refresh::known_documents(&market), today).await;
         problems.extend(read.errors.iter().cloned());
         refresh::merge_funds(&mut held(&powers.market), read, today);
@@ -443,7 +443,7 @@ async fn ensure_asset(app: &AppHandle, ticker: &str) {
             let months = given || (!read_today && have.is_none_or(|f| f.months.is_empty()));
             if months || !read_today {
                 let mut all = vec![ticker.clone()];
-                all.extend(store.portfolio.tickers(Some(AssetClass::Fii)).into_iter().filter(|t| *t != ticker));
+                all.extend(refresh::fund_tickers(&store, today).into_iter().filter(|t| *t != ticker));
                 let read = refresh::funds(&powers.http, std::slice::from_ref(&ticker), &market.fund_cnpjs, &store.fund_cnpjs, months.then_some(all.as_slice()), &refresh::known_documents(&market), today).await;
                 refresh::merge_funds(&mut held(&powers.market), read, today);
             }
@@ -1156,7 +1156,7 @@ fn record_note(s: &Store) -> String {
 /// The tools that change what AXYON's tab holds (the positions, the user's own ceilings): the user's latest edits in
 /// the sheet are read first, and the change is written there after.
 fn changes_record(tool: &str) -> bool {
-    matches!(tool, "wealth_update" | "wealth_trade" | "wealth_ceiling")
+    matches!(tool, "wealth_update" | "wealth_trade" | "wealth_wallet" | "wealth_ceiling")
 }
 
 /// The answer, with where the change went: the sheet's round after it (`tab`, the tab named).
@@ -1254,6 +1254,7 @@ pub async fn call(app: &AppHandle, tool: &str, input: &Value) -> HomeResult {
             None => refused("wealth_company needs the share's ticker (\"TIMS3\").".into()),
         },
         "wealth_trade" => change(app, |s, m| engine::trade_view(s, m, input, today)).map_or_else(refused, answer),
+        "wealth_wallet" => change(app, |s, m| engine::wallet_view(s, m, input, today)).map_or_else(refused, answer),
         "wealth_ceiling" => change(app, |s, m| engine::ceiling_view(s, m, input, today)).map_or_else(refused, answer),
         "wealth_plan" => answer(read(app, |s, m| engine::plan(s, m, input, today))),
         "wealth_audit" => answer(read(app, |s, m| engine::audit_view(s, m, input, today))),
