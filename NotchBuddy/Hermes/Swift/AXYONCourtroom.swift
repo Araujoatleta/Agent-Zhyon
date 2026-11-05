@@ -293,6 +293,8 @@ private struct CourtPainter {
         lights(&c)
         marble(&c)
         crest(&c)
+        sconces(&c)
+        clock(&c)
         door(&c)
         floor(&c)
         chair(&c)
@@ -302,9 +304,14 @@ private struct CourtPainter {
         person(&c, .expert)
         standFront(&c)
         juryBack(&c)
-        for i in 0..<min(scene.verdict.minds.count, 5) where i < 3 { person(&c, .juror(i)) }
+        // The jurors sit in their box: nothing of them shows under its rail.
+        var box = c
+        box.clip(to: Path(r(0.7, 0, 1, 0.68)))
+        for i in 0..<min(scene.verdict.minds.count, 5) where i < 3 { person(&box, .juror(i)) }
         juryMiddle(&c)
-        for i in 0..<min(scene.verdict.minds.count, 5) where i >= 3 { person(&c, .juror(i)) }
+        box = c
+        box.clip(to: Path(r(0.7, 0, 1, 0.68)))
+        for i in 0..<min(scene.verdict.minds.count, 5) where i >= 3 { person(&box, .juror(i)) }
         juryRail(&c)
         placards(&c)
         person(&c, .clerk)
@@ -403,8 +410,8 @@ private struct CourtPainter {
     /// The court's crest: a ring of gold around a sphere of the accent's light, with laurels.
     private func crest(_ c: inout GraphicsContext) {
         let theme = AXYONTheme.current
-        let center = p(0.5, 0.125)
-        let radius = 13 * u
+        let center = p(0.5, 0.118)
+        let radius = 12 * u
         c.fill(Path(ellipseIn: CGRect(x: center.x - radius * 1.6, y: center.y - radius * 1.6, width: radius * 3.2, height: radius * 3.2)),
                with: .radialGradient(Gradient(colors: [theme.accent.opacity(0.35), .clear]), center: center, startRadius: 0, endRadius: radius * 1.6))
         let orb = CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2)
@@ -427,9 +434,59 @@ private struct CourtPainter {
                 c.fill(leaf, with: .color(Color(hex: "#D9B45A")))
             }
         }
-        let title = c.resolve(Text(verbatim: "TRIBUNAL AXYON").font(.system(size: 6.5 * u, weight: .heavy)).tracking(1.6 * u)
-            .foregroundStyle(Color(hex: "#7A5A2A")))
-        c.draw(title, at: p(0.5, 0.205), anchor: .center)
+        // The court's name on either side of its crest, in letters of bronze.
+        for (word, x) in [("TRIBUNAL", 0.37), ("AXYON", 0.63)] as [(String, CGFloat)] {
+            let title = c.resolve(Text(verbatim: word).font(.system(size: 7.5 * u, weight: .heavy, design: .serif)).tracking(1.8 * u)
+                .foregroundStyle(Color(hex: "#6E4E22")))
+            c.draw(title, at: p(x, 0.12), anchor: .center)
+        }
+    }
+
+    /// Two brass sconces on the wood beside the marble, warm.
+    private func sconces(_ c: inout GraphicsContext) {
+        for sx in [0.205, 0.795] as [CGFloat] {
+            let center = p(sx, 0.27)
+            var glow = c
+            glow.blendMode = .plusLighter
+            glow.fill(Path(ellipseIn: CGRect(x: center.x - 26 * u, y: center.y - 22 * u, width: 52 * u, height: 44 * u)),
+                      with: .radialGradient(Gradient(colors: [Color(hex: "#FFD99A").opacity(0.35), .clear]), center: center, startRadius: 0, endRadius: 26 * u))
+            c.fill(Path(roundedRect: CGRect(x: center.x - 1.5 * u, y: center.y, width: 3 * u, height: 10 * u), cornerRadius: 1 * u), with: .color(Color(hex: "#B8913F")))
+            var shade = Path()
+            shade.move(to: CGPoint(x: center.x - 5 * u, y: center.y + 1 * u))
+            shade.addLine(to: CGPoint(x: center.x + 5 * u, y: center.y + 1 * u))
+            shade.addLine(to: CGPoint(x: center.x + 3 * u, y: center.y - 7 * u))
+            shade.addLine(to: CGPoint(x: center.x - 3 * u, y: center.y - 7 * u))
+            shade.closeSubpath()
+            c.fill(shade, with: .linearGradient(Gradient(colors: [Color(hex: "#FFF1CF"), Color(hex: "#E8C27A")]),
+                                                startPoint: CGPoint(x: center.x, y: center.y - 7 * u), endPoint: CGPoint(x: center.x, y: center.y + 1 * u)))
+        }
+    }
+
+    /// The court's clock, on the wood above the expert's stand: the hour of now.
+    private func clock(_ c: inout GraphicsContext) {
+        let center = p(0.155, 0.17)
+        let radius = 11 * u
+        let face = CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2)
+        c.fill(Path(ellipseIn: face.insetBy(dx: -2 * u, dy: -2 * u)), with: .linearGradient(Gradient(colors: [Color(hex: "#F3D98F"), Color(hex: "#8A6424")]),
+                                                                                           startPoint: CGPoint(x: face.minX, y: face.minY), endPoint: CGPoint(x: face.maxX, y: face.maxY)))
+        c.fill(Path(ellipseIn: face), with: .color(Color(hex: "#F7F2E6")))
+        for k in 0..<12 {
+            let a = Double(k) * .pi / 6
+            var tick = Path()
+            tick.move(to: CGPoint(x: center.x + CGFloat(sin(a)) * radius * 0.78, y: center.y - CGFloat(cos(a)) * radius * 0.78))
+            tick.addLine(to: CGPoint(x: center.x + CGFloat(sin(a)) * radius * 0.92, y: center.y - CGFloat(cos(a)) * radius * 0.92))
+            c.stroke(tick, with: .color(Color(hex: "#2A2A2A")), lineWidth: (k % 3 == 0 ? 1.2 : 0.6) * u)
+        }
+        let parts = Calendar.current.dateComponents([.hour, .minute], from: now == .distantFuture ? Date(timeIntervalSince1970: 0) : now)
+        let minutes = Double(parts.minute ?? 10)
+        let hours = Double((parts.hour ?? 10) % 12) + minutes / 60
+        for (angle, length, width) in [(hours / 12 * 2 * .pi, 0.5, 1.4), (minutes / 60 * 2 * .pi, 0.75, 0.9)] as [(Double, CGFloat, CGFloat)] {
+            var hand = Path()
+            hand.move(to: center)
+            hand.addLine(to: CGPoint(x: center.x + CGFloat(sin(angle)) * radius * length, y: center.y - CGFloat(cos(angle)) * radius * length))
+            c.stroke(hand, with: .color(Color(hex: "#1A1A1A")), style: StrokeStyle(lineWidth: width * u, lineCap: .round))
+        }
+        c.fill(Path(ellipseIn: CGRect(x: center.x - 1.2 * u, y: center.y - 1.2 * u, width: 2.4 * u, height: 2.4 * u)), with: .color(Color(hex: "#B8913F")))
     }
 
     private func door(_ c: inout GraphicsContext) {
@@ -466,7 +523,7 @@ private struct CourtPainter {
     }
 
     private func chair(_ c: inout GraphicsContext) {
-        let back = r(0.425, 0.15, 0.575, 0.42)
+        let back = r(0.425, 0.175, 0.575, 0.42)
         let shape = Path(roundedRect: back, cornerRadius: 12 * u, style: .continuous)
         c.fill(shape, with: .linearGradient(Gradient(colors: [Color(hex: "#5C2222"), Color(hex: "#2E0E0E")]),
                                             startPoint: CGPoint(x: back.minX, y: back.minY), endPoint: CGPoint(x: back.maxX, y: back.maxY)))
@@ -742,7 +799,7 @@ private struct CourtPainter {
         default: break
         }
         CourtFigure.draw(&c, look: look, head: CGPoint(x: head.x, y: head.y + bob - breath * 0.4), s: s, mouth: mouth, blink: blink,
-                         breath: breath, arm: arm, holding: holding, now: time)
+                         breath: breath, arm: arm, holding: holding, now: time, legs: role == .clerk)
     }
 }
 
@@ -752,9 +809,19 @@ enum Holding { case none, folder, clipboard, gavel }
 /// speaks, hair, glasses, a beard, an arm that gestures, what it holds.
 enum CourtFigure {
     static func draw(_ c: inout GraphicsContext, look: CourtLook, head: CGPoint, s: CGFloat, mouth: CGFloat, blink: Bool,
-                     breath: CGFloat, arm: CGFloat, holding: Holding, now: Double) {
+                     breath: CGFloat, arm: CGFloat, holding: Holding, now: Double, legs: Bool = false) {
         let x = head.x
         let y = head.y
+        // Standing in the aisle: trousers and shoes under the jacket.
+        if legs {
+            for side in [-1.0, 1.0] as [CGFloat] {
+                let leg = CGRect(x: x + side * 8 * s - 6 * s, y: y + 64 * s, width: 12 * s, height: 52 * s)
+                c.fill(Path(roundedRect: leg, cornerRadius: 4 * s), with: .linearGradient(Gradient(colors: [Color(hex: "#2B2E36"), Color(hex: "#16181D")]),
+                                                                                        startPoint: CGPoint(x: leg.midX, y: leg.minY), endPoint: CGPoint(x: leg.midX, y: leg.maxY)))
+                c.fill(Path(ellipseIn: CGRect(x: leg.minX - 2 * s + side * 2 * s, y: leg.maxY - 3 * s, width: 16 * s, height: 6 * s)), with: .color(Color(hex: "#0D0D0F")))
+            }
+            c.fill(Path(ellipseIn: CGRect(x: x - 24 * s, y: y + 115 * s, width: 48 * s, height: 7 * s)), with: .color(.black.opacity(0.35)))
+        }
         // Hair behind the head (long, bob).
         if look.style == .long || look.style == .bob {
             let drop: CGFloat = look.style == .long ? 30 : 15
@@ -1378,7 +1445,8 @@ struct CourtLineView: View {
             .background {
                 BubbleShape()
                     .fill(Color.white.opacity(current ? 0.1 : 0.06))
-                    .overlay(BubbleShape().stroke(current ? AXYONTheme.current.accent.opacity(0.8) : AXYONPalette.rim, lineWidth: current ? 1.2 : 0.8))
+                    .overlay(BubbleShape().stroke(current ? AnyShapeStyle(AXYONTheme.current.accent.opacity(0.8)) : AnyShapeStyle(AXYONPalette.rim),
+                                                  lineWidth: current ? 1.2 : 0.8))
             }
             .overlay(alignment: .leading) {
                 if line.tone == "for" || line.tone == "against" {
