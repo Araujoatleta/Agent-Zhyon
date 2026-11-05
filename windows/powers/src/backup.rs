@@ -480,6 +480,16 @@ mod tests {
         (store, market, today)
     }
 
+    /// The sample files, for opening them in Excel or LibreOffice by hand: AXYON_SAMPLES=<folder> cargo test -- --ignored.
+    #[test]
+    #[ignore]
+    fn write_samples() {
+        let (store, market, today) = sample();
+        let dir = std::env::var("AXYON_SAMPLES").unwrap_or_else(|_| ".".into());
+        std::fs::write(format!("{dir}/{}", file_name(today, "xlsx")), workbook(&store, &market, today)).unwrap();
+        std::fs::write(format!("{dir}/{}", file_name(today, "csv")), csv(&store, &market, today)).unwrap();
+    }
+
     #[test]
     fn base64_both_ways() {
         for bytes in [&b""[..], b"a", b"ab", b"abc", b"abcd", &[0, 255, 128, 7, 9]] {

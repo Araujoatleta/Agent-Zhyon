@@ -245,8 +245,9 @@ pub fn write(tabs: &[Tab]) -> Vec<u8> {
                     Cell::Text(t) if t.is_empty() => {}
                     Cell::Text(t) => xml.push_str(&format!(r#"<c r="{at}" t="inlineStr"><is><t xml:space="preserve">{}</t></is></c>"#, esc(t))),
                     Cell::Head(t) => xml.push_str(&format!(r#"<c r="{at}" s="1" t="inlineStr"><is><t>{}</t></is></c>"#, esc(t))),
-                    Cell::Number(x) if x.is_finite() => xml.push_str(&format!(r#"<c r="{at}" s="3"><v>{x}</v></c>"#)),
-                    Cell::Money(x) if x.is_finite() => xml.push_str(&format!(r#"<c r="{at}" s="2"><v>{x}</v></c>"#)),
+                    // Rounded: no 1539.0000000000002 from a product of floats.
+                    Cell::Number(x) if x.is_finite() => xml.push_str(&format!(r#"<c r="{at}" s="3"><v>{}</v></c>"#, (x * 1e8).round() / 1e8)),
+                    Cell::Money(x) if x.is_finite() => xml.push_str(&format!(r#"<c r="{at}" s="2"><v>{}</v></c>"#, (x * 100.0).round() / 100.0)),
                     _ => {}
                 }
             }
