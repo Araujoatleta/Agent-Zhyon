@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // The committee's meeting as a trial: a courtroom of wood and carved marble, the presiding judge at the bench, the
 // jury of the five minds in its box, the counsel for the asset (opinion A) and the prosecutor for the user's portfolio
@@ -103,7 +104,7 @@ struct CourtLine: Identifiable, Equatable {
 enum CourtScript {
     static func lines(_ v: InvestVerdict) -> [CourtLine] {
         var out: [CourtLine] = []
-        func add(_ role: CourtRole, _ name: String? = nil, _ text: String, cites: String = "", tone: String = "",
+        func add(_ role: CourtRole, name: String? = nil, _ text: String, cites: String = "", tone: String = "",
                  _ moment: CourtLine.Moment = .speech) {
             let said = text.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !said.isEmpty else { return }
@@ -147,7 +148,7 @@ enum CourtScript {
             if mind.veto {
                 said += " " + String(localized: "And I use my veto: \(InvestMind.vetoName(mind.vetoReason)).")
             }
-            add(.juror(i), mind.name, said, cites: mind.points.map(\.source).filter { !$0.isEmpty }.joined(separator: ", "),
+            add(.juror(i), name: mind.name, said, cites: mind.points.map(\.source).filter { !$0.isEmpty }.joined(separator: ", "),
                 tone: mind.vote, .vote(i))
         }
         // The expert auditor.
@@ -269,7 +270,7 @@ private struct CourtPainter {
             let walked = ease((since(scene.clerkCame) ?? 0) / 1.6)
             let x = 0.05 + (0.385 - 0.05) * walked
             let y = 0.62 + (0.655 - 0.62) * walked
-            return (p(x, y), 0.9 + 0.06 * walked)
+            return (p(CGFloat(x), CGFloat(y)), CGFloat(0.9 + 0.06 * walked))
         case .juror(let i):
             let seats: [(CGFloat, CGFloat)] = [(0.775, 0.455), (0.865, 0.455), (0.955, 0.455), (0.82, 0.555), (0.91, 0.555)]
             let seat = seats[min(i, seats.count - 1)]
@@ -286,7 +287,7 @@ private struct CourtPainter {
         // The gavel shakes the room.
         if let g = gavelStrike, g > 0.45, g < 0.8 {
             let fade = 1 - (g - 0.45) / 0.35
-            c.translateBy(x: sin(g * 90) * 3 * u * fade, y: cos(g * 70) * 1.5 * u * fade)
+            c.translateBy(x: CGFloat(sin(g * 90) * 3 * fade) * u, y: CGFloat(cos(g * 70) * 1.5 * fade) * u)
         }
         wall(&c)
         lights(&c)
@@ -419,8 +420,8 @@ private struct CourtPainter {
         for side in [-1.0, 1.0] as [CGFloat] {
             for k in 0..<6 {
                 let a = Angle.degrees(Double(100 + k * 22)).radians
-                let lx = center.x + side * cos(a) * radius * -1.45
-                let ly = center.y + sin(a) * radius * 1.45
+                let lx = center.x + side * CGFloat(cos(a)) * radius * -1.45
+                let ly = center.y + CGFloat(sin(a)) * radius * 1.45
                 var leaf = Path(ellipseIn: CGRect(x: -2.4 * u, y: -1.1 * u, width: 4.8 * u, height: 2.2 * u))
                 leaf = leaf.applying(CGAffineTransform(rotationAngle: side * CGFloat(a) + .pi / 2).concatenating(CGAffineTransform(translationX: lx, y: ly)))
                 c.fill(leaf, with: .color(Color(hex: "#D9B45A")))
@@ -652,7 +653,7 @@ private struct CourtPainter {
         // The waves of the voice, over the head.
         for k in 0..<3 {
             let phase = (t * 1.6 + Double(k) * 0.33).truncatingRemainder(dividingBy: 1)
-            let radius = (8 + 10 * phase) * s * u
+            let radius = CGFloat(8 + 10 * phase) * s * u
             var arc = Path()
             arc.addArc(center: CGPoint(x: head.x + 12 * s * u, y: head.y - 10 * s * u), radius: radius,
                        startAngle: .degrees(-60), endAngle: .degrees(10), clockwise: false)
@@ -699,7 +700,7 @@ private struct CourtPainter {
             let speed = 0.004 + abs(fx) * 0.006
             let x = (abs(fx) + sin(t * 0.2 + seed) * 0.02)
             let y = (abs(fy) + t * speed).truncatingRemainder(dividingBy: 1) * 0.9 + 0.05
-            let radius = (0.6 + abs(fy) * 1.1) * u
+            let radius = CGFloat(0.6 + abs(fy) * 1.1) * u
             dust.fill(Path(ellipseIn: CGRect(x: CGFloat(x) * w - radius, y: CGFloat(y) * h - radius, width: radius * 2, height: radius * 2)),
                       with: .color(Color(hex: "#FFE9C2").opacity(0.18 + abs(fx) * 0.2)))
         }
