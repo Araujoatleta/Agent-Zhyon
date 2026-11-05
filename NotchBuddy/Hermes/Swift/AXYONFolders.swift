@@ -361,7 +361,7 @@ struct InvestFolderView: View {
                 }
                 if let folder {
                     if folder.isEmpty {
-                        Text("Nothing analysed yet. Ask AXYON in the chat (\"buy 100 shares of \(ticker)?\"): the committee meets and its analysis is kept here, with the documents the reader reads.")
+                        Text("No trial yet. The court meets by itself when the intern brings a new document of \(ticker), and the trial is kept here, with the documents read.")
                             .font(.footnote)
                             .foregroundStyle(AXYONPalette.dim)
                             .padding(16)
@@ -369,10 +369,10 @@ struct InvestFolderView: View {
                             .axyonCard(cornerRadius: 22)
                     }
                     if !folder.verdicts.isEmpty {
-                        section(String(localized: "The committee's analyses"), count: folder.verdicts.count) {
+                        section(String(localized: "The court's trials"), count: folder.verdicts.count) {
                             ForEach(folder.verdicts) { verdict in
                                 NavigationLink {
-                                    InvestVerdictView(verdict: verdict)
+                                    InvestTrialView(verdict: verdict)
                                 } label: {
                                     InvestVerdictRow(verdict: verdict).padding(14).axyonCard(cornerRadius: 22)
                                 }

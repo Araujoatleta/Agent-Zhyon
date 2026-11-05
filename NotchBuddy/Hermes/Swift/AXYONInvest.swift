@@ -855,7 +855,8 @@ final class AXYONInvest {
             _ = try? await hermes.investDigest(key, language: Self.language)
         }
         reading = nil
-        let due = (try? await engine("invest_committee", ["do": "meetings", "most": 1])) as? [[String: Any]] ?? []
+        // The court meets by itself on every new document the reader brought (a few each round, each one asset).
+        let due = (try? await engine("invest_committee", ["do": "meetings", "most": 3])) as? [[String: Any]] ?? []
         for planned in due {
             let ticker = planned["ticker"] as? String ?? ""
             meeting = ticker

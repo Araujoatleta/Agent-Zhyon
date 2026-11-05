@@ -308,22 +308,25 @@ pub struct Meeting {
     pub about: String,
 }
 
-/// The meetings due, at most `most` (each costs a brain's answer).
+/// The meetings the committee holds by itself, without waiting for the user: a thesis that broke, and every document
+/// the reader brought in the last thirty days that no meeting looked at yet (a material fact, an assembly or an offering
+/// first, then the newest), one meeting an asset, at most `most`.
 pub fn to_meet(store: &Store, market: &Market, lib: &Library, today: Date, most: usize) -> Vec<Meeting> {
     let mut out: Vec<Meeting> = Vec::new();
     let last = |t: &str| store.verdicts.iter().rev().find(|v| v.ticker == t).and_then(|v| v.date);
-    for d in lib.docs.iter().filter(|d| d.is_read() && d.delivered.is_some_and(|x| x.until(today) <= 30)) {
-        let worth = d.kind.urgent() || d.digest.as_ref().is_some_and(|g| g.thesis_risk);
-        let met = store.verdicts.iter().any(|v| v.document == d.key) || last(&d.ticker).is_some_and(|v| d.read.is_some_and(|r| r <= v) && d.delivered.is_some_and(|x| x <= v));
-        if worth && !met && !out.iter().any(|m| m.ticker == d.ticker) {
-            let when = d.delivered.map(|x| format!(" de {}", x.br())).unwrap_or_default();
-            out.push(Meeting { ticker: d.ticker.clone(), reason: "document".into(), document: d.key.clone(), about: format!("Reavaliar {} depois do {}{}: {}", d.ticker, d.kind.label_pt(), when, d.headline()) });
-        }
-    }
     for s in states(store, market, Some(lib), today) {
         if s.broken > 0 && !out.iter().any(|m| m.ticker == s.ticker) && last(&s.ticker).is_none_or(|v| v.until(today) >= 7) {
             let what: Vec<String> = s.checks.iter().filter(|c| c.holds == Some(false)).map(|c| c.label.clone()).collect();
             out.push(Meeting { ticker: s.ticker.clone(), reason: "thesis".into(), document: String::new(), about: format!("Reavaliar {}: a sua tese quebrou ({})", s.ticker, what.join("; ")) });
+        }
+    }
+    let mut docs: Vec<_> = lib.docs.iter().filter(|d| d.is_read() && d.delivered.is_some_and(|x| x.until(today) <= 30)).collect();
+    docs.sort_by(|a, b| b.kind.urgent().cmp(&a.kind.urgent()).then(b.delivered.cmp(&a.delivered)));
+    for d in docs {
+        let met = store.verdicts.iter().any(|v| v.document == d.key) || last(&d.ticker).is_some_and(|v| d.read.is_some_and(|r| r <= v) && d.delivered.is_some_and(|x| x <= v));
+        if !met && !out.iter().any(|m| m.ticker == d.ticker) {
+            let when = d.delivered.map(|x| format!(" de {}", x.br())).unwrap_or_default();
+            out.push(Meeting { ticker: d.ticker.clone(), reason: "document".into(), document: d.key.clone(), about: format!("Reavaliar {} depois do {}{}: {}", d.ticker, d.kind.label_pt(), when, d.headline()) });
         }
     }
     out.truncate(most);
@@ -401,5 +404,14 @@ mod tests {
         assert_eq!((told.len(), told[0].kind.as_str(), told[0].what.as_str()), (1, "document", "material_fact"));
         let meet = to_meet(&store, &market, &lib, day(30), 3);
         assert_eq!((meet[0].reason.as_str(), meet[0].document.as_str()), ("document", "fnet:905"));
+
+        // Met on it; then the reader brings the next monthly report, with nothing broken: the committee meets on it too,
+        // by itself, without waiting for the user.
+        store.verdicts.push(Verdict { ticker: "GGRC11".into(), date: Some(day(30)), reason: "document".into(), document: "fnet:905".into(), ..Verdict::default() });
+        assert!(to_meet(&store, &market, &lib, day(30), 3).is_empty());
+        let next = Pending { key: "fnet:910".into(), kind: DocKind::Report, title: "Relatório Gerencial 10/2026".into(), delivered: Some(day(31)), ..fact };
+        lib.ingest(&next, report_pages("5,0", "0,088"), day(31));
+        let meet = to_meet(&store, &market, &lib, day(31), 3);
+        assert_eq!((meet.len(), meet[0].reason.as_str(), meet[0].document.as_str()), (1, "document", "fnet:910"));
     }
 }

@@ -58,7 +58,11 @@ struct AXYONTabs: View {
                     // CI's screenshots: the committee's screen with its example verdict, an asset's folder
                     // (AXYONTestScreens.swift).
                     if let verdict = AXYONTestScreen.verdict {
-                        InvestVerdictView(verdict: verdict)
+                        if AXYONTestScreen.base == "invest-trial" {
+                            InvestTrialView(verdict: verdict)
+                        } else {
+                            InvestVerdictView(verdict: verdict)
+                        }
                     } else if AXYONTestScreen.base == "invest-folders" {
                         InvestFoldersView()
                     } else if AXYONTestScreen.base == "invest-folder" {

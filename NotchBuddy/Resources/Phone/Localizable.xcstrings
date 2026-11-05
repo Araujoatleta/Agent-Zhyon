@@ -791,6 +791,28 @@
         }
       }
     },
+    "%lld material points. The first: %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld puntos materiales. El primero: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld points importants. Le premier : %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld pontos materiais. O primeiro: %@"
+          }
+        }
+      }
+    },
     "%lld neutral": {
       "localizations": {
         "es": {
@@ -809,6 +831,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "%lld neutro(s)"
+          }
+        }
+      }
+    },
+    "%lld of %lld": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld de %lld"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld sur %lld"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld de %lld"
           }
         }
       }
@@ -897,6 +941,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "%lld%%"
+          }
+        }
+      }
+    },
+    "%lld%% sure": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld%% de certeza"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "sûr à %lld%%"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld%% de certeza"
           }
         }
       }
@@ -2001,6 +2067,28 @@
         }
       }
     },
+    "All the sessions": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todas las sesiones"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toutes les séances"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todas as sessões"
+          }
+        }
+      }
+    },
     "Allow": {
       "localizations": {
         "es": {
@@ -2283,6 +2371,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "Um backup do AXYON substitui a carteira deste iPhone pela do arquivo; antes, uma cópia da atual é guardada. Um arquivo da B3 soma os lançamentos e proventos dele."
+          }
+        }
+      }
+    },
+    "And %lld facts from the official sources, each with its date.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Y %lld hechos de las fuentes oficiales, cada uno con su fecha."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Et %lld faits des sources officielles, chacun avec sa date."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "E %lld fatos das fontes oficiais, cada um com a sua data."
+          }
+        }
+      }
+    },
+    "And I use my veto: %@.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Y ejerzo mi veto: %@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Et j'exerce mon veto : %@."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "E exerço o meu veto: %@."
           }
         }
       }
@@ -5103,6 +5235,50 @@
         }
       }
     },
+    "Counsel for the asset": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Defensa del activo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avocate de l'actif"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Defesa do ativo"
+          }
+        }
+      }
+    },
+    "Critical alert: %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alerta crítica: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alerte critique : %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alerta crítico: %@"
+          }
+        }
+      }
+    },
     "Critical alerts": {
       "localizations": {
         "es": {
@@ -5209,6 +5385,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "DARF de %@, vence em %@"
+          }
+        }
+      }
+    },
+    "DEFENSE": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DEFENSA"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DÉFENSE"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DEFESA"
           }
         }
       }
@@ -5741,6 +5939,28 @@
         }
       }
     },
+    "EXPERT": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PERITO"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "EXPERT"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PERITO"
+          }
+        }
+      }
+    },
     "Each asset gets its folder: the committee's analyses, the documents read, its thesis and your decisions, kept to open again.": {
       "localizations": {
         "es": {
@@ -6027,6 +6247,28 @@
         }
       }
     },
+    "Everything at once": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todo de una vez"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tout d'un coup"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tudo de uma vez"
+          }
+        }
+      }
+    },
     "Everything it read": {
       "localizations": {
         "es": {
@@ -6067,6 +6309,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Excel, completo"
+          }
+        }
+      }
+    },
+    "Expert auditor": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Perito auditor"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Expert-auditeur"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Perito-auditor"
           }
         }
       }
@@ -6705,6 +6969,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Pelos anúncios dos fundos, para o que você tinha"
+          }
+        }
+      }
+    },
+    "From the start": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desde el principio"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Depuis le début"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Do começo"
           }
         }
       }
@@ -7941,6 +8227,28 @@
         }
       }
     },
+    "I checked the accounts against the sources: no critical alert.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revisé las cuentas con las fuentes: ninguna alerta crítica."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "J'ai vérifié les comptes avec les sources : aucune alerte critique."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conferi as contas com as fontes: nenhum alerta crítico."
+          }
+        }
+      }
+    },
     "I know the data-com": {
       "localizations": {
         "es": {
@@ -7959,6 +8267,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sei a data-com"
+          }
+        }
+      }
+    },
+    "IN SESSION": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "EN SESIÓN"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "EN SÉANCE"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "EM SESSÃO"
           }
         }
       }
@@ -8069,6 +8399,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "No Home Assistant: seu perfil → Segurança → Tokens de acesso de longa duração → Criar token. O token fica nas Chaves deste iPhone; o AXYON nunca mexe em fechaduras nem alarmes."
+          }
+        }
+      }
+    },
+    "In session": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En sesión"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En séance"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Em sessão"
+          }
+        }
+      }
+    },
+    "In session on %@…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En sesión sobre %@…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En séance sur %@…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Em sessão sobre %@…"
           }
         }
       }
@@ -8381,6 +8755,28 @@
         }
       }
     },
+    "It meets by itself on every new document the intern brings, and each trial goes into the asset's folder.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se reúne solo con cada documento nuevo que trae el pasante, y cada juicio va a la carpeta del activo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il se réunit de lui-même à chaque nouveau document que le stagiaire apporte, et chaque procès va dans le dossier de l'actif."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ele se reúne sozinho a cada documento novo que o estagiário traz, e cada julgamento vai para a pasta do ativo."
+          }
+        }
+      }
+    },
     "It refused this iPhone: pair again with the code it shows now.": {
       "localizations": {
         "es": {
@@ -8421,6 +8817,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ele substitui %@, pareado antes."
+          }
+        }
+      }
+    },
+    "JURY": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "JURADO"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "JURY"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "JÚRI"
+          }
+        }
+      }
+    },
+    "Juror": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jurado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Juré"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jurado"
           }
         }
       }
@@ -8663,6 +9103,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Última em %@"
+          }
+        }
+      }
+    },
+    "Last session: %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Última sesión: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dernière séance : %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Última sessão: %@"
           }
         }
       }
@@ -10229,6 +10691,28 @@
         }
       }
     },
+    "Next on the docket: %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Próximo en la agenda: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prochain au rôle : %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Próximo da pauta: %@"
+          }
+        }
+      }
+    },
     "Next: %@": {
       "localizations": {
         "es": {
@@ -10687,6 +11171,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Não foi possível ler texto nele."
+          }
+        }
+      }
+    },
+    "No trial yet. The court meets by itself when the intern brings a new document of %@, and the trial is kept here, with the documents read.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aún no hay juicio. El tribunal se reúne solo cuando el pasante trae un documento nuevo de %@, y el juicio se guarda aquí, con los documentos leídos."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucun procès pour l'instant. Le tribunal se réunit de lui-même quand le stagiaire apporte un nouveau document de %@, et le procès est gardé ici, avec les documents lus."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhum julgamento ainda. O tribunal se reúne sozinho quando o estagiário traz um documento novo de %@, e o julgamento fica guardado aqui, com os documentos lidos."
           }
         }
       }
@@ -11549,6 +12055,28 @@
         }
       }
     },
+    "On the agenda: %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En la agenda: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "À l'ordre du jour : %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Em pauta: %@"
+          }
+        }
+      }
+    },
     "On the computer: Coucou Settings → Phone (Android and iPhone) → turn it on and show the pairing code. Same Wi-Fi as this iPhone.": {
       "localizations": {
         "es": {
@@ -12319,6 +12847,50 @@
         }
       }
     },
+    "PRESIDENCY": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PRESIDENCIA"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PRÉSIDENCE"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PRESIDÊNCIA"
+          }
+        }
+      }
+    },
+    "PROSECUTION": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "FISCALÍA"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ACCUSATION"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PROMOTORIA"
+          }
+        }
+      }
+    },
     "Page %lld of %lld": {
       "localizations": {
         "es": {
@@ -12649,6 +13221,28 @@
         }
       }
     },
+    "Pause": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausar"
+          }
+        }
+      }
+    },
     "Paused": {
       "localizations": {
         "es": {
@@ -12843,6 +13437,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Uso do plano"
+          }
+        }
+      }
+    },
+    "Play": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continuar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lecture"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continuar"
           }
         }
       }
@@ -13155,6 +13771,28 @@
         }
       }
     },
+    "Presiding judge": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Juez presidente"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Juge président"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Juiz-presidente"
+          }
+        }
+      }
+    },
     "Previous channel": {
       "localizations": {
         "es": {
@@ -13327,6 +13965,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Prompts, respostas, arquivos"
+          }
+        }
+      }
+    },
+    "Prosecutor for your portfolio": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fiscalía de tu cartera"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Procureur de votre portefeuille"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Promotoria da sua carteira"
           }
         }
       }
@@ -14959,6 +15619,28 @@
         }
       }
     },
+    "SESSION CLOSED": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SESIÓN CERRADA"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SÉANCE LEVÉE"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SESSÃO ENCERRADA"
+          }
+        }
+      }
+    },
     "Said nothing: short of data.": {
       "localizations": {
         "es": {
@@ -15219,6 +15901,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Agendando uma notificação"
+          }
+        }
+      }
+    },
+    "Score: %lld for, %lld against": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Marcador: %lld a favor, %lld en contra"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Score : %lld pour, %lld contre"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Placar: %lld a favor, %lld contra"
           }
         }
       }
@@ -15549,6 +16253,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Enviado. Seu Mac pega em até 15 s."
+          }
+        }
+      }
+    },
+    "Sentence: %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sentencia: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sentence : %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sentença: %@"
           }
         }
       }
@@ -16407,6 +17133,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Iniciando…"
+          }
+        }
+      }
+    },
+    "Still to verify: %@.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aún por verificar: %@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Encore à vérifier : %@."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ainda a verificar: %@."
           }
         }
       }
@@ -17489,6 +18237,160 @@
         }
       }
     },
+    "The court": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El tribunal"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le tribunal"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O tribunal"
+          }
+        }
+      }
+    },
+    "The court meets by itself: the intern brought a new document.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El tribunal se reúne solo: el pasante trajo un documento nuevo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le tribunal se réunit de lui-même : le stagiaire a apporté un nouveau document."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O tribunal se reúne sozinho: o estagiário trouxe um documento novo."
+          }
+        }
+      }
+    },
+    "The court meets by itself: your thesis broke.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El tribunal se reúne solo: tu tesis se rompió."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le tribunal se réunit de lui-même : votre thèse est rompue."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O tribunal se reúne sozinho: a sua tese quebrou."
+          }
+        }
+      }
+    },
+    "The court needs AXYON Core running with a brain: see Settings.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El tribunal necesita AXYON Core en marcha con un cerebro: ve a Ajustes."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le tribunal a besoin d'AXYON Core en marche avec un cerveau : voir Réglages."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O tribunal precisa do AXYON Core funcionando com um cérebro: veja Ajustes."
+          }
+        }
+      }
+    },
+    "The court never orders: its people are archetypes, every number is the code's and every point cites its source. Nothing is bought or sold; this is not an investment recommendation.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El tribunal nunca ordena: su gente son arquetipos, cada número es del código y cada punto cita su fuente. Nada se compra ni se vende; esto no es una recomendación de inversión."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le tribunal n'ordonne jamais : ses personnes sont des archétypes, chaque chiffre vient du code et chaque point cite sa source. Rien n'est acheté ni vendu ; ce n'est pas une recommandation d'investissement."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O tribunal nunca manda: as pessoas dele são arquétipos, cada número é do código e cada ponto cita a sua fonte. Nada é comprado nem vendido; isto não é recomendação de investimento."
+          }
+        }
+      }
+    },
+    "The court's trials": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los juicios del tribunal"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les procès du tribunal"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Os julgamentos do tribunal"
+          }
+        }
+      }
+    },
+    "The court: %@ is speaking": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El tribunal: habla %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le tribunal : %@ parle"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O tribunal: %@ está falando"
+          }
+        }
+      }
+    },
     "The device can't do this.": {
       "localizations": {
         "es": {
@@ -17577,6 +18479,28 @@
         }
       }
     },
+    "The full record: every point, fact and document": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El expediente completo: cada punto, hecho y documento"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le dossier complet : chaque point, fait et document"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Os autos completos: cada ponto, fato e documento"
+          }
+        }
+      }
+    },
     "The funds announced %@ for what you held: worth checking.": {
       "localizations": {
         "es": {
@@ -17621,6 +18545,28 @@
         }
       }
     },
+    "The intern": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El pasante"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le stagiaire"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O estagiário"
+          }
+        }
+      }
+    },
     "The intern who reads everything": {
       "localizations": {
         "es": {
@@ -17661,6 +18607,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "O melhor argumento do lado que perdeu"
+          }
+        }
+      }
+    },
+    "The losing side's best argument: %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El mejor argumento del lado perdedor: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le meilleur argument du camp perdant : %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O melhor argumento do lado vencido: %@"
           }
         }
       }
@@ -17727,6 +18695,72 @@
           "stringUnit": {
             "state": "translated",
             "value": "As posições, os lançamentos, os proventos lançados, as datas de compra e as metas, um por linha: o Excel e o Google Planilhas abrem, e ao importar a carteira volta."
+          }
+        }
+      }
+    },
+    "The sentence": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La sentencia"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La sentence"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A sentença"
+          }
+        }
+      }
+    },
+    "The session is closed. Nothing is bought or sold here: the decision is yours.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se levanta la sesión. Aquí nada se compra ni se vende: la decisión es tuya."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La séance est levée. Rien n'est acheté ni vendu ici : la décision vous appartient."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Está encerrada a sessão. Nada é comprado nem vendido aqui: a decisão é sua."
+          }
+        }
+      }
+    },
+    "The session on %@ is open.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Queda abierta la sesión sobre %@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La séance sur %@ est ouverte."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Declaro aberta a sessão sobre %@."
           }
         }
       }
@@ -19271,6 +20305,28 @@
         }
       }
     },
+    "Vetoed by %@.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vetado por %@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Veto de %@."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vetado por %@."
+          }
+        }
+      }
+    },
     "Vol. %lld": {
       "localizations": {
         "es": {
@@ -19817,6 +20873,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "O que mudaria o quadro"
+          }
+        }
+      }
+    },
+    "What would change the picture: %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lo que cambiaría el panorama: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce qui changerait la donne : %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O que mudaria o quadro: %@"
           }
         }
       }
@@ -20455,6 +21533,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "Seu cliente OAuth do Google"
+          }
+        }
+      }
+    },
+    "Your Honor, I brought %@.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Señoría, traje %@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre Honneur, j'ai apporté %@."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Excelência, trouxe %@."
+          }
+        }
+      }
+    },
+    "Your Honor, here are %lld facts from the official sources, each with its date.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Señoría, aquí hay %lld hechos de las fuentes oficiales, cada uno con su fecha."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre Honneur, voici %lld faits des sources officielles, chacun avec sa date."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Excelência, aqui estão %lld fatos das fontes oficiais, cada um com a sua data."
           }
         }
       }
@@ -21857,6 +22979,28 @@
         }
       }
     },
+    "juror": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "jurado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "juré"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "jurado"
+          }
+        }
+      }
+    },
     "lines": {
       "localizations": {
         "es": {
@@ -22381,6 +23525,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "vender"
+          }
+        }
+      }
+    },
+    "sentence": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "sentencia"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "sentence"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "sentença"
           }
         }
       }

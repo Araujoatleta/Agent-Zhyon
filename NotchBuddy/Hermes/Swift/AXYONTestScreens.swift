@@ -84,7 +84,7 @@ enum AXYONTestScreen {
 
     /// The example verdict, for the committee's screen.
     static var verdict: InvestVerdict? {
-        guard base == "invest-verdict", let data = try? Data(contentsOf: file("axyon-verdict.json")),
+        guard base == "invest-verdict" || base == "invest-trial", let data = try? Data(contentsOf: file("axyon-verdict.json")),
               let object = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else { return nil }
         return InvestVerdict(object)
     }

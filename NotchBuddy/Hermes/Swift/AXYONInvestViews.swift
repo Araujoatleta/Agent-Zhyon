@@ -375,7 +375,6 @@ struct AXYONInvestView: View {
     @State private var cut = InvestCut.classes
     @State private var month = 11
     @State private var appeared = false
-    @State private var writing = false
     @State private var targeting = false
 
     private var overview: InvestOverview { invest.overview ?? InvestOverview() }
@@ -387,11 +386,9 @@ struct AXYONInvestView: View {
                 if shown == .dividends { InvestMonthsBar(months: overview.dividends, index: $month) }
                 ringBlock
                 InvestFoldersSection()
-                InvestCommitteeCard(invest: invest)
+                // The court meets by itself on each new document; its trials go into the assets' folders.
+                InvestCourtCard(invest: invest)
                 InvestReaderCard(invest: invest)
-                InvestThesesCard(invest: invest, writing: $writing)
-                InvestWeeklyCard(invest: invest)
-                InvestLearnCard(invest: invest)
                 Text("AXYON computes every number from the official sources, and the committee and the reader say where each point comes from. Nothing is bought or sold here: this is not an investment recommendation, the decision is yours.")
                     .font(.caption2)
                     .foregroundStyle(AXYONPalette.faint)
@@ -416,11 +413,7 @@ struct AXYONInvestView: View {
                     Button { Task { await invest.read(force: true); await invest.think() } } label: {
                         Label("Read the documents now", systemImage: "doc.text.magnifyingglass")
                     }
-                    Button { writing = true } label: { Label("Write a thesis", systemImage: "square.and.pencil") }
                     Button { targeting = true } label: { Label("Targets per asset", systemImage: "scope") }
-                    Toggle(isOn: Binding(get: { overview.apprentice }, set: { on in Task { await invest.setApprentice(on) } })) {
-                        Label("Apprentice mode", systemImage: "graduationcap")
-                    }
                 } label: {
                     Image(systemName: "ellipsis").font(.body.weight(.bold))
                 }
@@ -433,9 +426,6 @@ struct AXYONInvestView: View {
             if let last = invest.overview?.dividends.indices.last { month = last }
             withAnimation(.spring(response: 0.9, dampingFraction: 0.8)) { appeared = true }
             await invest.refresh()
-        }
-        .sheet(isPresented: $writing) {
-            InvestThesisSheet(invest: invest)
         }
         .sheet(isPresented: $targeting) {
             InvestTargetsSheet(invest: invest)
@@ -950,7 +940,7 @@ struct InvestVerdictsList: View {
             VStack(spacing: 14) {
                 ForEach(verdicts) { verdict in
                     NavigationLink {
-                        InvestVerdictView(verdict: verdict)
+                        InvestTrialView(verdict: verdict)
                     } label: {
                         InvestVerdictRow(verdict: verdict).padding(14).axyonCard(cornerRadius: 22)
                     }
@@ -960,7 +950,7 @@ struct InvestVerdictsList: View {
             .padding(20)
         }
         .background { InvestBackdrop() }
-        .navigationTitle("The committee")
+        .navigationTitle("The court")
         .navigationBarTitleDisplayMode(.inline)
     }
 }

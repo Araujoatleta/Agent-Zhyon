@@ -293,7 +293,8 @@ quick_shot() {  # screen: the Wallet's and the investing screens, which need the
 for screen in wallet wallet-end wallet-trades wallet-income wallet-income-end wallet-asset wallet-asset-end wallet-new \
     wallet-provento wallet-backup \
     invest invest-mid invest-end invest-folders invest-folder invest-folder-end invest-verdict invest-verdict-mid \
-    invest-verdict-end 'wallet~copper' 'wallet~ocean' 'invest~copper' 'invest~ocean'; do
+    invest-verdict-end invest-trial invest-trial-mid invest-trial-end 'invest-trial-mid~copper' \
+    'wallet~copper' 'wallet~ocean' 'invest~copper' 'invest~ocean'; do
     quick_shot "$screen"
 done
 shot() {  # tab
