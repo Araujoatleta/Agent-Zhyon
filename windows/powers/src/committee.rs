@@ -102,7 +102,8 @@ pub fn protocol(json: bool, apprentice: bool) -> String {
          3. Ausência de informação não é evidência negativa: dado ausente não é prejuízo, fraude nem risco confirmado. Liste em \"missing\" o que falta e poderia mudar o parecer.\n\
          4. Respeite as datas e os status dos fatos: \"estimativa\" é projeção, \"divergente\" é incerto (as fontes discordam), \"ausente\" não existe. Não trate caixa imediato como toda a disponibilidade futura.\n\
          5. Confiança de 0 a 100 conforme a qualidade das evidências: fatos confirmados pesam mais que cálculos, e estes mais que estimativas; poucos dados, confiança baixa.\n\
-         6. As mentes são arquétipos, nunca pessoas reais. Nada é comprado nem vendido. Escreva tudo em português do Brasil.",
+         6. As mentes são arquétipos, nunca pessoas reais. Nada é comprado nem vendido. Escreva tudo em português do Brasil.\n\
+         7. Seja didático e vá ao fundo: cada justificativa (\"why\") diz o número, como ele andou desde o período anterior quando a fonte mostra, e o que significa para quem tem o ativo, em frases curtas como numa conversa (\"P/VP 0,91: a cota custa 9% menos que o patrimônio por cota\"). Explique cada termo técnico na primeira vez que aparecer. Os pareceres A e B terminam dizendo o que acompanhar daqui para a frente.",
     );
     for m in &MINDS {
         out.push_str(&format!("\n[{}] {}", m.id, m.role));

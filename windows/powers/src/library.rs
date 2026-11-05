@@ -542,6 +542,8 @@ impl Library {
             doc.title,
             doc.delivered.map(|d| format!(", delivered on {}", d.br())).unwrap_or_default()
         );
+        // Always for a holder who is not an analyst: each point a number, how it moved, and what it means to them.
+        out.push_str(" Write each point for a holder who is not an analyst: the figure, how it moved against the previous report (from 6,0% to 7,5%), and what it means to the holder in one short sentence (\"fewer tenants paying: the income may fall\").");
         if apprentice {
             out.push_str(" The user is learning to invest: plain words, and each term explained the first time (vacância: the share of the space with no tenant).");
         }
