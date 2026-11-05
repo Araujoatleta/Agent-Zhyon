@@ -1188,7 +1188,7 @@ struct InvestTrialView: View {
                     Text("The sentence").font(.caption.weight(.heavy)).tracking(0.6).foregroundStyle(AXYONPalette.dim)
                     Text(verdict.portfolio.isEmpty ? verdict.score : verdict.portfolio.viewName)
                         .font(.title3.weight(.bold))
-                        .foregroundStyle(verdict.portfolio.isEmpty ? .white : InvestPalette.vote(verdict.portfolio.tone))
+                        .foregroundStyle(verdict.portfolio.isEmpty ? Color.white : InvestPalette.vote(verdict.portfolio.tone))
                 }
                 Spacer(minLength: 4)
                 InvestVoteRing(minds: verdict.minds, score: verdict.score)
@@ -1366,7 +1366,7 @@ struct CourtLineView: View {
                     }
                 }
                 Text(typed.map { String(line.text.prefix($0)) } ?? line.text)
-                    .font(line.moment == .sentence ? .callout.weight(.semibold) : .callout)
+                    .font(line.moment == .sentence ? Font.callout.weight(.semibold) : Font.callout)
                     .foregroundStyle(Color.white.opacity(0.9))
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
