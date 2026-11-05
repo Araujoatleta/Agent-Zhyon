@@ -145,8 +145,19 @@ your buys and sales, and AXYON's code works out the rest.
   that asset paying that month, on the shares that amount implies); out of the record, the day you give on the asset
   (**Since when do you hold it?**) or the day it arrived; with no proof, nothing already paid is counted, and what is
   still to be paid is an estimate. A fund's other classes (subscription receipts such as BTLG13) are not the share's.
+- **A provento received elsewhere**: **+ → Provento received** (or **Record a provento received** on the Proventos
+  tab): the asset, the day it was paid, its data-com when you know it, and the amount (or the value per share and the
+  shares), as your broker or Investidor10 shows it. It counts as received, in place of the one AXYON's sources give
+  for that asset and day; hold it down in the list to remove it. A fund you sold in the last thirteen months still has
+  its notices read, so the proventos it paid while you held it count. In the chat, AXYON Core reads and fixes the
+  Carteira itself (*"record BTCI11's R$ 16,82 of 15/10"*, *"remove the duplicate GARE11 purchase"*).
+- **Backup** (the drive at the top left of the Carteira): **Excel, complete** (the summary, positions, lançamentos and
+  proventos in sheets, and a hidden sheet with everything AXYON keeps, the committee's trials included), **CSV** (the
+  records, one per line) and a **PDF report**, to save in Files, iCloud Drive or send to yourself. **Import a file**
+  brings an AXYON backup back as it was (a copy of the Carteira here is kept first); B3's Negociação and Movimentação
+  files add their lançamentos and proventos.
 - **Folders**: every asset AXYON keeps something about has its folder (on the Investments screen, and from the
-  asset): the committee's verdicts (its last twelve), the documents read with their digests, its thesis and your
+  asset): the court's trials (its last twelve), the documents read with their digests, its thesis and your
   decisions, to open again whenever you want.
 - **Appearance** (Settings): three looks after the designs chosen, Aurora, Copper and Ocean: the night with its
   lights behind every screen, frosted glass with an edge of light, an accent that glows, and a floating bar of glass
@@ -155,7 +166,17 @@ your buys and sales, and AXYON's code works out the rest.
 The lançamentos stay on the iPhone: they are not written to your sheet or sent to the computer. Fixed income takes no
 lançamento (it stays as your sheet has it). Nothing is bought or sold here.
 
-## Investing: the committee, the reader, your theses, the week and learning
+## Investing: the court, the reader and the folders
+
+- **The court sits by itself**: whenever the intern (the reader) brings a new document of an asset (a monthly report,
+  a material fact, an assembly), the committee meets on it without waiting for you, and its trial goes into the
+  asset's folder. Each trial plays in a courtroom drawn in code: the presiding judge opens the session, the intern
+  walks in with the document, the counsel for the asset (opinion A) and the prosecutor for your portfolio (opinion B)
+  plead, the five jurors (the minds) vote and raise their placards, the expert auditor reads the audit, and the judge
+  strikes the gavel at the sentence. The transcript below types what each says, with its sources; pause, everything
+  at once, from the start, and the full record a tap away. The living theses, the week in three minutes and the
+  learning card are gone from the screen.
+
 
 The **Investments** tab, the second, is AXYON's investing screen, in the design of a statistics screen:
 charcoal, a ring of thick rounded segments in soft colours with the total in its middle, a legend in two columns, a

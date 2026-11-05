@@ -154,9 +154,20 @@ as suas compras e vendas e o código do AXYON calcula o resto.
   você informar no ativo (**Desde quando você tem?**) ou o dia em que ele chegou; sem prova, nada já pago é contado, e
   o que ainda vai ser pago é uma estimativa. As outras classes de um fundo (recibos de subscrição como BTLG13) não
   são a cota.
+- **Um provento recebido em outro lugar**: **+ → Provento recebido** (ou **Lançar um provento recebido** na aba
+  Proventos): o ativo, o dia do pagamento, a data-com se você souber, e o valor (ou o valor por cota e as cotas), como
+  a corretora ou o Investidor10 mostram. Conta como recebido, no lugar do que as fontes do AXYON dão para esse ativo e
+  dia; segure-o na lista para remover. Um fundo vendido nos últimos treze meses continua tendo os avisos lidos, então
+  os proventos que pagou enquanto você tinha contam. No chat, o AXYON Core lê e corrige a carteira sozinho (*"lança o
+  provento de R$ 16,82 do BTCI11 de 15/10"*, *"remove a compra de GARE11 duplicada"*).
+- **Backup** (o disco no canto de cima, à esquerda, da Carteira): **Excel, completo** (o resumo, as posições, os
+  lançamentos e os proventos em abas, e uma aba oculta com tudo o que o AXYON guarda, os julgamentos do tribunal
+  também), **CSV** (os registros, um por linha) e um **relatório em PDF**, para salvar no Arquivos, no iCloud Drive ou
+  mandar para você mesmo. **Importar um arquivo** traz um backup do AXYON de volta como era (antes, uma cópia da
+  carteira atual é guardada); os arquivos de Negociação e Movimentação da B3 somam os lançamentos e proventos deles.
 - **Pastas**: cada ativo de que o AXYON guarda algo tem a sua pasta (na aba Investimentos e a partir do ativo): os
-  vereditos do comitê (os 12 últimos), os documentos lidos com os resumos, a tese e as suas decisões, para abrir de
-  novo quando quiser.
+  julgamentos do tribunal (os 12 últimos), os documentos lidos com os resumos, a tese e as suas decisões, para abrir
+  de novo quando quiser.
 - **Aparência** (Ajustes): três visuais a partir dos designs escolhidos, Aurora, Cobre e Oceano: a noite com as suas
   luzes atrás de cada tela, vidro fosco com borda de luz, um acento que brilha e uma barra de vidro flutuante com o
   chat como uma esfera de luz no meio.
@@ -164,7 +175,16 @@ as suas compras e vendas e o código do AXYON calcula o resto.
 Os lançamentos ficam no iPhone: não são escritos na sua planilha nem mandados para o computador. Renda fixa não tem
 lançamento (fica como a planilha tem). Nada é comprado nem vendido aqui.
 
-## Investimentos: o comitê, o estagiário, as suas teses, a semana e o aprender
+## Investimentos: o tribunal, o estagiário e as pastas
+
+- **O tribunal se reúne sozinho**: sempre que o estagiário traz um documento novo de um ativo (relatório gerencial,
+  fato relevante, assembleia), o comitê se reúne sem esperar por você, e o julgamento vai para a pasta do ativo. Cada
+  julgamento acontece num tribunal desenhado em código: o juiz-presidente abre a sessão, o estagiário entra com o
+  documento, a defesa do ativo (parecer A) e a promotoria da sua carteira (parecer B) falam, os cinco jurados (as
+  mentes) votam e levantam as plaquinhas, o perito-auditor lê a auditoria, e o juiz bate o martelo na sentença. Embaixo,
+  a transcrição digita o que cada um fala, com as fontes; pausar, tudo de uma vez, do começo, e os autos completos a um
+  toque. As teses vivas, a semana em três minutos e o aprender saíram da tela.
+
 
 A aba **Investimentos**, a segunda, é a tela de investimentos do AXYON, no design de uma tela de estatísticas:
 grafite, um anel de segmentos grossos e arredondados em cores suaves com o total no meio, a legenda em duas colunas,
