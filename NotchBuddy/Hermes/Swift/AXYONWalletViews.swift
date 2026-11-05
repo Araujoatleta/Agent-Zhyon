@@ -62,7 +62,7 @@ struct AXYONWalletHome: View {
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button { backingUp = true } label: {
-                    Image(systemName: "externaldrive.fill.badge.checkmark").font(.body.weight(.semibold))
+                    Image(systemName: "archivebox.fill").font(.body.weight(.semibold))
                 }
                 .accessibilityLabel(Text("Backup"))
             }

@@ -537,13 +537,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld analysis"
+                  "value": "%lld trial"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld analyses"
+                  "value": "%lld trials"
                 }
               }
             }
@@ -555,13 +555,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld análisis"
+                  "value": "%lld juicio"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld análisis"
+                  "value": "%lld juicios"
                 }
               }
             }
@@ -573,13 +573,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld analyse"
+                  "value": "%lld procès"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld analyses"
+                  "value": "%lld procès"
                 }
               }
             }
@@ -591,13 +591,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld análise"
+                  "value": "%lld julgamento"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld análises"
+                  "value": "%lld julgamentos"
                 }
               }
             }

@@ -348,7 +348,7 @@ struct WalletBackupSheet: View {
 
     private var hero: some View {
         HStack(spacing: 14) {
-            Image(systemName: "externaldrive.fill.badge.checkmark")
+            Image(systemName: "archivebox.fill")
                 .font(.system(size: 26, weight: .semibold))
                 .foregroundStyle(.white)
                 .frame(width: 58, height: 58)

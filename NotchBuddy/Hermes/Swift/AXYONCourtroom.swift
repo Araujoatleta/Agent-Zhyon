@@ -1129,6 +1129,7 @@ struct CourtPortrait: View {
 struct InvestTrialView: View {
     let verdict: InvestVerdict
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.axyonBarRoom) private var barRoom
     @State private var lines: [CourtLine] = []
     @State private var shown = 0
     @State private var typed = 0
@@ -1149,7 +1150,7 @@ struct InvestTrialView: View {
             CourtroomScene(verdict: verdict, speaker: speaker, since: since, opened: opened, voted: voted, sentence: sentence, clerkCame: clerkCame)
                 .frame(height: 292)
                 .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
-                .overlay(alignment: .topLeading) { plaque.padding(10) }
+                .overlay(alignment: .bottomTrailing) { plaque.padding(10) }
                 .overlay(RoundedRectangle(cornerRadius: 26, style: .continuous).strokeBorder(AXYONPalette.rim, lineWidth: 1))
                 .shadow(color: .black.opacity(0.5), radius: 18, y: 10)
                 .padding(.horizontal, 14)
@@ -1166,13 +1167,16 @@ struct InvestTrialView: View {
                         if shown >= lines.count && !lines.isEmpty {
                             ruling.id("ruling").transition(.scale(scale: 0.9).combined(with: .opacity))
                         }
+                        // Room under the last words for the floating bar: what is said is never under it.
+                        Color.clear.frame(height: barRoom + 12).id("end")
                     }
                     .padding(.horizontal, 16)
                     .padding(.bottom, 16)
                 }
+                .contentMargins(.bottom, 0, for: .scrollContent)
                 .onChange(of: shown) {
                     withAnimation(.easeOut(duration: 0.35)) {
-                        proxy.scrollTo(shown >= lines.count ? AnyHashable("ruling") : AnyHashable(shown - 1), anchor: .bottom)
+                        proxy.scrollTo("end", anchor: .bottom)
                     }
                 }
             }
@@ -1201,9 +1205,11 @@ struct InvestTrialView: View {
             Text(speaker != nil ? String(localized: "IN SESSION") : String(localized: "SESSION CLOSED"))
                 .font(.system(size: 10, weight: .heavy))
                 .tracking(0.8)
-            Text(verbatim: "· \(verdict.ticker)" + (verdict.date.isEmpty ? "" : " · " + investDay(verdict.date)))
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.8))
+            if !verdict.date.isEmpty {
+                Text(verbatim: "· " + investDay(verdict.date))
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.8))
+            }
         }
         .foregroundStyle(.white)
         .padding(.horizontal, 10)
