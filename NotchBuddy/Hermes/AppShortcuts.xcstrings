@@ -132,50 +132,6 @@
           }
         }
       }
-    },
-    "Run a routine": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Rodar uma rotina"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ejecutar una rutina"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lancer une routine"
-          }
-        }
-      }
-    },
-    "Ask AXYON": {
-      "localizations": {
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Perguntar ao AXYON"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Preguntar a AXYON"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Demander à AXYON"
-          }
-        }
-      }
     }
   },
   "version": "1.0"

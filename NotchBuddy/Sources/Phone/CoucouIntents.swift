@@ -51,6 +51,8 @@ struct AskClaudeIntent: AppIntent {
     }
 }
 
+#if !HERMES
+// An app has one AppShortcutsProvider: the build with Hermes inside has AXYON's (Hermes/Swift/AXYONIntents.swift).
 struct CoucouShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
         AppShortcut(intent: AskClaudeIntent(),
@@ -67,6 +69,7 @@ struct CoucouShortcuts: AppShortcutsProvider {
                     systemImageName: "sparkles")
     }
 }
+#endif
 
 /// A Focus filter: in a Focus (Sleep, Work…), Coucou can keep quiet about
 /// finished and failed agents and only notify what waits on you.
