@@ -394,6 +394,7 @@ pub fn folder(store: &Store, market: &Market, lib: Option<&Library>, ticker: &st
         "documents": lib.map(|l| docs.iter().take(40).map(|d| document(l, &d.key)).collect::<Vec<_>>()).unwrap_or_default(),
         "thesis": theses_json(store, market, lib, today).into_iter().find(|t| t["ticker"] == ticker),
         "decisions": store.decisions.iter().rev().filter(|d| d.ticker == ticker).filter_map(|d| serde_json::to_value(d).ok()).collect::<Vec<_>>(),
+        "ficha": crate::insight::ficha(store, market, lib, ticker, today),
     })
 }
 
@@ -575,6 +576,19 @@ pub fn app(store: &mut Store, market: &Market, lib: &mut Library, tool: &str, in
         }
         // The Carteira as a file (format xlsx: the workbook with everything, to restore it whole; csv: its records), its
         // bytes in base64; and a file brought back (name, base64): AXYON's own restores, B3's adds its lançamentos.
+        // An asset's sheet (ticker); the month's contribution (amount); the year's income tax (year).
+        "invest_ficha" => {
+            let ticker = s("ticker").and_then(|t| crate::text::ticker(&t)).ok_or("Qual ativo?")?;
+            Ok((crate::insight::ficha(store, market, Some(lib), &ticker, today), Saved::default()))
+        }
+        "invest_aporte" => {
+            let amount = input["amount"].as_f64().or_else(|| s("amount").and_then(|a| crate::text::num(&a))).filter(|a| *a > 0.0).ok_or("Quanto você quer aportar?")?;
+            Ok((crate::insight::aporte(store, market, amount, today), Saved::default()))
+        }
+        "invest_irpf" => {
+            let year = input["year"].as_i64().map(|y| y as i32).unwrap_or(today.y - 1);
+            Ok((crate::insight::irpf(store, market, year, today), Saved::default()))
+        }
         "invest_export" => {
             let (name, bytes) = match s("format").as_deref() {
                 Some("csv") => (crate::backup::file_name(today, "csv"), crate::backup::csv(store, market, today).into_bytes()),

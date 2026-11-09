@@ -311,7 +311,7 @@
   {
     "name": "wealth_wallet",
     "title": "Zheus: the Carteira (lançamentos and proventos)",
-    "description": "The Carteira, AXYON's consolidator (the iPhone app's first tab), as the app shows it: its lançamentos (buys and sales with their ids) and the proventos received, to receive and recorded by the user, with how each was counted. Use it to fix the Carteira when the user asks: do=add_provento records proventos they received as their broker or Investidor10 shows them (an asset held or already sold: ticker, payment date, data-com, and the amount received, or the value per share and the quantity); it takes the place of the one AXYON's sources give for that asset and day. do=remove_provento takes one back by its id. do=add_trade records lançamentos as the app's \"+\" does (several at once); do=remove_trade removes one by its id (a wrong one, a duplicate). do=since sets the day an asset of the user's sheet was bought (its proventos count from then). Only what the user said or pasted, with their figures: never invent a provento or a trade, and read do=view first to find an id or to avoid recording again what is there. This only changes AXYON's record: nothing is bought or sold.",
+    "description": "The Carteira, AXYON's consolidator (the iPhone app's first tab), as the app shows it: its lançamentos (buys and sales with their ids) and the proventos received, to receive and recorded by the user, with how each was counted. Use it to fix the Carteira when the user asks: do=add_provento records proventos they received as their broker or Investidor10 shows them (an asset held or already sold: ticker, payment date, data-com, and the amount received, or the value per share and the quantity); it takes the place of the one AXYON's sources give for that asset and day. do=remove_provento takes one back by its id. do=add_trade records lançamentos as the app's \"+\" does (several at once); do=remove_trade removes one by its id (a wrong one, a duplicate). do=since sets the day an asset of the user's sheet was bought (its proventos count from then). Also, read only: do=ficha (ticker) gives an asset's sheet (its figures now and in its history, what it pays the user a month, its magic number, its ceilings, the court's last word, the figures its reports gave, and signals in Portuguese); do=aporte (amount, R$) says where a month's contribution goes share by share to bring the portfolio nearer its targets, with the reasons and what the court told to avoid left out; do=irpf (year) gives the income tax: Bens e Direitos at 31/12 with each line's text, the funds' exempt income, dividends, JCP, and the sales month by month with the DARF AXYON reckons. Only what the user said or pasted, with their figures: never invent a provento or a trade, and read do=view first to find an id or to avoid recording again what is there. This only changes AXYON's record: nothing is bought or sold.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -323,7 +323,10 @@
             "remove_provento",
             "add_trade",
             "remove_trade",
-            "since"
+            "since",
+            "ficha",
+            "aporte",
+            "irpf"
           ],
           "description": "view (the default) shows the Carteira with the ids."
         },
@@ -423,11 +426,19 @@
         },
         "ticker": {
           "type": "string",
-          "description": "For since: the asset."
+          "description": "For since and ficha: the asset."
         },
         "date": {
           "type": "string",
           "description": "For since: the day it was bought, DD/MM/YYYY (empty forgets it)."
+        },
+        "amount": {
+          "type": "number",
+          "description": "For aporte: the amount to contribute this month, R$."
+        },
+        "year": {
+          "type": "number",
+          "description": "For irpf: the calendar year declared (the year before the declaration); last year by default."
         }
       }
     }

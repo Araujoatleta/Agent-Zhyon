@@ -16,6 +16,9 @@ struct AXYONWalletHome: View {
     @State private var adding = false
     @State private var recording = false
     @State private var backingUp = false
+    @State private var investing = false
+    @State private var startAmount = ""
+    @State private var taxes = false
     @State private var asset: WalletAsset?
 
     private var overview: WalletOverview { wallet.overview ?? WalletOverview() }
@@ -24,6 +27,9 @@ struct AXYONWalletHome: View {
         ScrollView {
             VStack(spacing: 18) {
                 WalletSummaryCard(overview: overview, reading: wallet.loading || wallet.quoting, updated: wallet.updated)
+                if !overview.assets.isEmpty {
+                    WalletToolsRow(overview: overview, invest: { investing = true }, taxes: { taxes = true })
+                }
                 InvestSegments<WalletSection>(options: [.init(value: .assets, title: String(localized: "Assets")),
                                                         .init(value: .trades, title: String(localized: "Lançamentos")),
                                                         .init(value: .income, title: String(localized: "Proventos"))],
@@ -99,9 +105,11 @@ struct AXYONWalletHome: View {
         .sheet(isPresented: $adding) { WalletTradeSheet(wallet: wallet) }
         .sheet(isPresented: $recording) { WalletProventoSheet() }
         .sheet(isPresented: $backingUp) { WalletBackupSheet() }
+        .sheet(isPresented: $investing) { WalletAporteSheet(start: startAmount) }
         .navigationDestination(item: $asset) { picked in
             WalletAssetView(wallet: wallet, ticker: picked.ticker)
         }
+        .navigationDestination(isPresented: $taxes) { WalletIRPFView() }
     }
 
     #if targetEnvironment(simulator)
@@ -114,6 +122,10 @@ struct AXYONWalletHome: View {
         case "wallet-new": adding = true
         case "wallet-provento": recording = true
         case "wallet-backup": backingUp = true
+        case "wallet-aporte":
+            startAmount = "1500"
+            investing = true
+        case "wallet-irpf": taxes = true
         default: break
         }
     }

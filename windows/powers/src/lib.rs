@@ -24,6 +24,7 @@ pub mod fii;
 pub mod gym;
 pub mod invest;
 pub mod import;
+pub mod insight;
 pub mod journal;
 pub mod learn;
 pub mod library;

@@ -106,6 +106,8 @@ struct InvestFolder: Equatable {
     let documents: [InvestDoc]
     let thesis: InvestThesis?
     let decisions: [InvestDecisionEntry]
+    /// The asset's sheet: indicators, a year of dividends, the VP month by month, what its reports said, signals.
+    let ficha: InvestFicha
 
     init(_ o: [String: Any]) {
         ticker = FolderJSON.str(o["ticker"])
@@ -120,6 +122,7 @@ struct InvestFolder: Equatable {
         documents = FolderJSON.list(o["documents"]).map(InvestDoc.init)
         thesis = FolderJSON.dict(o["thesis"]).map(InvestThesis.init)
         decisions = FolderJSON.list(o["decisions"]).map(InvestDecisionEntry.init)
+        ficha = FolderJSON.dict(o["ficha"]).map(InvestFicha.init) ?? InvestFicha()
     }
 
     var isEmpty: Bool { verdicts.isEmpty && documents.isEmpty && thesis == nil && decisions.isEmpty }
@@ -360,6 +363,7 @@ struct InvestFolderView: View {
                     Text(problem).font(.footnote).foregroundStyle(InvestPalette.against)
                 }
                 if let folder {
+                    InvestFichaSection(ficha: folder.ficha)
                     if folder.isEmpty {
                         Text("No trial yet. The court meets by itself when the intern brings a new document of \(ticker), and the trial is kept here, with the documents read.")
                             .font(.footnote)

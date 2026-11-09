@@ -165,6 +165,12 @@ as suas compras e vendas e o código do AXYON calcula o resto.
   também), **CSV** (os registros, um por linha) e um **relatório em PDF**, para salvar no Arquivos, no iCloud Drive ou
   mandar para você mesmo. **Importar um arquivo** traz um backup do AXYON de volta como era (antes, uma cópia da
   carteira atual é guardada); os arquivos de Negociação e Movimentação da B3 somam os lançamentos e proventos deles.
+- **Ficha do ativo** (no alto da pasta): o que merece atenção primeiro, os indicadores, um ano de proventos por cota,
+  o VP mês a mês contra a cotação, quanto te paga por mês e o número mágico, os preços-teto, e cada número que os
+  relatórios deram, relatório a relatório.
+- **Onde aportar** (Carteira): o valor do mês distribuído cota por cota rumo às suas metas, com os motivos, deixando de
+  fora o que o tribunal mandou evitar. **Imposto de renda** (Carteira): Bens e Direitos em 31/12 prontos para copiar,
+  rendimentos isentos, dividendos, JCP e vendas com o DARF. Ao lado, quanto o seu dinheiro rendeu ao ano contra o CDI.
 - **Pastas**: cada ativo de que o AXYON guarda algo tem a sua pasta (na aba Investimentos e a partir do ativo): os
   julgamentos do tribunal (os 12 últimos), os documentos lidos com os resumos, a tese e as suas decisões, para abrir
   de novo quando quiser.

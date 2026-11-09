@@ -45,6 +45,28 @@
         }
       }
     },
+    "%@ above": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ por encima"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ au-dessus"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ acima"
+          }
+        }
+      }
+    },
     "%@ asks to run": {
       "localizations": {
         "es": {
@@ -85,6 +107,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@ a %@"
+          }
+        }
+      }
+    },
+    "%@ below": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ por debajo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ en dessous"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ abaixo"
           }
         }
       }
@@ -857,6 +901,28 @@
         }
       }
     },
+    "%lld shares": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld cuotas"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld parts"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld cotas"
+          }
+        }
+      }
+    },
     "%lld steps · show all": {
       "localizations": {
         "es": {
@@ -1381,6 +1447,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "O AXYON faz cards dos seus próprios ativos: o que é P/VP ou dividend yield, com os valores dos seus fundos, e o formato da sua carteira."
+          }
+        }
+      }
+    },
+    "AXYON spreads it share by share toward your targets, cheap ones a little first, and leaves out what the court told to avoid. Nothing is bought here.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON lo reparte cuota por cuota hacia tus metas, primero un poco los baratos, y deja fuera lo que el tribunal mandó evitar. Aquí no se compra nada."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON le répartit part par part vers vos cibles, un peu d'abord les actifs bon marché, et laisse de côté ce que le tribunal a dit d'éviter. Rien n'est acheté ici."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O AXYON distribui cota por cota rumo às suas metas, dando um pouco de preferência aos ativos baratos, e deixa de fora o que o tribunal mandou evitar. Nada é comprado aqui."
           }
         }
       }
@@ -3233,6 +3321,50 @@
         }
       }
     },
+    "Bens e Direitos": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bens e Direitos (bienes y derechos)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bens e Direitos (biens et droits)"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bens e Direitos"
+          }
+        }
+      }
+    },
+    "Bens e Direitos at the purchase cost (fees included), not the market value. FII income and dividends are exempt; JCP is taxed at the source. Check against the broker's and B3's reports before declaring.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bens e Direitos al costo de compra (con tasas), no al valor de mercado. Los rendimientos de FII y los dividendos están exentos; el JCP tributa en la fuente. Compara con los informes del bróker y de B3 antes de declarar."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bens e Direitos au coût d'achat (frais compris), pas à la valeur de marché. Les revenus de FII et les dividendes sont exonérés ; le JCP est imposé à la source. Vérifiez avec les relevés du courtier et de B3 avant de déclarer."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bens e Direitos pelo custo de compra (com taxas), não pelo valor de mercado. Rendimentos de FII e dividendos são isentos; JCP é tributado na fonte. Confira com os informes da corretora e da B3 antes de declarar."
+          }
+        }
+      }
+    },
     "Blue": {
       "localizations": {
         "es": {
@@ -3387,6 +3519,50 @@
         }
       }
     },
+    "Buys": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compra"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Achète"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compra"
+          }
+        }
+      }
+    },
+    "Buys, sales, proventos and the value now": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compras, ventas, proventos y el valor de hoy"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Achats, ventes, revenus et la valeur actuelle"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compras, vendas, proventos e o valor de hoje"
+          }
+        }
+      }
+    },
     "By its address": {
       "localizations": {
         "es": {
@@ -3405,6 +3581,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "Pelo endereço"
+          }
+        }
+      }
+    },
+    "CDI now %@ a year · buys, sales, proventos and the value now": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CDI hoy %@ al año · compras, ventas, proventos y el valor de hoy"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CDI aujourd'hui %@ par an · achats, ventes, revenus et la valeur actuelle"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CDI hoje %@ ao ano · compras, vendas, proventos e o valor de hoje"
+          }
+        }
+      }
+    },
+    "CNPJ %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CNPJ %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CNPJ %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CNPJ %@"
           }
         }
       }
@@ -3713,6 +3933,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Teto %@"
+          }
+        }
+      }
+    },
+    "Ceiling prices": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Precios techo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prix plafonds"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preços-teto"
           }
         }
       }
@@ -4971,6 +5213,28 @@
         }
       }
     },
+    "Copy the text": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiar el texto"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copier le texte"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiar a discriminação"
+          }
+        }
+      }
+    },
     "Costs %@": {
       "localizations": {
         "es": {
@@ -5363,6 +5627,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Personalizado"
+          }
+        }
+      }
+    },
+    "DARF %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DARF %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DARF %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DARF %@"
           }
         }
       }
@@ -5825,6 +6111,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Dividendo"
+          }
+        }
+      }
+    },
+    "Dividend a share, data-com by data-com": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Provento por cuota, data-com a data-com"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revenu par part, data-com par data-com"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Provento por cota, data-com a data-com"
           }
         }
       }
@@ -6309,6 +6617,72 @@
           "stringUnit": {
             "state": "translated",
             "value": "Excel, completo"
+          }
+        }
+      }
+    },
+    "Exclusive taxation · JCP": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tributación exclusiva · JCP"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Imposition exclusive · JCP"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tributação exclusiva · JCP"
+          }
+        }
+      }
+    },
+    "Exempt income · FII": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rendimientos exentos · FII"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revenus exonérés · FII"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rendimentos isentos · FII"
+          }
+        }
+      }
+    },
+    "Exempt income · dividends": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rendimientos exentos · dividendos"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revenus exonérés · dividendes"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rendimentos isentos · dividendos"
           }
         }
       }
@@ -7523,6 +7897,28 @@
         }
       }
     },
+    "Group %@ · Code %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grupo %@ · Código %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Groupe %@ · Code %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grupo %@ · Código %@"
+          }
+        }
+      }
+    },
     "Hard": {
       "localizations": {
         "es": {
@@ -8161,6 +8557,28 @@
         }
       }
     },
+    "How much will you invest this month?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Cuánto vas a invertir este mes?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Combien allez-vous investir ce mois-ci ?"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quanto você vai aportar este mês?"
+          }
+        }
+      }
+    },
     "How to connect your Mac": {
       "localizations": {
         "es": {
@@ -8531,6 +8949,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "Rendimento"
+          }
+        }
+      }
+    },
+    "Income more a month": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Renta extra al mes"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revenu en plus par mois"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Renda a mais por mês"
+          }
+        }
+      }
+    },
+    "Income tax": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impuesto sobre la renta"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impôt sur le revenu"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Imposto de renda"
           }
         }
       }
@@ -9195,6 +9657,50 @@
         }
       }
     },
+    "Left out": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quedaron fuera"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Laissés de côté"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ficaram de fora"
+          }
+        }
+      }
+    },
+    "Left over": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sobra"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reste"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sobra"
+          }
+        }
+      }
+    },
     "Legal and governance": {
       "localizations": {
         "es": {
@@ -9697,6 +10203,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Feito pelo código do AXYON a partir dos seus próprios registros; sua carteira fica neste iPhone. Não é recomendação de investimento."
+          }
+        }
+      }
+    },
+    "Magic number": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Número mágico"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nombre magique"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Número mágico"
           }
         }
       }
@@ -10797,6 +11325,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sem resposta."
+          }
+        }
+      }
+    },
+    "No asset held at the end of %@.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ningún activo en cartera al final de %@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucun actif détenu à la fin de %@."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhum ativo em carteira no fim de %@."
           }
         }
       }
@@ -11963,6 +12513,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Em %@, marque os aparelhos que o Mochi pode usar em Coucou → Configurações → Casa do Mochi: eles aparecem aqui."
+          }
+        }
+      }
+    },
+    "On 31/12/%@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Al 31/12/%@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Au 31/12/%@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Em 31/12/%@"
           }
         }
       }
@@ -13265,6 +13837,28 @@
         }
       }
     },
+    "Pays you a month": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Te paga al mes"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vous verse par mois"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Te paga por mês"
+          }
+        }
+      }
+    },
     "Per share": {
       "localizations": {
         "es": {
@@ -14365,6 +14959,28 @@
         }
       }
     },
+    "R$ 1.000,00": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "R$ 1.000,00"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "R$ 1.000,00"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "R$ 1.000,00"
+          }
+        }
+      }
+    },
     "R$ per share": {
       "localizations": {
         "es": {
@@ -14911,6 +15527,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Lançar um provento recebido"
+          }
+        }
+      }
+    },
+    "Record this purchase": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registrar esta compra"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enregistrer cet achat"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lançar esta compra"
           }
         }
       }
@@ -15685,6 +16323,28 @@
         }
       }
     },
+    "Sales and DARF": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ventas y DARF"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ventes et DARF"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vendas e DARF"
+          }
+        }
+      }
+    },
     "Same Apple Account": {
       "localizations": {
         "es": {
@@ -16033,6 +16693,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Pesquisando na web"
+          }
+        }
+      }
+    },
+    "See": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voir"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver"
           }
         }
       }
@@ -17665,6 +18347,28 @@
         }
       }
     },
+    "Targets used: %@.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Metas usadas: %@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cibles utilisées : %@."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Metas usadas: %@."
+          }
+        }
+      }
+    },
     "Tell AXYON in the chat what you decide and how sure you are, from 0 to 100: the decision journal judges each one later against the price and the CDI.": {
       "localizations": {
         "es": {
@@ -17819,6 +18523,28 @@
         }
       }
     },
+    "The amount does not buy a whole share of any asset.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El monto no compra una cuota entera de ningún activo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le montant n'achète une part entière d'aucun actif."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O valor não compra uma cota inteira de nenhum ativo."
+          }
+        }
+      }
+    },
     "The answer stopped there: AXYON closed before it ended.": {
       "localizations": {
         "es": {
@@ -17859,6 +18585,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "O ativo"
+          }
+        }
+      }
+    },
+    "The asset's sheet": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ficha del activo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fiche de l'actif"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ficha do ativo"
           }
         }
       }
@@ -18387,6 +19135,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "O tribunal: %@ está falando"
+          }
+        }
+      }
+    },
+    "The dashed line is the price: under the VP, a discount.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La línea punteada es la cotización: debajo del VP, descuento."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La ligne pointillée est le cours : sous la VP, une décote."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A linha tracejada é a cotação: abaixo do VP, desconto."
           }
         }
       }
@@ -20151,6 +20921,28 @@
         }
       }
     },
+    "VP a share, month by month (CVM)": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "VP por cuota, mes a mes (CVM)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "VP par part, mois par mois (CVM)"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "VP por cota, mês a mês (CVM)"
+          }
+        }
+      }
+    },
     "Valuation analyst": {
       "localizations": {
         "es": {
@@ -20811,6 +21603,28 @@
         }
       }
     },
+    "What its reports said, report by report": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lo que dijeron sus informes, uno a uno"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce que disaient ses rapports, un par un"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O que os relatórios disseram, um a um"
+          }
+        }
+      }
+    },
     "What matters": {
       "localizations": {
         "es": {
@@ -21049,6 +21863,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Quando você diz %@ de certeza"
+          }
+        }
+      }
+    },
+    "Where to invest": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dónde invertir"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Où investir"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Onde aportar"
           }
         }
       }
@@ -21779,6 +22615,28 @@
         }
       }
     },
+    "Your money made %@ a year": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu dinero rindió %@ al año"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre argent a rapporté %@ par an"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seu dinheiro rendeu %@ ao ano"
+          }
+        }
+      }
+    },
     "Your own server or another provider": {
       "localizations": {
         "es": {
@@ -22237,6 +23095,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "assembleia: seu voto"
+          }
+        }
+      }
+    },
+    "at %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "a %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "à %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "a %@"
           }
         }
       }
@@ -22809,6 +23689,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "a favor × contra"
+          }
+        }
+      }
+    },
+    "from your sheet: check the year": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "de tu planilla: revisa el año"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "de votre tableur : vérifiez l'année"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "da sua planilha: confira o ano"
           }
         }
       }

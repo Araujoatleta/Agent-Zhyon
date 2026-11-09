@@ -156,6 +156,12 @@ your buys and sales, and AXYON's code works out the rest.
   records, one per line) and a **PDF report**, to save in Files, iCloud Drive or send to yourself. **Import a file**
   brings an AXYON backup back as it was (a copy of the Carteira here is kept first); B3's Negociação and Movimentação
   files add their lançamentos and proventos.
+- **Each asset's sheet** (at the top of its folder): what deserves a look first, the indicators, a year of dividends
+  a share, the VP month by month against the price, what it pays you a month and its magic number, its ceilings, and
+  each figure its reports gave, report by report.
+- **Where to invest** (Carteira): the month's amount spread share by share toward your targets, with the reasons,
+  leaving out what the court told to avoid. **Income tax** (Carteira): Bens e Direitos at 31/12 ready to copy, exempt
+  income, dividends, JCP, and sales with the DARF. Next to them, what your money made a year against the CDI.
 - **Folders**: every asset AXYON keeps something about has its folder (on the Investments screen, and from the
   asset): the court's trials (its last twelve), the documents read with their digests, its thesis and your
   decisions, to open again whenever you want.

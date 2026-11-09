@@ -517,6 +517,30 @@ fn sum(values: impl Iterator<Item = f64>) -> f64 {
     values.fold(0.0, |a, b| a + b)
 }
 
+/// What the money put in the assets with lançamentos made a year (the buys and sales, the proventos received, what
+/// they are worth now), with the CDI now beside it; none until the first lançamento is a month old.
+fn returns(store: &Store, market: &Market, received: &[&Paid], holdings: &[crate::portfolio::Holding], today: Date) -> Option<Value> {
+    let tickers: std::collections::BTreeSet<String> = store.trades.iter().map(|t| t.ticker.to_uppercase()).collect();
+    let first = store.trades.iter().map(|t| t.date).min()?;
+    if first.until(today) < 30 {
+        return None;
+    }
+    let mut flows: Vec<(Date, f64)> = store
+        .trades
+        .iter()
+        .map(|t| (t.date, if t.kind == TradeKind::Buy { -(t.quantity * t.price + t.fees) } else { t.quantity * t.price - t.fees }))
+        .collect();
+    for p in received.iter().filter(|p| tickers.contains(&p.ticker)) {
+        if let Some(d) = p.payment.filter(|d| *d >= first) {
+            flows.push((d, p.net));
+        }
+    }
+    let now: f64 = holdings.iter().filter(|h| tickers.contains(&h.ticker)).map(|h| h.value).sum();
+    flows.push((today, now));
+    let rate = crate::insight::xirr(&flows)?;
+    Some(json!({ "rate": rate, "since": first, "cdi": market.economy.cdi, "value": now }))
+}
+
 /// The consolidator's screen.
 pub fn view(store: &Store, market: &Market, today: Date) -> Value {
     let v = crate::portfolio::value(&store.portfolio, market);
@@ -674,6 +698,8 @@ pub fn view(store: &Store, market: &Market, today: Date) -> Value {
         "classes": classes,
         "trades": trades,
         "soldOut": sold_out,
+        // What the money in the assets with lançamentos made a year, against the CDI.
+        "returns": returns(store, market, &received, v.holdings.as_slice(), today),
         "managedAll": !store.portfolio.positions.is_empty() && store.portfolio.positions.iter().filter(|p| p.class.quoted()).all(|p| managed(store, &p.ticker)),
     })
 }

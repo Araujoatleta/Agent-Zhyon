@@ -610,8 +610,21 @@ pub fn wallet_view(store: &mut Store, market: &Market, args: &Value, today: Date
                 None => format!("{t}: the day it was bought is forgotten."),
             });
         }
+        // Read-only answers, with nothing to change: an asset's sheet, the month's contribution, the year's income tax.
+        "ficha" | "asset" => {
+            let t = s(args, "ticker").and_then(|t| ticker(&t)).ok_or("ficha needs the ticker.")?;
+            return Ok(crate::insight::ficha_for_model(&crate::insight::ficha(store, market, None, &t, today)));
+        }
+        "aporte" | "contribution" => {
+            let amount = f(args, "amount").filter(|a| *a > 0.0).ok_or("aporte needs the amount, R$.")?;
+            return Ok(crate::insight::aporte_for_model(&crate::insight::aporte(store, market, amount, today)));
+        }
+        "irpf" | "taxes" => {
+            let year = f(args, "year").map(|y| y as i32).unwrap_or(today.y - 1);
+            return Ok(crate::insight::irpf_for_model(&crate::insight::irpf(store, market, year, today)));
+        }
         "view" | "list" | "" => {}
-        other => return Err(format!("wealth_wallet has no do=\"{other}\" (view, add_trade, remove_trade, add_provento, remove_provento, since).")),
+        other => return Err(format!("wealth_wallet has no do=\"{other}\" (view, add_trade, remove_trade, add_provento, remove_provento, since, ficha, aporte, irpf).")),
     }
     let screen = crate::wallet::view(store, market, today);
     let mut out = notes.join("\n");
@@ -624,6 +637,9 @@ pub fn wallet_view(store: &mut Store, market: &Market, args: &Value, today: Date
         brl(n(&screen["total"])), brl(n(&screen["cost"])), brl(n(&screen["gain"])), brl(n(&screen["realized"])),
         brl(n(&screen["income"]["twelve"])), brl(n(&screen["income"]["year"])), brl(n(&screen["income"]["provisioned"]))
     ));
+    if let Some(r) = screen["returns"]["rate"].as_f64() {
+        out.push_str(&format!(" The money in the assets with lançamentos made {} a year since {} (CDI now {}).", pct(r, 1), screen["returns"]["since"].as_str().and_then(Date::parse).map(|d| d.br()).unwrap_or_default(), screen["returns"]["cdi"].as_f64().map(|c| pct(c, 2)).unwrap_or_else(|| "unknown".into())));
+    }
     let paid_line = |p: &Value| {
         let id = p["id"].as_u64().map(|i| format!(" [recorded provento #{i}]")).unwrap_or_default();
         let record = p["record"].as_str().and_then(Date::parse).map(|d| format!("data-com {}, ", d.br())).unwrap_or_default();

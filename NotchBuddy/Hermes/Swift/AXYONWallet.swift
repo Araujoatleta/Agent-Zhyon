@@ -227,6 +227,9 @@ struct WalletOverview: Equatable {
     var classes: [WalletClass] = []
     var trades: [WalletTrade] = []
     var soldOut = 0
+    /// The portfolio's own return a year (its money in and out, the proventos, the value now) and the CDI beside it.
+    var returnRate: Double?
+    var cdi: Double?
 
     init() {}
 
@@ -257,6 +260,9 @@ struct WalletOverview: Equatable {
         classes = WalletJSON.list(o["classes"]).map(WalletClass.init)
         trades = WalletJSON.list(o["trades"]).map(WalletTrade.init)
         soldOut = (o["soldOut"] as? [Any])?.count ?? 0
+        let returns = WalletJSON.dict(o["returns"])
+        returnRate = WalletJSON.num(returns["rate"])
+        cdi = WalletJSON.num(returns["cdi"])
     }
 
     var assets: [WalletAsset] { classes.flatMap(\.assets) }

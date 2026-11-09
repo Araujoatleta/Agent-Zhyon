@@ -214,6 +214,23 @@ pub fn workbook(store: &Store, market: &Market, today: Date) -> Vec<u8> {
     }
     tabs.push(Tab { name: "Proventos".into(), widths: vec![10.0, 16.0, 12.0, 12.0, 12.0, 14.0, 12.0, 12.0, 18.0, 12.0], rows, hidden: false });
 
+    // The income tax of last year, to declare.
+    let tax = crate::insight::irpf(store, market, today.y - 1, today);
+    let mut rows = vec![["Grupo", "Código", "Ativo", "CNPJ", "Discriminação", "Situação em 31/12 anterior", "Situação em 31/12"].map(head).to_vec()];
+    for g in tax["goods"].as_array().into_iter().flatten() {
+        let s = |k: &str| g[k].as_str().unwrap_or("").to_string();
+        rows.push(vec![text(&s("group")), text(&s("code")), text(&s("ticker")), text(&s("cnpj")), text(&s("text")), Cell::Money(n(&g["before"])), Cell::Money(n(&g["after"]))]);
+    }
+    rows.push(vec![]);
+    for (title, key) in [("Rendimentos isentos — FII", "exempt"), ("Rendimentos isentos — dividendos", "dividends"), ("Tributação exclusiva — JCP", "jcp")] {
+        for x in tax[key].as_array().into_iter().flatten() {
+            rows.push(vec![text(title), text(""), text(x["ticker"].as_str().unwrap_or("")), text(x["cnpj"].as_str().unwrap_or("")), text(x["name"].as_str().unwrap_or("")), text(""), Cell::Money(n(&x["value"]))]);
+        }
+    }
+    rows.push(vec![]);
+    rows.push(vec![text("Confira com os informes da corretora e da B3 antes de declarar.")]);
+    tabs.push(Tab { name: format!("IRPF {}", today.y - 1), widths: vec![8.0, 8.0, 10.0, 22.0, 70.0, 22.0, 18.0], rows, hidden: false });
+
     // Everything AXYON keeps, out of sight.
     let kept = serde_json::to_vec(store).unwrap_or_default();
     let packed = base64(&deflate(&kept));
@@ -506,7 +523,7 @@ mod tests {
         let book = workbook(&store, &market, today);
         let sheets = crate::xlsx::read(&book).unwrap();
         let names: Vec<&str> = sheets.iter().map(|s| s.name.as_str()).collect();
-        assert_eq!(names, ["Resumo", "Posições", "Lançamentos", "Proventos", BACKUP_SHEET]);
+        assert_eq!(names, ["Resumo", "Posições", "Lançamentos", "Proventos", "IRPF 2025", BACKUP_SHEET]);
         let trades = &sheets[2].rows;
         assert_eq!(trades[0][0], "Data");
         assert!(trades.iter().any(|r| r[1] == "GARE11" && r[2] == "venda"), "{trades:?}");
@@ -542,7 +559,7 @@ mod tests {
         // The workbook with its backup sheet deleted: its sheets bring the records back.
         let book = workbook(&store, &market, today);
         let mut sheets: Vec<Tab> = crate::xlsx::read(&book).unwrap().into_iter().filter(|s| s.name != BACKUP_SHEET).map(|s| Tab { name: s.name, widths: vec![], rows: s.rows.into_iter().map(|r| r.into_iter().map(Cell::Text).collect()).collect(), hidden: false }).collect();
-        sheets.truncate(4);
+        sheets.truncate(5);
         let mut again = Store::default();
         let note = restore(&mut again, &market, "x.xlsx", &crate::xlsx::write(&sheets), today).unwrap();
         assert!(note.contains("3 lançamentos e 1 proventos"), "{note}");
