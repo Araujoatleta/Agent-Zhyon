@@ -19,10 +19,10 @@ alone: none of this is compiled or copied into them.
 | `app/axyon_hermes/` | The host: Hermes behind a small HTTP API on 127.0.0.1, and AXYON's tools for it. |
 | `shims/psutil/` | An iOS stand-in for psutil (no other process can be seen on iOS). |
 | `bridge/` | The C that starts CPython (`axyon_python_run`) and runs a line in it (`axyon_python_exec`), and the superpowers' C interface (`AXYONPowers.h`, from `windows/powers-ffi`). |
-| `Swift/` | `HermesEngine` (starts and talks to the host), `HermesArms` (what Hermes asks of the iPhone, and `HermesPowers`, the superpowers' engine), `HermesWire` (its events and the conversation, tested on Linux), `AXYONStyle`, `AXYONViews` and `AXYONHouse` (the screens), `AXYONAlerts` (the superpowers' alerts and Hermes' scheduled tasks with the app closed), `AXYONInbox` (the files sent, Google's sign-in and the scheduled tasks' screens). |
+| `Swift/` | `HermesEngine` (starts and talks to the host), `HermesArms` (what Hermes asks of the iPhone, and `HermesPowers`, the superpowers' engine), `HermesWire` (its events and the conversation, tested on Linux), `AXYONStyle`, `AXYONViews` and `AXYONHouse` (the screens), `AXYONAlerts` (the superpowers' alerts and Hermes' scheduled tasks with the app closed), `AXYONRoutines` (the routines, their editor and the places iOS watches), `AXYONIntents` (Siri and the Shortcuts app: run a routine, ask AXYON), `AXYONInbox` (the files sent, Google's sign-in and the scheduled tasks' screens). |
 | `utils.sh`, `iOS-dylib-Info-template.plist` | CPython's own iOS install steps: every compiled module becomes a framework. |
 | `requirements-*.txt` | Hermes' packages: pure Python, and the three with iOS wheels on PyPI. |
-| `tests/` | `test_units.py` (the tools, no Hermes), `test_home.py` (the home against a simulated Samsung TV, ADB box and Home Assistant), `test_host.py` (the host end to end with Hermes, iOS limits emulated: files sent, Google's status, a scheduled task run and delivered), `test_embedded.py` (the app's C start of Python, on a computer), `simulator.sh` (CI: the app in the iOS Simulator, Hermes started for real, answering with an iPhone tool, a superpower the engine answers inside iOS, a document sent and a scheduled task run at the app's tick). |
+| `tests/` | `test_units.py` (the tools, no Hermes), `test_home.py` (the home against a simulated Samsung TV, ADB box and Home Assistant), `test_automations.py` (Hue, Shelly, Tasmota, WLED, Roku and webhooks simulated, and the routines run end to end), `test_host.py` (the host end to end with Hermes, iOS limits emulated: files sent, Google's status, a scheduled task run and delivered), `test_embedded.py` (the app's C start of Python, on a computer), `simulator.sh` (CI: the app in the iOS Simulator, Hermes started for real, answering with an iPhone tool, a superpower the engine answers inside iOS, a document sent and a scheduled task run at the app's tick). |
 
 ## Build
 
@@ -76,6 +76,7 @@ The API (bearer token on every call):
 | `GET /v1/portfolio` | The wallet: the superpowers' own record on the iPhone, or the computer's newer copy, with prices read now. |
 | `GET /v1/bridge`, `POST /v1/bridge/<id>` | What Hermes asks of the iPhone, and the app's answer. |
 | `GET /v1/home`, `POST /v1/home/scan`, `/v1/home/devices`, `/v1/home/devices/<id>/pair`, `…/action`, `…/remove`, `/v1/home/assistant` | The iPhone's own home. |
+| `GET /v1/routines`, `POST /v1/routines`, `/v1/routines/<id>/run`, `…/remove`, `/v1/routines/tick` | The routines (automations.py), up before Hermes itself. |
 
 Keys stay in the iPhone's Keychain (`WhenUnlockedThisDeviceOnly`, not in backups) and reach Hermes in memory at each
 start; nothing writes them to disk. The ChatGPT sign-in is the iPhone's own: refresh tokens are single-use, so the

@@ -22,6 +22,7 @@ enum AXYONTab: Hashable {
         AXYONTestScreen.applyTheme()
         let screen = AXYONTestScreen.name
         if screen.hasPrefix("invest") { return .invest }
+        if screen.hasPrefix("house") { return .house }
         switch screen {
         case "chat": return .chat
         case "house": return .house

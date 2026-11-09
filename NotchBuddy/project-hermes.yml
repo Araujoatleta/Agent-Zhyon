@@ -25,6 +25,9 @@ targets:
       # The permission prompts below in the user's language (pt-BR, es, fr).
       - path: Hermes/InfoPlist.xcstrings
         buildPhase: resources
+      # What Siri hears for AXYON's routines and questions in the user's language (Hermes/Swift/AXYONIntents.swift).
+      - path: Hermes/AppShortcuts.xcstrings
+        buildPhase: resources
     info:
       # Its own Info.plist, out of git: the committed InfoPhone.plist stays the App Store build's.
       path: Hermes/build/InfoPhone.plist
@@ -37,6 +40,8 @@ targets:
         NSRemindersFullAccessUsageDescription: "AXYON adds, lists and completes the reminders you ask it to."
         NSContactsUsageDescription: "AXYON finds a person's phone or e-mail when you ask it to call or write to them; you send."
         NSLocationWhenInUseUsageDescription: "AXYON uses where you are when you ask it about places, the weather or the way."
+        # A routine that runs on arriving at or leaving a place (Hermes/Swift/AXYONRoutines.swift, AXYONPlaces).
+        NSLocationAlwaysAndWhenInUseUsageDescription: "AXYON runs your routines when you arrive at or leave a place you chose, even closed. It keeps no record of where you go."
         NSAppleMusicUsageDescription: "AXYON plays, pauses and skips music when you ask it to."
         # project.yml's, said of AXYON: its home and computer, dictation, Face ID, the pairing code.
         NSLocalNetworkUsageDescription: "AXYON reaches the TVs, boxes and Home Assistant on your Wi-Fi, and your computer when you pair one."

@@ -245,6 +245,32 @@ iPhone's Keychain), and **Home Assistant** (its address and a long-lived access 
 covers, scenes and scripts, never locks or alarms). Then ask in the chat: *"turn on the living room TV"*. Plugs and
 switches ask for Face ID first. The first scan makes iOS ask for the local network: allow it.
 
+Each over its own local API, with no cloud: **Roku TVs** (TCL, AOC, Philco…: remote, volume, channels, apps),
+**Philips Hue** (press the bridge's round button when AXYON asks; its lights, rooms and scenes, with brightness and
+colours), **Shelly** (Gen1 and Gen2+) and **Tasmota/Sonoff** plugs, relays, dimmers and bulbs (their login off), **WLED**
+strips (brightness, colours, presets) and **webhooks** (an Alexa routine through Voice Monkey, IFTTT, SmartThings, a
+Home Assistant webhook; the address stays in the Keychain).
+
+## Routines: your day on autopilot
+
+At the top of the **Home** tab: a routine has a name, what starts it and steps done in order.
+
+- **What starts it**: a tap; **Siri** (*"Run Good night in AXYON"*); a **time** on chosen weekdays; **arriving at** or
+  **leaving** a place set on the map (iOS wakes AXYON even closed, with location **"Always"**; AXYON keeps no record
+  of where you go and tells you what it did); and any automation of the **Shortcuts** app (a time to the minute, an
+  NFC tag, CarPlay, an alarm stopping, a Focus…) with the action **"Run AXYON routine"**, which runs without asking.
+- **The steps**: a device (any action it has: on, brightness, colour, an app on the TV, a scene), **every light, TV,
+  fan or plug** at once (TVs and plugs only off), a **notification**, a **reminder**, **saying** something, **music**,
+  the **flashlight**, one of your **Shortcuts**, a link, a **pause**, and a **question to AXYON Core**, whose answer
+  comes as a notification.
+- **Ideas**: Home again, Leaving home, Good morning, Good night, Film time, Focus.
+- **In the chat**: *"every night at 11 turn the lights and the TV off and tell me what I have tomorrow"*: AXYON makes
+  the routine, shows its steps and keeps it only with your **Face ID**.
+- **"Ask AXYON"** from Siri or a shortcut: the question and its answer stay in the chat.
+
+With AXYON open, time routines run on time; closed, iOS wakes it a few times a day: for the exact minute, use the
+Shortcuts automation. Opening links and Shortcuts needs the iPhone unlocked.
+
 ## With a computer (optional)
 
 **Settings → Computer (optional) → Windows or Linux computer** pairs as before. Once paired, the computer's portfolio

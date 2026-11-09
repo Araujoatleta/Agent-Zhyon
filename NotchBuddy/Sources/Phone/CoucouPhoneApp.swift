@@ -16,6 +16,8 @@ struct CoucouPhoneApp: App {
         #if HERMES
         // AXYON speaks Portuguese whatever the iPhone's own language (Hermes/Swift/AXYONInvest.swift).
         AXYONLanguage.portugueseOnce()
+        // A routine's place iOS woke AXYON for is heard from the launch on (Hermes/Swift/AXYONRoutines.swift).
+        AXYONPlaces.shared.wake()
         #endif
     }
 

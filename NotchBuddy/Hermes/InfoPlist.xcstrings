@@ -175,6 +175,35 @@
         }
       }
     },
+    "NSLocationAlwaysAndWhenInUseUsageDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON runs your routines when you arrive at or leave a place you chose, even closed. It keeps no record of where you go."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON ejecuta tus rutinas cuando llegas o sales de un lugar que elegiste, incluso cerrado. No guarda por dónde andas."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AXYON lance vos routines quand vous arrivez dans un lieu choisi ou le quittez, même fermé. Il ne garde aucune trace de vos déplacements."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O AXYON roda as suas rotinas quando você chega ou sai de um lugar que escolheu, mesmo fechado. Ele não guarda por onde você anda."
+          }
+        }
+      }
+    },
     "NSLocationWhenInUseUsageDescription": {
       "extractionState": "manual",
       "localizations": {

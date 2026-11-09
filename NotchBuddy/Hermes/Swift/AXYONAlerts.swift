@@ -21,7 +21,7 @@ enum AXYONAlerts {
     /// The next look while the alerts are on or Hermes has scheduled tasks (HermesCron): iOS decides when, not before
     /// half an hour from now, or a quarter of an hour when a task comes due sooner.
     static func schedule() {
-        let next = HermesCron.nextTimes().min()
+        let next = (HermesCron.nextTimes() + AXYONRoutineStore.nextTimes()).min()
         guard enabled || next != nil else {
             BGTaskScheduler.shared.cancel(taskRequestWithIdentifier: task)
             return
@@ -40,6 +40,10 @@ enum AXYONAlerts {
     /// (iOS gives about half a minute in all), then the alerts with the time left.
     static func backgroundLook() async {
         schedule()
+        // A time routine that came due while AXYON slept, first: it is what the user waits for.
+        if AXYONRoutineStore.due() {
+            await AXYONRoutineStore.backgroundTick(budget: 12)
+        }
         let started = Date.now
         if HermesCron.due() {
             await HermesCron.run(budget: enabled ? 18 : 26)

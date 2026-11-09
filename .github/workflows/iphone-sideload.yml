@@ -203,6 +203,11 @@ jobs:
           python3.14 -m pip install -q --disable-pip-version-check websockets==15.0.1
           python3.14 NotchBuddy/Hermes/tests/test_home.py
 
+      - name: AXYON's ecosystem against simulated devices (Hue, Shelly, Tasmota, WLED, Roku, webhooks) and the routines
+        continue-on-error: true
+        timeout-minutes: 3
+        run: python3.14 NotchBuddy/Hermes/tests/test_automations.py
+
       - uses: actions/setup-node@v7
         with:
           node-version: '24'

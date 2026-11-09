@@ -265,6 +265,42 @@ Ligar uma TV que está totalmente desligada pela rede nem sempre dá: o iOS não
 "acordar" para a rede toda. Deixe ligada nas TVs Samsung a opção **Ligar com o celular** (Configurações → Geral →
 Rede → Configurações avançadas).
 
+Também entram, cada um pela própria API local (sem nuvem):
+
+- **Roku TV** (TCL, AOC, Philco…): controle, volume, canais, apps (Netflix, YouTube…). Se recusar: na TV,
+  Configurações → Sistema → Configurações avançadas do sistema → Controle por apps móveis → Acesso à rede: Padrão.
+- **Philips Hue**: o endereço do bridge (no app Hue: Configurações → Meu sistema Hue). Aperte o **botão redondo** em
+  cima do bridge quando o AXYON pedir. Entram as lâmpadas, os cômodos (“Sala (todas)”) e as cenas, com brilho e
+  **cores** (“deixa a sala azul”, “luz quente no quarto”).
+- **Shelly** (Gen1 e Gen2+) e **Tasmota/Sonoff**: tomadas, relés, dimmers e lâmpadas, com o login deles desligado.
+  Cada relé vira uma tomada.
+- **WLED**: fitas de LED, com brilho, cores e presets.
+- **Webhooks**: qualquer coisa que tenha um endereço que a dispara — uma rotina da **Alexa** (pelo Voice Monkey),
+  **IFTTT**, SmartThings, um webhook do Home Assistant. O endereço fica nas Chaves do iPhone.
+
+## Rotinas: o seu dia no piloto automático
+
+No alto da aba **Casa**, **Rotinas**: uma rotina tem um nome, o que a dispara e os passos, feitos em ordem.
+
+- **O que dispara**: um toque no ▶︎; a **Siri** (*“Rodar Boa noite no AXYON”*); um **horário** em dias escolhidos;
+  **chegar** ou **sair** de um lugar marcado no mapa (o iOS acorda o AXYON mesmo fechado, com a localização
+  **“Sempre”**; o AXYON não guarda por onde você anda e te avisa o que fez); e qualquer automação do app **Atalhos**
+  (um horário no minuto exato, uma etiqueta NFC, conectar ao CarPlay, um alarme parado, um Foco…) com a ação
+  **“Rodar rotina do AXYON”**, que roda sem perguntar e com o app fechado.
+- **Os passos**: um aparelho (qualquer ação que ele tenha: ligar, brilho, cor, abrir um app na TV, uma cena),
+  **todas as luzes/TVs/ventiladores/tomadas** de uma vez (TVs e tomadas só desligam), uma **notificação**, um
+  **lembrete** (daqui a X minutos), **falar** algo, **música**, a **lanterna**, um dos seus **Atalhos**, abrir um
+  link, **esperar**, e **perguntar ao AXYON Core** — a resposta chega como notificação (*“meu dia: agenda,
+  lembretes, clima e a carteira”*).
+- **Ideias prontas**: Cheguei em casa, Saindo de casa, Bom dia, Boa noite, Modo cinema e Foco.
+- **No chat**: *“toda noite às 23h desliga as luzes e a TV e me diz o que tenho amanhã”* — o AXYON monta a rotina, te
+  mostra os passos e só guarda com o seu **Face ID**.
+- **“Perguntar ao AXYON”** pela Siri ou num atalho: a pergunta e a resposta ficam no chat.
+
+Com o AXYON aberto, as rotinas de horário rodam na hora; fechado, o iOS o acorda algumas vezes por dia. Para o minuto
+exato com o app fechado, use a automação do app Atalhos. Abrir links e Atalhos só funciona com o iPhone
+desbloqueado.
+
 ## As telas
 
 - **Carteira** (a primeira, onde o app abre): o consolidador: patrimônio, resultado, os ativos por classe, os
