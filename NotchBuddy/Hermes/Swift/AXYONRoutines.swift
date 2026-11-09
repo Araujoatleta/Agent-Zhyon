@@ -961,8 +961,13 @@ struct AXYONSiriCard: View {
                 .font(.footnote)
                 .foregroundStyle(AXYONPalette.dim)
                 .fixedSize(horizontal: false, vertical: true)
-            ShortcutsLink()
-                .shortcutsLinkStyle(.automaticOutline)
+            if let shortcuts = URL(string: "shortcuts://") {
+                Link(destination: shortcuts) {
+                    Label("Open the Shortcuts app", systemImage: "square.stack.3d.up.fill")
+                        .font(.subheadline.weight(.semibold))
+                }
+                .coucouGlassButton()
+            }
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
