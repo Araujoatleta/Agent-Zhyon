@@ -97,7 +97,6 @@ enum EyesReader {
         if line.contains("R$") || line.lowercased().contains("http") { return true }
         if line.filter(\.isNumber).count >= 40 { return true }
         for token in line.split(whereSeparator: { !($0.isLetter || $0.isNumber) }) {
-            if token.count == 10, token.filter({ $0 == "/" }).isEmpty, token.allSatisfy(\.isNumber) { continue }
             guard token.count == 5 || token.count == 6 else { continue }
             let letters = token.prefix(4)
             let number = String(token.dropFirst(4))
