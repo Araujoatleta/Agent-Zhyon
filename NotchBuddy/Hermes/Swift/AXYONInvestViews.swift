@@ -389,6 +389,8 @@ struct AXYONInvestView: View {
                 // The court meets by itself on each new document; its trials go into the assets' folders.
                 InvestCourtCard(invest: invest)
                 InvestReaderCard(invest: invest)
+                // Every fund on B3, read and ranked on the phone (AXYONRadar.swift).
+                InvestRadarCard()
                 Text("AXYON computes every number from the official sources, and the committee and the reader say where each point comes from. Nothing is bought or sold here: this is not an investment recommendation, the decision is yours.")
                     .font(.caption2)
                     .foregroundStyle(AXYONPalette.faint)

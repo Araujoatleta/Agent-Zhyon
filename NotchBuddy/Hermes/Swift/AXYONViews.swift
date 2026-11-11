@@ -68,6 +68,8 @@ struct AXYONTabs: View {
                         InvestFoldersView()
                     } else if AXYONTestScreen.base == "invest-folder" {
                         InvestFolderView(ticker: "GARE11")
+                    } else if AXYONTestScreen.base == "invest-radar" {
+                        AXYONRadarView()
                     } else {
                         AXYONInvestView()
                     }

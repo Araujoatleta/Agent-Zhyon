@@ -649,6 +649,7 @@ struct WalletToolsRow: View {
     let overview: WalletOverview
     let invest: () -> Void
     let taxes: () -> Void
+    let futures: () -> Void
 
     var body: some View {
         VStack(spacing: 10) {
@@ -675,6 +676,9 @@ struct WalletToolsRow: View {
                 Button(action: taxes) { tool(String(localized: "Income tax"), "doc.text.fill") }
                     .buttonStyle(PressableButtonStyle())
             }
+            // Tens of thousands of futures of this portfolio, on the phone's cores (AXYONRadar.swift).
+            Button(action: futures) { tool(String(localized: "The portfolio's futures"), "cpu") }
+                .buttonStyle(PressableButtonStyle())
         }
     }
 

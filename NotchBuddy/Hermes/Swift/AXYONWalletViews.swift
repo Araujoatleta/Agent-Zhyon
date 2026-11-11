@@ -19,6 +19,7 @@ struct AXYONWalletHome: View {
     @State private var investing = false
     @State private var startAmount = ""
     @State private var taxes = false
+    @State private var futures = false
     @State private var asset: WalletAsset?
 
     private var overview: WalletOverview { wallet.overview ?? WalletOverview() }
@@ -28,7 +29,8 @@ struct AXYONWalletHome: View {
             VStack(spacing: 18) {
                 WalletSummaryCard(overview: overview, reading: wallet.loading || wallet.quoting, updated: wallet.updated)
                 if !overview.assets.isEmpty {
-                    WalletToolsRow(overview: overview, invest: { investing = true }, taxes: { taxes = true })
+                    WalletToolsRow(overview: overview, invest: { investing = true }, taxes: { taxes = true },
+                                   futures: { futures = true })
                 }
                 InvestSegments<WalletSection>(options: [.init(value: .assets, title: String(localized: "Assets")),
                                                         .init(value: .trades, title: String(localized: "Lançamentos")),
@@ -110,6 +112,7 @@ struct AXYONWalletHome: View {
             WalletAssetView(wallet: wallet, ticker: picked.ticker)
         }
         .navigationDestination(isPresented: $taxes) { WalletIRPFView() }
+        .navigationDestination(isPresented: $futures) { AXYONFuturesView() }
     }
 
     #if targetEnvironment(simulator)
@@ -126,6 +129,7 @@ struct AXYONWalletHome: View {
             startAmount = "1500"
             investing = true
         case "wallet-irpf": taxes = true
+        case "wallet-futures": futures = true
         default: break
         }
     }
