@@ -24,6 +24,8 @@ enum HermesArms {
         case "home": return data(home())
         case "homeAction": return data(await homeAction(r))
         case "secret": return data(secret(r))
+        // AXYON's memory on this iPhone, searched by meaning (AXYONMemory.swift).
+        case "memory": return data(await AXYONMemory.shared.answer(r))
         case "powers":
             let tool = r["tool"] as? String ?? ""
             let answer = await HermesPowers.call(tool, input: data(r["input"] as? [String: Any] ?? [:]))

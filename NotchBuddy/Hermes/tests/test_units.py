@@ -139,6 +139,20 @@ check("the action and its arguments go to the app", fake.asked[-1] == ("iphone",
 check("the app's answer to the model", json.loads(out) == {"ok": True})
 check("every schema says its name", all(s["name"] == n for n, (_, s, _) in registered.items()))
 
+print("AXYON's memory")
+from axyon_hermes import memory  # noqa: E402
+
+fake = FakeBridge()
+registered = {}
+memory.Memory(fake).register(FakeRegistry())
+check("two tools: search and note", sorted(registered) == ["memory_note", "memory_search"])
+registered["memory_search"][2]({"query": "o que os relatórios disseram sobre vacância?", "limit": 5})
+check("a question goes to the app's index", fake.asked[-1] == ("memory", {"do": "search", "query": "o que os relatórios disseram sobre vacância?", "limit": 5}))
+check("no question: said, nothing asked", "error" in json.loads(registered["memory_search"][2]({})) and len(fake.asked) == 1)
+registered["memory_note"][2]({"text": "Meta: R$ 3.000 por mês em 2034", "title": "Meta"})
+check("a note kept", fake.asked[-1] == ("memory", {"do": "note", "text": "Meta: R$ 3.000 por mês em 2034", "title": "Meta"}))
+registered = {}
+
 print("The superpowers")
 
 

@@ -55,6 +55,8 @@ targets:
           - fr.louisraille.Coucou.powers-watch
         UIBackgroundModes:
           - fetch
+          # A recording for the ears goes on with the screen locked (Hermes/Swift/AXYONEars.swift).
+          - audio
     settings:
       base:
         INFOPLIST_FILE: Hermes/build/InfoPhone.plist

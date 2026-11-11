@@ -169,6 +169,71 @@ pub fn document(lib: &Library, key: &str) -> Value {
     })
 }
 
+/// What the phone's memory indexes: every document read (its pages are asked one document at a time, `text`), and
+/// what AXYON keeps in words, each as one record of plain Portuguese text: the court's verdicts, the user's decisions
+/// and their theses.
+pub fn memory_index(store: &Store, lib: &Library) -> Value {
+    let documents: Vec<Value> = lib
+        .feed(crate::library::MOST_DOCS)
+        .into_iter()
+        .filter(|d| d.is_read())
+        .map(|d| json!({ "key": d.key, "ticker": d.ticker, "title": d.headline(), "kind": d.kind.label_pt(), "delivered": d.delivered, "pages": d.pages.len() }))
+        .collect();
+    let mind = |id: &str| match id {
+        "valuation" => "avaliação",
+        "legal" => "jurídico",
+        "forensic" => "perícia contábil",
+        "risk" => "risco",
+        "macro" => "cenário macro",
+        other => other,
+    }
+    .to_string();
+    let vote = |v: &str| match v {
+        "for" => "a favor",
+        "against" => "contra",
+        _ => "neutro",
+    };
+    let mut records: Vec<Value> = Vec::new();
+    for v in &store.verdicts {
+        let mut text = format!("Julgamento de {}{}: {}\n", v.ticker, v.date.map(|d| format!(" em {}", d.br())).unwrap_or_default(), v.proposal);
+        for (label, body) in [("Sobre o ativo", &v.asset), ("Na sua carteira", &v.portfolio_fit)] {
+            if !body.why.trim().is_empty() {
+                text.push_str(&format!("{label}: {} — {}\n", body.view.replace('_', " "), body.why.trim()));
+            }
+        }
+        for m in &v.minds {
+            let points: Vec<&str> = m.points.iter().map(|p| p.text.trim()).filter(|p| !p.is_empty()).collect();
+            text.push_str(&format!("{} votou {} ({} % de confiança){}: {} {}\n", mind(&m.id), vote(&m.vote), m.confidence, if m.veto { ", com veto" } else { "" }, m.why.trim(), points.join(" ")));
+        }
+        for (label, body) in [("Pergunta do juiz", &v.question), ("Divergência", &v.dissent), ("O que mudaria o quadro", &v.would_change), ("Encaixe nas metas", &v.fit)] {
+            if !body.trim().is_empty() {
+                text.push_str(&format!("{label}: {}\n", body.trim()));
+            }
+        }
+        if !v.to_verify.is_empty() {
+            text.push_str(&format!("A verificar: {}\n", v.to_verify.join("; ")));
+        }
+        records.push(json!({ "id": format!("verdict:{}", v.id), "kind": "verdict", "ticker": v.ticker, "date": v.date, "title": format!("Julgamento de {}", v.ticker), "text": text }));
+    }
+    for d in &store.decisions {
+        let action = match d.action.as_str() {
+            "buy" => "comprar",
+            "sell" => "vender",
+            "hold" => "manter",
+            _ => "evitar",
+        };
+        let mut text = format!("Decisão de {} {} em {}: {}", action, d.ticker, d.date.br(), d.reasons.trim());
+        if !d.expectation.trim().is_empty() {
+            text.push_str(&format!(" Expectativa: {}", d.expectation.trim()));
+        }
+        records.push(json!({ "id": format!("decision:{}", d.id), "kind": "decision", "ticker": d.ticker, "date": d.date, "title": format!("Decisão: {action} {}", d.ticker), "text": text }));
+    }
+    for t in store.theses.iter().filter(|t| !t.text.trim().is_empty()) {
+        records.push(json!({ "id": format!("thesis:{}", t.ticker), "kind": "thesis", "ticker": t.ticker, "date": t.written, "title": format!("Tese de {}", t.ticker), "text": t.text.trim() }));
+    }
+    json!({ "documents": documents, "records": records })
+}
+
 /// wealth_documents, for the brain: `do` = feed (what the reader read, with what changed; `ticker` for one asset),
 /// read (a document's text by `key`, from `offset`), theses (the user's theses checked now), thesis (write the user's
 /// thesis on `ticker` from their `text`).
@@ -449,6 +514,13 @@ pub fn app(store: &mut Store, market: &Market, lib: &mut Library, tool: &str, in
                 Saved::default(),
             )),
             "document" => Ok((document(lib, &key()?), Saved::default())),
+            // For the phone's memory (AXYONMemory.swift): what there is to index, then each document's pages.
+            "index" => Ok((memory_index(store, lib), Saved::default())),
+            "text" => {
+                let k = key()?;
+                let d = lib.get(&k).ok_or("No such document.")?;
+                Ok((json!({ "key": k, "ticker": d.ticker, "title": d.headline(), "kind": d.kind.label_pt(), "delivered": d.delivered, "url": d.url, "texts": d.pages }), Saved::default()))
+            }
             // A page the committee cited, as the reader read it: the excerpt behind a point.
             "page" => {
                 let k = key()?;
@@ -852,6 +924,13 @@ mod tests {
         let answer = "Claro:\n```json\n{\"headline\": \"Vacância subiu para 8,5%\", \"points\": [{\"text\": \"A vacância física foi de 6% para 8,5%\", \"page\": 2}], \"tone\": \"worse\", \"thesisRisk\": true}\n```";
         let (doc, _) = call(&mut store, &mut lib, "invest_docs", json!({"do": "digest", "key": "fnet:904", "answer": answer})).unwrap();
         assert_eq!(doc["headline"], "Vacância subiu para 8,5%");
+        // For the phone's memory: what there is to index, and a document's pages whole.
+        let (index, _) = call(&mut store, &mut lib, "invest_docs", json!({"do": "index"})).unwrap();
+        assert_eq!(index["documents"].as_array().unwrap().len(), 2, "{index}");
+        assert_eq!(index["documents"][0]["title"], "Vacância subiu para 8,5%");
+        assert_eq!(index["documents"][0]["kind"], "relatório gerencial");
+        let (text, _) = call(&mut store, &mut lib, "invest_docs", json!({"do": "text", "key": "fnet:904"})).unwrap();
+        assert_eq!(text["texts"].as_array().unwrap().len(), index["documents"][0]["pages"].as_u64().unwrap() as usize);
         let (page, _) = call(&mut store, &mut lib, "invest_docs", json!({"do": "page", "key": "fnet:904", "page": 2})).unwrap();
         assert!(page["text"].as_str().unwrap().contains("8,5"), "the page the committee cites, as read: {page}");
         assert!(call(&mut store, &mut lib, "invest_docs", json!({"do": "page", "key": "fnet:904", "page": 99})).is_err());

@@ -101,6 +101,12 @@ taxes, the decision journal) and their studies, English and training.
   link, one of their Shortcuts, a pause, and a question to you whose answer comes as a notification). When the user
   describes a habit ("when I get home…", "every night at 11…"), offer to make it a routine; they confirm with Face ID.
   Siri runs one with "rodar <name> no AXYON".
+- Memory: memory_search looks, by meaning, through everything read on this iPhone (every page of the reports and
+  material facts, the court's verdicts, decisions, theses, transcripts of audio, notes) and gives the passages with
+  their document, date and page; use it before answering what a document, the court or a call said, and cite the
+  page. memory_note keeps what the user asks you to remember.
+- The market's radar and the portfolio's futures: wealth_wallet do=radar (every fund on B3 ranked from the official
+  figures, once the user swept the market in the app) and do=simulate (twenty thousand futures of the portfolio).
 - Alerts on the portfolio with AXYON closed (an asset under the user's ceiling or back above it, strong days, assets
   under a ceiling, the morning's day): iphone_alerts turns them on; iOS picks when they are checked.
 - iOS gives an app no terminal, no other programs, no hidden browser and no hand on other apps' screens: running code,
@@ -197,6 +203,7 @@ class Host:
             from .google import Google
             from .invest import Invest
             from .iphone import IPhone
+            from .memory import Memory
             from .powers import Powers
             from .scheduled import Scheduled
             from .web import Web
@@ -206,6 +213,7 @@ class Host:
             self.house.register(registry)
             self.routines.register(registry)
             IPhone(self.bridge).register(registry)
+            Memory(self.bridge).register(registry)
             Powers(self.bridge).register(registry)
             Web().register(registry)
             Files(self.home).register(registry)
