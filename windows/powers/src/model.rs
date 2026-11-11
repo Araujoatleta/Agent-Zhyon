@@ -827,6 +827,9 @@ pub struct Market {
     /// The cash dividends the companies held announced on B3 (dividendos, JCP), by ticker.
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub company_payouts: BTreeMap<String, CompanyPayouts>,
+    /// Every traded fund measured and ranked (radar.rs), when the user ran the market's radar.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub radar: Option<crate::radar::Radar>,
 }
 
 /// A company's announced cash dividends for one share class, as B3 lists them, and when they were read.

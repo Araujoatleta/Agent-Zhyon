@@ -589,6 +589,15 @@ pub fn app(store: &mut Store, market: &Market, lib: &mut Library, tool: &str, in
             let year = input["year"].as_i64().map(|y| y as i32).unwrap_or(today.y - 1);
             Ok((crate::insight::irpf(store, market, year, today), Saved::default()))
         }
+        // The whole market's funds, ranked (the app reads them first: powers-ffi, `invest_radar` scan).
+        "invest_radar" => Ok((crate::radar::view(store, market, s("kind").as_deref(), most.map(|m| m * 12).unwrap_or(crate::radar::MOST)), Saved::default())),
+        // The portfolio's futures: tens of thousands of them, on every core.
+        "invest_simulate" => {
+            let number = |k: &str| input[k].as_f64().or_else(|| s(k).and_then(|a| crate::text::num(&a)));
+            let years = number("years").map(|y| y as usize).unwrap_or(10);
+            let paths = number("paths").map(|p| p as usize).unwrap_or(crate::simulate::DEFAULT_PATHS);
+            Ok((crate::simulate::simulate(store, market, number("monthly").unwrap_or(0.0), years, number("goal").filter(|g| *g > 0.0), paths, today), Saved::default()))
+        }
         "invest_export" => {
             let (name, bytes) = match s("format").as_deref() {
                 Some("csv") => (crate::backup::file_name(today, "csv"), crate::backup::csv(store, market, today).into_bytes()),

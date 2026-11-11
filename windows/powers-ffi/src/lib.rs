@@ -37,6 +37,8 @@ const LIVE_EVERY: Duration = Duration::from_secs(5 * 60);
 /// The consolidator open on the screen asks for its quotes again this often at most (Google's are 15 minutes late).
 const QUOTES_EVERY: Duration = Duration::from_secs(2 * 60);
 const LIVE_PAUSE: Duration = Duration::from_millis(400);
+/// The whole market's files (two years of the CVM's reports, B3's day): tens of megabytes on a phone's network.
+const RADAR_BUDGET: Duration = Duration::from_secs(150);
 const LIVE_MOST: usize = 40;
 const LIVE_BUDGET: Duration = Duration::from_secs(15);
 
@@ -323,6 +325,24 @@ fn read_company_documents(st: &mut State, today: Date, deadline: Instant) {
 
 /// The session's prices of what is held and what has a ceiling, from Google Finance, one page after the other, until
 /// `deadline`.
+/// The market's radar: two years of every fund's monthly reports (the CVM) and the day's quotes of the whole market
+/// (B3), read and measured (coucou_powers::radar). Why not, when it could not be read.
+fn read_radar(st: &mut State, today: Date, evening: bool, deadline: Instant) -> Result<(), String> {
+    let months = within(deadline, sources::fii_months(http(), &[today.y, today.y - 1], &[])).ok_or("The CVM's reports did not come in time: try again on Wi-Fi.")??;
+    let (_, quotes) = within(deadline, sources::all_quotes(http(), today, evening)).ok_or("B3's quotes did not come in time: try again.")??;
+    let radar = coucou_powers::radar::build(&months, &quotes, today);
+    if radar.funds.is_empty() {
+        return Err("No traded fund was found in what the CVM and B3 gave.".into());
+    }
+    // The tickers' funds, for the rest of the app, while every fund is here.
+    for (root, cnpj) in sources::cvm_fii::cnpj_by_root(&months) {
+        st.market.fund_cnpjs.entry(root).or_insert(cnpj);
+    }
+    st.market.radar = Some(radar);
+    st.save_market();
+    Ok(())
+}
+
 fn read_live(st: &mut State, deadline: Instant) {
     let mut tickers = st.store.portfolio.tickers(None);
     for t in st.store.ceilings.manual.keys() {
@@ -631,6 +651,11 @@ fn fetch_document(st: &State, input: &Value) -> Value {
 fn app(st: &mut State, tool: &str, input: &Value, today: Date, evening: bool, read: bool) -> Value {
     if tool == "invest_docs" && engine::s(input, "do").as_deref() == Some("fetch") {
         return if read { fetch_document(st, input) } else { json!({ "ok": false, "text": "Nothing is downloaded now." }) };
+    }
+    if read && tool == "invest_radar" && engine::s(input, "do").as_deref() == Some("scan") {
+        if let Err(text) = read_radar(st, today, evening, Instant::now() + RADAR_BUDGET) {
+            return json!({ "ok": false, "text": text });
+        }
     }
     if read {
         match tool {

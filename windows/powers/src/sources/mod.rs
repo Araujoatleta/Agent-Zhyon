@@ -49,6 +49,22 @@ pub async fn quotes(http: &Http, today: Date, evening: bool, tickers: &[String],
     Err(format!("B3's quotes could not be read: {last_error}"))
 }
 
+/// Every instrument's quote of the last day B3 published (the radar reads the whole market), going back up to six
+/// business days.
+pub async fn all_quotes(http: &Http, today: Date, evening: bool) -> Result<(Date, Vec<b3::Quote>), String> {
+    let mut day = if evening && is_business_day(today, true) { today } else { previous_business_day(today, true) };
+    let mut last_error = String::new();
+    for _ in 0..6 {
+        match http.zip_entries(&b3::url(day), &[".txt".to_string()]).await {
+            Ok(files) if !files.is_empty() => return Ok((day, b3::parse(&crate::text::decode(&files[0].1), None))),
+            Ok(_) => last_error = "B3's file was empty".into(),
+            Err(e) => last_error = e,
+        }
+        day = previous_business_day(day, true);
+    }
+    Err(format!("B3's quotes could not be read: {last_error}"))
+}
+
 /// The monthly reports of the funds whose CNPJs are `cnpjs` (all when empty), for `years`.
 pub async fn fii_months(http: &Http, years: &[i32], cnpjs: &[String]) -> Result<Vec<cvm_fii::FiiMonth>, String> {
     let mut out = Vec::new();

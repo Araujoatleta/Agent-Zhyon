@@ -623,8 +623,17 @@ pub fn wallet_view(store: &mut Store, market: &Market, args: &Value, today: Date
             let year = f(args, "year").map(|y| y as i32).unwrap_or(today.y - 1);
             return Ok(crate::insight::irpf_for_model(&crate::insight::irpf(store, market, year, today)));
         }
+        "radar" | "market" => {
+            let kind = s(args, "kind").map(|k| crate::text::plain(&k));
+            return Ok(crate::radar::for_model(&crate::radar::view(store, market, kind.as_deref(), 25)));
+        }
+        "simulate" | "future" | "futuro" => {
+            let years = f(args, "years").map(|y| y as usize).unwrap_or(10);
+            let v = crate::simulate::simulate(store, market, f(args, "monthly").unwrap_or(0.0), years, f(args, "goal").filter(|g| *g > 0.0), 20_000, today);
+            return Ok(crate::simulate::for_model(&v));
+        }
         "view" | "list" | "" => {}
-        other => return Err(format!("wealth_wallet has no do=\"{other}\" (view, add_trade, remove_trade, add_provento, remove_provento, since, ficha, aporte, irpf).")),
+        other => return Err(format!("wealth_wallet has no do=\"{other}\" (view, add_trade, remove_trade, add_provento, remove_provento, since, ficha, aporte, irpf, radar, simulate).")),
     }
     let screen = crate::wallet::view(store, market, today);
     let mut out = notes.join("\n");
