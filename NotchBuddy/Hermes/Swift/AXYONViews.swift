@@ -23,6 +23,7 @@ enum AXYONTab: Hashable {
         let screen = AXYONTestScreen.name
         if screen.hasPrefix("invest") { return .invest }
         if screen.hasPrefix("house") { return .house }
+        if screen.hasPrefix("core") { return .chat }
         switch screen {
         case "chat": return .chat
         case "house": return .house
@@ -79,7 +80,23 @@ struct AXYONTabs: View {
                 }
             }
             Tab("Chat", systemImage: "sparkles", value: AXYONTab.chat) {
-                stack { HermesChatView() }
+                stack {
+                    #if targetEnvironment(simulator)
+                    // CI's screenshots: the core and each of its powers (AXYONNucleus.swift).
+                    switch AXYONTestScreen.base {
+                    case "core": AXYONNucleusView()
+                    case "core-memory": AXYONMemoryView()
+                    case "core-ears": AXYONEarsView()
+                    case "core-eyes": AXYONEyesView()
+                    case "core-rooms": AXYONRoomsView()
+                    case "core-brain": AXYONLocalBrainView()
+                    case "core-base": AXYONBaseView()
+                    default: HermesChatView()
+                    }
+                    #else
+                    HermesChatView()
+                    #endif
+                }
             }
             Tab("Home", systemImage: "house.fill", value: AXYONTab.house) {
                 stack { AXYONHouseView() }
@@ -252,6 +269,15 @@ struct HermesChatView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) { title }
+            // The core: what runs on this iPhone's own processor (AXYONNucleus.swift).
+            ToolbarItem(placement: .topBarLeading) {
+                NavigationLink {
+                    AXYONNucleusView()
+                } label: {
+                    Image(systemName: "cpu")
+                }
+                .accessibilityLabel("Core")
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     engine.newChat()

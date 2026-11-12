@@ -25,6 +25,8 @@ struct EarsTranscript: Codable, Identifiable, Sendable, Equatable {
     var segments: [EarsSegment]
     /// Given to the intern as a document of `ticker`.
     var delivered = false
+    /// Its summary, written by the local brain on the iPhone (AXYONLocalBrain.swift).
+    var summary: String?
 
     var text: String { segments.map(\.text).joined(separator: " ") }
     var words: Int { text.split(separator: " ").count }
@@ -399,6 +401,18 @@ final class AXYONEars {
         save()
     }
 
+    /// The transcript summed up by the local brain, on the iPhone: read in parts, minutes for an hour of talk.
+    func summarize(_ id: String) async throws {
+        guard let transcript = transcripts.first(where: { $0.id == id }) else { return }
+        let brain = AXYONLocalBrain.shared
+        guard let summary = await brain.digest(transcript.text, title: transcript.title) else {
+            throw AXYONInvestError.said(brain.problem ?? String(localized: "The local brain is busy: try again in a moment."))
+        }
+        guard let index = transcripts.firstIndex(where: { $0.id == id }) else { return }
+        transcripts[index].summary = summary
+        save()
+    }
+
     func remove(_ id: String) async {
         transcripts.removeAll { $0.id == id }
         save()
@@ -660,6 +674,18 @@ struct EarsTranscriptView: View {
                             try ears.ask(id, String(localized: "Summarize this transcript for me: the main points, the figures said, and what deserves my attention."))
                             said = String(localized: "Sent: the summary is being written in the chat.")
                         }
+                        if AXYONLocalBrain.shared.canThink {
+                            action(String(localized: "Summarize on this iPhone, with the network off"), "cpu.fill") {
+                                try await ears.summarize(id)
+                                said = String(localized: "Summed up on this iPhone.")
+                            }
+                            if let done = AXYONLocalBrain.shared.digesting {
+                                HStack(spacing: 10) {
+                                    ProgressView(value: done).tint(AXYONTheme.current.accent)
+                                    Text(verbatim: "\(Int(done * 100))%").font(.caption).monospacedDigit().foregroundStyle(AXYONPalette.dim)
+                                }
+                            }
+                        }
                         action(String(localized: "Give it to the intern (the court meets on it)"), "building.columns.fill") {
                             try await ears.deliver(id)
                             said = String(localized: "Given to the intern as a document of \(ticker.uppercased()): the court meets on it by itself.")
@@ -668,6 +694,21 @@ struct EarsTranscriptView: View {
                             Label("Share the text", systemImage: "square.and.arrow.up").frame(maxWidth: .infinity)
                         }
                         .coucouGlassButton()
+                    }
+                    if let summary = transcript.summary, !summary.isEmpty {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Label("Summary, written on this iPhone", systemImage: "cpu.fill")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(AXYONTheme.current.accent)
+                            Text(summary)
+                                .font(.callout)
+                                .foregroundStyle(Color.white.opacity(0.92))
+                                .textSelection(.enabled)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(14)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .axyonCard(cornerRadius: 20)
                     }
                     Text(String(localized: "\(EarsTranscript.clock(transcript.seconds)) of audio · \(transcript.words) words"))
                         .font(.caption)
