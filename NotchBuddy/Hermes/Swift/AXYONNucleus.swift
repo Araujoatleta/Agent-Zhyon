@@ -148,6 +148,9 @@ struct AXYONNucleusView: View {
             }
             .padding(20)
         }
+        #if targetEnvironment(simulator)
+        .defaultScrollAnchor(AXYONTestScreen.anchor)
+        #endif
         .axyonBackdrop(intensity: 0.9)
         .navigationTitle("Core")
         .navigationBarTitleDisplayMode(.inline)
@@ -160,6 +163,7 @@ struct AXYONNucleusView: View {
 
     private var chip: some View {
         let model = AXYONDevice.model
+        let lidar = AXYONRooms.canScan ? String(localized: "yes") : String(localized: "no")
         return HStack(spacing: 16) {
             AXYONChipGlyph(cores: AXYONDevice.cores)
                 .frame(width: 92, height: 92)
@@ -168,7 +172,7 @@ struct AXYONNucleusView: View {
                 Text(verbatim: "\(model.chip) · \(AXYONDevice.cores) núcleos · \(AXYONDevice.memory) GB")
                     .font(.footnote.weight(.semibold))
                     .foregroundStyle(AXYONTheme.current.accent)
-                Text(String(localized: "LiDAR: \(AXYONRooms.canScan ? String(localized: "yes") : String(localized: "no")) · temperature: \(AXYONDevice.heat)"))
+                Text(String(localized: "LiDAR: \(lidar) · temperature: \(AXYONDevice.heat)"))
                     .font(.caption)
                     .foregroundStyle(AXYONPalette.dim)
                     .fixedSize(horizontal: false, vertical: true)

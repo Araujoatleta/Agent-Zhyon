@@ -7,6 +7,7 @@
 #   build/app_packages                 its packages: pure Python, iOS wheels, and pydantic-core and jiter built here
 #                                      for arm64 iOS (they publish no iOS wheel)
 #   build/powers                       AXYON's superpowers: the computer's engine as a static library for the app
+#   build/llama/llama.xcframework      llama.cpp, the local brain's engine (the iPhone's build only)
 # Every .py is compiled to bytecode that never goes stale (the bundle is signed: nothing is written in it).
 # IOS_SDK=iphonesimulator builds the same for the Simulator (CI's test of Hermes inside iOS, tests/simulator.sh).
 set -euo pipefail
@@ -19,6 +20,8 @@ HERMES_COMMIT="$(sed -n 's/^pub const COMMIT: &str = "\([0-9a-f]\{40\}\)";$/\1/p
 IOS_TARGET=13.0
 PYDANTIC_CORE=2.46.4
 JITER=0.16.0
+# llama.cpp's release the local brain is written against (Swift/AXYONLocalBrain.swift, its include/llama.h).
+LLAMA_TAG=b12290
 IOS_SDK="${IOS_SDK:-iphoneos}"
 case "$IOS_SDK" in
     iphoneos)
@@ -182,6 +185,43 @@ grep -E "^[0-9a-f]+ T _axyon_powers_(call|watch|free)$" <<<"$symbols" \
     || { echo "axyon_powers_call is not in libcoucou_powers_ffi.a as machine code:"; grep axyon_powers <<<"$symbols" | head; exit 1; }
 cp "$WIN/hook/src/house_tools.json" "$APP/axyon_hermes/house_tools.json"
 ls -l "$OUT/powers/libcoucou_powers_ffi.a"
+
+# ── The local brain ──────────────────────────────────────────────────────────
+# llama.cpp as the XCframework its releases publish (its own build-xcframework.sh), the one dependency the local brain
+# cannot do without: the engine that runs a downloaded model on the iPhone's graphics processor. The iPhone's build
+# only: a release has no Simulator slice, and the Simulator's build compiles without it.
+if [ "$IOS_SDK" = iphoneos ]; then
+    step "llama.cpp $LLAMA_TAG"
+    LLAMA="$OUT/llama"
+    LLAMA_FW="$LLAMA/llama.xcframework/ios-arm64/llama.framework"
+    if [ ! -f "$LLAMA_FW/llama" ] || [ "$(cat "$LLAMA/tag" 2>/dev/null)" != "$LLAMA_TAG" ]; then
+        rm -rf "$LLAMA" && mkdir -p "$LLAMA"
+        if curl -fsSL "https://github.com/ggml-org/llama.cpp/releases/download/$LLAMA_TAG/llama-$LLAMA_TAG-xcframework.zip" -o "$LLAMA/llama.zip"; then
+            unzip -q "$LLAMA/llama.zip" -d "$LLAMA/unpacked"
+            mv "$(find "$LLAMA/unpacked" -maxdepth 3 -name llama.xcframework | head -1)" "$LLAMA/llama.xcframework"
+            rm -rf "$LLAMA/llama.zip" "$LLAMA/unpacked"
+        else
+            # No XCframework published for this release: built from its source, for the iPhone alone.
+            echo "no published XCframework for $LLAMA_TAG: building it"
+            rm -f "$LLAMA/llama.zip"
+            git clone -q --depth 1 --branch "$LLAMA_TAG" https://github.com/ggml-org/llama.cpp "$LLAMA/src"
+            (cd "$LLAMA/src" && ./build-xcframework.sh ios-device)
+            mv "$LLAMA/src/build-apple/llama.xcframework" "$LLAMA/llama.xcframework"
+            rm -rf "$LLAMA/src"
+        fi
+        echo "$LLAMA_TAG" > "$LLAMA/tag"
+    fi
+    test -f "$LLAMA_FW/llama" && test -f "$LLAMA_FW/Headers/llama.h" && test -f "$LLAMA_FW/Modules/module.modulemap" \
+        || { echo "llama.xcframework has no ios-arm64 framework with its headers:"; ls -R "$LLAMA/llama.xcframework" | head -60; exit 1; }
+    platform="$(xcrun vtool -show-build "$LLAMA_FW/llama" 2>/dev/null | awk '/platform/ {print $2; exit}')"
+    test "$platform" = IOS || { echo "llama.framework is built for '$platform', not for iOS"; exit 1; }
+    # The calls the local brain makes are the ones this header declares.
+    for call in llama_model_load_from_file llama_init_from_model llama_chat_apply_template llama_memory_seq_rm \
+        llama_sampler_init_penalties llama_vocab_n_tokens llama_vocab_is_eog; do
+        grep -q "$call" "$LLAMA_FW/Headers/llama.h" || { echo "llama.h has no $call"; exit 1; }
+    done
+    du -sh "$LLAMA_FW"
+fi
 
 # ── Checks ───────────────────────────────────────────────────────────────────
 step "Every compiled module is arm64 $VT_PLATFORM"

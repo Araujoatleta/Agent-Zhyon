@@ -632,14 +632,14 @@ struct AXYONFuturesView: View {
                 .font(.caption)
                 .foregroundStyle(AXYONPalette.dim)
             if let last = yearly.last {
-                Text(String(localized: "In \(last.id) years, in the middle future: \(AXYONMoney.text(last.incomeMid)) a month and \(AXYONMoney.text(last.valueMid)) of patrimony. Today: \(AXYONMoney.text(todayIncome)) a month, \(AXYONMoney.text(todayValue))."))
+                Text(String(localized: "In year \(last.id), in the middle future: \(AXYONMoney.text(last.incomeMid)) a month and \(AXYONMoney.text(last.valueMid)) of patrimony. Today: \(AXYONMoney.text(todayIncome)) a month, \(AXYONMoney.text(todayValue))."))
                     .font(.callout)
                     .foregroundStyle(.white)
                     .fixedSize(horizontal: false, vertical: true)
             }
             if let wanted = WalletNumber.parse(goal), wanted > 0 {
                 Text(goalYear.map { String(localized: "The income reaches \(AXYONMoney.text(wanted)) a month in year \($0), in the middle future.") }
-                     ?? String(localized: "The income does not reach \(AXYONMoney.text(wanted)) a month within \(years) years, in the middle future."))
+                     ?? String(localized: "The income does not reach \(AXYONMoney.text(wanted)) a month by year \(years), in the middle future."))
                     .font(.callout.weight(.semibold))
                     .foregroundStyle(goalYear == nil ? InvestPalette.mixed : InvestPalette.favor)
                     .fixedSize(horizontal: false, vertical: true)

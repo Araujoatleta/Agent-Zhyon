@@ -520,7 +520,7 @@ struct AXYONRoomView: View {
                 .font(.headline)
                 .monospacedDigit()
                 .foregroundStyle(.white)
-            Text(String(localized: "\(room.walls) walls, \(room.doors) doors, \(room.windows) windows"))
+            Text(String(localized: "Walls \(room.walls) · doors \(room.doors) · windows \(room.windows)"))
                 .font(.footnote)
                 .foregroundStyle(AXYONPalette.dim)
             if !found.isEmpty {
@@ -569,7 +569,7 @@ struct AXYONRoomsView: View {
                                 .coucouGlass(.regular, in: Circle())
                             VStack(alignment: .leading, spacing: 3) {
                                 Text(room.name).font(.headline).foregroundStyle(.white)
-                                Text(String(localized: "\(Int(room.area.rounded())) m² · \(room.markers.count) devices"))
+                                Text(String(localized: "\(Int(room.area.rounded())) m² · devices: \(room.markers.count)"))
                                     .font(.caption)
                                     .foregroundStyle(AXYONPalette.dim)
                             }

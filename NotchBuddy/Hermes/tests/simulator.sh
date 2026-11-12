@@ -297,6 +297,15 @@ for screen in wallet wallet-end wallet-trades wallet-income wallet-income-end wa
     'wallet~copper' 'wallet~ocean' 'invest~copper' 'invest~ocean'; do
     quick_shot "$screen"
 done
+# The market's radar reads two years of every fund's reports and the day's quotes the first time it opens: minutes,
+# not seconds. Then the portfolio's futures, and the core with each of its powers (Swift/AXYONNucleus.swift).
+if open_app invest-radar; then
+    sleep 150
+    xcrun simctl io "$DEVICE" screenshot "$SHOTS/invest-radar.png" >/dev/null 2>&1 || true
+fi
+for screen in wallet-futures core core-end core-memory core-ears core-eyes core-rooms core-brain core-base; do
+    quick_shot "$screen"
+done
 shot() {  # tab
     open_app "$1" || return 0
     for i in $(seq 1 45); do
