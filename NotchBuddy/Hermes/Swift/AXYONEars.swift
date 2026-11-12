@@ -621,11 +621,16 @@ struct EarsWave: View {
                 let bars = 41
                 let width = area.width / CGFloat(bars)
                 for bar in 0..<bars {
-                    let phase = Double(bar) * 0.42
-                    let swing = 0.5 + 0.5 * sin(time * 3.1 + phase) * cos(time * 1.7 + phase * 0.6)
-                    let centre = 1 - abs(Double(bar) - Double(bars - 1) / 2) / (Double(bars) / 2)
-                    let height = max(4, area.height * CGFloat((0.15 + 0.85 * swing) * (0.35 + 0.65 * centre) * (active ? loud + 0.25 : 0.3)))
-                    let rect = CGRect(x: CGFloat(bar) * width + width * 0.22, y: (area.height - height) / 2, width: width * 0.56, height: height)
+                    let phase: Double = Double(bar) * 0.42
+                    let wave: Double = sin(time * 3.1 + phase) * cos(time * 1.7 + phase * 0.6)
+                    let swing: Double = 0.5 + 0.5 * wave
+                    let offCentre: Double = abs(Double(bar) - Double(bars - 1) / 2)
+                    let centre: Double = 1 - offCentre / (Double(bars) / 2)
+                    let gain: Double = active ? loud + 0.25 : 0.3
+                    let shape: Double = (0.15 + 0.85 * swing) * (0.35 + 0.65 * centre)
+                    let height: CGFloat = max(4, area.height * CGFloat(shape * gain))
+                    let left: CGFloat = CGFloat(bar) * width + width * 0.22
+                    let rect = CGRect(x: left, y: (area.height - height) / 2, width: width * 0.56, height: height)
                     canvas.fill(Path(roundedRect: rect, cornerRadius: width * 0.28),
                                 with: .color(accent.opacity(0.35 + 0.65 * centre)))
                 }
