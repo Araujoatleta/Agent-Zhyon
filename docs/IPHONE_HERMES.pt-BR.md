@@ -301,6 +301,49 @@ Com o AXYON aberto, as rotinas de horário rodam na hora; fechado, o iOS o acord
 exato com o app fechado, use a automação do app Atalhos. Abrir links e Atalhos só funciona com o iPhone
 desbloqueado.
 
+## O Núcleo: o que roda no chip do próprio iPhone
+
+O **chip** no canto superior esquerdo do chat abre o Núcleo: o trabalho pesado que o iPhone faz sozinho, sem mandar
+nada para um servidor calcular. Precisa do AXYON aberto (o iOS suspende um app que sai da tela).
+
+- **Olhos**: a câmera passando pelos modelos de visão da Apple no aparelho, umas três vezes por segundo: o texto à
+  frente lido enquanto você se move, QR codes e códigos de barras, rostos, animais e o que é a cena. O que ele acha
+  vira um toque: a linha digitável de um boleto ou um código Pix copiado, a pasta de um ticker aberta, um link, um
+  vencimento virando lembrete. Uma pergunta sobre o que está na frente (*“o que é isto?”*, *“tem algo errado
+  aqui?”*) manda aquele único quadro, com o texto lido, para o AXYON Core.
+- **Ouvidos**: grave uma teleconferência de resultados, uma aula ou uma reunião, ou traga um arquivo de áudio ou
+  vídeo. O reconhecimento de fala da Apple no aparelho transforma em texto com os tempos, em pedaços cortados nos
+  silêncios, então horas passam; o áudio é apagado assim que vira texto. A transcrição vai para a memória, para o
+  chat ou para o cérebro local resumir, e para o estagiário como documento do ativo de que trata (o tribunal se
+  reúne sobre ela). O ditado no aparelho daquele idioma precisa estar instalado (Ajustes do iPhone → Geral →
+  Teclado → Ditado).
+- **Memória**: tudo que o estagiário leu, cada veredito, decisão e tese, as transcrições e as suas notas, cortados
+  em trechos e indexados no iPhone, buscados **pelo sentido** (o modelo de frases da Apple para português) e pelas
+  palavras juntos. *“o que os relatórios disseram sobre vacância?”* acha o trecho, o documento e a página. O AXYON
+  Core também busca nela (`memory_search`) e guarda notas (`memory_note`).
+- **Cérebro local**: um modelo de linguagem que pensa no iPhone sem internet. Baixe um uma vez (um arquivo GGUF do
+  Hugging Face, de um link que você vê: Qwen 2.5 1.5B, cerca de 1,1 GB, ou Llama 3.2 3B, cerca de 2 GB, para os 6 GB
+  de um 14 Pro Max; Gemma 3 4B para 8 GB; Qwen 2.5 7B para 12 GB; ou qualquer link GGUF seu) e o llama.cpp o roda no
+  processador gráfico. Num iPhone com Apple Intelligence (15 Pro em diante, iOS 26), o modelo da própria Apple já
+  está lá, sem baixar nada. As respostas se baseiam nos trechos da memória, e ele resume uma transcrição de horas
+  em partes. Não é o AXYON Core: um modelo desse tamanho é mais fraco, não usa ferramentas e pode errar com
+  confiança.
+- **Radar do mercado**: todos os fundos imobiliários negociados na B3, não só os seus: dois anos de informes mensais
+  da CVM cruzados com as cotações da B3, cada fundo com uma nota (desconto 25 %, renda frente ao mercado 25 %,
+  estabilidade do valor patrimonial 20 %, cotistas 10 %, liquidez 10 %, regularidade 10 %) e alertas (*armadilha de
+  rendimento?*, *desconto muito fundo*, *cotistas saindo*). Um ranking para começar um estudo, nunca uma
+  recomendação. Também em `wealth_wallet` com `do=radar`.
+- **Futuros**: até 100.000 futuros da sua carteira, mês a mês, em todos os núcleos do chip: o seu aporte mensal e
+  cada provento reinvestidos, em dinheiro de hoje. A faixa de um futuro ruim a um bom, o ano em que a renda chega à
+  sua meta, e três choques (preços caem 30 %, dividendos caem 20 %, seu maior pagador para). Não é previsão: as
+  premissas estão escritas na tela. Também em `wealth_wallet` com `do=simulate`.
+- **Casa em 3D**: num iPhone com LiDAR, ande ao longo das paredes de um cômodo: o RoomPlan mede o cômodo, as portas,
+  as janelas e os móveis, e o AXYON guarda o cômodo para girar e dar zoom. Ponha seus aparelhos onde eles ficam e
+  toque neles no cômodo para ligar ou desligar.
+- **Modo base**: no carregador com o AXYON aberto, a tela fica ligada (um relógio escuro que se move) e o AXYON vira
+  o computador da casa: rotinas de horário no minuto certo, o estagiário lendo, a memória indexando e o mercado
+  varrido uma vez por dia.
+
 ## As telas
 
 - **Carteira** (a primeira, onde o app abre): o consolidador: patrimônio, resultado, os ativos por classe, os
@@ -308,7 +351,8 @@ desbloqueado.
 - **Investimentos**: o anel da carteira e dos proventos, o comitê, o estagiário, as teses, a semana e o aprender; em
   **Histórico**, o total, o dia, cada posição com o seu preço teto e os ativos que você acompanha.
 - **Chat**: a conversa com o Hermes, com cada passo que ele dá (lendo a carteira, agendando, pesquisando…), parar,
-  ditado e leitura em voz alta.
+  ditado e leitura em voz alta; o **chip** no alto abre o **Núcleo** (olhos, ouvidos, memória, cérebro local, radar,
+  futuros, casa em 3D e o modo base).
 - **Casa**: os aparelhos que o iPhone controla sozinho e, com um computador pareado, a casa dele.
 - **Ajustes**: o cérebro, as permissões, os alertas dos superpoderes, os agentes do computador, o computador
   (opcional) e o resto dos ajustes do app.

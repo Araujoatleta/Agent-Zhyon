@@ -271,6 +271,45 @@ At the top of the **Home** tab: a routine has a name, what starts it and steps d
 With AXYON open, time routines run on time; closed, iOS wakes it a few times a day: for the exact minute, use the
 Shortcuts automation. Opening links and Shortcuts needs the iPhone unlocked.
 
+## The Core: what runs on the iPhone's own chip
+
+The **chip** at the top left of the chat opens the Core: the heavy work the iPhone does by itself, with nothing sent
+to a server to be computed. It needs AXYON open (iOS suspends an app that leaves the screen).
+
+- **Eyes**: the camera through Apple's on-device vision models, about three times a second: the text in view read as
+  you move, QR and bar codes, faces, animals and what the scene is. What it finds becomes a tap: a boleto's line or a
+  Pix code copied, a ticker's folder opened, a link, a due date made a reminder. A question about what is in view
+  (*"what is this?"*, *"is anything wrong here?"*) sends that one frame, with the text read, to AXYON Core.
+- **Ears**: record a results call, a class or a meeting, or bring an audio or video file. Apple's on-device speech
+  recognition turns it into text with its times, in pieces cut at the silences, so hours go through; the audio is
+  deleted once it is text. The transcript goes into the memory, to the chat or to the local brain for a summary, and
+  to the intern as a document of the asset it is about (the court meets on it). The language's on-device dictation
+  has to be installed (iPhone Settings → General → Keyboard → Dictation).
+- **Memory**: everything the intern read, every verdict, decision and thesis, the transcripts and your notes, cut in
+  passages and indexed on the iPhone, searched **by meaning** (Apple's sentence embedding for Portuguese) and by
+  words together. *"what did the reports say about vacancy?"* finds the passage, its document and its page. AXYON
+  Core searches it too (`memory_search`) and keeps notes in it (`memory_note`).
+- **Local brain**: a language model that thinks on the iPhone with the network off. Download one once (a GGUF file
+  from Hugging Face, from a link you see: Qwen 2.5 1.5B, about 1.1 GB, or Llama 3.2 3B, about 2 GB, for the 6 GB of a
+  14 Pro Max; Gemma 3 4B for 8 GB; Qwen 2.5 7B for 12 GB; or any GGUF link of yours) and llama.cpp runs it on the
+  graphics processor. On an iPhone with Apple Intelligence (15 Pro and after, iOS 26), Apple's own model is there with
+  nothing to download. Its answers are grounded on the memory's passages, and it sums up a transcript of hours in
+  parts. It is not AXYON Core: a model this size is weaker, uses no tools and can be wrong with confidence.
+- **Market radar**: every real-estate fund traded on B3, not only yours: two years of the CVM's monthly reports
+  joined to B3's quotes, each fund scored (discount 25 %, income against the market 25 %, stability of the net asset
+  value 20 %, holders 10 %, liquidity 10 %, regularity 10 %) and flagged (*yield trap?*, *very deep discount*,
+  *holders leaving*). A ranking to start a study from, never a recommendation. Also `wealth_wallet` with `do=radar`.
+- **Futures**: up to 100,000 futures of your portfolio, month by month, on every core of the chip: your monthly
+  contribution and every provento bought back in, in today's money. The band from a bad future to a good one, the
+  year the income reaches your goal, and three shocks (prices fall 30 %, dividends cut 20 %, your biggest payer
+  stops). Not a forecast: its assumptions are written on the screen. Also `wealth_wallet` with `do=simulate`.
+- **Home in 3D**: on an iPhone with LiDAR, walk along a room's walls: RoomPlan measures it, its doors, windows and
+  furniture, and AXYON keeps the room to turn and zoom. Put your devices where they are and tap them in the room to
+  turn them on or off.
+- **Base mode**: on the charger with AXYON open, the screen stays on (a dim clock that drifts) and AXYON is the
+  home's computer: time routines run to the minute, the intern reads, the memory indexes and the market is swept
+  once a day.
+
 ## With a computer (optional)
 
 **Settings → Computer (optional) → Windows or Linux computer** pairs as before. Once paired, the computer's portfolio
