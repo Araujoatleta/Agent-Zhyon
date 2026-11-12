@@ -7,6 +7,7 @@ import UIKit
 // brain (AXYONLocalBrain.swift). And the base mode: on the charger, AXYON stays awake and is the home's computer.
 
 /// What this iPhone is, read from the system.
+@MainActor
 enum AXYONDevice {
     /// "iPhone15,3".
     static var identifier: String {
