@@ -187,6 +187,10 @@ struct HermesDevice: Equatable, Sendable, Identifiable {
 
     /// A Home Assistant entity (its actions go through the user's Home Assistant).
     var fromAssistant: Bool { id.hasPrefix("ha:") }
+    /// A light, room or scene of a Philips Hue bridge (its actions go through the bridge).
+    var fromHue: Bool { id.hasPrefix("hue:") && id.contains("/") }
+    /// Kept by AXYON itself (removable), not one of a hub's own.
+    var standalone: Bool { !fromAssistant && !fromHue }
     func can(_ action: String) -> Bool { can.contains(action) }
 }
 
@@ -214,8 +218,9 @@ struct HermesHouse: Equatable, Sendable {
         }
     }
 
-    /// The TVs and boxes the iPhone reaches itself, then the Home Assistant entities.
-    var own: [HermesDevice] { devices.filter { !$0.fromAssistant } }
+    /// The TVs and boxes the iPhone reaches itself, then the Hue bridges' lights, then the Home Assistant entities.
+    var own: [HermesDevice] { devices.filter(\.standalone) }
+    var hue: [HermesDevice] { devices.filter(\.fromHue) }
     var assistant: [HermesDevice] { devices.filter(\.fromAssistant) }
 }
 

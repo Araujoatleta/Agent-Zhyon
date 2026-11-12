@@ -25,6 +25,9 @@ targets:
       # The permission prompts below in the user's language (pt-BR, es, fr).
       - path: Hermes/InfoPlist.xcstrings
         buildPhase: resources
+      # What Siri hears for AXYON's routines and questions in the user's language (Hermes/Swift/AXYONIntents.swift).
+      - path: Hermes/AppShortcuts.xcstrings
+        buildPhase: resources
     info:
       # Its own Info.plist, out of git: the committed InfoPhone.plist stays the App Store build's.
       path: Hermes/build/InfoPhone.plist
@@ -37,27 +40,39 @@ targets:
         NSRemindersFullAccessUsageDescription: "AXYON adds, lists and completes the reminders you ask it to."
         NSContactsUsageDescription: "AXYON finds a person's phone or e-mail when you ask it to call or write to them; you send."
         NSLocationWhenInUseUsageDescription: "AXYON uses where you are when you ask it about places, the weather or the way."
+        # A routine that runs on arriving at or leaving a place (Hermes/Swift/AXYONRoutines.swift, AXYONPlaces).
+        NSLocationAlwaysAndWhenInUseUsageDescription: "AXYON runs your routines when you arrive at or leave a place you chose, even closed. It keeps no record of where you go."
         NSAppleMusicUsageDescription: "AXYON plays, pauses and skips music when you ask it to."
         # project.yml's, said of AXYON: its home and computer, dictation, Face ID, the pairing code.
         NSLocalNetworkUsageDescription: "AXYON reaches the TVs, boxes and Home Assistant on your Wi-Fi, and your computer when you pair one."
-        NSMicrophoneUsageDescription: "AXYON uses the microphone when you dictate a message to it."
-        NSSpeechRecognitionUsageDescription: "AXYON turns your voice into the text of a message."
+        NSMicrophoneUsageDescription: "AXYON uses the microphone when you dictate a message to it, and when you record something for it to transcribe."
+        NSSpeechRecognitionUsageDescription: "AXYON turns your voice into the text of a message, and recordings into transcripts, on the iPhone itself."
         NSFaceIDUsageDescription: "AXYON asks for Face ID before something that needs your yes, like turning on a plug or allowing an agent's request."
-        NSCameraUsageDescription: "AXYON uses the camera to take the photos you send it in the chat, and to scan the pairing code of AXYON on your computer."
+        NSCameraUsageDescription: "AXYON uses the camera to take the photos you send it in the chat, to read what is in front of it with its eyes, to scan a room in 3D, and to scan the pairing code of AXYON on your computer."
         # The superpowers' alerts with AXYON closed (Hermes/Swift/AXYONAlerts.swift), once the user turns them on;
         # added to project.yml's background modes.
         BGTaskSchedulerPermittedIdentifiers:
           - fr.louisraille.Coucou.powers-watch
         UIBackgroundModes:
           - fetch
+          # A recording for the ears goes on with the screen locked (Hermes/Swift/AXYONEars.swift).
+          - audio
     settings:
       base:
         INFOPLIST_FILE: Hermes/build/InfoPhone.plist
         SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) HERMES"
         SWIFT_OBJC_BRIDGING_HEADER: Hermes/bridge/AXYONPython.h
         HEADER_SEARCH_PATHS: "$(inherited) \"$(PROJECT_DIR)/Hermes/build/support/Python.xcframework/ios-arm64/Python.framework/Headers\""
+        # The local brain's engine (Hermes/Swift/AXYONLocalBrain.swift): llama.cpp's framework, in the iPhone's build
+        # only (Hermes/build-ios.sh). The Simulator's has none: `canImport(llama)` is false there, and the screens
+        # say so.
+        AXYON_LLAMA: ""
+        "AXYON_LLAMA[sdk=iphoneos*]": "\"$(PROJECT_DIR)/Hermes/build/llama/llama.xcframework/ios-arm64\""
+        AXYON_LLAMA_LINK: ""
+        "AXYON_LLAMA_LINK[sdk=iphoneos*]": "-framework llama"
+        FRAMEWORK_SEARCH_PATHS: "$(inherited) $(AXYON_LLAMA)"
         # AXYON's superpowers (Hermes/bridge/AXYONPowers.h): the computer's engine, built by Hermes/build-ios.sh.
-        OTHER_LDFLAGS: "$(inherited) \"$(PROJECT_DIR)/Hermes/build/powers/libcoucou_powers_ffi.a\""
+        OTHER_LDFLAGS: "$(inherited) \"$(PROJECT_DIR)/Hermes/build/powers/libcoucou_powers_ffi.a\" $(AXYON_LLAMA_LINK)"
         # The script below writes into the app's bundle, which the user script sandbox would refuse.
         ENABLE_USER_SCRIPT_SANDBOXING: NO
     postBuildScripts:
@@ -68,3 +83,12 @@ targets:
           set -e
           source "$PROJECT_DIR/Hermes/utils.sh"
           install_python Hermes/build/support/Python.xcframework app app_packages
+          # The local brain's engine beside them, in the iPhone's build.
+          LLAMA="$PROJECT_DIR/Hermes/build/llama/llama.xcframework/ios-arm64/llama.framework"
+          if [ "$PLATFORM_NAME" = iphoneos ] && [ -d "$LLAMA" ]; then
+              mkdir -p "$CODESIGNING_FOLDER_PATH/Frameworks"
+              rsync -a --delete "$LLAMA" "$CODESIGNING_FOLDER_PATH/Frameworks/"
+              if [ -n "${EXPANDED_CODE_SIGN_IDENTITY:-}" ] && [ "${CODE_SIGNING_ALLOWED:-YES}" != "NO" ]; then
+                  /usr/bin/codesign --force --sign "$EXPANDED_CODE_SIGN_IDENTITY" ${OTHER_CODE_SIGN_FLAGS:-} --timestamp=none "$CODESIGNING_FOLDER_PATH/Frameworks/llama.framework"
+              fi
+          fi

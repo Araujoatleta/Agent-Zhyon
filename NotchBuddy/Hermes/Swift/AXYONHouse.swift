@@ -49,7 +49,7 @@ struct AXYONHouseView: View {
                         Image(systemName: "plus")
                     }
                     .accessibilityLabel("Add a device")
-                    .disabled(engine.state != .ready)
+                    .disabled(!engine.hostUp)
                 }
             }
         }
@@ -74,13 +74,20 @@ struct AXYONHouseView: View {
                         .padding(14)
                         .axyonCard(cornerRadius: 20, tint: AXYONPalette.down)
                 }
+                if engine.hostUp {
+                    AXYONRoutinesSection()
+                }
                 if let house = engine.house {
                     if house.devices.isEmpty {
-                        empty
+                        empty(waiting: nil)
                     }
                     if !house.own.isEmpty {
                         AXYONHeader(title: String(localized: "On this iPhone's Wi-Fi"))
                         tiles(house.own)
+                    }
+                    if !house.hue.isEmpty {
+                        AXYONHeader(title: String(localized: "Philips Hue"))
+                        tiles(house.hue)
                     }
                     if !house.assistant.isEmpty {
                         AXYONHeader(title: String(localized: "Home Assistant"))
@@ -92,16 +99,10 @@ struct AXYONHouseView: View {
                             .foregroundStyle(AXYONPalette.dim)
                             .padding(.horizontal, 6)
                     }
-                } else if engine.state == .ready {
-                    ProgressView()
-                        .frame(maxWidth: .infinity)
-                        .padding(.top, 60)
                 } else {
-                    Label("Hermes is waking up inside the iPhone…", systemImage: "hourglass")
-                        .font(.footnote)
-                        .foregroundStyle(AXYONPalette.dim)
-                        .frame(maxWidth: .infinity)
-                        .padding(.top, 60)
+                    // The home is read once Hermes is up: the card is there already, with what it waits for.
+                    empty(waiting: engine.hostUp ? String(localized: "Looking for your devices…")
+                                                 : String(localized: "Hermes is waking up inside the iPhone…"))
                 }
             }
             .padding(.horizontal, 20)
@@ -131,16 +132,39 @@ struct AXYONHouseView: View {
         defer { busy.remove(device.id) }
         problem = await engine.houseAction(device, action)
         if problem == nil { Haptics.success() } else { Haptics.error() }
-        await engine.refreshHouse(quick: !device.fromAssistant)
+        await engine.refreshHouse(quick: device.standalone)
     }
 
-    private var empty: some View {
-        VStack(spacing: 14) {
-            Image(systemName: "house.and.flag.fill")
-                .font(.system(size: 44, weight: .light))
-                .foregroundStyle(.white)
+    /// No device yet: a lit house in a sphere of the accent's light, what AXYON reaches, and the way to add one;
+    /// `waiting` while the home is still being read.
+    private func empty(waiting: String?) -> some View {
+        let theme = AXYONTheme.current
+        return VStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(RadialGradient(colors: [theme.accent.opacity(0.45), theme.accent.opacity(0)],
+                                         center: .center, startRadius: 20, endRadius: 70))
+                    .frame(width: 140, height: 140)
+                Circle()
+                    .fill(RadialGradient(colors: [theme.accent, theme.accentDeep, theme.night.last ?? .black],
+                                         center: UnitPoint(x: 0.36, y: 0.3), startRadius: 2, endRadius: 52))
+                    .frame(width: 84, height: 84)
+                    .overlay(Circle().strokeBorder(.white.opacity(0.35), lineWidth: 0.8))
+                    .overlay(alignment: .topLeading) {
+                        Ellipse()
+                            .fill(LinearGradient(colors: [.white.opacity(0.7), .white.opacity(0)], startPoint: .top, endPoint: .bottom))
+                            .frame(width: 34, height: 15)
+                            .offset(x: 16, y: 9)
+                            .blur(radius: 1)
+                    }
+                    .shadow(color: theme.accent.opacity(0.7), radius: 18)
+                Image(systemName: "house.fill")
+                    .font(.system(size: 32, weight: .semibold))
+                    .foregroundStyle(.white)
+            }
+            .frame(height: 120)
             Text("Your home, from the iPhone").font(.title3.weight(.semibold))
-            Text("Add your Samsung TV, your Android TV or box, or your Home Assistant: AXYON reaches them from this iPhone on your Wi-Fi, with no computer. Then ask in the chat: “turn on the living room TV”.")
+            Text("Add your TV (Samsung, Android, Roku), your Philips Hue lights, Shelly or Tasmota plugs, WLED strips, webhooks or your Home Assistant: AXYON reaches them from this iPhone on your Wi-Fi, with no computer. Then ask in the chat: “turn on the living room TV”, or make a routine.")
                 .font(.callout)
                 .foregroundStyle(AXYONPalette.dim)
                 .multilineTextAlignment(.center)
@@ -151,7 +175,14 @@ struct AXYONHouseView: View {
                     .font(.headline)
             }
             .coucouGlassButton(prominent: true)
-            .disabled(engine.state != .ready)
+            .disabled(!engine.hostUp)
+            if let waiting {
+                HStack(spacing: 8) {
+                    ProgressView().controlSize(.small)
+                    Text(waiting).font(.footnote).foregroundStyle(AXYONPalette.dim)
+                }
+                .padding(.top, 2)
+            }
         }
         .padding(28)
         .frame(maxWidth: .infinity)
@@ -175,7 +206,7 @@ struct AXYONDeviceTile: View {
             HStack(alignment: .top) {
                 Image(systemName: AXYONDeviceTile.icon(device.kind))
                     .font(.title2)
-                    .foregroundStyle(lit ? Color.black : AXYONPalette.dim)
+                    .foregroundStyle(lit ? Color.white : AXYONPalette.dim)
                 Spacer()
                 if device.can("turn_on") || device.can("toggle") || device.can("run") {
                     Button(action: power) {
@@ -189,7 +220,7 @@ struct AXYONDeviceTile: View {
                         }
                         .foregroundStyle(.white)
                         .frame(width: 36, height: 36)
-                        .background(lit ? Color.black.opacity(0.82) : Color.white.opacity(0.12), in: Circle())
+                        .background(lit ? Color.white.opacity(0.24) : Color.white.opacity(0.12), in: Circle())
                     }
                     .buttonStyle(PressableButtonStyle())
                     .disabled(busy)
@@ -199,11 +230,11 @@ struct AXYONDeviceTile: View {
             Spacer(minLength: 0)
             Text(device.name)
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(lit ? Color.black : Color.white)
+                .foregroundStyle(Color.white)
                 .lineLimit(2)
             Text(status)
                 .font(.caption)
-                .foregroundStyle(lit ? Color.black.opacity(0.6) : AXYONPalette.dim)
+                .foregroundStyle(lit ? Color.white.opacity(0.8) : AXYONPalette.dim)
                 .lineLimit(1)
         }
         .padding(14)
@@ -214,14 +245,20 @@ struct AXYONDeviceTile: View {
         .animation(.spring(duration: 0.35), value: lit)
     }
 
-    /// Off: dark glass. On: the glass lit almost white, as the Home app's tiles.
+    /// Off: frosted glass. On: lit with the accent's light, glowing, as the designs draw what is on.
     private struct DeviceSurface: ViewModifier {
         let lit: Bool
 
         @ViewBuilder func body(content: Content) -> some View {
+            let shape = RoundedRectangle(cornerRadius: 22, style: .continuous)
             if lit {
-                content.coucouGlass(.prominent, cornerRadius: 22, tint: .white)
-                    .background(Color.white.opacity(0.55), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+                content
+                    .background {
+                        shape.fill(AXYONTheme.current.accentGradient)
+                            .shadow(color: AXYONTheme.current.accent.opacity(0.6), radius: 16)
+                        shape.fill(LinearGradient(colors: [.white.opacity(0.22), .white.opacity(0)], startPoint: .top, endPoint: .center))
+                    }
+                    .overlay(shape.strokeBorder(.white.opacity(0.35), lineWidth: 1))
             } else {
                 content.axyonCard(cornerRadius: 22)
             }
@@ -249,6 +286,8 @@ struct AXYONDeviceTile: View {
         case "scene": "theatermasks.fill"
         case "routine": "list.bullet.rectangle.fill"
         case "climate": "thermometer.medium"
+        case "hub": "wifi.router.fill"
+        case "button": "bolt.horizontal.circle.fill"
         default: "house.fill"
         }
     }
@@ -282,7 +321,7 @@ struct AXYONDeviceView: View {
                     } else {
                         controls(device)
                     }
-                    if !device.fromAssistant {
+                    if device.standalone {
                         Button(role: .destructive) {
                             Task {
                                 await engine.removeDevice(device.id)
@@ -333,6 +372,8 @@ struct AXYONDeviceView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text(device.source == "Android"
                  ? String(localized: "Tap Pair, then on the device accept “Allow USB debugging?” (tick “Always allow”).")
+                 : device.source == "Philips Hue"
+                 ? String(localized: "Press the round button on top of the Hue bridge, then tap Pair within 30 seconds.")
                  : String(localized: "Tap Pair, then accept AXYON on the TV when it asks."))
                 .font(.callout)
                 .foregroundStyle(.white)
@@ -387,6 +428,7 @@ struct AXYONDeviceView: View {
             .padding(16)
             .axyonCard(cornerRadius: 22)
         }
+        if device.can("set_color") { colours(device) }
         if device.can("key") { remote(device) }
         if device.can("open_app"), !device.apps.isEmpty {
             VStack(alignment: .leading, spacing: 10) {
@@ -396,6 +438,36 @@ struct AXYONDeviceView: View {
                 }
             }
         }
+    }
+
+    /// The colours a light takes, as round swatches; the two whites last.
+    private func colours(_ device: HermesDevice) -> some View {
+        let swatches: [(String, Color)] = [("vermelho", .red), ("laranja", .orange), ("amarelo", .yellow), ("verde", .green),
+                                           ("ciano", .cyan), ("azul", .blue), ("roxo", .purple), ("rosa", .pink),
+                                           ("quente", Color(red: 1, green: 0.78, blue: 0.5)),
+                                           ("frio", Color(red: 0.86, green: 0.92, blue: 1))]
+        return VStack(alignment: .leading, spacing: 10) {
+            Label("Colour", systemImage: "paintpalette.fill")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(AXYONPalette.dim)
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 5), spacing: 10) {
+                ForEach(swatches, id: \.0) { name, colour in
+                    Button {
+                        Task { await act(device, "set_color", value: name) }
+                    } label: {
+                        Circle()
+                            .fill(colour.gradient)
+                            .frame(width: 40, height: 40)
+                            .overlay(Circle().strokeBorder(.white.opacity(0.45), lineWidth: 1))
+                            .shadow(color: colour.opacity(0.6), radius: 6)
+                    }
+                    .buttonStyle(PressableButtonStyle())
+                    .accessibilityLabel(Text(verbatim: name))
+                }
+            }
+        }
+        .padding(16)
+        .axyonCard(cornerRadius: 22)
     }
 
     private func remote(_ device: HermesDevice) -> some View {
@@ -461,7 +533,7 @@ struct AXYONDeviceView: View {
         said = problem ?? String(localized: "Done.")
         if problem == nil { Haptics.success() } else { Haptics.error() }
         if action == "turn_on" || action == "turn_off" || action == "toggle" {
-            await engine.refreshHouse(quick: !device.fromAssistant)
+            await engine.refreshHouse(quick: device.standalone)
         }
     }
 
@@ -548,6 +620,10 @@ struct AXYONAddDeviceView: View {
     @State private var room = ""
     @State private var assistantURL = ""
     @State private var assistantToken = ""
+    @State private var hookName = ""
+    @State private var hookURL = ""
+    @State private var hookPost = false
+    @State private var hookBody = ""
     @State private var working = false
     @State private var said: String?
     @State private var failed = false
@@ -568,7 +644,7 @@ struct AXYONAddDeviceView: View {
                 .disabled(scanning || working)
                 ForEach(found) { item in
                     HStack(spacing: 12) {
-                        Image(systemName: item.driver == "homeassistant" ? "house.lodge.fill" : "tv.fill")
+                        Image(systemName: Self.icon(item.driver))
                             .foregroundStyle(.white)
                             .frame(width: 26)
                         VStack(alignment: .leading, spacing: 2) {
@@ -596,7 +672,7 @@ struct AXYONAddDeviceView: View {
             } header: {
                 Text("On this iPhone's Wi-Fi")
             } footer: {
-                Text("AXYON looks for Samsung TVs, Android devices with network debugging on, and Home Assistant. iOS asks once to let it use the local network.")
+                Text("AXYON looks for Samsung and Roku TVs, Android devices with network debugging on, Philips Hue bridges, Shelly, Tasmota and WLED, and Home Assistant. iOS asks once to let it use the local network.")
             }
             .listRowBackground(GlassRowBackground())
 
@@ -604,6 +680,11 @@ struct AXYONAddDeviceView: View {
                 Picker("Kind", selection: $driver) {
                     Text("Samsung TV").tag("samsung")
                     Text("Android TV or box").tag("android")
+                    Text("Roku TV (TCL, AOC, Philco…)").tag("roku")
+                    Text("Philips Hue bridge").tag("hue")
+                    Text("Shelly").tag("shelly")
+                    Text("Tasmota / Sonoff").tag("tasmota")
+                    Text("WLED").tag("wled")
                 }
                 TextField("Address (192.168.0.20)", text: $host)
                     .keyboardType(.numbersAndPunctuation)
@@ -624,9 +705,33 @@ struct AXYONAddDeviceView: View {
             } header: {
                 Text("By its address")
             } footer: {
-                Text(driver == "android"
-                     ? String(localized: "On the device: Settings → About → tap Build 7 times, then Developer options → turn on USB debugging and network debugging (ADB over the network, port 5555). It asks once to allow this iPhone.")
-                     : String(localized: "The TV on and on the same Wi-Fi. It asks once, on its screen, to allow AXYON."))
+                Text(Self.help(driver))
+            }
+            .listRowBackground(GlassRowBackground())
+
+            Section {
+                TextField("Name (Garage gate, Alexa: good night…)", text: $hookName)
+                TextField("https://…", text: $hookURL)
+                    .keyboardType(.URL)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                Toggle("Send with POST", isOn: $hookPost)
+                if hookPost {
+                    TextField("Body (optional: text or JSON)", text: $hookBody, axis: .vertical)
+                        .lineLimit(1...4)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                }
+                Button {
+                    Task { await addHook() }
+                } label: {
+                    Label("Add the webhook", systemImage: "bolt.horizontal.circle.fill")
+                }
+                .disabled(working || hookName.trimmingCharacters(in: .whitespaces).isEmpty || hookURL.isEmpty)
+            } header: {
+                Text("Webhook")
+            } footer: {
+                Text("Anything with an address that runs it: an Alexa routine (through Voice Monkey), IFTTT, SmartThings, a Home Assistant webhook. The address stays in this iPhone's Keychain; AXYON asks your Face ID before calling it by itself, and your routines call it as one of their steps.")
             }
             .listRowBackground(GlassRowBackground())
 
@@ -701,11 +806,66 @@ struct AXYONAddDeviceView: View {
         }
     }
 
+    static func icon(_ driver: String) -> String {
+        switch driver {
+        case "homeassistant": "house.lodge.fill"
+        case "hue": "wifi.router.fill"
+        case "shelly", "tasmota": "poweroutlet.type.b.fill"
+        case "wled": "light.strip.leftthird.fill"
+        default: "tv.fill"
+        }
+    }
+
+    static func help(_ driver: String) -> String {
+        switch driver {
+        case "android":
+            String(localized: "On the device: Settings → About → tap Build 7 times, then Developer options → turn on USB debugging and network debugging (ADB over the network, port 5555). It asks once to allow this iPhone.")
+        case "roku":
+            String(localized: "The TV on the same Wi-Fi. If it refuses: on the TV, Settings → System → Advanced system settings → Control by mobile apps → Network access: Default.")
+        case "hue":
+            String(localized: "The bridge's address is in the Hue app (Settings → My Hue system → the bridge). When AXYON asks, press the round button on top of the bridge.")
+        case "shelly":
+            String(localized: "Each relay of the Shelly becomes a plug in AXYON. Its login (if any) must be off; Gen1 and Gen2+ devices.")
+        case "tasmota":
+            String(localized: "Plugs, switches and bulbs flashed with Tasmota, with their web login off.")
+        case "wled":
+            String(localized: "The LED strip's controller with WLED: on, off, brightness, colours and presets.")
+        default:
+            String(localized: "The TV on and on the same Wi-Fi. It asks once, on its screen, to allow AXYON.")
+        }
+    }
+
+    private func addHook() async {
+        working = true
+        failed = false
+        said = nil
+        defer { working = false }
+        do {
+            _ = try await engine.addDevice(["driver": "webhook", "name": hookName.trimmingCharacters(in: .whitespaces),
+                                            "url": hookURL.trimmingCharacters(in: .whitespaces),
+                                            "method": hookPost ? "POST" : "GET", "body": hookPost ? hookBody : "",
+                                            "room": room])
+            said = String(localized: "Webhook added: \(hookName).")
+            hookName = ""
+            hookURL = ""
+            hookBody = ""
+            Haptics.success()
+        } catch {
+            said = HermesEngine.describe(error)
+            failed = true
+            Haptics.error()
+        }
+    }
+
     private func add(driver: String, host: String, name: String) async {
         working = true
-        said = driver == "android"
-            ? String(localized: "On the device, accept “Allow USB debugging?”…")
-            : String(localized: "On the TV, allow AXYON…")
+        let waiting: String = switch driver {
+        case "android": String(localized: "On the device, accept “Allow USB debugging?”…")
+        case "hue": String(localized: "Press the round button on top of the Hue bridge now…")
+        case "samsung": String(localized: "On the TV, allow AXYON…")
+        default: String(localized: "Adding…")
+        }
+        said = waiting
         failed = false
         defer { working = false }
         do {

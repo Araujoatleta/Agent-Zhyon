@@ -21,7 +21,7 @@ enum AXYONAlerts {
     /// The next look while the alerts are on or Hermes has scheduled tasks (HermesCron): iOS decides when, not before
     /// half an hour from now, or a quarter of an hour when a task comes due sooner.
     static func schedule() {
-        let next = HermesCron.nextTimes().min()
+        let next = (HermesCron.nextTimes() + AXYONRoutineStore.nextTimes()).min()
         guard enabled || next != nil else {
             BGTaskScheduler.shared.cancel(taskRequestWithIdentifier: task)
             return
@@ -40,12 +40,44 @@ enum AXYONAlerts {
     /// (iOS gives about half a minute in all), then the alerts with the time left.
     static func backgroundLook() async {
         schedule()
+        // A time routine that came due while AXYON slept, first: it is what the user waits for.
+        if AXYONRoutineStore.due() {
+            await AXYONRoutineStore.backgroundTick(budget: 12)
+        }
         let started = Date.now
         if HermesCron.due() {
             await HermesCron.run(budget: enabled ? 18 : 26)
         }
-        let left = (enabled && HermesCron.hasTasks ? 26 : backgroundBudget) - Date.now.timeIntervalSince(started)
+        var left = (enabled && HermesCron.hasTasks ? 26 : backgroundBudget) - Date.now.timeIntervalSince(started)
+        // A new document of an asset followed, read now (the first one, its text only: the brain reads it once AXYON
+        // opens), so a thesis it breaks is told below.
+        if enabled, left > 16 {
+            await AXYONInvest.shared.read(most: 1, ocr: false, force: true, seconds: 8, background: true)
+            left = (enabled && HermesCron.hasTasks ? 26 : backgroundBudget) - Date.now.timeIntervalSince(started)
+        }
         if enabled, left > 4 { await look(budget: min(left, backgroundBudget)) }
+    }
+
+    /// The committee met by itself (a new document, a thesis that broke): its score and its question.
+    static func tell(verdict v: InvestVerdict) async {
+        guard enabled, !v.ticker.isEmpty else { return }
+        let content = UNMutableNotificationContent()
+        content.title = String(localized: "The committee met on \(v.ticker): \(v.score)")
+        let vetoes = v.vetoedBy.map { InvestMind.name($0) }.joined(separator: ", ")
+        var lines: [String] = []
+        // The two opinions first: a vote against buying more is not a call to sell.
+        if !v.asset.isEmpty || !v.portfolio.isEmpty {
+            lines.append(String(localized: "Asset: \(v.asset.viewName) · In your portfolio: \(v.portfolio.viewName)"))
+        }
+        if !v.critical.isEmpty {
+            lines.append(String(localized: "Critical alerts: \(v.critical.count)"))
+        }
+        lines.append(vetoes.isEmpty ? v.question : String(localized: "Vetoed by \(vetoes) · \(v.question)"))
+        content.body = lines.filter { !$0.isEmpty }.joined(separator: "\n")
+        content.sound = .default
+        content.threadIdentifier = "axyon-committee"
+        let request = UNNotificationRequest(identifier: "axyon-committee-\(v.ticker)", content: content, trigger: nil)
+        try? await UNUserNotificationCenter.current().add(request)
     }
 
     /// One look: what is worth telling, as notifications, and the day's briefing between 7 and 11. How many
@@ -165,6 +197,13 @@ enum AXYONAlerts {
             let below = percent(a["below"] as? Double ?? 0)
             title = String(localized: "\(ticker) is \(below) below its ceiling")
             body = String(localized: "\(now) now · \(method(a["method"] as? String ?? "")): \(ceiling)")
+        case "document":
+            // The reader read something that matters: a material fact, an assembly, an offering, a risk to a thesis.
+            title = "\(ticker) · \(AXYONInvest.kindName(a["what"] as? String ?? ""))"
+            body = a["text"] as? String ?? ""
+        case "thesis":
+            title = String(localized: "Your thesis on \(ticker) broke")
+            body = a["text"] as? String ?? ""
         default:
             return
         }
@@ -173,8 +212,9 @@ enum AXYONAlerts {
         content.body = body
         content.sound = .default
         content.threadIdentifier = "axyon-alerts"
-        // One per asset and kind: a newer one takes its place.
-        let request = UNNotificationRequest(identifier: "axyon-alert-\(kind)-\(ticker)", content: content, trigger: nil)
+        // One per asset and kind: a newer one takes its place (a document's has its own).
+        let key = kind == "document" ? (a["key"] as? String ?? ticker) : ticker
+        let request = UNNotificationRequest(identifier: "axyon-alert-\(kind)-\(key)", content: content, trigger: nil)
         try? await UNUserNotificationCenter.current().add(request)
     }
 

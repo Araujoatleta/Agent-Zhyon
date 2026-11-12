@@ -24,11 +24,13 @@ enum HermesArms {
         case "home": return data(home())
         case "homeAction": return data(await homeAction(r))
         case "secret": return data(secret(r))
+        // AXYON's memory on this iPhone, searched by meaning (AXYONMemory.swift).
+        case "memory": return data(await AXYONMemory.shared.answer(r))
         case "powers":
             let tool = r["tool"] as? String ?? ""
             let answer = await HermesPowers.call(tool, input: data(r["input"] as? [String: Any] ?? [:]))
             // The wallet shows the record these change.
-            if ["wealth_update", "wealth_trade", "wealth_ceiling"].contains(tool) { HermesEngine.shared.portfolioChanged() }
+            if ["wealth_update", "wealth_trade", "wealth_wallet", "wealth_ceiling"].contains(tool) { HermesEngine.shared.portfolioChanged() }
             return answer
         default: return data(["error": "The app does not know \(kind)."])
         }
@@ -83,7 +85,7 @@ enum HermesArms {
         let refresh = UIApplication.shared.backgroundRefreshStatus == .available
         switch what {
         case "on":
-            let granted = (try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])) ?? false
+            let granted = await axyonAskNotifications()
             UserDefaults.standard.set(true, forKey: AXYONAlerts.enabledKey)
             AXYONAlerts.schedule()
             return ["on": true, "notifications": granted, "backgroundRefresh": refresh,
@@ -115,7 +117,7 @@ enum HermesArms {
     nonisolated private static func notify(_ request: Data) async -> Data {
         let r = object(request)
         let center = UNUserNotificationCenter.current()
-        let granted = (try? await center.requestAuthorization(options: [.alert, .sound, .badge])) ?? false
+        let granted = await axyonAskNotifications()
         guard granted else { return data(["error": "Notifications are off for AXYON in the iPhone's Settings."]) }
         let content = UNMutableNotificationContent()
         content.title = String((r["title"] as? String ?? "AXYON").prefix(120))

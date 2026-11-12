@@ -15,14 +15,14 @@ alone: none of this is compiled or copied into them.
 
 | Path | What |
 |---|---|
-| `build-ios.sh` | Downloads and builds what the app carries, into `build/` (git-ignored). macOS, Xcode, Rust, Python 3.14. |
+| `build-ios.sh` | Downloads and builds what the app carries, into `build/` (git-ignored): CPython, Hermes, its packages, the superpowers and, for the iPhone's build, llama.cpp's XCframework (the local brain's engine). macOS, Xcode, Rust, Python 3.14. |
 | `app/axyon_hermes/` | The host: Hermes behind a small HTTP API on 127.0.0.1, and AXYON's tools for it. |
 | `shims/psutil/` | An iOS stand-in for psutil (no other process can be seen on iOS). |
 | `bridge/` | The C that starts CPython (`axyon_python_run`) and runs a line in it (`axyon_python_exec`), and the superpowers' C interface (`AXYONPowers.h`, from `windows/powers-ffi`). |
-| `Swift/` | `HermesEngine` (starts and talks to the host), `HermesArms` (what Hermes asks of the iPhone, and `HermesPowers`, the superpowers' engine), `HermesWire` (its events and the conversation, tested on Linux), `AXYONStyle`, `AXYONViews` and `AXYONHouse` (the screens), `AXYONAlerts` (the superpowers' alerts and Hermes' scheduled tasks with the app closed), `AXYONInbox` (the files sent, Google's sign-in and the scheduled tasks' screens). |
+| `Swift/` | `HermesEngine` (starts and talks to the host), `HermesArms` (what Hermes asks of the iPhone, and `HermesPowers`, the superpowers' engine), `HermesWire` (its events and the conversation, tested on Linux), `AXYONStyle`, `AXYONViews` and `AXYONHouse` (the screens), `AXYONAlerts` (the superpowers' alerts and Hermes' scheduled tasks with the app closed), `AXYONRoutines` (the routines, their editor and the places iOS watches), `AXYONIntents` (Siri and the Shortcuts app: run a routine, ask AXYON), `AXYONNucleus` (the Core: what runs on the iPhone's own chip, and the base mode on the charger), `AXYONEyes` (the camera through Apple's vision models), `AXYONEars` (hours of audio into text, on the iPhone), `AXYONMemory` (everything read, indexed and searched by meaning), `AXYONLocalBrain` (a language model on the chip: llama.cpp for a downloaded GGUF model, Apple's own where there is one), `AXYONRadar` (the market's radar and the portfolio's futures, computed by the engine), `AXYONRoom3D` (a room scanned with the LiDAR, and its devices), `AXYONInbox` (the files sent, Google's sign-in and the scheduled tasks' screens). |
 | `utils.sh`, `iOS-dylib-Info-template.plist` | CPython's own iOS install steps: every compiled module becomes a framework. |
 | `requirements-*.txt` | Hermes' packages: pure Python, and the three with iOS wheels on PyPI. |
-| `tests/` | `test_units.py` (the tools, no Hermes), `test_home.py` (the home against a simulated Samsung TV, ADB box and Home Assistant), `test_host.py` (the host end to end with Hermes, iOS limits emulated: files sent, Google's status, a scheduled task run and delivered), `test_embedded.py` (the app's C start of Python, on a computer), `simulator.sh` (CI: the app in the iOS Simulator, Hermes started for real, answering with an iPhone tool, a superpower the engine answers inside iOS, a document sent and a scheduled task run at the app's tick). |
+| `tests/` | `test_units.py` (the tools, no Hermes), `test_home.py` (the home against a simulated Samsung TV, ADB box and Home Assistant), `test_automations.py` (Hue, Shelly, Tasmota, WLED, Roku and webhooks simulated, and the routines run end to end), `test_host.py` (the host end to end with Hermes, iOS limits emulated: files sent, Google's status, a scheduled task run and delivered), `test_embedded.py` (the app's C start of Python, on a computer), `models.sh` (CI: every link of the local brain's catalogue answers with a GGUF file), `simulator.sh` (CI: the app in the iOS Simulator, Hermes started for real, answering with an iPhone tool, a superpower the engine answers inside iOS, a document sent and a scheduled task run at the app's tick). |
 
 ## Build
 
@@ -76,6 +76,7 @@ The API (bearer token on every call):
 | `GET /v1/portfolio` | The wallet: the superpowers' own record on the iPhone, or the computer's newer copy, with prices read now. |
 | `GET /v1/bridge`, `POST /v1/bridge/<id>` | What Hermes asks of the iPhone, and the app's answer. |
 | `GET /v1/home`, `POST /v1/home/scan`, `/v1/home/devices`, `/v1/home/devices/<id>/pair`, `…/action`, `…/remove`, `/v1/home/assistant` | The iPhone's own home. |
+| `GET /v1/routines`, `POST /v1/routines`, `/v1/routines/<id>/run`, `…/remove`, `/v1/routines/tick` | The routines (automations.py), up before Hermes itself. |
 
 Keys stay in the iPhone's Keychain (`WhenUnlockedThisDeviceOnly`, not in backups) and reach Hermes in memory at each
 start; nothing writes them to disk. The ChatGPT sign-in is the iPhone's own: refresh tokens are single-use, so the
@@ -133,6 +134,33 @@ iPhone never shares the computer's.
   due). Each result Hermes' scheduler delivers becomes an iPhone notification (`cron.scheduler._deliver_result` is
   the iPhone's); `[SILENT]` stays silent.
 - `iphone_alerts`: the alerts above, turned on or off, or a look now, from the chat.
+- The consolidator (`Swift/AXYONWallet.swift`, `Swift/AXYONWalletViews.swift`): the Wallet tab, the first. The engine
+  (`coucou_powers::wallet`) replays the user's lançamentos (`invest_trade` `add`/`remove`, refused in words when a sale
+  would sell more than was held that day) into each asset's position, average price with the costs, realized and open
+  results, and counts the proventos on the shares held at each data-com: received, provisioned (data-com passed,
+  payment ahead) and announced; the funds' from FundosNet, the companies' from B3's listed-companies service
+  (`sources/b3_dividends.rs`, the share class picked by its ISIN). `invest_wallet` reads what is due and gives the
+  screen; `invest_quotes`, every two minutes while the tab is open, reads Google Finance's delayed quotes during B3's
+  session only. An asset held from the sheet gets an opening lot at the sheet's average price before its first new
+  buy; lançamentos made here (`source` `app`/`opening`) stand over the computer's copy (`wallet::apply_ledger`).
+- Investing (`Swift/AXYONInvest.swift`, `Swift/AXYONInvestViews.swift`, `app/axyon_hermes/invest.py`): the Investments
+  tab's screen, the second tab. The engine (`coucou_powers::invest::app`, through `axyon_powers_call` with `invest_*`
+  names, never offered to the model) gives the screen's JSON and keeps everything: the facts (`evidence.rs`: each
+  numbered with its source, reference and consultation dates, calculation and status), the committee (`committee.rs`:
+  five minds, the code's checks of their points against the facts and pages, objective vetoes, the auditor's revision,
+  opinions A on the asset and B on the portfolio), the dividends and per-asset targets of the user's sheet (sent by the
+  computer with the portfolio's copy; `invest_target` sets a target here), the reader's library (`library.rs`,
+  `powers-docs.json`: what is due from FundosNet and the CVM's IPE list, a download told apart, the figures with their
+  pages, what changed), the theses (`thesis.rs`), the learning (`learn.rs`) and the week's script (`weekly.rs`). The
+  engine downloads a document (`invest_docs` `fetch`); the app reads a PDF's pages (PDFKit, Vision for scans) and
+  gives them back (`ingest`); `invest_docs` `page` gives back a page a point cites. The brain is asked with no tools, in
+  Brazilian Portuguese, by the host: `POST /v1/invest/digest {key}` (once) and
+  `POST /v1/invest/committee {proposal, ticker, reason, document}` (twice: the engine's brief and the minds' JSON,
+  then the engine's checks and the auditor's JSON; the engine keeps the verdict, saying so when the auditor could not
+  answer). The reader runs when the app comes to the foreground (at most every half hour), one text-only
+  document in a background refresh; the brain's digests and the committee's own meetings once AXYON Core runs; the
+  reader's and the theses' news come with the alerts (`axyon_powers_watch`: kinds `document` and `thesis`). Hermes'
+  own tools `wealth_documents` and `wealth_learn` read the same library.
 - Hermes' own `memory`, `skills`, `todo`, `clarify`, `session_search`, `vision`, `delegation` and `image_gen` (with
   the brain's own image maker: ChatGPT's or OpenRouter's; the images made in a run go to the app as an `images`
   event and show under the answer).

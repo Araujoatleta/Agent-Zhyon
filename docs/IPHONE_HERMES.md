@@ -113,6 +113,129 @@ again, studies, training and the English lesson). iOS decides when AXYON may loo
 iOS asks the first time for each thing it protects; **Settings → What AXYON may use on this iPhone** shows what is
 allowed.
 
+## The Wallet: your consolidated portfolio
+
+The **Wallet** tab, the first one AXYON opens on, is a portfolio consolidator in the manner of Investidor10: you enter
+your buys and sales, and AXYON's code works out the rest.
+
+- **Lançamentos**: **+** (or **New lançamento**): Purchase or Sale, the ticker (GARE11, BBAS3…), the date, the
+  quantity, the price per share and the costs (brokerage, fees; optional). The average price takes the costs in, as
+  a broker's statement does; a sale realizes its result against the average price of its day; a sale of more shares
+  than were held that day, or the same lançamento twice, is refused with the reason. Touch and hold a lançamento to
+  delete it (refused while a later sale needs its shares).
+- **What your sheet already holds**: when the asset is already in the portfolio the computer reads from your sheet,
+  its first lançamento asks whether it is **a new buy, added to the N you hold** (those shares come first as an
+  **Opening balance** at the sheet's average price) or **part of the history of those N** (enter every buy and sale:
+  the position becomes what they make). The lançamentos made on the iPhone stand over the computer's copy.
+- **Quotes by themselves**, like the sheet's GOOGLEFINANCE, free and delayed: during B3's session AXYON reads Google
+  Finance (about 15 minutes late) and reads it again every two minutes while the tab is open; after the session, B3's
+  close. The line under the net worth says where the quote is from and when.
+- **Net worth and result**: the total, the day's change, what was invested, the result (R$ and %), what the sales
+  realized (all of it and this year's), the proventos of 12 months and the yield on cost; class by class and asset by
+  asset: quantity, average price, quote, day, value, result, weight and target.
+- **Proventos received, provisioned and announced**, counted on the shares held at the end of each data-com: **To
+  receive** (the data-com passed, the payment is ahead: what Investidor10 calls provisioned), **Announced, data-com
+  ahead**, **Received**, and a year of them in bars, month by month. Funds: the income and amortizations on
+  FundosNet; companies: the dividends and interest on equity (JCP) they announced on B3, with their data-com and
+  payment date. JCP shows net of the 15% income tax held at the source. A provento of an asset with no lançamento is
+  counted on the shares held now and marked **estimated**.
+- Tap an asset: its quote, its figures, **Buy** / **Sell**, its own proventos and lançamentos, and its folder.
+- **Never a provento from before the purchase**: an asset with lançamentos counts what they held at each data-com. An
+  asset of your sheet with none: a month your sheet's **Proventos pagos** records decides it (only if it records
+  that asset paying that month, on the shares that amount implies); out of the record, the day you give on the asset
+  (**Since when do you hold it?**) or the day it arrived; with no proof, nothing already paid is counted, and what is
+  still to be paid is an estimate. A fund's other classes (subscription receipts such as BTLG13) are not the share's.
+- **A provento received elsewhere**: **+ → Provento received** (or **Record a provento received** on the Proventos
+  tab): the asset, the day it was paid, its data-com when you know it, and the amount (or the value per share and the
+  shares), as your broker or Investidor10 shows it. It counts as received, in place of the one AXYON's sources give
+  for that asset and day; hold it down in the list to remove it. A fund you sold in the last thirteen months still has
+  its notices read, so the proventos it paid while you held it count. In the chat, AXYON Core reads and fixes the
+  Carteira itself (*"record BTCI11's R$ 16,82 of 15/10"*, *"remove the duplicate GARE11 purchase"*).
+- **Backup** (the drive at the top left of the Carteira): **Excel, complete** (the summary, positions, lançamentos and
+  proventos in sheets, and a hidden sheet with everything AXYON keeps, the committee's trials included), **CSV** (the
+  records, one per line) and a **PDF report**, to save in Files, iCloud Drive or send to yourself. **Import a file**
+  brings an AXYON backup back as it was (a copy of the Carteira here is kept first); B3's Negociação and Movimentação
+  files add their lançamentos and proventos.
+- **Each asset's sheet** (at the top of its folder): what deserves a look first, the indicators, a year of dividends
+  a share, the VP month by month against the price, what it pays you a month and its magic number, its ceilings, and
+  each figure its reports gave, report by report.
+- **Where to invest** (Carteira): the month's amount spread share by share toward your targets, with the reasons,
+  leaving out what the court told to avoid. **Income tax** (Carteira): Bens e Direitos at 31/12 ready to copy, exempt
+  income, dividends, JCP, and sales with the DARF. Next to them, what your money made a year against the CDI.
+- **Folders**: every asset AXYON keeps something about has its folder (on the Investments screen, and from the
+  asset): the court's trials (its last twelve), the documents read with their digests, its thesis and your
+  decisions, to open again whenever you want.
+- **Appearance** (Settings): three looks after the designs chosen, Aurora, Copper and Ocean: the night with its
+  lights behind every screen, frosted glass with an edge of light, an accent that glows, and a floating bar of glass
+  with the chat as a sphere of light in its middle.
+
+The lançamentos stay on the iPhone: they are not written to your sheet or sent to the computer. Fixed income takes no
+lançamento (it stays as your sheet has it). Nothing is bought or sold here.
+
+## Investing: the court, the reader and the folders
+
+- **The court sits by itself**: whenever the intern (the reader) brings a new document of an asset (a monthly report,
+  a material fact, an assembly), the committee meets on it without waiting for you, and its trial goes into the
+  asset's folder. Each trial plays in a courtroom drawn in code: the presiding judge opens the session, the intern
+  walks in with the document, the counsel for the asset (opinion A) and the prosecutor for your portfolio (opinion B)
+  plead, the five jurors (the minds) vote and raise their placards, the expert auditor reads the audit, and the judge
+  strikes the gavel at the sentence. The transcript below types what each says, with its sources; pause, everything
+  at once, from the start, and the full record a tap away. The living theses, the week in three minutes and the
+  learning card are gone from the screen.
+
+
+The **Investments** tab, the second, is AXYON's investing screen, in the design of a statistics screen:
+charcoal, a ring of thick rounded segments in soft colours with the total in its middle, a legend in two columns, a
+pill to choose **Portfolio** or **Dividends**, **Class | Asset**, a carousel of months for the dividends, and
+**History** under it (your positions, as before). Every number is computed by AXYON's code from the official sources;
+the brain only reads and votes, and says where each point comes from. The reports are always in Brazilian
+Portuguese, and the app itself speaks Portuguese (set once; iOS **Settings → AXYON → Language** changes it).
+
+- **The dividends are your sheet's**: when your Google Sheet has a **Proventos pagos** table (months across, the total
+  per month, assets row by row), the computer reads it every 3 hours and sends it with the portfolio's copy; the ring
+  shows those amounts (R$ 82,27 in October if that is what the sheet says), says **Your sheet · read on …**, and a month
+  the funds' announcements disagree on shows both. Without the table, the announcements times what you held.
+- **Targets per asset**: your sheet's **Percentual Ideal** (or **Meta**) column, or **… → Targets per asset** on the
+  Investments tab. The committee weighs every asset against its target before any opinion on buying more.
+
+- **The committee of five minds, audited**: ask *"buy 100 shares of GGRC11?"*. The code first gathers the **facts**,
+  each numbered (F1…) with its source, its reference date, the day it was read, the calculation (P/VP names the price's
+  day and the book value's month; R$ 0,083 stays R$ 0,083 into the yield; the 12-month yield and the one annualized
+  from the last payout are two facts) and a status: confirmed, computed, estimate, missing or divergent (two sources
+  that disagree). A valuation analyst, a legal and governance mind, a forensic accountant, a risk manager and a macro
+  strategist each vote with how sure they are, why, and points marked fact, calculation, hypothesis, estimate or
+  missing data, each citing F3 or a document's page (D1 p.4), and what they lacked. AXYON's code then checks every
+  figure against what it cites, turns a vote against that rests on missing data into neutral, keeps a veto only on an
+  objective criterion (concentration only past twice your target or a quarter of the portfolio), and an **auditor**
+  (the brain again) reads all of it, revises the minds it must and writes the two final opinions: **A, the asset**
+  (positive, neutral, negative) and **B, in your portfolio** (increase, keep, reduce, no new contribution) — a good
+  asset above its target can be A positive and B no new contribution, and a vote against buying is never a call to
+  sell. The verdict shows **Critical alerts** apart from **Material points** and **Notes**, a **To verify** list, each
+  mind's points with a seal when the code found them in their source, and the **Sources**: tap F3 for its source,
+  dates and calculation, or D1 p.4 for the page's text and the link to the document. It ends with a **question**:
+  the decision is yours. The minds are archetypes, never real people.
+- **The intern who reads everything**: the monthly reports, material facts, assemblies and offerings of your funds
+  (FundosNet) and the material facts, notices and releases of your companies (the CVM's list, once a week) are
+  downloaded and read on the iPhone (PDFKit, scanned pages by the iPhone's own text recognition); the code finds the
+  figures with their pages (vacancy, default, dividend and result per share, LTV, cap rate, holders) and what changed
+  since the previous report; AXYON Core sums up only what matters, page by page.
+- **Living theses**: write why you hold an asset in your words (*"P/VP below 1.05; yield above 9%; vacancy up to
+  10%"*); each condition with a number is checked against the price and every new report. When a document that
+  matters comes or a thesis breaks, the committee **meets by itself** when AXYON Core is running, and you get a
+  notification (with **Settings → Superpowers** alerts on).
+- **Your week in three minutes**: a script AXYON's code makes from your records (the portfolio against a week ago,
+  the best and worst moves, the dividends that came and those ahead, what the reader read, the theses, the
+  committee), read aloud in the iPhone's voice; **Make the audio** saves it as a sound file to send (WhatsApp takes
+  it as audio), **WhatsApp** opens it with the text written, and a reminder every Sunday if you want one.
+- **Learn with your own portfolio**: apprentice mode (the committee, the reader and the week explain each term the
+  first time), a glossary with each term's value in your own assets, flashcards of your assets graded as you go, a
+  training portfolio with pretend money at the real prices (against your real one and the CDI), and your personal
+  score (when you say you are sure, how often you are right, from the decision journal).
+
+Your portfolio stays on the iPhone. The documents are public and read once on the iPhone; the brain you chose is
+asked only for a document's digest and the committee's meetings (two answers each: the minds, then the auditor).
+Nothing is bought or sold: this is not an investment recommendation.
+
 ## The home straight from the iPhone (no computer)
 
 **Home → +** adds the devices the iPhone drives itself on the home's Wi-Fi: a **Samsung TV** (Tizen, 2016 on; it asks
@@ -122,13 +245,79 @@ iPhone's Keychain), and **Home Assistant** (its address and a long-lived access 
 covers, scenes and scripts, never locks or alarms). Then ask in the chat: *"turn on the living room TV"*. Plugs and
 switches ask for Face ID first. The first scan makes iOS ask for the local network: allow it.
 
+Each over its own local API, with no cloud: **Roku TVs** (TCL, AOC, Philco…: remote, volume, channels, apps),
+**Philips Hue** (press the bridge's round button when AXYON asks; its lights, rooms and scenes, with brightness and
+colours), **Shelly** (Gen1 and Gen2+) and **Tasmota/Sonoff** plugs, relays, dimmers and bulbs (their login off), **WLED**
+strips (brightness, colours, presets) and **webhooks** (an Alexa routine through Voice Monkey, IFTTT, SmartThings, a
+Home Assistant webhook; the address stays in the Keychain).
+
+## Routines: your day on autopilot
+
+At the top of the **Home** tab: a routine has a name, what starts it and steps done in order.
+
+- **What starts it**: a tap; **Siri** (*"Run Good night in AXYON"*); a **time** on chosen weekdays; **arriving at** or
+  **leaving** a place set on the map (iOS wakes AXYON even closed, with location **"Always"**; AXYON keeps no record
+  of where you go and tells you what it did); and any automation of the **Shortcuts** app (a time to the minute, an
+  NFC tag, CarPlay, an alarm stopping, a Focus…) with the action **"Run AXYON routine"**, which runs without asking.
+- **The steps**: a device (any action it has: on, brightness, colour, an app on the TV, a scene), **every light, TV,
+  fan or plug** at once (TVs and plugs only off), a **notification**, a **reminder**, **saying** something, **music**,
+  the **flashlight**, one of your **Shortcuts**, a link, a **pause**, and a **question to AXYON Core**, whose answer
+  comes as a notification.
+- **Ideas**: Home again, Leaving home, Good morning, Good night, Film time, Focus.
+- **In the chat**: *"every night at 11 turn the lights and the TV off and tell me what I have tomorrow"*: AXYON makes
+  the routine, shows its steps and keeps it only with your **Face ID**.
+- **"Ask AXYON"** from Siri or a shortcut: the question and its answer stay in the chat.
+
+With AXYON open, time routines run on time; closed, iOS wakes it a few times a day: for the exact minute, use the
+Shortcuts automation. Opening links and Shortcuts needs the iPhone unlocked.
+
+## The Core: what runs on the iPhone's own chip
+
+The **chip** at the top left of the chat opens the Core: the heavy work the iPhone does by itself, with nothing sent
+to a server to be computed. It needs AXYON open (iOS suspends an app that leaves the screen).
+
+- **Eyes**: the camera through Apple's on-device vision models, about three times a second: the text in view read as
+  you move, QR and bar codes, faces, animals and what the scene is. What it finds becomes a tap: a boleto's line or a
+  Pix code copied, a ticker's folder opened, a link, a due date made a reminder. A question about what is in view
+  (*"what is this?"*, *"is anything wrong here?"*) sends that one frame, with the text read, to AXYON Core.
+- **Ears**: record a results call, a class or a meeting, or bring an audio or video file. Apple's on-device speech
+  recognition turns it into text with its times, in pieces cut at the silences, so hours go through; the audio is
+  deleted once it is text. The transcript goes into the memory, to the chat or to the local brain for a summary, and
+  to the intern as a document of the asset it is about (the court meets on it). The language's on-device dictation
+  has to be installed (iPhone Settings → General → Keyboard → Dictation).
+- **Memory**: everything the intern read, every verdict, decision and thesis, the transcripts and your notes, cut in
+  passages and indexed on the iPhone, searched **by meaning** (Apple's sentence embedding for Portuguese) and by
+  words together. *"what did the reports say about vacancy?"* finds the passage, its document and its page. AXYON
+  Core searches it too (`memory_search`) and keeps notes in it (`memory_note`).
+- **Local brain**: a language model that thinks on the iPhone with the network off. Download one once (a GGUF file
+  from Hugging Face, from a link you see: Qwen 2.5 1.5B, about 1.1 GB, or Llama 3.2 3B, about 2 GB, for the 6 GB of a
+  14 Pro Max; Gemma 3 4B for 8 GB; Qwen 2.5 7B for 12 GB; or any GGUF link of yours) and llama.cpp runs it on the
+  graphics processor. On an iPhone with Apple Intelligence (15 Pro and after, iOS 26), Apple's own model is there with
+  nothing to download. Its answers are grounded on the memory's passages, and it sums up a transcript of hours in
+  parts. It is not AXYON Core: a model this size is weaker, uses no tools and can be wrong with confidence.
+- **Market radar**: every real-estate fund traded on B3, not only yours: two years of the CVM's monthly reports
+  joined to B3's quotes, each fund scored (discount 25 %, income against the market 25 %, stability of the net asset
+  value 20 %, holders 10 %, liquidity 10 %, regularity 10 %) and flagged (*yield trap?*, *very deep discount*,
+  *holders leaving*). A ranking to start a study from, never a recommendation. Also `wealth_wallet` with `do=radar`.
+- **Futures**: up to 100,000 futures of your portfolio, month by month, on every core of the chip: your monthly
+  contribution and every provento bought back in, in today's money. The band from a bad future to a good one, the
+  year the income reaches your goal, and three shocks (prices fall 30 %, dividends cut 20 %, your biggest payer
+  stops). Not a forecast: its assumptions are written on the screen. Also `wealth_wallet` with `do=simulate`.
+- **Home in 3D**: on an iPhone with LiDAR, walk along a room's walls: RoomPlan measures it, its doors, windows and
+  furniture, and AXYON keeps the room to turn and zoom. Put your devices where they are and tap them in the room to
+  turn them on or off.
+- **Base mode**: on the charger with AXYON open, the screen stays on (a dim clock that drifts) and AXYON is the
+  home's computer: time routines run to the minute, the intern reads, the memory indexes and the market is swept
+  once a day.
+
 ## With a computer (optional)
 
 **Settings → Computer (optional) → Windows or Linux computer** pairs as before. Once paired, the computer's portfolio
 (positions, your ceilings, last prices, the notes of AXYON's tab) reaches the iPhone each time it connects and stays
 there, so Hermes on the iPhone still answers about it with the computer off (each newer copy replaces the iPhone's
 positions: with a computer, it and its sheet stay the record); the computer's home shows in the Home tab
-and Hermes can act on it; the computer's agents show on the start screen with Allow and Deny. Away from home, use
+and Hermes can act on it; a command of the computer's agents waiting for your OK shows above every tab with Allow
+(Face ID) and Deny, and the sessions are listed in **Settings → Agents on the computer**. Away from home, use
 Tailscale on both ([IPHONE_PC.md](IPHONE_PC.md)).
 
 ## What iOS does not allow

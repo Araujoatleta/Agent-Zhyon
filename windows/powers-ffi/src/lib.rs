@@ -6,7 +6,8 @@
 //! follows, without the sheet and the island).
 //!
 //! What is kept is the computer's two files, in the folder the app gives: the user's data (powers.json) and what the
-//! sources said (powers-market.json). The positions, the cash and the user's own ceilings follow the copy a paired
+//! sources said (powers-market.json), and the iPhone's own third, the documents its reader read (powers-docs.json:
+//! the app downloads and reads their PDFs, coucou_powers::library). The positions, the cash and the user's own ceilings follow the copy a paired
 //! computer gives the iPhone (Hermes' portfolio.json, src-tauri/src/powers/mod.rs `phone_copy`) each time a newer one
 //! comes: the computer and its sheet stay the record.
 
@@ -18,9 +19,10 @@ use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use coucou_powers::date::{is_business_day, Date};
-use coucou_powers::model::{AssetClass, LivePrice, Market, Position, Store};
+use coucou_powers::library::{self, Library};
+use coucou_powers::model::{AssetClass, LivePrice, Market, Position, RecordedDividends, Store};
 use coucou_powers::sources::fetch::Http;
-use coucou_powers::{alerts, ceiling, day, engine, refresh, sources, text};
+use coucou_powers::{alerts, ceiling, committee, day, engine, invest, learn, refresh, sources, text, thesis, wallet};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use serde_json::{json, Value};
@@ -32,7 +34,11 @@ const QUICK_BUDGET: Duration = Duration::from_secs(6);
 /// An asset asked about and not held: its quote, its fund's documents or its company's statements.
 const ASSET_BUDGET: Duration = Duration::from_secs(40);
 const LIVE_EVERY: Duration = Duration::from_secs(5 * 60);
+/// The consolidator open on the screen asks for its quotes again this often at most (Google's are 15 minutes late).
+const QUOTES_EVERY: Duration = Duration::from_secs(2 * 60);
 const LIVE_PAUSE: Duration = Duration::from_millis(400);
+/// The whole market's files (two years of the CVM's reports, B3's day): tens of megabytes on a phone's network.
+const RADAR_BUDGET: Duration = Duration::from_secs(150);
 const LIVE_MOST: usize = 40;
 const LIVE_BUDGET: Duration = Duration::from_secs(15);
 
@@ -43,6 +49,8 @@ struct State {
     /// Shares whose statements could not be read today: not asked again before tomorrow.
     failed: Vec<(String, Date)>,
     live_read: Option<Instant>,
+    /// The documents read, opened when first needed.
+    library: Option<Library>,
 }
 
 static STATE: Mutex<Option<State>> = Mutex::new(None);
@@ -104,6 +112,19 @@ impl State {
             market: read_file(&folder.join("powers-market.json")),
             failed: Vec::new(),
             live_read: None,
+            library: None,
+        }
+    }
+
+    fn load_library(&mut self) {
+        if self.library.is_none() {
+            self.library = Some(read_file(&self.folder.join("powers-docs.json")));
+        }
+    }
+
+    fn save_library(&self) {
+        if let Some(lib) = &self.library {
+            write_file(&self.folder.join("powers-docs.json"), lib);
         }
     }
 
@@ -133,8 +154,23 @@ impl State {
         if let Some(cash) = v["cash"].as_f64() {
             self.store.portfolio.cash = cash;
         }
+        // The targets the sheet gives win over the ones set here; a target set only here stays.
+        if let Ok(targets) = serde_json::from_value::<BTreeMap<String, f64>>(v["assetTargets"].clone()) {
+            self.store.portfolio.asset_targets.extend(targets);
+        }
+        if let Ok(classes) = serde_json::from_value::<BTreeMap<AssetClass, f64>>(v["classTargets"].clone()) {
+            self.store.portfolio.targets.extend(classes);
+        }
+        // The dividends the sheet records are the record: a copy without them (an older computer) keeps the last one.
+        if let Ok(recorded) = serde_json::from_value::<RecordedDividends>(v["dividends"].clone()) {
+            if !recorded.months.is_empty() {
+                self.store.recorded_dividends = recorded;
+            }
+        }
         self.store.portfolio.updated = v["updated"].as_str().and_then(Date::parse).or(self.store.portfolio.updated);
         self.store.portfolio.source = COMPUTER.into();
+        // The assets whose lançamentos were made in the consolidator keep the positions those make.
+        wallet::apply_ledger(&mut self.store, &self.market);
         self.save_store();
         let _ = std::fs::write(mark, at.to_string());
     }
@@ -201,7 +237,7 @@ fn read_due(st: &mut State, today: Date, evening: bool, budget: Duration) {
         }
     }
     if due.fund_months || !due.funds.is_empty() {
-        let mine = st.store.portfolio.tickers(Some(AssetClass::Fii));
+        let mine = refresh::fund_tickers(&st.store, today);
         let known = refresh::known_documents(&st.market);
         let job = refresh::funds(http(), &due.funds, &st.market.fund_cnpjs, &st.store.fund_cnpjs, due.fund_months.then_some(mine.as_slice()), &known, today);
         if let Some(read) = within(deadline, job) {
@@ -214,7 +250,7 @@ fn read_due(st: &mut State, today: Date, evening: bool, budget: Duration) {
                 if let Some(register) = register {
                     st.market.company_cnpjs.extend(register);
                 }
-                st.market.companies.insert(ticker, company);
+                refresh::merge_company(&mut st.market, ticker, company);
             }
             Some(Err(_)) => st.failed.push((ticker, today)),
             None => break,
@@ -243,7 +279,7 @@ fn ensure_asset(st: &mut State, ticker: &str, today: Date, evening: bool) {
         let months = given || (!read_today && have.as_ref().is_none_or(|f| f.months.is_empty()));
         if months || !read_today {
             let mut all = vec![ticker.to_string()];
-            all.extend(st.store.portfolio.tickers(Some(AssetClass::Fii)).into_iter().filter(|t| t != ticker));
+            all.extend(refresh::fund_tickers(&st.store, today).into_iter().filter(|t| t != ticker));
             let known = refresh::known_documents(&st.market);
             let job = refresh::funds(http(), &one, &st.market.fund_cnpjs, &st.store.fund_cnpjs, months.then_some(all.as_slice()), &known, today);
             if let Some(read) = within(deadline, job) {
@@ -255,14 +291,58 @@ fn ensure_asset(st: &mut State, ticker: &str, today: Date, evening: bool) {
             if let Some(register) = register {
                 st.market.company_cnpjs.extend(register);
             }
-            st.market.companies.insert(ticker.to_string(), company);
+            refresh::merge_company(&mut st.market, ticker.to_string(), company);
         }
     }
     st.save_market();
 }
 
+/// The cash dividends B3 lists for the shares held (provisioned and paid), once a day each, within `deadline`.
+fn read_company_payouts(st: &mut State, today: Date, deadline: Instant) {
+    let due = refresh::company_payouts_due(&st.store, &st.market, today);
+    if due.is_empty() {
+        return;
+    }
+    if let Some(read) = within(deadline, refresh::company_payouts(http(), &due, &st.market)) {
+        refresh::merge_company_payouts(&mut st.market, read, today);
+        st.save_market();
+    }
+}
+
+/// The CVM's list of the documents of the companies followed (IPE: material facts, releases, assemblies), once a week
+/// each, within `deadline`.
+fn read_company_documents(st: &mut State, today: Date, deadline: Instant) {
+    let due = refresh::company_documents_due(&st.store, &st.market, today);
+    if due.is_empty() {
+        return;
+    }
+    let cnpjs: Vec<String> = due.iter().map(|(_, c)| c.clone()).collect();
+    if let Some(Ok(read)) = within(deadline, sources::company_documents(http(), &refresh::document_years(today), &cnpjs, 40)) {
+        refresh::merge_company_documents(&mut st.market, &due, read, today);
+        st.save_market();
+    }
+}
+
 /// The session's prices of what is held and what has a ceiling, from Google Finance, one page after the other, until
 /// `deadline`.
+/// The market's radar: two years of every fund's monthly reports (the CVM) and the day's quotes of the whole market
+/// (B3), read and measured (coucou_powers::radar). Why not, when it could not be read.
+fn read_radar(st: &mut State, today: Date, evening: bool, deadline: Instant) -> Result<(), String> {
+    let months = within(deadline, sources::fii_months(http(), &[today.y, today.y - 1], &[])).ok_or("The CVM's reports did not come in time: try again on Wi-Fi.")??;
+    let (_, quotes) = within(deadline, sources::all_quotes(http(), today, evening)).ok_or("B3's quotes did not come in time: try again.")??;
+    let radar = coucou_powers::radar::build(&months, &quotes, today);
+    if radar.funds.is_empty() {
+        return Err("No traded fund was found in what the CVM and B3 gave.".into());
+    }
+    // The tickers' funds, for the rest of the app, while every fund is here.
+    for (root, cnpj) in sources::cvm_fii::cnpj_by_root(&months) {
+        st.market.fund_cnpjs.entry(root).or_insert(cnpj);
+    }
+    st.market.radar = Some(radar);
+    st.save_market();
+    Ok(())
+}
+
 fn read_live(st: &mut State, deadline: Instant) {
     let mut tickers = st.store.portfolio.tickers(None);
     for t in st.store.ceilings.manual.keys() {
@@ -293,15 +373,20 @@ fn read_live(st: &mut State, deadline: Instant) {
 
 /// The tools that read the official data: what is due is read first.
 fn reads_market(tool: &str) -> bool {
-    matches!(tool, "wealth_portfolio" | "wealth_fii" | "wealth_events" | "wealth_plan" | "wealth_audit" | "wealth_macro" | "wealth_committee" | "wealth_ceiling" | "life_day")
+    matches!(tool, "wealth_portfolio" | "wealth_fii" | "wealth_events" | "wealth_plan" | "wealth_audit" | "wealth_macro" | "wealth_committee" | "wealth_documents" | "wealth_learn" | "wealth_ceiling" | "life_day")
 }
 
 /// An asset the call is about, when it names one.
 fn asked_asset(tool: &str, input: &Value) -> Option<String> {
     let named = engine::s(input, "ticker").and_then(|t| text::ticker(&t));
     match tool {
-        "wealth_fii" | "wealth_company" | "wealth_ceiling" => named,
+        "wealth_fii" | "wealth_company" | "wealth_ceiling" | "wealth_documents" | "wealth_learn" => named,
         "wealth_committee" => named.or_else(|| engine::s(input, "proposal").and_then(|p| text::tickers_in(&p).into_iter().next())),
+        // The app's own calls: the committee's brief, a thesis written, a pretend trade, a lançamento.
+        "invest_committee" if engine::s(input, "do").as_deref() == Some("brief") => named.or_else(|| engine::s(input, "proposal").and_then(|p| text::tickers_in(&p).into_iter().next())),
+        "invest_trade" if engine::s(input, "do").as_deref() != Some("remove") => named,
+        "invest_thesis" if engine::s(input, "do").as_deref() != Some("remove") => named,
+        "invest_learn" if engine::s(input, "do").as_deref() == Some("paper") => named,
         _ => None,
     }
 }
@@ -382,6 +467,10 @@ fn run(st: &mut State, tool: &str, input: &Value, today: Date, evening: bool, re
             let out = engine::trade_view(&mut st.store, &st.market, input, today);
             changed(st, out)
         }
+        "wealth_wallet" => {
+            let out = engine::wallet_view(&mut st.store, &st.market, input, today);
+            changed(st, out)
+        }
         "wealth_ceiling" => {
             let out = engine::ceiling_view(&mut st.store, &st.market, input, today);
             changed(st, out)
@@ -392,10 +481,24 @@ fn run(st: &mut State, tool: &str, input: &Value, today: Date, evening: bool, re
             let out = engine::decision(&mut st.store, &st.market, input, today);
             changed(st, out)
         }
-        "wealth_committee" => match engine::committee(&st.store, &st.market, input, today) {
-            Ok(text) => (true, text),
-            Err(text) => (false, text),
-        },
+        "wealth_committee" => {
+            // With the documents the reader read, cited by their pages.
+            st.load_library();
+            match committee::brief(&st.store, &st.market, st.library.as_ref(), input, today, false) {
+                Ok((text, _, _)) => (true, text),
+                Err(text) => (false, text),
+            }
+        }
+        "wealth_documents" => {
+            st.load_library();
+            let out = invest::documents_tool(&mut st.store, &st.market, st.library.as_ref(), input, today);
+            changed(st, out)
+        }
+        "wealth_learn" => {
+            st.load_library();
+            let out = learn::tool(&mut st.store, &st.market, st.library.as_ref(), input, today);
+            changed(st, out)
+        }
         "wealth_macro" => (true, engine::economy(&st.market, today)),
         "life_study" => {
             let out = engine::study_view(&mut st.store, &st.market, input, today);
@@ -459,6 +562,19 @@ fn tell(st: &mut State, today: Date) -> Vec<Value> {
     out.into_iter().take(MOST_ALERTS).map(|(_, a)| a).collect()
 }
 
+/// What the reader read that matters (a material fact, an assembly, an offering, or a document the brain judged a risk
+/// to a thesis) and the theses that broke, each once (coucou_powers::thesis, `to_tell`): `kind` "document" or
+/// "thesis", `ticker`, `what` (the document's kind, or the conditions broken), `text`, `key`.
+fn notices(st: &mut State, today: Date) -> Vec<Value> {
+    st.load_library();
+    let lib = st.library.as_ref().expect("loaded above");
+    let told = thesis::to_tell(&mut st.store, &st.market, lib, today);
+    if !told.is_empty() {
+        st.save_store();
+    }
+    told.into_iter().map(|n| json!({ "kind": n.kind, "ticker": n.ticker, "what": n.what, "text": n.text, "key": n.key })).collect()
+}
+
 /// The morning's briefing, once a day (`powers-briefed.txt` keeps the day it was given): the day's items as the
 /// computer's island says them (src-tauri/src/powers/mod.rs, `brief`), without the opportunities, told on their own.
 fn briefing(st: &State, today: Date) -> Vec<Value> {
@@ -481,19 +597,120 @@ fn briefing(st: &State, today: Date) -> Vec<Value> {
 /// nothing held or watched.
 fn watch(st: &mut State, today: Date, evening: bool, morning: bool, budget: Duration) -> Value {
     let mut alerts = Vec::new();
-    if !st.store.portfolio.positions.is_empty() || !st.store.ceilings.manual.is_empty() {
+    if !st.store.portfolio.positions.is_empty() || !st.store.ceilings.manual.is_empty() || !st.store.theses.is_empty() {
         let deadline = Instant::now() + budget;
         read_due(st, today, evening, budget / 2);
         if session_open() {
             read_live(st, deadline);
         }
         alerts = tell(st, today);
+        alerts.extend(notices(st, today));
     }
     let day = if morning { briefing(st, today) } else { Vec::new() };
     json!({ "ok": true, "alerts": alerts, "day": day })
 }
 
-/// One call, from the strings the app gives: the answer as JSON (`{"ok": …, "text": …}`).
+/// The largest document file read.
+const MOST_DOCUMENT: usize = 40 * 1024 * 1024;
+
+/// A document's file, downloaded with the engine's client (FundosNet's and the CVM's) within `seconds` (25 unless
+/// given, 5 to 40): a PDF saved for the app to read (`{"pdf": path}`, in the folder's documents/), or its text's pages
+/// (`{"pages": […]}`).
+fn fetch_document(st: &State, input: &Value) -> Value {
+    let Some(url) = input["pending"]["download"].as_str().filter(|u| u.starts_with("https://")) else {
+        return json!({ "ok": false, "text": "The document has no address to download it from." });
+    };
+    let key = input["pending"]["key"].as_str().unwrap_or("document");
+    let seconds = input["seconds"].as_u64().unwrap_or(25).clamp(5, 40);
+    let body = match within(Instant::now() + Duration::from_secs(seconds), http().get(url)) {
+        None => return json!({ "ok": false, "text": "The download took too long." }),
+        Some(Err(e)) => return json!({ "ok": false, "text": e }),
+        Some(Ok(body)) if body.len() > MOST_DOCUMENT => return json!({ "ok": false, "text": "The document is too large." }),
+        Some(Ok(body)) => body,
+    };
+    match library::file_of(&body) {
+        Ok(library::File::Pdf(bytes)) => {
+            let dir = st.folder.join("documents");
+            let _ = std::fs::create_dir_all(&dir);
+            let name: String = key.chars().map(|c| if c.is_ascii_alphanumeric() { c } else { '-' }).collect();
+            let path = dir.join(format!("{name}.pdf"));
+            match std::fs::write(&path, bytes) {
+                Ok(()) => json!({ "ok": true, "data": { "pdf": path.to_string_lossy() } }),
+                Err(e) => json!({ "ok": false, "text": e.to_string() }),
+            }
+        }
+        Ok(library::File::Text(pages)) => json!({ "ok": true, "data": { "pages": pages } }),
+        Err(e) => json!({ "ok": false, "text": e }),
+    }
+}
+
+/// One of the app's own calls (never Hermes' tools): the investing screen and what it does (coucou_powers::invest,
+/// `app`), plus `invest_refresh`, what is due read first (the CVM's lists of documents too), then the screen, and
+/// `invest_docs` `fetch`, a document's file downloaded (`fetch_document`). What an
+/// answer rests on is read first, as for Hermes' tools. `{"ok": true, "data": …}`, or `{"ok": false, "text": …}`.
+fn app(st: &mut State, tool: &str, input: &Value, today: Date, evening: bool, read: bool) -> Value {
+    if tool == "invest_docs" && engine::s(input, "do").as_deref() == Some("fetch") {
+        return if read { fetch_document(st, input) } else { json!({ "ok": false, "text": "Nothing is downloaded now." }) };
+    }
+    if read && tool == "invest_radar" && engine::s(input, "do").as_deref() == Some("scan") {
+        if let Err(text) = read_radar(st, today, evening, Instant::now() + RADAR_BUDGET) {
+            return json!({ "ok": false, "text": text });
+        }
+    }
+    if read {
+        match tool {
+            "invest_refresh" => {
+                let deadline = Instant::now() + READ_BUDGET;
+                read_due(st, today, evening, READ_BUDGET / 2);
+                if session_open() && st.live_read.is_none_or(|t| t.elapsed() >= LIVE_EVERY) {
+                    read_live(st, Instant::now() + LIVE_BUDGET.min(READ_BUDGET / 4));
+                }
+                read_company_payouts(st, today, deadline);
+                read_company_documents(st, today, deadline);
+            }
+            // The consolidator: what its numbers rest on (closes, the funds' and companies' dividends), then the
+            // session's quotes when they are older than QUOTES_EVERY.
+            "invest_wallet" | "invest_quotes" => {
+                let deadline = Instant::now() + READ_BUDGET;
+                if tool == "invest_wallet" || needs_reading(&st.store, &st.market) {
+                    let budget = if needs_reading(&st.store, &st.market) { READ_BUDGET / 2 } else { QUICK_BUDGET };
+                    read_due(st, today, evening, budget);
+                    read_company_payouts(st, today, deadline);
+                }
+                if session_open() && st.live_read.is_none_or(|t| t.elapsed() >= QUOTES_EVERY) {
+                    read_live(st, Instant::now() + LIVE_BUDGET);
+                }
+            }
+            "invest_committee" if engine::s(input, "do").as_deref() == Some("brief") => {
+                let budget = if needs_reading(&st.store, &st.market) { READ_BUDGET } else { QUICK_BUDGET };
+                read_due(st, today, evening, budget);
+                read_company_payouts(st, today, Instant::now() + QUICK_BUDGET);
+            }
+            _ => {}
+        }
+        if let Some(asset) = asked_asset(tool, input) {
+            ensure_asset(st, &asset, today, evening);
+        }
+    }
+    st.load_library();
+    let tool = if tool == "invest_refresh" { "invest_view" } else { tool };
+    let lib = st.library.as_mut().expect("loaded above");
+    match invest::app(&mut st.store, &st.market, lib, tool, input, today) {
+        Ok((data, saved)) => {
+            if saved.store {
+                st.save_store();
+            }
+            if saved.library {
+                st.save_library();
+            }
+            json!({ "ok": true, "data": data })
+        }
+        Err(text) => json!({ "ok": false, "text": text }),
+    }
+}
+
+/// One call, from the strings the app gives: the answer as JSON (`{"ok": …, "text": …}`; the app's own calls,
+/// `invest_…`, `{"ok": …, "data": …}`).
 fn answer(tool: &str, input: &str, folder: &str, copy: &str, today: &str, evening: bool, read: bool) -> Value {
     let Some(today) = Date::parse(today.trim()) else {
         return json!({ "ok": false, "text": "The iPhone's date was not given." });
@@ -503,6 +720,9 @@ fn answer(tool: &str, input: &str, folder: &str, copy: &str, today: &str, evenin
         return json!({ "ok": false, "text": "No folder for the superpowers' files." });
     }
     with_state(folder, copy, |st| {
+        if tool.starts_with("invest_") {
+            return app(st, tool, &input, today, evening, read);
+        }
         let (ok, text) = run(st, tool, &input, today, evening, read);
         json!({ "ok": ok, "text": text })
     })
@@ -560,7 +780,7 @@ pub unsafe extern "C" fn axyon_powers_call(
 /// `{"ok": bool, "alerts": [...], "day": [...]}`, each alert's `kind` (into_zone, out_of_zone, up, down, portfolio_up,
 /// portfolio_down, opportunity), `ticker` ("" for the portfolio), `price` (for the portfolio, its value), `day`
 /// (percent), `ceiling`, `money` (what the user's position made today), `below` (percent) and `method`, each told
-/// once; in the `morning`, once a day, the day's items (`code`, `vars`, `title`, `urgent`: engine::day_plan). To give
+/// once; the reader's and the theses' (`notices`: kind document or thesis, with `what`, `text` and `key`), once; in the `morning`, once a day, the day's items (`code`, `vars`, `title`, `urgent`: engine::day_plan). To give
 /// back to `axyon_powers_free`.
 ///
 /// # Safety
@@ -672,21 +892,58 @@ mod tests {
         std::fs::write(&copy, json!({
             "type": "portfolio", "receivedAt": 1_793_000_000.0, "cash": 150.0, "updated": "2026-10-27", "source": "sheet",
             "positions": [{ "ticker": "GARE11", "class": "fii", "subtype": "", "quantity": 100.0, "averagePrice": 9.0, "currentValue": null, "note": "" }],
-            "ceilings": { "TIMS3": 21.5 }, "prices": {}, "notes": []
+            "ceilings": { "TIMS3": 21.5 }, "prices": {}, "notes": [],
+            "assetTargets": { "GARE11": 7.5 },
+            "classTargets": { "fii": 25.0, "renda_fixa": 50.0 },
+            "dividends": { "source": "Sua planilha — aba Meu Patrimônio", "read": "2026-10-29", "months": { "2026-10": 82.27 } }
         }).to_string()).unwrap();
         let mut st = State::open(&dir);
+        st.store.portfolio.asset_targets.insert("TIMS3".into(), 5.0);
         st.take_copy(&copy);
         assert_eq!(st.store.portfolio.positions.len(), 1);
         assert_eq!(st.store.portfolio.positions[0].class, AssetClass::Fii);
         assert_eq!(st.store.ceilings.manual.get("TIMS3"), Some(&21.5));
         assert_eq!(st.store.portfolio.cash, 150.0);
         assert_eq!(st.store.portfolio.source, COMPUTER);
+        assert_eq!(st.store.portfolio.asset_targets.get("GARE11"), Some(&7.5), "the sheet's target");
+        assert_eq!(st.store.portfolio.asset_targets.get("TIMS3"), Some(&5.0), "a target set on the iPhone stays");
+        assert_eq!(st.store.portfolio.targets.get(&AssetClass::Fii), Some(&25.0), "the sheet's class targets");
+        assert_eq!(st.store.recorded_dividends.months.get("2026-10"), Some(&82.27), "the sheet's record");
+        let months = invest::dividends(&st.store, &st.market, Date::parse("2026-10-30").unwrap(), 12);
+        assert_eq!(months[11]["total"], 82.27, "the wallet's October is the sheet's");
+        assert_eq!(months[11]["source"], "planilha");
         // A change on the iPhone stays until a newer copy comes.
         st.store.portfolio.positions.clear();
         st.take_copy(&copy);
         assert!(st.store.portfolio.positions.is_empty());
         let reopened = State::open(&dir);
         assert_eq!(reopened.store.portfolio.positions.len(), 1, "the copy was saved");
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn the_consolidators_lancamentos_stand_over_the_computers_copy() {
+        let dir = folder("wallet");
+        let today = Date::parse("2026-11-04").unwrap();
+        let mut st = State::open(&dir);
+        let added = app(&mut st, "invest_trade", &json!({ "do": "add", "ticker": "gare11", "kind": "buy", "date": "2026-10-01", "quantity": 10, "price": "9,00" }), today, false, false);
+        assert_eq!(added["ok"], json!(true), "{added}");
+        assert_eq!(added["data"]["trades"][0]["ticker"], "GARE11");
+        let id = added["data"]["trades"][0]["id"].clone();
+        let copy = dir.join("portfolio.json");
+        std::fs::write(&copy, json!({
+            "type": "portfolio", "receivedAt": 1_793_000_000.0,
+            "positions": [{ "ticker": "GARE11", "class": "fii", "subtype": "", "quantity": 100.0, "averagePrice": 9.0, "currentValue": null, "note": "" }],
+            "ceilings": {}
+        }).to_string()).unwrap();
+        st.take_copy(&copy);
+        assert_eq!(st.store.portfolio.position("GARE11").unwrap().quantity, 10.0, "the lançamentos made here stand");
+        assert_eq!(app(&mut st, "invest_wallet", &json!({}), today, false, false)["ok"], json!(true));
+        let sold = app(&mut st, "invest_trade", &json!({ "do": "add", "ticker": "GARE11", "kind": "sell", "date": "2026-09-01", "quantity": 5, "price": 9 }), today, false, false);
+        assert_eq!(sold["ok"], json!(false), "nothing held on 01/09: {sold}");
+        let removed = app(&mut st, "invest_trade", &json!({ "do": "remove", "id": id }), today, false, false);
+        assert_eq!(removed["ok"], json!(true), "{removed}");
+        assert!(State::open(&dir).store.trades.is_empty(), "kept in powers.json");
         let _ = std::fs::remove_dir_all(dir);
     }
 
@@ -705,6 +962,42 @@ mod tests {
         assert!(!ok && text.contains("computer"));
         let (ok, text) = run(&mut st, "wealth_nothing", &json!({}), today, false, false);
         assert!(!ok && text.contains("no superpower"));
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn the_apps_investing_calls_keep_what_the_reader_read_and_tell_its_news_once() {
+        let dir = folder("invest");
+        let today = Date::parse("2026-10-28").unwrap();
+        let mut st = State::open(&dir);
+        st.store.portfolio.positions = vec![position("GGRC11", AssetClass::Fii, 150.0)];
+        st.market.quotes.insert("GGRC11".into(), quote("GGRC11", 9.1));
+        // A material fact the app downloaded and read.
+        let pending = json!({ "key": "fnet:905", "ticker": "GGRC11", "kind": "material_fact", "title": "Fato Relevante", "reference": "27/10/2026", "delivered": "2026-10-27", "url": "https://fnet.example/905", "download": "https://fnet.example/905" });
+        let out = app(&mut st, "invest_docs", &json!({ "do": "ingest", "pending": pending, "pages": ["O fundo vendeu o imóvel de Campinas."] }), today, false, false);
+        assert_eq!(out["ok"], json!(true), "{out}");
+        assert_eq!(out["data"]["key"], "fnet:905");
+        assert!(dir.join("powers-docs.json").exists(), "the library is saved");
+        let told = notices(&mut st, today);
+        assert_eq!(told.len(), 1, "{told:?}");
+        assert_eq!((told[0]["kind"].as_str(), told[0]["what"].as_str(), told[0]["ticker"].as_str()), (Some("document"), Some("material_fact"), Some("GGRC11")));
+        assert!(notices(&mut st, today).is_empty(), "told once");
+        // A thesis broken by the price is told once too.
+        let out = app(&mut st, "invest_thesis", &json!({ "ticker": "GGRC11", "text": "P/VP abaixo de 0,1" }), today, false, false);
+        assert_eq!(out["ok"], json!(true), "{out}");
+        // Reopened (the app relaunched): the reader's library is still there, and the screen shows it.
+        let shown = answer("invest_view", "{}", dir.to_str().unwrap(), "", "2026-10-28", false, false);
+        assert_eq!(shown["ok"], json!(true));
+        assert_eq!(shown["data"]["feed"].as_array().map(Vec::len), Some(1), "{shown}");
+        let mut again = State::open(&dir);
+        again.load_library();
+        assert_eq!(again.library.as_ref().map(|l| l.docs.len()), Some(1));
+        assert_eq!(answer("invest_nothing", "{}", dir.to_str().unwrap(), "", "2026-10-28", false, false)["ok"], json!(false));
+        // Hermes' own tools read the same library.
+        let (ok, text) = run(&mut st, "wealth_documents", &json!({}), today, false, false);
+        assert!(ok && text.contains("fnet:905"), "{text}");
+        let (ok, text) = run(&mut st, "wealth_learn", &json!({ "do": "glossary", "term": "P/VP" }), today, false, false);
+        assert!(ok && text.contains("P/VP"), "{text}");
         let _ = std::fs::remove_dir_all(dir);
     }
 

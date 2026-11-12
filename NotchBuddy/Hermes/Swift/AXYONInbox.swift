@@ -112,7 +112,8 @@ enum AXYONInbox {
         return pages.joined(separator: "\n\n")
     }
 
-    private static func recognize(_ page: PDFPage) -> String {
+    /// A scanned page's words, by the iPhone's own text recognition (AXYONReader reads the assets' documents with it).
+    static func recognize(_ page: PDFPage) -> String {
         let box = page.bounds(for: .mediaBox)
         let scale = 2200 / max(box.width, box.height, 1)
         let image = page.thumbnail(of: CGSize(width: box.width * scale, height: box.height * scale), for: .mediaBox)

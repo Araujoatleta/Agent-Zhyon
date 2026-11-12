@@ -29,6 +29,9 @@ and talks to it with:
   GET  /?state=…&code=…              Google's page sending the browser back: the one request without the token,
                                      taken only for the sign-in AXYON is waiting for (its own random state)
   GET  /v1/cron                      Hermes' scheduled tasks; POST /v1/cron/tick runs the due ones now (scheduled.py)
+  POST /v1/invest/digest {key}, /v1/invest/committee {proposal, ticker, reason, document}
+                                     the reader's digest of a document and the committee's audited verdict, in
+                                     Brazilian Portuguese (invest.py)
 
 Nothing else is served, no other request without the token or from a web page (an Origin header) is answered.
 """
@@ -76,7 +79,8 @@ SOUL_MARK = "<!-- AXYON on the iPhone wrote this file -->"
 SOUL = """# Personality
 You are AXYON, the user's personal assistant. You live inside their iPhone: Hermes is your engine and the iPhone is
 your body. You act through it: notifications and reminders, the calendar, contacts, apps and links, their Shortcuts,
-the devices of their home, the web, the photos and files they send you, their Google account, the tasks you schedule,
+the devices of their home, their routines, the web, the photos and files they send you, their Google account, the
+tasks you schedule,
 and your superpowers: their investments (the portfolio against B3's and the CVM's official data, funds, ceilings,
 taxes, the decision journal) and their studies, English and training.
 
@@ -89,6 +93,20 @@ taxes, the decision journal) and their studies, English and training.
 - Scheduled tasks: cronjob runs a prompt at a time or on a schedule, and its answer comes as a notification on the
   iPhone ([SILENT] keeps quiet, so "tell me only if…" works). They run on time while AXYON is open; with AXYON
   closed, iOS wakes it a few times a day and a task that came due runs then. Say so when the timing matters.
+- The home: home_devices and home_control reach, from this iPhone on the home's Wi-Fi, Samsung, Android and Roku TVs,
+  Philips Hue lights, rooms and scenes, Shelly and Tasmota plugs and lights, WLED strips, the user's webhooks (an Alexa
+  routine, IFTTT) and their Home Assistant. A plug, a switch or a webhook asks the owner's Face ID first.
+- Routines (home_routines): a name, what starts it (a tap, Siri, the Shortcuts app, a time, arriving at or leaving a
+  place) and steps (devices, every light or TV at once, notifications, reminders, speaking, music, the flashlight, a
+  link, one of their Shortcuts, a pause, and a question to you whose answer comes as a notification). When the user
+  describes a habit ("when I get home…", "every night at 11…"), offer to make it a routine; they confirm with Face ID.
+  Siri runs one with "rodar <name> no AXYON".
+- Memory: memory_search looks, by meaning, through everything read on this iPhone (every page of the reports and
+  material facts, the court's verdicts, decisions, theses, transcripts of audio, notes) and gives the passages with
+  their document, date and page; use it before answering what a document, the court or a call said, and cite the
+  page. memory_note keeps what the user asks you to remember.
+- The market's radar and the portfolio's futures: wealth_wallet do=radar (every fund on B3 ranked from the official
+  figures, once the user swept the market in the app) and do=simulate (twenty thousand futures of the portfolio).
 - Alerts on the portfolio with AXYON closed (an asset under the user's ceiling or back above it, strong days, assets
   under a ceiling, the morning's day): iphone_alerts turns them on; iOS picks when they are checked.
 - iOS gives an app no terminal, no other programs, no hidden browser and no hand on other apps' screens: running code,
@@ -152,6 +170,8 @@ class Host:
         self.house = None  # the iPhone's own home (home.py)
         self.google = None  # the user's Google account (google.py)
         self.scheduled = None  # Hermes' cron on the iPhone (scheduled.py)
+        self.invest = None  # the reader's digests and the committee's meetings (invest.py)
+        self.routines = None  # the user's routines (automations.py)
         from .bridge import Bridge
 
         self.bridge = Bridge()
@@ -166,6 +186,14 @@ class Host:
         faulthandler.dump_traceback_later(150, file=2)
         try:
             self._seed_home()
+            # The home and the routines need no Hermes: up at once, so a routine Siri or a place starts with AXYON
+            # closed runs while Hermes still loads.
+            from .automations import Routines
+            from .home import Home
+
+            self.house = Home(self.home, bridge=self.bridge)
+            self.routines = Routines(self.home, self.house, bridge=self.bridge, ask=self.ask)
+            self.routines.start()
             t0 = time.time()
             import run_agent  # noqa: F401  (Hermes' agent, and with it its tools)
             from tools.registry import registry
@@ -173,17 +201,19 @@ class Host:
             from .attachments import Files
             from .coucou import Coucou
             from .google import Google
-            from .home import Home
+            from .invest import Invest
             from .iphone import IPhone
+            from .memory import Memory
             from .powers import Powers
             from .scheduled import Scheduled
             from .web import Web
 
             self.coucou = Coucou(self.portfolio_file, bridge=self.bridge, powers_dir=os.environ.get("AXYON_POWERS", ""))
             self.coucou.register(registry)
-            self.house = Home(self.home, bridge=self.bridge)
             self.house.register(registry)
+            self.routines.register(registry)
             IPhone(self.bridge).register(registry)
+            Memory(self.bridge).register(registry)
             Powers(self.bridge).register(registry)
             Web().register(registry)
             Files(self.home).register(registry)
@@ -191,6 +221,7 @@ class Host:
             self.google.register(registry)
             self.scheduled = Scheduled(self.bridge)
             self.scheduled.install()
+            self.invest = Invest(self.bridge)
             model = self._model_config()
             try:
                 from hermes_cli.config import load_config, save_config
@@ -441,6 +472,30 @@ class Host:
         sent = "; ".join(f"'{item['name']}' at {item['path']}" for item in run.attachments)
         return message, "\n\n".join(p for p in (run.message, f"[The user sent: {sent}]") if p)
 
+    def ask(self, prompt: str, session: str, timeout: float = 150.0) -> str:
+        """AXYON Core's answer to `prompt`, for a routine's question: waits for Hermes to be up, then for the end."""
+        deadline = time.time() + timeout
+        while not self.ready:
+            if self.problem:
+                raise RuntimeError(self.problem)
+            if time.time() > deadline:
+                raise RuntimeError("AXYON Core did not start in time.")
+            time.sleep(0.5)
+        run = self.start_run(session[:80], prompt[:MAX_MESSAGE])
+        seq = 0
+        while time.time() < deadline:
+            events, finished = run.after(seq, min(5.0, max(0.1, deadline - time.time())))
+            seq += len(events)
+            for e in events:
+                if e.get("type") == "done":
+                    return str(e.get("text") or "")
+                if e.get("type") == "error":
+                    raise RuntimeError(str(e.get("message") or "AXYON Core could not answer."))
+            if finished:
+                break
+        self.stop_run(run.id)
+        raise RuntimeError("AXYON Core took too long.")
+
     def stop_run(self, run_id: str) -> bool:
         run = self.runs.get(run_id)
         if run is None:
@@ -572,6 +627,28 @@ class Handler(BaseHTTPRequestHandler):
                 return self._home(lambda: house.act(device, str(body.get("action") or ""), body.get("value")))
         return self._send(404, {"error": "not found"})
 
+    def _routines_post(self, path, body):
+        """The routines from the app: the owner's own (made, changed, run by a tap, Siri, a place or the clock)."""
+        from .automations import RoutineError
+        from .home import HomeError
+
+        routines = self.host.routines
+        parts = [urllib.parse.unquote(p) for p in path.split("/")[3:]]
+        wait = max(0.0, min(120.0, float(body.get("wait") or 0)))
+        try:
+            if parts == []:
+                return self._send(200, routines.put(body))
+            if parts == ["tick"]:
+                return self._send(200, {"ran": routines.tick(wait=wait)})
+            if len(parts) == 2 and parts[1] == "run":
+                origin = str(body.get("origin") or "app")[:20]
+                return self._send(200, routines.run(parts[0], origin=origin, wait=wait or 60.0))
+            if len(parts) == 2 and parts[1] == "remove":
+                return self._send(200, {"ok": routines.remove(parts[0])})
+        except (RoutineError, HomeError) as exc:
+            return self._send(422, {"error": str(exc)})
+        return self._send(404, {"error": "not found"})
+
     def _post_more(self, path: str, body: dict[str, Any]):
         """The Settings' Google account, and the tick the app asks for when iOS wakes it."""
         from .google import GoogleError
@@ -616,9 +693,13 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(503, {"error": h.problem or "Hermes is starting"})
             return self._send(200, json.loads(h.coucou.portfolio({})))
         if path == "/v1/home":
-            if not h.ready or h.house is None:
+            if h.house is None:
                 return self._send(503, {"error": h.problem or "Hermes is starting"})
             return self._home(lambda: h.house.overview(states="quick=1" not in self.path))
+        if path == "/v1/routines":
+            if h.routines is None:
+                return self._send(503, {"error": h.problem or "Hermes is starting"})
+            return self._send(200, h.routines.overview())
         if path == "/v1/google":
             if not h.ready or h.google is None:
                 return self._send(503, {"error": h.problem or "Hermes is starting"})
@@ -702,13 +783,27 @@ class Handler(BaseHTTPRequestHandler):
                 ok = h.bridge.answer(path.split("/")[3], body.get("answer"))
                 return self._send(200 if ok else 404, {"ok": ok})
             if path.startswith("/v1/home"):
-                if not h.ready or h.house is None:
+                if h.house is None:
                     return self._send(503, {"error": h.problem or "Hermes is starting"})
                 return self._home_post(path, body)
+            if path.startswith("/v1/routines"):
+                if h.routines is None:
+                    return self._send(503, {"error": h.problem or "Hermes is starting"})
+                return self._routines_post(path, body)
             if path.startswith("/v1/google/") or path == "/v1/cron/tick":
                 if not h.ready or h.google is None:
                     return self._send(503, {"error": h.problem or "Hermes is starting"})
                 return self._post_more(path, body)
+            if path in ("/v1/invest/digest", "/v1/invest/committee"):
+                if not h.ready or h.invest is None:
+                    return self._send(503, {"error": h.problem or "Hermes is starting"})
+                from .invest import InvestError
+
+                try:
+                    done = h.invest.digest(body) if path.endswith("/digest") else h.invest.committee(body)
+                except InvestError as exc:
+                    return self._send(422, {"error": str(exc)})
+                return self._send(200, done)
         except ValueError as exc:
             return self._send(400, {"error": str(exc)})
         except Exception as exc:

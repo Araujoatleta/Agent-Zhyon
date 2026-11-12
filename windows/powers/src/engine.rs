@@ -339,6 +339,28 @@ pub fn update(store: &mut Store, args: &Value, file: Option<Imported>, today: Da
             },
         }
     }
+    // The share of the portfolio wanted in one asset, percent; 0 takes it away. The positions' source stays.
+    let mut aims = false;
+    for (k, v) in args["asset_targets"].as_object().into_iter().flatten() {
+        let Some(t) = ticker(k) else {
+            notes.push(format!("\"{k}\" is not a ticker (like GARE11)."));
+            continue;
+        };
+        match v.as_f64().or_else(|| v.as_str().and_then(crate::text::num)) {
+            Some(x) if x > 100.0 => notes.push(format!("{t}: a target is a share of the portfolio, up to 100 %.")),
+            Some(x) if x > 0.0 => {
+                store.portfolio.asset_targets.insert(t.clone(), x);
+                notes.push(format!("Target for {t}: {} of the portfolio.", pct(x, 1)));
+                aims = true;
+            }
+            _ => {
+                if store.portfolio.asset_targets.remove(&t).is_some() {
+                    notes.push(format!("{t}: target taken away."));
+                    aims = true;
+                }
+            }
+        }
+    }
     for (key, label) in [("income_goal", "Passive income goal"), ("monthly_contribution", "Monthly contribution"), ("cash", "Cash at the broker")] {
         if let Some(x) = f(args, key) {
             match key {
@@ -350,8 +372,8 @@ pub fn update(store: &mut Store, args: &Value, file: Option<Imported>, today: Da
             touched = true;
         }
     }
-    if !touched && !cnpjs {
-        return Err(if notes.is_empty() { "Nothing to change: give positions, a text, a file, targets, income_goal, monthly_contribution, cash, remove or fund_cnpjs.".into() } else { notes.join(" ") });
+    if !touched && !cnpjs && !aims {
+        return Err(if notes.is_empty() { "Nothing to change: give positions, a text, a file, targets, asset_targets, income_goal, monthly_contribution, cash, remove or fund_cnpjs.".into() } else { notes.join(" ") });
     }
     if touched {
         store.portfolio.updated = Some(today);
@@ -530,6 +552,128 @@ pub fn trade_view(store: &mut Store, market: &Market, args: &Value, today: Date)
         return Err("No trade could be read: each one needs a B3 ticker, buy or sell, and the quantity.".into());
     }
     Ok(trades::record(store, market, &told, today)?.join("\n"))
+}
+
+/// wealth_wallet: the Carteira (the consolidator, the iPhone's first tab) as the brain reads and fixes it: its
+/// lançamentos and recorded proventos with their ids, what was received; a lançamento or a received provento added
+/// (several at once) or removed by its id; since when an asset of the sheet is held. Each change is the app's own: the
+/// screen shows it at once.
+pub fn wallet_view(store: &mut Store, market: &Market, args: &Value, today: Date) -> Result<String, String> {
+    let what = s(args, "do").map(|d| crate::text::plain(&d).replace(' ', "_")).unwrap_or_else(|| "view".into());
+    let mut notes: Vec<String> = Vec::new();
+    match what.as_str() {
+        "add_trade" | "add_trades" => {
+            let items = if list(args, "trades").is_empty() { vec![args] } else { list(args, "trades") };
+            for t in items {
+                let e = crate::wallet::entry(t, today)?;
+                let label = format!("{} {} {} em {}", if e.kind == crate::model::TradeKind::Sell { "venda de" } else { "compra de" }, grouped(e.quantity, 0), e.ticker, e.date.br());
+                match crate::wallet::add(store, market, e, today) {
+                    Ok(id) => notes.push(format!("Recorded lançamento #{id}: {label}.")),
+                    Err(err) => notes.push(format!("Not recorded ({label}): {err}")),
+                }
+            }
+        }
+        "remove_trade" => {
+            let id = f(args, "id").ok_or("remove_trade needs the lançamento's id (from do=view).")? as u64;
+            crate::wallet::remove(store, market, id, today)?;
+            notes.push(format!("Lançamento #{id} removed."));
+        }
+        "add_provento" | "add_proventos" => {
+            let items = if list(args, "proventos").is_empty() { vec![args] } else { list(args, "proventos") };
+            for p in items {
+                let mut p = p.clone();
+                if p.get("source").is_none() {
+                    p["source"] = Value::from("chat");
+                }
+                let e = crate::wallet::provento_entry(&p, market, today)?;
+                let label = format!("{} {} {}", e.ticker, e.kind, brl(e.value));
+                match crate::wallet::add_provento(store, e) {
+                    Ok(id) => notes.push(format!("Recorded provento #{id}: {label}.")),
+                    Err(err) => notes.push(format!("Not recorded ({label}): {err}")),
+                }
+            }
+        }
+        "remove_provento" => {
+            let id = f(args, "id").ok_or("remove_provento needs the provento's id (from do=view).")? as u64;
+            crate::wallet::remove_provento(store, id)?;
+            notes.push(format!("Recorded provento #{id} removed: the sources' own count again."));
+        }
+        "since" => {
+            let t = s(args, "ticker").and_then(|t| ticker(&t)).ok_or("since needs the ticker.")?;
+            let day = match s(args, "date").filter(|d| !d.trim().is_empty()) {
+                Some(d) => Some(Date::parse(&d).ok_or("The date is not valid.")?),
+                None => None,
+            };
+            crate::wallet::set_held_from(store, &t, day, today)?;
+            notes.push(match day {
+                Some(d) => format!("{t}: held since {}; its proventos count from then.", d.br()),
+                None => format!("{t}: the day it was bought is forgotten."),
+            });
+        }
+        // Read-only answers, with nothing to change: an asset's sheet, the month's contribution, the year's income tax.
+        "ficha" | "asset" => {
+            let t = s(args, "ticker").and_then(|t| ticker(&t)).ok_or("ficha needs the ticker.")?;
+            return Ok(crate::insight::ficha_for_model(&crate::insight::ficha(store, market, None, &t, today)));
+        }
+        "aporte" | "contribution" => {
+            let amount = f(args, "amount").filter(|a| *a > 0.0).ok_or("aporte needs the amount, R$.")?;
+            return Ok(crate::insight::aporte_for_model(&crate::insight::aporte(store, market, amount, today)));
+        }
+        "irpf" | "taxes" => {
+            let year = f(args, "year").map(|y| y as i32).unwrap_or(today.y - 1);
+            return Ok(crate::insight::irpf_for_model(&crate::insight::irpf(store, market, year, today)));
+        }
+        "radar" | "market" => {
+            let kind = s(args, "kind").map(|k| crate::text::plain(&k));
+            return Ok(crate::radar::for_model(&crate::radar::view(store, market, kind.as_deref(), 25)));
+        }
+        "simulate" | "future" | "futuro" => {
+            let years = f(args, "years").map(|y| y as usize).unwrap_or(10);
+            let v = crate::simulate::simulate(store, market, f(args, "monthly").unwrap_or(0.0), years, f(args, "goal").filter(|g| *g > 0.0), 20_000, today);
+            return Ok(crate::simulate::for_model(&v));
+        }
+        "view" | "list" | "" => {}
+        other => return Err(format!("wealth_wallet has no do=\"{other}\" (view, add_trade, remove_trade, add_provento, remove_provento, since, ficha, aporte, irpf, radar, simulate).")),
+    }
+    let screen = crate::wallet::view(store, market, today);
+    let mut out = notes.join("\n");
+    if !out.is_empty() {
+        out.push_str("\n\n");
+    }
+    let n = |v: &Value| v.as_f64().unwrap_or(0.0);
+    out.push_str(&format!(
+        "The Carteira now: worth {}, cost {}, result {}; realized in sales {}. Proventos received in 12 months {}, this year {}, to receive {}.",
+        brl(n(&screen["total"])), brl(n(&screen["cost"])), brl(n(&screen["gain"])), brl(n(&screen["realized"])),
+        brl(n(&screen["income"]["twelve"])), brl(n(&screen["income"]["year"])), brl(n(&screen["income"]["provisioned"]))
+    ));
+    if let Some(r) = screen["returns"]["rate"].as_f64() {
+        out.push_str(&format!(" The money in the assets with lançamentos made {} a year since {} (CDI now {}).", pct(r, 1), screen["returns"]["since"].as_str().and_then(Date::parse).map(|d| d.br()).unwrap_or_default(), screen["returns"]["cdi"].as_f64().map(|c| pct(c, 2)).unwrap_or_else(|| "unknown".into())));
+    }
+    let paid_line = |p: &Value| {
+        let id = p["id"].as_u64().map(|i| format!(" [recorded provento #{i}]")).unwrap_or_default();
+        let record = p["record"].as_str().and_then(Date::parse).map(|d| format!("data-com {}, ", d.br())).unwrap_or_default();
+        let payment = p["payment"].as_str().and_then(Date::parse).map(|d| format!("paid {}", d.br())).unwrap_or_else(|| "payment not set".into());
+        format!("- {} {}: {record}{payment}, {} × {} = {} ({}){id}", p["ticker"].as_str().unwrap_or(""), p["kind"].as_str().unwrap_or(""), grouped(n(&p["quantity"]), 0), brl(n(&p["perShare"])), brl(n(&p["net"])), p["basis"].as_str().unwrap_or(""))
+    };
+    for (title, key) in [("To receive", "pending"), ("Received (newest first)", "received")] {
+        let items: Vec<&Value> = screen["income"][key].as_array().map(|a| a.iter().take(30).collect()).unwrap_or_default();
+        if !items.is_empty() {
+            out.push_str(&format!("\n\n{title}:\n{}", items.iter().map(|p| paid_line(p)).collect::<Vec<_>>().join("\n")));
+        }
+    }
+    let trades: Vec<&Value> = screen["trades"].as_array().map(|a| a.iter().take(40).collect()).unwrap_or_default();
+    if !trades.is_empty() {
+        let lines: Vec<String> = trades
+            .iter()
+            .map(|t| {
+                let day = t["date"].as_str().and_then(Date::parse).map(|d| d.br()).unwrap_or_default();
+                format!("- #{} {day} {} {} {} at {} (fees {})", t["id"], t["kind"].as_str().unwrap_or(""), grouped(n(&t["quantity"]), 0), t["ticker"].as_str().unwrap_or(""), brl(n(&t["price"])), brl(n(&t["fees"])))
+            })
+            .collect();
+        out.push_str(&format!("\n\nLançamentos (newest first; \"opening\" is the sheet's balance before the first one):\n{}", lines.join("\n")));
+    }
+    out.push_str("\n\nBasis: lancamentos = shares held at the data-com from the lançamentos; planilha = the user's sheet; posicao = held now, since before the data-com; estimado = held now, purchase day unknown; lancado = recorded by the user.");
+    Ok(out)
 }
 
 /// wealth_ceiling: the ceiling prices of one asset or of all the watched ones, the opportunities among them, and the
@@ -763,52 +907,10 @@ pub fn decision(store: &mut Store, market: &Market, args: &Value, today: Date) -
     }
 }
 
-/// The facts a committee works on, for a proposal about `t`.
-pub fn committee_facts(store: &Store, market: &Market, t: &str, proposal: &str, today: Date) -> String {
-    let p = &store.portfolio;
-    let v = portfolio::value(p, market);
-    let class = p.position(t).map(|x| x.class).unwrap_or_else(|| if market.funds.contains_key(t) { AssetClass::Fii } else { import::guess_class(t).0 });
-    let amount = {
-        let nums: Vec<f64> = proposal.split_whitespace().filter_map(crate::text::num).collect();
-        let price = market.price(t).unwrap_or(0.0);
-        match nums.as_slice() {
-            [q, ..] if price > 0.0 && *q >= 1.0 && q.fract() == 0.0 => q * price,
-            _ => 0.0,
-        }
-    };
-    let mut facts = Vec::new();
-    if let Some(h) = v.holdings.iter().find(|h| h.ticker == t) {
-        facts.push(format!("The user holds {} at an average of {} ({} of the portfolio, {}).", grouped(h.quantity, 0), brl(h.average_price), pct(h.weight, 1), h.gain_pct.map(|g| pct(g, 1)).unwrap_or_default()));
-    } else {
-        facts.push("The user does not hold it yet.".into());
-    }
-    if let Some(price) = market.price(t) {
-        facts.push(format!("Last close {}.", brl(price)));
-    }
-    if let Some(fund) = market.funds.get(t) {
-        facts.push(fii::report_for_model(&fii::report(fund, market.price(t), &market.economy, today)));
-        let ev = fii::events(fund, 0.0, today, 60);
-        if !ev.is_empty() {
-            facts.push(format!("Recent events:\n{}", fii::events_for_model(&ev)));
-        }
-    }
-    if let Some(c) = market.companies.get(t) {
-        let m = company::metrics(&c.figures);
-        let thesis: Vec<Condition> = store.theses.iter().find(|x| x.ticker == t).map(|x| x.conditions.clone()).unwrap_or_default();
-        facts.push(company::for_model(t, &c.name, &m, &company::check(&m, &thesis), &company::red_flags(&m)));
-    }
-    facts.push(economy(market, today));
-    let past: Vec<String> = store.decisions.iter().filter(|d| d.ticker == t).map(|d| format!("{} {} ({})", d.date.br(), d.action, crate::text::clip(&d.reasons, 80))).collect();
-    if !past.is_empty() {
-        facts.push(format!("The user's past decisions on it: {}.", past.join("; ")));
-    }
-    journal::brief(proposal, t, &facts, journal::sizing(&v, class, amount), class)
-}
-
+/// wealth_committee: the committee's brief for the chat (committee.rs), without the documents (the apps add the reader's
+/// when they keep one).
 pub fn committee(store: &Store, market: &Market, args: &Value, today: Date) -> Result<String, String> {
-    let proposal = s(args, "proposal").ok_or("the committee needs the proposal, in the user's words")?;
-    let t = s(args, "ticker").and_then(|t| ticker(&t)).or_else(|| crate::text::tickers_in(&proposal).into_iter().next()).ok_or("the committee needs the asset's ticker")?;
-    Ok(format!("{}\n\n{}", journal::protocol(), committee_facts(store, market, &t, &proposal, today)))
+    crate::committee::brief(store, market, None, args, today, false).map(|(text, _, _)| text)
 }
 
 // ── Studies, cards, English, training, the day, content ──────────────────────
@@ -1284,6 +1386,37 @@ mod tests {
     }
 
     #[test]
+    fn a_target_for_one_asset_through_the_tools() {
+        let mut store = Store { portfolio: fixtures::portfolio(), ..Store::default() };
+        let note = update(&mut store, &json!({"asset_targets": {"gare11": "7,5", "BTCI11": 120, "nada": 3}}), None, today()).unwrap();
+        assert!(note.contains("Target for GARE11: 7,5%") && note.contains("up to 100 %") && note.contains("not a ticker"), "{note}");
+        assert_eq!(store.portfolio.asset_targets.get("GARE11"), Some(&7.5));
+        assert!(!store.portfolio.asset_targets.contains_key("BTCI11"));
+        assert!(store.portfolio.updated.is_none(), "a target is not a change of the positions");
+        update(&mut store, &json!({"asset_targets": {"GARE11": 0}}), None, today()).unwrap();
+        assert!(store.portfolio.asset_targets.is_empty(), "0 takes it away");
+    }
+
+    #[test]
+    fn the_brain_reads_and_fixes_the_carteira_by_ids() {
+        let market = fixtures::market();
+        let mut store = Store::default();
+        let note = wallet_view(&mut store, &market, &json!({"do": "add_trade", "trades": [{"ticker": "GARE11", "kind": "buy", "date": "01/09/2026", "quantity": 204, "price": 8.5}, {"ticker": "GARE11", "kind": "buy", "date": "01/09/2026", "quantity": 204, "price": 8.5}]}), today()).unwrap();
+        assert!(note.contains("Recorded lançamento #1") && note.contains("Not recorded") && note.contains("já está na carteira"), "the second is a duplicate: {note}");
+        let note = wallet_view(&mut store, &market, &json!({"do": "add_provento", "proventos": [{"ticker": "RZTR11", "payment": "07/10/2026", "per_share": 0.85, "quantity": 15}]}), today()).unwrap();
+        assert!(note.contains("Recorded provento #1: RZTR11 Rendimento R$ 12,75"), "{note}");
+        assert!(note.contains("[recorded provento #1]") && note.contains("lancado"), "{note}");
+        assert_eq!(store.proventos[0].source, "chat");
+        let view = wallet_view(&mut store, &market, &json!({}), today()).unwrap();
+        assert!(view.contains("- #1 01/09/2026 buy 204 GARE11 at R$ 8,50"), "{view}");
+        wallet_view(&mut store, &market, &json!({"do": "remove_provento", "id": 1}), today()).unwrap();
+        assert!(store.proventos.is_empty());
+        wallet_view(&mut store, &market, &json!({"do": "remove_trade", "id": 1}), today()).unwrap();
+        assert!(store.trades.is_empty() && store.portfolio.position("GARE11").is_none());
+        assert!(wallet_view(&mut store, &market, &json!({"do": "sell all"}), today()).is_err());
+    }
+
+    #[test]
     fn trades_told_in_the_chat_and_ceilings_through_the_tools() {
         let mut store = Store { portfolio: fixtures::portfolio(), ..Store::default() };
         let mut market = fixtures::market();
@@ -1343,7 +1476,7 @@ mod tests {
         let list = decision(&mut store, &market, &json!({}), today()).unwrap();
         assert!(list.contains("buy GARE11"));
         let c = committee(&store, &market, &json!({"proposal": "comprar 50 cotas de GARE11"}), today()).unwrap();
-        assert!(c.contains("[advocate]") && c.contains("Proposal: comprar 50 cotas de GARE11") && c.contains("would go from"), "{c}");
+        assert!(c.contains("[valuation]") && c.contains("[risk]") && c.contains("Proposta: comprar 50 cotas de GARE11") && c.contains("levaria GARE11 de"), "{c}");
         let st = study_view(
             &mut store,
             &market,

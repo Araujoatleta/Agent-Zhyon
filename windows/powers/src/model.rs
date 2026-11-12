@@ -127,6 +127,10 @@ pub struct Portfolio {
     /// Where it came from last: "chat", "B3", "Investidor10", "text", "file".
     #[serde(default)]
     pub source: String,
+    /// The share of the portfolio the user wants in each asset, percent (their sheet's "% Ideal" or "Meta" column, or
+    /// set in the app).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub asset_targets: BTreeMap<String, f64>,
 }
 
 impl Portfolio {
@@ -173,6 +177,28 @@ pub struct Trade {
     /// For a trade told in the chat: the position's average price after it (a sale's cost basis).
     #[serde(default)]
     pub average: Option<f64>,
+}
+
+/// A provento the user recorded themselves (one received as their broker or Investidor10 shows it, of an asset held
+/// or already sold): it counts as received on its payment day, in place of the one the sources give for the same asset
+/// and day (wallet.rs).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct ProventoEntry {
+    /// What the app and the brain remove it by.
+    pub id: u64,
+    pub ticker: String,
+    /// "Rendimento", "Dividendo", "Juros sobre capital próprio", "Amortização".
+    pub kind: String,
+    /// Its data-com, when known.
+    pub record: Option<Date>,
+    pub payment: Option<Date>,
+    pub per_share: Option<f64>,
+    pub quantity: Option<f64>,
+    /// What was received, net, R$.
+    pub value: f64,
+    /// "app", "chat" or "import".
+    pub source: String,
 }
 
 /// Something that happened to a holding other than a trade.
@@ -294,6 +320,190 @@ pub struct Snapshot {
     /// Estimated passive income a month, R$.
     #[serde(default)]
     pub income: f64,
+    /// Each quoted asset's price that day, for the week's moves (weekly.rs).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub prices: BTreeMap<String, f64>,
+}
+
+// ── The committee's verdicts, learning, the training portfolio ──────────────
+
+/// A point a mind made: what it says, the fact or page it rests on ("F3", "D1 p.4"), what kind of statement it is
+/// (fato, calculo, hipotese, estimativa, ausente), and what this code found when it checked it.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct MindPoint {
+    pub text: String,
+    pub source: String,
+    pub kind: String,
+    /// The source exists and holds the point's figures (None: not checked).
+    pub verified: Option<bool>,
+    /// What the check found, when something.
+    pub check: String,
+}
+
+/// A point as kept before the committee checked its points: `["text", "F3"]`.
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum PointKept {
+    Pair(String, String),
+    Full(MindPoint),
+}
+
+fn points_kept<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Vec<MindPoint>, D::Error> {
+    let kept = Vec::<PointKept>::deserialize(d)?;
+    Ok(kept
+        .into_iter()
+        .map(|p| match p {
+            PointKept::Pair(text, source) => MindPoint { text, source, ..MindPoint::default() },
+            PointKept::Full(p) => p,
+        })
+        .collect())
+}
+
+/// What one of the committee's minds said (committee.rs).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct MindVote {
+    /// "valuation", "legal", "forensic", "risk", "macro".
+    pub id: String,
+    /// "for", "against", "neutral".
+    pub vote: String,
+    /// 0 to 100, as the evidence allows.
+    pub confidence: u8,
+    /// A veto (legal and risk only), and its reason among the objective ones (committee.rs, VETO_REASONS).
+    pub veto: bool,
+    pub veto_reason: String,
+    /// Why it voted so.
+    pub why: String,
+    /// Its points, each with the fact or the page it rests on.
+    #[serde(deserialize_with = "points_kept")]
+    pub points: Vec<MindPoint>,
+    /// The data it lacked that could change its view.
+    pub missing: Vec<String>,
+    /// Revised after the audit.
+    pub revised: bool,
+    /// Its vote before the audit or this code changed it, when one did.
+    pub was: String,
+}
+
+/// One of the committee's two opinions: on the asset (positivo, neutro, negativo) or on the portfolio (aumentar,
+/// manter, reduzir, evitar_novo_aporte).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct Opinion {
+    pub view: String,
+    pub why: String,
+    pub confidence: Option<u8>,
+    pub sources: Vec<String>,
+}
+
+/// What the audit found: by the auditor (the brain, checking the minds against each other and the sources) or by this
+/// code (sources that do not exist, figures not in their source, a vote on absent data, a veto without its criterion,
+/// sources that disagree). Severity: critico, material, observacao.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct AuditItem {
+    pub severity: String,
+    pub minds: Vec<String>,
+    pub text: String,
+    pub sources: Vec<String>,
+    /// "auditor" or "codigo".
+    pub by: String,
+}
+
+/// A document the committee read, as D1, D2…
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct DocRef {
+    pub id: String,
+    pub key: String,
+    pub title: String,
+    pub kind: String,
+    pub delivered: Option<Date>,
+    pub url: String,
+    pub pages: usize,
+}
+
+/// The committee's verdict on a proposal, kept for the app and the journal.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct Verdict {
+    pub id: String,
+    pub ticker: String,
+    pub proposal: String,
+    pub date: Option<Date>,
+    pub minds: Vec<MindVote>,
+    /// The chair's question to the user (never an order).
+    pub question: String,
+    /// The strongest argument of the side that lost.
+    pub dissent: String,
+    /// What would change the picture.
+    pub would_change: String,
+    /// How it fits the user's own targets.
+    pub fit: String,
+    /// Why the committee met: "user" (asked), "document" (a new document of the asset), "thesis" (a condition broke).
+    pub reason: String,
+    /// The document that called it, when one did.
+    pub document: String,
+    /// 2: with the audit, the two opinions and the facts.
+    pub version: u8,
+    /// Opinion A, the asset's quality; opinion B, its fit in the user's portfolio.
+    pub asset: Opinion,
+    pub portfolio_fit: Opinion,
+    pub audit: Vec<AuditItem>,
+    /// What the user should check before deciding.
+    pub to_verify: Vec<String>,
+    /// The facts and documents the committee had, as it cited them.
+    pub facts: Vec<crate::evidence::Fact>,
+    pub documents: Vec<DocRef>,
+}
+
+impl Verdict {
+    /// (for, against, neutral).
+    pub fn score(&self) -> (usize, usize, usize) {
+        let count = |v: &str| self.minds.iter().filter(|m| m.vote == v).count();
+        (count("for"), count("against"), count("neutral"))
+    }
+
+    pub fn vetoed_by(&self) -> Vec<String> {
+        self.minds.iter().filter(|m| m.veto).map(|m| m.id.clone()).collect()
+    }
+}
+
+/// The dividends received as the user's sheet records them.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct RecordedDividends {
+    /// Where: "Sua planilha — aba Meu Patrimônio".
+    pub source: String,
+    pub read: Option<Date>,
+    /// Month ("2026-10") to the total received that month, R$.
+    pub months: BTreeMap<String, f64>,
+    /// Month to ticker to R$, when the sheet lists them asset by asset.
+    pub by_asset: BTreeMap<String, BTreeMap<String, f64>>,
+}
+
+/// A practice portfolio with pretend money, at the real prices (learn.rs).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct Paper {
+    pub started: Option<Date>,
+    /// The pretend money it began with, R$.
+    pub start: f64,
+    pub cash: f64,
+    pub positions: Vec<Position>,
+    pub trades: Vec<Trade>,
+}
+
+/// What the user learns with their own portfolio (learn.rs).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct Learn {
+    /// Explanations in plain words, with the terms defined (the committee, the reader, the weekly summary).
+    pub apprentice: bool,
+    pub paper: Paper,
+    /// The week of the last weekly summary made (its Monday), so one a week is told.
+    pub weekly_told: Option<Date>,
 }
 
 // ── Studies, cards, English, training, content ───────────────────────────────
@@ -501,6 +711,20 @@ pub struct Store {
     pub sheet_sync: crate::workspace::Sync,
     /// The moments told today during the session (alerts.rs).
     pub told_today: crate::alerts::Told,
+    /// The committee's last verdicts, newest last (committee.rs).
+    pub verdicts: Vec<Verdict>,
+    /// The dividends the user's own sheet records month by month ("Proventos pagos"): the record, when there is one.
+    pub recorded_dividends: RecordedDividends,
+    /// The day the user says they began holding an asset of their sheet (one with no lançamento): its proventos count
+    /// from then (wallet.rs, invest::held_since).
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub held_from: BTreeMap<String, Date>,
+    /// The proventos the user recorded themselves (wallet.rs).
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub proventos: Vec<ProventoEntry>,
+    pub learn: Learn,
+    /// The documents and broken theses already told, by key (library.rs, thesis.rs).
+    pub told_documents: Vec<String>,
 }
 
 /// The user's choices for ceiling prices (ceiling.rs).
@@ -543,11 +767,14 @@ pub struct FundData {
     /// Newest first.
     #[serde(default)]
     pub documents: Vec<Document>,
-    /// Oldest first.
+    /// Oldest first: the fund's own share's, not its other classes'.
     #[serde(default)]
     pub payouts: Vec<Payout>,
     #[serde(default)]
     pub checked: Option<Date>,
+    /// The structured notices read, whatever they held (another class's dividends, nothing): not read again.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub notices: Vec<u64>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -571,6 +798,12 @@ pub struct CompanyData {
     /// The reader that read it (refresh::COMPANY_READER): one read by an older one is read again once.
     #[serde(default)]
     pub reader: u32,
+    /// Its documents the CVM lists (IPE: material facts, notices, results releases, assemblies), newest first.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub documents: Vec<crate::library::Listed>,
+    /// When they were last listed.
+    #[serde(default)]
+    pub documents_read: Option<Date>,
 }
 
 /// What Zheus read from the official sources, kept between runs.
@@ -591,6 +824,20 @@ pub struct Market {
     /// The prices read during the session (Google Finance), by ticker. Each is the price while it is newer than B3's
     /// last close of the ticker; once B3 publishes that day's close, the close is the price again.
     pub live: BTreeMap<String, LivePrice>,
+    /// The cash dividends the companies held announced on B3 (dividendos, JCP), by ticker.
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub company_payouts: BTreeMap<String, CompanyPayouts>,
+    /// Every traded fund measured and ranked (radar.rs), when the user ran the market's radar.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub radar: Option<crate::radar::Radar>,
+}
+
+/// A company's announced cash dividends for one share class, as B3 lists them, and when they were read.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct CompanyPayouts {
+    pub checked: Option<Date>,
+    pub payouts: Vec<Payout>,
 }
 
 /// A price read during the session.

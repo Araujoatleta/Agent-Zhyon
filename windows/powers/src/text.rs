@@ -141,6 +141,30 @@ pub fn brl(v: f64) -> String {
     format!("{sign}R$ {}", grouped(v.abs(), 2))
 }
 
+/// Reais with the precision of the source, two to four places: "R$ 0,083", "R$ 9,0012", "R$ 8,14". For values per
+/// share, which a rounding to cents would change ("R$ 0,08" is not what a fund paid).
+pub fn brl_exact(v: f64) -> String {
+    let places = (2..=4).find(|&d| {
+        let scale = 10f64.powi(d as i32);
+        ((v * scale).round() / scale - v).abs() < 1e-9
+    });
+    let sign = if v < 0.0 { "-" } else { "" };
+    format!("{sign}R$ {}", grouped(v.abs(), places.unwrap_or(4)))
+}
+
+/// A large amount in words: "R$ 155,9 milhões", "R$ 1,2 bilhão"; under a million, as it is.
+pub fn brl_big(v: f64) -> String {
+    let a = v.abs();
+    let sign = if v < 0.0 { "-" } else { "" };
+    if a >= 1e9 {
+        format!("{sign}R$ {} {}", grouped(a / 1e9, 1), if a < 2e9 { "bilhão" } else { "bilhões" })
+    } else if a >= 1e6 {
+        format!("{sign}R$ {} {}", grouped(a / 1e6, 1), if a < 2e6 { "milhão" } else { "milhões" })
+    } else {
+        brl(v)
+    }
+}
+
 /// A number with Brazilian marks and `decimals` places: "1.234,5".
 pub fn grouped(v: f64, decimals: usize) -> String {
     let s = format!("{:.*}", decimals, v.abs());

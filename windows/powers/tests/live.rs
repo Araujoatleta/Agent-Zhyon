@@ -397,6 +397,134 @@ async fn live_company() {
     assert_eq!(thesis.len(), 3);
 }
 
+/// The reader, as the iPhone runs it: a fund's latest manager's report and a company's documents listed by the CVM
+/// (IPE), each downloaded and told apart (a PDF for the app's PDFKit, or its text), and a report's figures found.
+#[tokio::test]
+#[ignore]
+async fn live_reader() {
+    use coucou_powers::library::{self, File};
+    let http = Http::new();
+    let today = today();
+    let months = fund_months(&http, today).await;
+    let cnpj = cvm_fii::cnpj_by_root(&months).get("GGRC").expect("GGRC11's CNPJ").clone();
+    let docs = sources::fund_documents(&http, &cnpj, 30).await.expect("GGRC11's documents");
+    let report = docs.iter().find(|d| d.topic == fnet::Topic::Report && !d.structured).expect("a manager's report among the last 30");
+    section(&format!("GGRC11's report {} ({} {}, {:?})", report.id, report.category, report.reference, report.delivered));
+    let body = http.get(&fnet::download_url(report.id)).await.expect("the report's file");
+    println!("{} bytes, starting {:?}", body.len(), String::from_utf8_lossy(&body[..body.len().min(40)]));
+    match library::file_of(&body).expect("a file") {
+        File::Pdf(pdf) => {
+            println!("a PDF of {} bytes", pdf.len());
+            assert!(pdf.starts_with(b"%PDF"));
+        }
+        File::Text(pages) => {
+            println!("text, {} pages:\n{}", pages.len(), head(&pages.join("\n"), 30));
+            println!("figures: {:?}", library::figures(&pages));
+        }
+    }
+    section("TIM's documents at the CVM (IPE)");
+    let tim = coucou_powers::text::cnpj_chars("02.421.421/0001-11");
+    let listed = sources::company_documents(&http, &refresh::document_years(today), std::slice::from_ref(&tim), 15).await.expect("the IPE list");
+    let tim_docs = listed.get(&tim).cloned().unwrap_or_default();
+    for d in &tim_docs {
+        println!("{} [{} / {} / {}] {} {:?} kind {:?} — {}", d.key, d.category, d.kind, d.subject, d.reference, d.delivered.map(|x| x.br()), d.doc_kind(), d.download);
+    }
+    assert!(!tim_docs.is_empty(), "TIM files documents with the CVM every month");
+    if let Some(d) = tim_docs.iter().find(|d| d.doc_kind().is_some() && !d.download.is_empty()) {
+        section(&format!("Its document {} downloaded", d.key));
+        match http.get(&d.download).await {
+            Ok(body) => {
+                println!("{} bytes, starting {:?}", body.len(), String::from_utf8_lossy(&body[..body.len().min(40)]));
+                match library::file_of(&body) {
+                    Ok(File::Pdf(pdf)) => println!("a PDF of {} bytes", pdf.len()),
+                    Ok(File::Text(pages)) => println!("text, {} pages:\n{}", pages.len(), head(&pages.join("\n"), 20)),
+                    Err(e) => println!("not a document: {e}"),
+                }
+            }
+            Err(e) => println!("download error: {e}"),
+        }
+    }
+}
+
+/// The cash dividends companies announced on B3's listed-companies pages: the raw answer's start, then each one read
+/// (type, value, data-com, payment), matched to the share class by the ISIN B3's quotes give.
+#[tokio::test]
+#[ignore]
+async fn live_b3_dividends() {
+    use coucou_powers::sources::b3_dividends;
+    let http = Http::new();
+    let today = today();
+    let tickers: Vec<String> = ["BBAS3", "WIZC3", "ITSA4", "TAEE11", "PETR4"].iter().map(|t| t.to_string()).collect();
+    let quotes = sources::quotes(&http, today, false, &tickers, None).await.map(|(_, q)| q).unwrap_or_default();
+    let mut read = 0;
+    for t in &tickers {
+        let issuer = &t[..4];
+        section(&format!("{t}: B3's cash dividends ({issuer})"));
+        let raw = match http.text(&b3_dividends::url(issuer)).await {
+            Ok(raw) => raw,
+            Err(e) => {
+                println!("not read: {e}");
+                continue;
+            }
+        };
+        println!("{} bytes: {}", raw.len(), coucou_powers::text::clip(&raw, 1200));
+        let isin = quotes.get(t).map(|q| q.isin.clone()).unwrap_or_default();
+        match b3_dividends::parse(&raw) {
+            Ok(all) => {
+                read += 1;
+                println!("{} dividends; ISIN of {t} in B3's quotes: {isin:?}", all.len());
+                for d in all.iter().take(8) {
+                    println!("  {} {} R$ {} data-com {} pago {:?} aprovado {:?}", d.isin, d.label, d.value, d.record.br(), d.payment.map(|p| p.br()), d.approved.map(|p| p.br()));
+                }
+                let mine = b3_dividends::of_class(&all, &isin);
+                println!("{t}'s own: {} (provisioned: {})", mine.len(), mine.iter().filter(|p| p.payment.is_none_or(|d| d > today)).count());
+            }
+            Err(e) => println!("not parsed: {e}"),
+        }
+    }
+    assert!(read >= 3, "B3 gave the dividends of {read} of the {} companies", tickers.len());
+}
+
+/// The facts the committee is given, from today's sources: each with its source, its reference date and how the code
+/// computed it, for GARE11 (a made-up portfolio with a 7,5 % target for it) and GGRC11.
+#[tokio::test]
+#[ignore]
+async fn live_committee_facts() {
+    let http = Http::new();
+    let today = today();
+    let mut store = Store::default();
+    engine::update(&mut store, &json!({"text": PASTE, "asset_targets": {"GARE11": 7.5}}), None, today).expect("the paste");
+    let mut market = Market::default();
+    let held = store.portfolio.tickers(None);
+    let (day, quotes) = sources::quotes(&http, today, false, &held, None).await.expect("quotes");
+    refresh::merge_quotes(&mut market, day, quotes);
+    let funds: Vec<String> = ["GARE11", "GGRC11"].iter().map(|t| t.to_string()).collect();
+    let read = refresh::funds(&http, &funds, &BTreeMap::new(), &given(), Some(&funds), &HashMap::new(), today).await;
+    println!("fund errors: {:?}", read.errors);
+    refresh::merge_funds(&mut market, read, today);
+    market.economy = sources::economy(&http).await.unwrap_or_default();
+    market.economy_read = Some(today);
+    for t in &funds {
+        let b = coucou_powers::committee::brief_full(&store, &market, None, &json!({"proposal": format!("comprar 50 cotas de {t}")}), today, true).expect("the brief");
+        section(&format!("{t}: the committee's facts"));
+        for f in &b.facts {
+            println!("{}", f.line());
+        }
+        // P/VP names the day of the price and the month of the book value it divides.
+        if let Some(pvp) = b.facts.iter().find(|f| f.text.starts_with(&format!("P/VP de {t}"))) {
+            assert!(pvp.reference.starts_with("preço ") && pvp.reference.contains("; VP "), "{}", pvp.line());
+        }
+        // A payout keeps the places it was announced with, into the yield.
+        if let Some(last) = b.facts.iter().find(|f| f.text.starts_with("Último rendimento:")) {
+            let announced = market.funds[t.as_str()].payouts.iter().filter(|p| !p.amortization && p.value > 0.0).max_by_key(|p| p.record).map(|p| p.value).unwrap();
+            assert_eq!(last.value, Some(announced), "{}", last.line());
+        }
+    }
+    let b = coucou_powers::committee::brief_full(&store, &market, None, &json!({"proposal": "comprar 50 cotas de GARE11"}), today, true).unwrap();
+    assert!(b.facts.iter().any(|f| f.text.starts_with("Sua meta para GARE11: 7,5%")), "the target from the portfolio");
+    assert!(b.facts.iter().any(|f| f.text.contains("GARE11 vale") && f.text.contains("pesa")), "its weight in the portfolio");
+}
+
 /// Everything at once, the way the app does it, and what the brain reads back.
 #[tokio::test]
 #[ignore]

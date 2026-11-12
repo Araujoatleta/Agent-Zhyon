@@ -283,6 +283,7 @@ mod tests {
                 by_class: [(AssetClass::Fii, v * 0.84), (AssetClass::Etf, v * 0.10), (AssetClass::Acao, v * 0.06)].into(),
                 cost_by_class: BTreeMap::new(),
                 income: 50.0 + i as f64 * 5.0,
+                prices: BTreeMap::new(),
             });
         }
         store.study_logs.push(StudyLog { date: Date::new(2026, 10, 20).unwrap(), subject: "Economia".into(), minutes: 120, questions: 0, correct: 0 });

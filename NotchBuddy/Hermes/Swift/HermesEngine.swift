@@ -38,6 +38,8 @@ final class HermesEngine {
     }
 
     private(set) var state: State = .off
+    /// The host answers on its port: the home and the routines work, while Hermes itself may still be loading.
+    private(set) var hostUp = false
     /// The brain, as Hermes says it is set (nil until it answered).
     private(set) var settings: HermesSettings?
     private(set) var conversation: HermesConversation
@@ -153,12 +155,20 @@ final class HermesEngine {
         while Date.now.timeIntervalSince(started) < 900, !pythonStopped {
             if case .failed = state, !late { return }
             if let health = try? await call("GET", "/health", timeout: 3) {
+                if !hostUp {
+                    // The home and the routines need no Hermes: the app answers the host's requests from now on.
+                    hostUp = true
+                    listenToBridge()
+                    Task { await AXYONRoutineStore.shared.load() }
+                }
                 if health["ready"] as? Bool == true {
                     Self.log.info("Hermes is ready")
                     state = .ready
                     await pushKeys()
                     await refreshSettings()
-                    listenToBridge()
+                    if bridgeTask == nil { listenToBridge() }
+                    // The documents read while AXYON Core started, digested now, and a meeting due held.
+                    Task { await AXYONInvest.shared.think() }
                     return
                 }
                 if let problem = health["problem"] as? String, !problem.isEmpty {
@@ -196,6 +206,12 @@ final class HermesEngine {
     func appBecameActive() {
         guard Self.available else { return }
         portfolioDate = HermesPortfolio.receivedAt()
+        // The reader looks for the assets' new documents, at most every half hour (AXYONInvest.swift), once the app
+        // has settled.
+        Task {
+            try? await Task.sleep(for: .seconds(15))
+            await AXYONInvest.shared.wake()
+        }
         if state == .off {
             // A moment after the launch, so the first screen draws first.
             Task {
@@ -252,7 +268,7 @@ final class HermesEngine {
                 if case .tool = event { self.acting = true }
                 if case .tool(let name, _) = event, name == "cronjob_manage" || name == "iphone_alerts" {
                     // Their answers come as notifications, also with AXYON closed: iOS asks now, with the user here.
-                    Task { _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) }
+                    Task { _ = await axyonAskNotifications() }
                 }
                 if case .toolDone = event { self.acting = false }
                 self.conversation.apply(event, to: answer, label: Self.label)
@@ -332,6 +348,9 @@ final class HermesEngine {
         case "cronjob_manage": String(localized: "Scheduled tasks")
         case "delegate_task": String(localized: "A helper at work")
         case "image_generate": String(localized: "Making an image")
+        case "wealth_committee": String(localized: "The committee is meeting")
+        case "wealth_documents": String(localized: "Reading your assets' documents")
+        case "wealth_learn": String(localized: "Learning with your portfolio")
         default:
             tool.hasPrefix("wealth_") ? String(localized: "Superpowers: money")
                 : tool.hasPrefix("life_") ? String(localized: "Superpowers: your day") : tool
@@ -492,6 +511,45 @@ final class HermesEngine {
         return object["ran"] as? Int ?? 0
     }
 
+    // MARK: Routines (Hermes/app/axyon_hermes/automations.py)
+
+    /// Started if it is off, then the host answering within `budget` seconds (a routine from Siri or a place, with
+    /// AXYON closed, runs once it does: Hermes itself is needed only by a routine's question).
+    func waitForHost(budget: TimeInterval) async -> Bool {
+        if state == .off { start() }
+        let started = Date.now
+        while !hostUp, Date.now.timeIntervalSince(started) < budget {
+            if pythonStopped { return false }
+            try? await Task.sleep(for: .milliseconds(250))
+        }
+        return hostUp
+    }
+
+    func routines() async throws -> [String: Any] {
+        try await call("GET", "/v1/routines", timeout: 15)
+    }
+
+    func saveRoutine(_ body: [String: Any]) async throws -> [String: Any] {
+        try await call("POST", "/v1/routines", body, timeout: 20)
+    }
+
+    func removeRoutine(_ id: String) async throws {
+        _ = try await call("POST", "/v1/routines/\(Self.segment(id))/remove", [:], timeout: 15)
+    }
+
+    /// Runs a routine and waits up to `wait` seconds for its end: what each step did, or that it still runs.
+    func runRoutine(_ id: String, origin: String, wait: TimeInterval) async throws -> [String: Any] {
+        try await call("POST", "/v1/routines/\(Self.segment(id))/run", ["origin": origin, "wait": wait],
+                       timeout: wait + 10)
+    }
+
+    /// The time routines that came due, run now (when iOS woke AXYON): their ids.
+    func routinesTick(wait: TimeInterval) async -> [String] {
+        guard hostUp, let object = try? await call("POST", "/v1/routines/tick", ["wait": wait], timeout: wait + 8)
+        else { return [] }
+        return object["ran"] as? [String] ?? []
+    }
+
     // MARK: The portfolio
 
     func refreshPortfolio() async {
@@ -504,12 +562,30 @@ final class HermesEngine {
     func portfolioChanged() {
         portfolioDate = HermesPortfolio.receivedAt()
         if state == .ready { Task { await refreshPortfolio() } }
+        // What AXYON Core changed in the Carteira (wealth_wallet, wealth_trade) is on its screen at once.
+        Task { await AXYONWallet.shared.load() }
+    }
+
+    // MARK: Investing (AXYONInvest.swift)
+
+    /// The committee's meeting on a proposal (axyon_hermes/invest.py): the engine's brief, the brain's five minds, the
+    /// auditor who checks them, the verdict the engine keeps. Two long answers of the brain: up to ten minutes.
+    func investCommittee(_ body: [String: Any]) async throws -> [String: Any] {
+        guard state == .ready else { throw HermesError.refused(String(localized: "AXYON Core is not running yet.")) }
+        // Two answers of the brain: the five minds, then the auditor.
+        return try await call("POST", "/v1/invest/committee", body, timeout: 600)
+    }
+
+    /// The brain's digest of a document the reader read, kept with it.
+    func investDigest(_ key: String, language: String) async throws -> [String: Any] {
+        guard state == .ready else { throw HermesError.refused(String(localized: "AXYON Core is not running yet.")) }
+        return try await call("POST", "/v1/invest/digest", ["key": key, "language": language], timeout: 240)
     }
 
     // MARK: The iPhone's own home
 
     func refreshHouse(quick: Bool = false) async {
-        guard state == .ready else { return }
+        guard hostUp else { return }
         houseLoading = true
         defer { houseLoading = false }
         if let object = try? await call("GET", quick ? "/v1/home?quick=1" : "/v1/home", timeout: 30) {
@@ -534,8 +610,13 @@ final class HermesEngine {
 
     /// Adds a TV or a box at `host`, then pairs it: the device asks on its own screen (up to a minute).
     func addDevice(driver: String, host: String, name: String, room: String) async throws -> String {
-        let added = try await call("POST", "/v1/home/devices",
-                                   ["driver": driver, "host": host, "name": name, "room": room], timeout: 30)
+        try await addDevice(["driver": driver, "host": host, "name": name, "room": room])
+    }
+
+    /// Adds a device of any kind home.py knows (a webhook with its `url`, `method` and `body`), then pairs it: a TV
+    /// asks on its screen, a Hue bridge waits for its button (up to a minute).
+    func addDevice(_ body: [String: Any]) async throws -> String {
+        let added = try await call("POST", "/v1/home/devices", body, timeout: 30)
         guard let id = added["id"] as? String else { throw HermesError.broken }
         await refreshHouse(quick: true)
         let paired = try await call("POST", "/v1/home/devices/\(Self.segment(id))/pair", [:], timeout: 100)

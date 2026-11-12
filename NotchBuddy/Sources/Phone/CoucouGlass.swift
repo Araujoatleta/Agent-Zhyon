@@ -8,31 +8,31 @@ import SwiftUI
 /// The colors of the iPhone app. The status colors are the desktop's (windows/src/settings/settings.css).
 enum CoucouPalette {
     #if HERMES
-    // AXYON, the build with Hermes inside: Apple's own dark, in black and white. Only the system's green and red
-    // have a colour, for what is on or gained and for what failed or was lost.
-    /// Behind everything: black.
-    static let abyss = Color.black
-    /// Cards that are not glass: #121214.
-    static let night = Color(red: 0.071, green: 0.071, blue: 0.078)
-    /// Fills one step up, as the iPhone's own grouped rows: #1C1C1E.
-    static let surface = Color(red: 0.110, green: 0.110, blue: 0.118)
-    static let hairline = Color.white.opacity(0.10)
-    /// The one thing to tap: white.
-    static let accent = Color.white
+    // AXYON, the build with Hermes inside: the look the user chose (AXYONTheme), a night with coloured lights, glass
+    // of its colour, and an accent that glows; mint for what is on or gained, coral for what failed or was lost.
+    /// Behind everything: the night of the chosen look.
+    static var abyss: Color { AXYONTheme.current.night.first ?? .black }
+    /// Cards that are not glass: the glass's colour, opaque.
+    static var night: Color { AXYONTheme.current.glass }
+    /// Fills one step up.
+    static var surface: Color { AXYONTheme.current.glass.opacity(0.85) }
+    static let hairline = Color.white.opacity(0.12)
+    /// The one thing to tap: the accent of the chosen look.
+    static var accent: Color { AXYONTheme.current.accent }
     /// Text and icons on `accent`.
-    static let onAccent = Color.black
-    /// The system's green: #30D158.
-    static let ok = Color(red: 0.188, green: 0.820, blue: 0.345)
-    /// What needs a look: white too, AXYON has no other colour.
-    static let warn = Color.white
-    /// The system's red: #FF453A.
-    static let danger = Color(red: 1.0, green: 0.271, blue: 0.227)
+    static let onAccent = Color.white
+    /// Mint: #34D399.
+    static let ok = Color(red: 0.204, green: 0.827, blue: 0.600)
+    /// What needs a look: amber.
+    static let warn = Color(red: 0.984, green: 0.749, blue: 0.141)
+    /// Coral: #FB7185.
+    static let danger = Color(red: 0.984, green: 0.443, blue: 0.522)
     /// The backdrop's light.
-    static let glow = Color.white
+    static var glow: Color { AXYONTheme.current.accent }
     /// What wants your attention: a request waiting for your OK, a setting that is off.
-    static let attention = Color.white
+    static var attention: Color { AXYONTheme.current.spark }
     /// A question for you.
-    static let question = Color.white
+    static var question: Color { AXYONTheme.current.accent }
     #else
     /// Behind everything: #05060A.
     static let abyss = Color(red: 0.020, green: 0.024, blue: 0.039)

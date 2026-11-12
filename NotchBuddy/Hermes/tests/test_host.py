@@ -166,6 +166,62 @@ def main():
             time.sleep(0.5)
             return t, got
 
+        def app_answering_each(answers):
+            """The app's side of the bridge: each request it gets answered with the next of `answers`."""
+            got = []
+
+            def side():
+                req = urllib.request.Request(base + "/v1/bridge")
+                req.add_header("Authorization", "Bearer " + token)
+                with urllib.request.urlopen(req, timeout=120) as resp:
+                    for raw in resp:
+                        line = raw.decode().strip()
+                        if line.startswith("data: "):
+                            ask = json.loads(line[6:])
+                            got.append(ask)
+                            call("POST", f"/v1/bridge/{ask['id']}", {"answer": answers[len(got) - 1]})
+                            if len(got) == len(answers):
+                                return
+
+            t = threading.Thread(target=side, daemon=True)
+            t.start()
+            time.sleep(0.5)
+            return t, got
+
+        print("The committee and the reader")
+        brief = {"ok": True, "data": {"prompt": "Você é o comitê de investimentos do AXYON. Proposta: manter GGRC11",
+                                      "ticker": "GGRC11", "documents": ["fnet:904"], "facts": [{"id": "F1", "text": "Preço"}],
+                                      "docs": [{"id": "D1", "key": "fnet:904"}]}}
+        review = {"ok": True, "data": {"prompt": "Você é o auditor do comitê de investimentos do AXYON. GGRC11", "findings": []}}
+        app5, asked5 = app_answering_each([brief, review, {"ok": True, "data": {"score": {"for": 2, "against": 2}, "vetoedBy": ["risk"]}}])
+        code, verdict = call("POST", "/v1/invest/committee", {"proposal": "manter GGRC11 depois do relatório", "reason": "document",
+                                                               "document": "fnet:904", "language": "en-US"})
+        app5.join(timeout=30)
+        check("the committee's verdict, as the engine kept it", code == 200 and verdict.get("vetoedBy") == ["risk"])
+        requests = [a["request"] for a in asked5]
+        check("the engine wrote the brief, checked the minds for the auditor, then kept both answers",
+              [r["input"]["do"] for r in requests] == ["brief", "audit", "verdict"]
+              and requests[0]["input"]["language"] == "Brazilian Portuguese"
+              and requests[2]["input"]["ticker"] == "GGRC11" and requests[2]["input"]["reason"] == "document"
+              and requests[2]["input"]["document"] == "fnet:904" and requests[2]["input"]["facts"] == [{"id": "F1", "text": "Preço"}])
+        answer = requests[2]["input"]["answer"] if len(requests) > 2 else ""
+        audit = requests[2]["input"].get("audit", "") if len(requests) > 2 else ""
+        check("the brain's five minds and its audit reached the engine", '"veto": true' in answer and '"chair"' in answer
+              and '"revisions"' in audit and "evitar_novo_aporte" in audit)
+        log = open(os.path.join(work, "model.log")).read()
+        check("both asked with no tools", "invest committee: tools=0" in log and "invest audit: tools=0" in log)
+        app6, asked6 = app_answering_each([{"ok": True, "data": {"prompt": "You are AXYON's reader. GGRC11"}},
+                                           {"ok": True, "data": {"key": "fnet:904", "headline": "Vacância subiu"}}])
+        code, doc = call("POST", "/v1/invest/digest", {"key": "fnet:904"})
+        app6.join(timeout=30)
+        check("a document's digest, kept by the engine", code == 200 and doc.get("headline") == "Vacância subiu"
+              and '"thesisRisk": true' in (asked6[1]["request"]["input"]["answer"] if len(asked6) > 1 else ""))
+        app7, _ = app_answering_each([{"ok": False, "text": "No such document."}])
+        code, refused = call("POST", "/v1/invest/digest", {"key": "fnet:1"})
+        app7.join(timeout=30)
+        check("the engine's refusal, in words", code == 422 and refused.get("error") == "No such document.")
+        check("no key: refused", call("POST", "/v1/invest/digest", {})[0] == 400)
+
         print("A run with the superpowers' portfolio")
         app, asked_app = app_answering({"ok": True, "text": "GARE11: 204 shares at R$ 8,31 (B3's close of 27/10/2026)"})
         code, r = call("POST", "/v1/runs", {"session": "axyon-test", "message": "qual é a minha carteira?"})

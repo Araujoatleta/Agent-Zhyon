@@ -47,6 +47,20 @@ pub fn quoted(store: &Store) -> Vec<String> {
     t
 }
 
+/// The funds whose notices are read: those held, and those with a lançamento in the last thirteen months (one sold
+/// since still paid its proventos while held).
+pub fn fund_tickers(store: &Store, today: Date) -> Vec<String> {
+    let mut out = store.portfolio.tickers(Some(AssetClass::Fii));
+    let since = today.add_days(-400);
+    for t in store.trades.iter().filter(|t| t.class == Some(AssetClass::Fii) && t.date >= since) {
+        let ticker = t.ticker.to_uppercase();
+        if !out.contains(&ticker) {
+            out.push(ticker);
+        }
+    }
+    out
+}
+
 /// The CNPJ a fund's ticker is read under: the one the user gave, or the one learned from the sources.
 pub fn cnpj_of<'a>(store: &'a Store, market: &'a Market, ticker: &str) -> Option<&'a String> {
     let root = crate::text::ticker_root(ticker);
@@ -62,10 +76,10 @@ pub fn due(store: &Store, market: &Market, today: Date, evening: bool, force: bo
     let tickers = quoted(store);
     let latest_day = if evening { today } else { previous_business_day(today, true) };
     let quotes_stale = market.quotes_day.is_none_or(|d| d < previous_business_day(latest_day.add_days(1), true)) || tickers.iter().any(|t| !market.quotes.contains_key(t));
-    let funds: Vec<String> = store.portfolio.tickers(Some(AssetClass::Fii));
+    let funds: Vec<String> = fund_tickers(store, today);
     let funds_due: Vec<String> = funds
         .iter()
-        .filter(|t| force || cnpj_changed(store, market, t) || market.funds.get(*t).and_then(|f| f.checked).is_none_or(|d| d < today))
+        .filter(|t| force || cnpj_changed(store, market, t) || unchecked_payouts(market, t) || market.funds.get(*t).and_then(|f| f.checked).is_none_or(|d| d < today))
         .cloned()
         .collect();
     let missing_cnpj = funds.iter().any(|t| cnpj_of(store, market, t).is_none());
@@ -92,6 +106,8 @@ pub struct Funds {
     pub months: HashMap<String, Vec<cvm_fii::FiiMonth>>,
     pub documents: HashMap<String, Vec<fnet::Document>>,
     pub payouts: HashMap<String, Vec<fnet::Payout>>,
+    /// The structured notices read, by ticker: what they held is in `payouts`, the fund's own share's or not.
+    pub notices: HashMap<String, Vec<u64>>,
     pub months_read: bool,
     pub errors: Vec<String>,
 }
@@ -147,11 +163,15 @@ pub async fn funds(http: &Http, tickers: &[String], roots: &BTreeMap<String, Str
             Ok(docs) => {
                 let known = known_documents.get(t).cloned().unwrap_or_default();
                 let mut payouts = Vec::new();
+                let mut notices = Vec::new();
                 // The newest notices first, a few at a time: FundosNet can be slow, and the rest come at the next
                 // reading. A notice that does not come stops this fund's for now.
                 for d in docs.iter().filter(|d| d.structured && d.topic == fnet::Topic::Payout && !known.contains(&d.id)).take(PAYOUTS_PER_READING) {
                     match sources::payouts_of(http, d).await {
-                        Ok(p) => payouts.extend(p),
+                        Ok(p) => {
+                            notices.push(d.id);
+                            payouts.extend(p);
+                        }
                         Err(e) => {
                             out.errors.push(format!("{t}: {e}"));
                             break;
@@ -159,6 +179,7 @@ pub async fn funds(http: &Http, tickers: &[String], roots: &BTreeMap<String, Str
                     }
                 }
                 out.payouts.insert(t.clone(), payouts);
+                out.notices.insert(t.clone(), notices);
                 out.documents.insert(t.clone(), docs);
             }
             Err(e) => out.errors.push(format!("{t}: {e}")),
@@ -167,9 +188,22 @@ pub async fn funds(http: &Http, tickers: &[String], roots: &BTreeMap<String, Str
     out
 }
 
-/// The documents of each fund whose dividends were read already.
+/// The documents of each fund whose dividends were read already. A payout read before the share codes were kept
+/// (code None) does not count: its notice is read again, to tell the fund's own share's from its other classes'.
 pub fn known_documents(market: &Market) -> HashMap<String, Vec<u64>> {
-    market.funds.iter().map(|(t, f)| (t.clone(), f.payouts.iter().map(|p| p.document).collect())).collect()
+    market
+        .funds
+        .iter()
+        .map(|(t, f)| {
+            let known: std::collections::BTreeSet<u64> = f.notices.iter().copied().chain(f.payouts.iter().filter(|p| p.code.is_some()).map(|p| p.document)).collect();
+            (t.clone(), known.into_iter().collect())
+        })
+        .collect()
+}
+
+/// A fund with payouts read before the share codes were kept: its notices are read again.
+pub fn unchecked_payouts(market: &Market, ticker: &str) -> bool {
+    market.funds.get(ticker).is_some_and(|f| f.payouts.iter().any(|p| p.code.is_none()))
 }
 
 pub fn merge_funds(market: &mut Market, read: Funds, today: Date) {
@@ -203,7 +237,20 @@ pub fn merge_funds(market: &mut Market, read: Funds, today: Date) {
             f.checked = Some(today);
         }
         if let Some(p) = read.payouts.get(&t) {
-            for payout in p {
+            // A notice read again replaces what was kept of it; it is not read a third time.
+            let notices = read.notices.get(&t).cloned().unwrap_or_default();
+            f.payouts.retain(|x| !notices.contains(&x.document));
+            for n in notices {
+                if !f.notices.contains(&n) {
+                    f.notices.push(n);
+                }
+            }
+            if f.notices.len() > 200 {
+                let extra = f.notices.len() - 200;
+                f.notices.drain(..extra);
+            }
+            // Another class's dividends (a subscription receipt's, BTLG13 for BTLG11) are not the share's.
+            for payout in p.iter().filter(|x| x.of_share(&t)) {
                 // The same payout in another document (a notice published again) is kept once, from the newest one.
                 let same = |x: &fnet::Payout| x.record == payout.record && x.amortization == payout.amortization && (x.value - payout.value).abs() < 1e-6;
                 match f.payouts.iter_mut().find(|x| same(x)) {
@@ -230,6 +277,50 @@ pub fn merge_quotes(market: &mut Market, day: Date, quotes: HashMap<String, b3::
     }
 }
 
+/// The shares (and units) held or recorded whose dividends on B3 are due: never read, or not today.
+pub fn company_payouts_due(store: &Store, market: &Market, today: Date) -> Vec<String> {
+    let mut tickers = store.portfolio.tickers(None);
+    for t in store.trades.iter().map(|t| t.ticker.to_uppercase()) {
+        if !tickers.contains(&t) {
+            tickers.push(t);
+        }
+    }
+    tickers
+        .into_iter()
+        .filter(|t| !market.funds.contains_key(t))
+        .filter(|t| match market.quotes.get(t) {
+            Some(q) => b3::kind_of(q) == "acao",
+            None => store.portfolio.position(t).is_some_and(|p| p.class == AssetClass::Acao),
+        })
+        .filter(|t| market.company_payouts.get(t).and_then(|c| c.checked) != Some(today))
+        .collect()
+}
+
+/// The dividends B3 lists for `tickers`, each company asked once, each share class its own (by the ISIN of B3's
+/// quotes). A company that could not be read is left out (tried again tomorrow).
+pub async fn company_payouts(http: &Http, tickers: &[String], market: &Market) -> BTreeMap<String, Vec<fnet::Payout>> {
+    let mut by_issuer: BTreeMap<String, Option<Vec<sources::b3_dividends::CashDividend>>> = BTreeMap::new();
+    let mut out = BTreeMap::new();
+    for t in tickers {
+        let issuer: String = t.chars().take(4).collect();
+        if !by_issuer.contains_key(&issuer) {
+            let read = http.text(&sources::b3_dividends::url(&issuer)).await.ok().and_then(|raw| sources::b3_dividends::parse(&raw).ok());
+            by_issuer.insert(issuer.clone(), read);
+        }
+        if let Some(Some(all)) = by_issuer.get(&issuer) {
+            let isin = market.quotes.get(t).map(|q| q.isin.as_str()).unwrap_or("");
+            out.insert(t.clone(), sources::b3_dividends::of_class(all, isin));
+        }
+    }
+    out
+}
+
+pub fn merge_company_payouts(market: &mut Market, read: BTreeMap<String, Vec<fnet::Payout>>, today: Date) {
+    for (t, payouts) in read {
+        market.company_payouts.insert(t, crate::model::CompanyPayouts { checked: Some(today), payouts });
+    }
+}
+
 /// A company's statements: its CNPJ from the CVM's register when not known (`known`), then its last three years.
 pub async fn company(http: &Http, ticker: &str, known: &BTreeMap<String, (String, String)>, today: Date) -> Result<(CompanyData, Option<HashMap<String, (String, String)>>), String> {
     let mut register = None;
@@ -247,7 +338,65 @@ pub async fn company(http: &Http, ticker: &str, known: &BTreeMap<String, (String
         }
     };
     let (figures, problems, shares) = sources::company_figures(http, &cnpj, &[today.y - 1, today.y - 2], &[today.y, today.y - 1]).await?;
-    Ok((CompanyData { ticker: ticker.to_string(), cnpj, name, figures, checked: Some(today), problems, shares: shares.map(|s| s.1), shares_date: shares.map(|s| s.0), reader: COMPANY_READER }, register))
+    Ok((
+        CompanyData {
+            ticker: ticker.to_string(),
+            cnpj,
+            name,
+            figures,
+            checked: Some(today),
+            problems,
+            shares: shares.map(|s| s.1),
+            shares_date: shares.map(|s| s.0),
+            reader: COMPANY_READER,
+            documents: Vec::new(),
+            documents_read: None,
+        },
+        register,
+    ))
+}
+
+/// The companies whose documents the CVM lists (IPE) are due to be listed again: those held or of a thesis, read
+/// already (their CNPJ known), listed more than a week ago or never. (ticker, CNPJ).
+pub fn company_documents_due(store: &Store, market: &Market, today: Date) -> Vec<(String, String)> {
+    crate::library::followed(store)
+        .into_iter()
+        .filter_map(|t| {
+            let c = market.companies.get(&t)?;
+            let cnpj = crate::text::cnpj_chars(&c.cnpj);
+            (cnpj.len() == 14 && c.documents_read.is_none_or(|d| d.until(today) >= 7)).then_some((t, cnpj))
+        })
+        .collect()
+}
+
+/// The years whose IPE files hold the documents of the last months: this year's, and last year's in its first two.
+pub fn document_years(today: Date) -> Vec<i32> {
+    if today.m <= 2 {
+        vec![today.y, today.y - 1]
+    } else {
+        vec![today.y]
+    }
+}
+
+/// The documents the CVM listed, kept with each company (by its CNPJ); a company not in the list has none now.
+pub fn merge_company_documents(market: &mut Market, due: &[(String, String)], mut read: HashMap<String, Vec<crate::library::Listed>>, today: Date) {
+    for (ticker, cnpj) in due {
+        if let Some(c) = market.companies.get_mut(ticker) {
+            c.documents = read.remove(cnpj).unwrap_or_default();
+            c.documents_read = Some(today);
+        }
+    }
+}
+
+/// A company's figures read again, kept in place of the old ones; the documents the CVM listed for it stay.
+pub fn merge_company(market: &mut Market, ticker: String, mut company: CompanyData) {
+    if let Some(old) = market.companies.get(&ticker) {
+        if company.documents.is_empty() {
+            company.documents = old.documents.clone();
+            company.documents_read = old.documents_read;
+        }
+    }
+    market.companies.insert(ticker, company);
 }
 
 /// Classes guessed at import (a ticker ending in 11) set from what the sources say: a fund in the CVM's reports is a
@@ -339,6 +488,7 @@ mod tests {
             tax_free: None,
             period: String::new(),
             document: doc,
+            code: Some("GGRC11".into()),
         };
         let read = Funds {
             roots: [("GGRC".to_string(), "111".to_string())].into(),
@@ -347,6 +497,7 @@ mod tests {
             months: [("GGRC11".to_string(), vec![cvm_fii::FiiMonth { cnpj: "111".into(), date: today.first_of_month(), segment: "Logística".into(), ..Default::default() }])].into(),
             documents: [("GGRC11".to_string(), vec![])].into(),
             payouts: [("GGRC11".to_string(), vec![payout(1, "2026-09-14"), payout(2, "2026-10-14")])].into(),
+            notices: [("GGRC11".to_string(), vec![1, 2])].into(),
             months_read: true,
             errors: vec![],
         };
@@ -363,6 +514,20 @@ mod tests {
         let f = &market.funds["GGRC11"];
         assert_eq!(f.payouts.len(), 2);
         assert_eq!(f.payouts.iter().find(|p| p.record == Date::parse("2026-10-14").unwrap()).unwrap().document, 5);
+        // Kept before the share codes were: the notice is read again, and another class's payout in it goes.
+        let old = |value: f64| fnet::Payout { value, code: None, document: 7, ..payout(7, "2026-08-14") };
+        market.funds.get_mut("GGRC11").unwrap().payouts.extend([old(0.09), old(0.05)]);
+        assert!(unchecked_payouts(&market, "GGRC11") && !known_documents(&market)["GGRC11"].contains(&7));
+        let reread = Funds {
+            payouts: [("GGRC11".to_string(), vec![fnet::Payout { value: 0.09, ..payout(7, "2026-08-14") }, fnet::Payout { value: 0.05, code: Some("GGRC13".into()), ..payout(7, "2026-08-14") }])].into(),
+            notices: [("GGRC11".to_string(), vec![7])].into(),
+            ..Funds::default()
+        };
+        merge_funds(&mut market, reread, today);
+        let f = &market.funds["GGRC11"];
+        let august: Vec<f64> = f.payouts.iter().filter(|p| p.document == 7).map(|p| p.value).collect();
+        assert_eq!(august, vec![0.09], "GGRC13's subscription receipt is not GGRC11's");
+        assert!(!unchecked_payouts(&market, "GGRC11") && known_documents(&market)["GGRC11"].contains(&7));
         let mut store = Store::default();
         store.portfolio.positions.push(Position { ticker: "GGRC11".into(), class: AssetClass::Etf, quantity: 1.0, average_price: 9.0, subtype: String::new(), current_value: None, note: "guessed".into() });
         assert_eq!(fix_classes(&mut store, &market), vec!["GGRC11"]);

@@ -383,7 +383,8 @@ pub fn snapshot(v: &Valuation, incomes: &[Income], today: Date) -> Snapshot {
             cost_by_class.insert(c.class, c.cost);
         }
     }
-    Snapshot { date: today, value: v.value, cost: v.cost, by_class, cost_by_class, income: incomes.iter().map(|i| i.monthly).sum() }
+    let prices = v.holdings.iter().filter_map(|h| h.price.filter(|p| *p > 0.0).map(|p| (h.ticker.clone(), p))).collect();
+    Snapshot { date: today, value: v.value, cost: v.cost, by_class, cost_by_class, income: incomes.iter().map(|i| i.monthly).sum(), prices }
 }
 
 /// Adds today's snapshot, replacing one of the same day, and thins out the old ones (one a week past 60 days).
@@ -598,6 +599,7 @@ pub mod fixtures {
             tax_free: Some(true),
             period: String::new(),
             document: 1,
+            code: Some(String::new()),
         };
         for (t, values) in [("GGRC11", 0.088), ("GARE11", 0.075), ("BTCI11", 0.10), ("PORD11", 0.11)] {
             let mut f = FundData { ticker: t.into(), ..FundData::default() };
@@ -705,6 +707,7 @@ mod tests {
             by_class: [(AssetClass::Fii, fii), (AssetClass::Acao, acao)].into(),
             cost_by_class: [(AssetClass::Fii, fii_cost), (AssetClass::Acao, 100.0)].into(),
             income: 0.0,
+            prices: BTreeMap::new(),
         };
         keep_snapshot(&mut snaps, mk(today().add_days(-30), 900.0, 100.0, 900.0));
         // The FIIs gained 10 % (plus 100 added), the shares lost 20 %.

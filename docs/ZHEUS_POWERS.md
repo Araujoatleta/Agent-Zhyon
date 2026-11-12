@@ -44,8 +44,15 @@ Coucou keeps a copy before it replaces the list (the last 10, in `powers-backups
 5. **The tax auditor** (after importing Movimentação and Negociação) — "Do I have a DARF to pay this month?", "Any
    payout a fund announced that B3 does not show?", "Prepare my 2025 declaration".
 6. **An investment committee and a decision journal** — "I want to buy 50 shares of GARE11: run the committee."
-   (four voices and a synthesis), "Record it: buy, 70 % sure", and the decision comes back after a month, six months
-   and a year.
+   (five minds: valuation, legal and governance, a forensic accountant, risk and macro, each with its vote, how sure
+   it is, why, and each point marked fact, calculation, hypothesis, estimate or missing data with its source, legal
+   and risk with a veto on an objective criterion; the code checks every figure against the fact or page it cites;
+   then two opinions apart, A on the asset and B on its place in your portfolio against your target, the chair's
+   score, the losing side's best argument and a question for you), "Record it: buy, 70 % sure", and the decision
+   comes back after a month, six months and a year. The facts it is given carry their source, reference date,
+   consultation date and calculation, in Portuguese. "What did the reports say?" (`wealth_documents`: what the iPhone's reader read, page by page,
+   and your theses checked); "explain P/VP with my funds", "my training portfolio", "my score"
+   (`wealth_learn`).
 7. **A public exam, and what an hour of study is worth** — set the exam, its date, the salary, your hours and the
    subjects with their weights; then "What do I study today?", "I studied Economics for 50 min, 7 of 10 right".
 8. **English from your portfolio** — "Today's English lesson" (a company of your portfolio, its results to read in
@@ -126,6 +133,12 @@ lists them, and AXYON Core is told too. From then on that tab is the portfolio, 
   never written. A copy of your data is kept before the sheet changes it.
 - To keep your own layout, name your tab in **Tab**: AXYON then only reads it (Ativo and Quantidade, or a list of
   tickers with a **Preço teto** or **Meu teto**), and a change made in the chat lasts until the next reading.
+- Every 3 hours AXYON also reads, only reading, two things your tabs may hold: **Proventos pagos** (a title with the
+  months under it and the amounts below, or one row of a monthly table whose months head the columns above it; assets
+  row by row too: these are your dividends, on the computer and on the paired iPhone, the funds' announcements kept
+  beside them to show a divergence) and a **Percentual Ideal** (or **Meta**) column: next to the assets, your target
+  per asset; next to the classes (Ações, FIIs, Renda Fixa…), your target per class. The committee weighs both. A target
+  can also be told in the chat (`wealth_update` with `asset_targets`, like `{"GARE11": 7.5}`).
 
 ### The price during the session
 

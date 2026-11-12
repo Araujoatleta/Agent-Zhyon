@@ -99,6 +99,8 @@ pub struct Powers {
     sheet: Mutex<SheetState>,
     sheet_read: Mutex<Option<Instant>>,
     sheet_turn: tokio::sync::Mutex<()>,
+    /// When the sheet's other tables (the dividends month by month, the targets by asset) were last read.
+    extras_read: Mutex<Option<Instant>>,
     /// Counts the changes to the portfolio and the user's ceilings: a reading of the sheet that began before one does
     /// not undo it.
     version: AtomicU64,
@@ -164,6 +166,7 @@ impl Powers {
             looked_at: Mutex::new(None),
             sheet: Mutex::new(SheetState::default()),
             sheet_read: Mutex::new(None),
+            extras_read: Mutex::new(None),
             sheet_turn: tokio::sync::Mutex::new(()),
             version: AtomicU64::new(0),
         }
@@ -352,7 +355,7 @@ pub async fn refresh(app: &AppHandle, force: bool) -> RefreshState {
     }
     if due.fund_months || !due.funds.is_empty() {
         // The documents of the funds due; the CVM's months for all of them when those are due.
-        let mine = store.portfolio.tickers(Some(AssetClass::Fii));
+        let mine = refresh::fund_tickers(&store, today);
         let read = refresh::funds(&powers.http, &due.funds, &market.fund_cnpjs, &store.fund_cnpjs, due.fund_months.then_some(mine.as_slice()), &refresh::known_documents(&market), today).await;
         problems.extend(read.errors.iter().cloned());
         refresh::merge_funds(&mut held(&powers.market), read, today);
@@ -365,7 +368,7 @@ pub async fn refresh(app: &AppHandle, force: bool) -> RefreshState {
                 if let Some(register) = register {
                     m.company_cnpjs.extend(register);
                 }
-                m.companies.insert(ticker, company);
+                coucou_powers::refresh::merge_company(&mut m, ticker, company);
             }
             Err(e) => {
                 held(&powers.failed).push((ticker.clone(), today));
@@ -440,7 +443,7 @@ async fn ensure_asset(app: &AppHandle, ticker: &str) {
             let months = given || (!read_today && have.is_none_or(|f| f.months.is_empty()));
             if months || !read_today {
                 let mut all = vec![ticker.clone()];
-                all.extend(store.portfolio.tickers(Some(AssetClass::Fii)).into_iter().filter(|t| *t != ticker));
+                all.extend(refresh::fund_tickers(&store, today).into_iter().filter(|t| *t != ticker));
                 let read = refresh::funds(&powers.http, std::slice::from_ref(&ticker), &market.fund_cnpjs, &store.fund_cnpjs, months.then_some(all.as_slice()), &refresh::known_documents(&market), today).await;
                 refresh::merge_funds(&mut held(&powers.market), read, today);
             }
@@ -450,7 +453,7 @@ async fn ensure_asset(app: &AppHandle, ticker: &str) {
                 if let Some(register) = register {
                     m.company_cnpjs.extend(register);
                 }
-                m.companies.insert(ticker.clone(), company);
+                coucou_powers::refresh::merge_company(&mut m, ticker.clone(), company);
             }
         }
         save_market(&held(&powers.market));
@@ -575,6 +578,9 @@ async fn sync_sheet(app: &AppHandle, write: bool) -> Option<Result<Round, String
     held(&powers.sheet).running = true;
     changed(app);
     let result = sheet_round(app, &link, write).await;
+    if result.is_ok() && since(&powers.extras_read, EXTRAS_EVERY) {
+        sheet_extras(app, &link).await;
+    }
     let now = clock_now();
     let (positions, watched) = read(app, |s, _| (s.portfolio.positions.len(), s.ceilings.manual.keys().filter(|t| s.portfolio.position(t).is_none()).count()));
     {
@@ -684,6 +690,59 @@ async fn sheet_round(app: &AppHandle, link: &SheetLink, write: bool) -> Result<R
         tell_sheet_ready(app, &notes);
     }
     Ok(Round { ours: true, wrote: !writes.is_empty(), made, skipped: found.map(|f| f.skipped).unwrap_or_default() })
+}
+
+/// How often the sheet's other tables are read.
+const EXTRAS_EVERY: Duration = Duration::from_secs(3 * 3600);
+
+/// The sheet's tables beside the positions, every three hours: the dividends month by month (a "Proventos pagos"
+/// table, in whichever tab has it: the record of what the user received) and the targets by asset (a "% Ideal" or
+/// "Meta" column), from every tab (twelve at most). Kept with the user's data; what a tab could not give leaves what
+/// was there.
+async fn sheet_extras(app: &AppHandle, link: &SheetLink) {
+    *held(&app.state::<Powers>().extras_read) = Some(Instant::now());
+    let names = match sheet::tabs(link).await {
+        Ok(names) => names,
+        Err(e) => {
+            log::line(format!("powers: the sheet's tabs could not be listed for its dividends: {e}"));
+            return;
+        }
+    };
+    let mut dividends: Option<(String, coucou_powers::sheet::SheetDividends)> = None;
+    let mut targets: Vec<(String, f64)> = Vec::new();
+    let mut classes: Vec<(coucou_powers::model::AssetClass, f64)> = Vec::new();
+    for name in names.iter().take(12) {
+        let Ok(sheet::Got::Rows(rows)) = sheet::get_tab(link, name).await else { continue };
+        if dividends.is_none() {
+            dividends = coucou_powers::sheet::dividends(&rows).map(|d| (name.clone(), d));
+        }
+        for (c, x) in coucou_powers::sheet::class_targets(&rows) {
+            if !classes.iter().any(|(d, _)| *d == c) {
+                classes.push((c, x));
+            }
+        }
+        if let Ok(found) = coucou_powers::sheet::positions(&rows) {
+            for (t, x) in found.targets {
+                if !targets.iter().any(|(y, _)| *y == t) {
+                    targets.push((t, x));
+                }
+            }
+        }
+    }
+    let today = today();
+    let found = (dividends.as_ref().map(|d| d.1.months.len()).unwrap_or(0), targets.len(), classes.len());
+    change(app, |s, _| {
+        if let Some((tab, d)) = dividends {
+            s.recorded_dividends = coucou_powers::model::RecordedDividends { source: format!("Sua planilha — aba {tab}"), read: Some(today), months: d.months, by_asset: d.by_asset };
+        }
+        for (t, x) in targets {
+            s.portfolio.asset_targets.insert(t, x);
+        }
+        for (c, x) in classes {
+            s.portfolio.targets.insert(c, x);
+        }
+    });
+    log::line(format!("powers: the sheet gives {} month(s) of dividends, {} target(s) by asset and {} by class", found.0, found.1, found.2));
 }
 
 /// The user's other tabs (ten at most), read once when AXYON makes its own: what they list, the positions they give
@@ -1097,7 +1156,7 @@ fn record_note(s: &Store) -> String {
 /// The tools that change what AXYON's tab holds (the positions, the user's own ceilings): the user's latest edits in
 /// the sheet are read first, and the change is written there after.
 fn changes_record(tool: &str) -> bool {
-    matches!(tool, "wealth_update" | "wealth_trade" | "wealth_ceiling")
+    matches!(tool, "wealth_update" | "wealth_trade" | "wealth_wallet" | "wealth_ceiling")
 }
 
 /// The answer, with where the change went: the sheet's round after it (`tab`, the tab named).
@@ -1114,14 +1173,14 @@ fn sheet_note(text: String, outcome: &SheetOutcome, tab: &str) -> String {
 
 /// The tools that read the official data: what is due is read first.
 fn reads_market(tool: &str) -> bool {
-    matches!(tool, "wealth_portfolio" | "wealth_fii" | "wealth_events" | "wealth_plan" | "wealth_audit" | "wealth_macro" | "wealth_committee" | "wealth_ceiling" | "life_day")
+    matches!(tool, "wealth_portfolio" | "wealth_fii" | "wealth_events" | "wealth_plan" | "wealth_audit" | "wealth_macro" | "wealth_committee" | "wealth_documents" | "wealth_learn" | "wealth_ceiling" | "life_day")
 }
 
 /// An asset the call is about, when it names one.
 fn asked_asset(tool: &str, input: &Value) -> Option<String> {
     let named = engine::s(input, "ticker").and_then(|t| coucou_powers::text::ticker(&t));
     match tool {
-        "wealth_fii" | "wealth_company" | "wealth_ceiling" => named,
+        "wealth_fii" | "wealth_company" | "wealth_ceiling" | "wealth_documents" | "wealth_learn" => named,
         "wealth_committee" => named.or_else(|| engine::s(input, "proposal").and_then(|p| coucou_powers::text::tickers_in(&p).into_iter().next())),
         _ => None,
     }
@@ -1195,11 +1254,15 @@ pub async fn call(app: &AppHandle, tool: &str, input: &Value) -> HomeResult {
             None => refused("wealth_company needs the share's ticker (\"TIMS3\").".into()),
         },
         "wealth_trade" => change(app, |s, m| engine::trade_view(s, m, input, today)).map_or_else(refused, answer),
+        "wealth_wallet" => change(app, |s, m| engine::wallet_view(s, m, input, today)).map_or_else(refused, answer),
         "wealth_ceiling" => change(app, |s, m| engine::ceiling_view(s, m, input, today)).map_or_else(refused, answer),
         "wealth_plan" => answer(read(app, |s, m| engine::plan(s, m, input, today))),
         "wealth_audit" => answer(read(app, |s, m| engine::audit_view(s, m, input, today))),
         "wealth_decision" => change(app, |s, m| engine::decision(s, m, input, today)).map_or_else(refused, answer),
         "wealth_committee" => read(app, |s, m| engine::committee(s, m, input, today)).map_or_else(refused, answer),
+        // The documents are read by the iPhone app: on this computer the reader's library is empty, the theses work.
+        "wealth_documents" => change(app, |s, m| coucou_powers::invest::documents_tool(s, m, None, input, today)).map_or_else(refused, answer),
+        "wealth_learn" => change(app, |s, m| coucou_powers::learn::tool(s, m, None, input, today)).map_or_else(refused, answer),
         "wealth_macro" => answer(read(app, |_, m| engine::economy(m, today))),
         "life_study" => change(app, |s, m| engine::study_view(s, m, input, today)).map_or_else(refused, answer),
         "life_cards" => change(app, |s, _| engine::cards(s, input, today)).map_or_else(refused, answer),
@@ -1554,6 +1617,9 @@ fn phone_copy_of(s: &Store, m: &Market) -> Value {
     json!({
         "type": "portfolio",
         "positions": positions,
+        "assetTargets": s.portfolio.asset_targets,
+        "classTargets": s.portfolio.targets,
+        "dividends": s.recorded_dividends,
         "ceilings": s.ceilings.manual,
         "prices": prices,
         "cash": p.cash,

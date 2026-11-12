@@ -36,15 +36,20 @@ pub fn time_of(text: &str) -> String {
 }
 
 fn class_for(t: &Told, market: &Market) -> (AssetClass, bool) {
-    if let Some(c) = t.class {
-        return (c, false);
+    match t.class {
+        Some(c) => (c, false),
+        None => class_of(&t.ticker, market),
     }
-    match market.quotes.get(&t.ticker).map(crate::sources::b3::kind_of) {
+}
+
+/// A ticker's class from B3's quote when known, else guessed from the ticker (and said so: the bool).
+pub fn class_of(ticker: &str, market: &Market) -> (AssetClass, bool) {
+    match market.quotes.get(ticker).map(crate::sources::b3::kind_of) {
         Some("fii") => (AssetClass::Fii, false),
         Some("etf") => (AssetClass::Etf, false),
         Some("bdr") => (AssetClass::Bdr, false),
         Some("acao") => (AssetClass::Acao, false),
-        _ => crate::import::guess_class(&t.ticker),
+        _ => crate::import::guess_class(ticker),
     }
 }
 

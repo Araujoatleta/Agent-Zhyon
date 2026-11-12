@@ -10,6 +10,7 @@ home_assistant.rs), in Python.
     own apps, reading its state. Never a command typed by anyone, the model included.
   * Home Assistant: its REST API with a long-lived token the user pasted in the app (Keychain), and only the services
     listed in ACTIONS: no lock, no alarm, nothing outside that list.
+  * Philips Hue, Shelly, Tasmota, WLED and Roku over their own local APIs, and the user's webhooks (lan.py).
 
 Device settings (address, name, room, the TV's certificate pin) are in AXYON's folder; tokens and keys are in the
 Keychain, through the app (`bridge`, kind "secret"). Only addresses on the local network (or the user's tailnet) are
@@ -43,6 +44,8 @@ TOOLSET = "coucou"
 NAME = "AXYON"
 TIMEOUT = 5.0
 MAX_DEVICES = 60
+# How long the Hue bridge is asked for a key after its button is pressed.
+HUE_PAIR_WAIT = 32.0
 CGNAT = ipaddress.ip_network("100.64.0.0/10")
 
 
@@ -792,6 +795,18 @@ _ANDROID_CAN = ["turn_on", "turn_off", "volume_up", "volume_down", "mute", "chan
                 "key", "play_pause"]
 
 
+# The drivers lan.py speaks, and what each does.
+_SOURCE = {"samsung": "Samsung TV", "android": "Android", "hue": "Philips Hue", "shelly": "Shelly",
+           "tasmota": "Tasmota", "wled": "WLED", "roku": "Roku", "webhook": "Webhook"}
+_PLUG_CAN = ["turn_on", "turn_off", "toggle", "state"]
+_LIGHT_CAN = ["turn_on", "turn_off", "toggle", "set_brightness", "state"]
+LAN_DRIVERS = ("hue", "shelly", "tasmota", "wled", "roku", "webhook")
+
+
+def _slug(text: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", _fold(text)).strip("-")[:40] or "webhook"
+
+
 class Home:
     def __init__(self, folder: str, bridge: Any = None):
         self.path = os.path.join(folder, "axyon-home.json")
@@ -866,8 +881,20 @@ class Home:
         host = str(body.get("host") or "").strip().strip("[]")
         name = str(body.get("name") or "").strip()[:60]
         room = str(body.get("room") or "").strip()[:40]
-        if driver not in ("samsung", "android"):
-            raise HomeError("Which kind of device? A Samsung TV or an Android TV / box.")
+        if driver not in ("samsung", "android") + LAN_DRIVERS:
+            raise HomeError("Which kind of device? A Samsung TV, an Android TV / box, Philips Hue, Shelly, Tasmota, "
+                            "WLED, Roku or a webhook.")
+        if driver in LAN_DRIVERS:
+            added = self._add_lan(driver, host, name, room, body)
+            with self.lock:
+                data = self.load()
+                ids = {d["id"] for d in added}
+                data["devices"] = [d for d in data["devices"] if d["id"] not in ids]
+                if len(data["devices"]) + len(added) > MAX_DEVICES:
+                    raise HomeError("Too many devices.")
+                data["devices"].extend(added)
+                self.save(data)
+            return self.describe(added[0])
         if driver == "samsung":
             rest = int(body.get("restPort") or SAMSUNG_REST)
             info = samsung_info(host, rest)
@@ -897,6 +924,62 @@ class Home:
             self.save(data)
         return self.describe(device)
 
+    def _add_lan(self, driver: str, host: str, name: str, room: str, body: dict[str, Any]) -> list[dict[str, Any]]:
+        """What the user adds of the drivers lan.py speaks: asked what it is first (a webhook is only checked)."""
+        from . import lan
+
+        if driver == "webhook":
+            url = lan.webhook_url(str(body.get("url") or ""))
+            if not name:
+                raise HomeError("Give the webhook a name (it is how you and AXYON call it).")
+            slug = _slug(name)
+            self.keep_secret("home.webhook." + slug, url)
+            method = "POST" if str(body.get("method") or "").upper() == "POST" else "GET"
+            return [{"id": f"webhook:{slug}", "driver": "webhook", "kind": "button", "name": name, "room": room,
+                     "method": method, "body": str(body.get("body") or "")[:4000], "paired": True,
+                     "host": urllib.parse.urlparse(url).hostname or ""}]
+        if driver == "hue":
+            info = lan.hue_config(host)
+            if info is None:
+                raise HomeError(f"No Philips Hue bridge answered at {host}: is it on this Wi-Fi?")
+            return [{"id": f"hue:{host}", "driver": "hue", "host": host, "kind": "hub", "name": name or info["name"],
+                     "room": room, "model": info["model"], "bridgeid": info["bridgeid"], "paired": False}]
+        if driver == "shelly":
+            info = lan.shelly_info(host)
+            if info is None:
+                raise HomeError(f"No Shelly answered at {host}: is it on this Wi-Fi?")
+            if info["auth"]:
+                raise HomeError("This Shelly has a login: turn it off in the Shelly app (Settings → Authentication), or "
+                                "reach it through Home Assistant.")
+            channels = lan.shelly_channels(host, info["gen"]) or [{"kind": "switch", "channel": 0, "on": False}]
+            many = len(channels) > 1
+            return [{"id": f"shelly:{host}:{c['kind']}{c['channel']}", "driver": "shelly", "host": host,
+                     "kind": c["kind"], "gen": info["gen"], "channel": c["channel"], "output": c["kind"],
+                     "name": (name or info["name"]) + (f" {c['channel'] + 1}" if many else ""), "room": room,
+                     "model": info["model"], "paired": True} for c in channels[:8]]
+        if driver == "tasmota":
+            info = lan.tasmota_info(host)
+            if info is None:
+                raise HomeError(f"No Tasmota device answered at {host}: is it on this Wi-Fi (and its web login off)?")
+            return [{"id": f"tasmota:{host}", "driver": "tasmota", "host": host,
+                     "kind": "light" if info["light"] else "switch", "colour": info["colour"],
+                     "name": name or info["name"], "room": room, "model": info["model"], "paired": True}]
+        if driver == "wled":
+            info = lan.wled_info(host)
+            if info is None:
+                raise HomeError(f"No WLED answered at {host}: is it on this Wi-Fi?")
+            return [{"id": f"wled:{host}", "driver": "wled", "host": host, "kind": "light", "name": name or info["name"],
+                     "room": room, "model": info["model"], "paired": True}]
+        port = int(body.get("port") or lan.ROKU_PORT)
+        info = lan.roku_info(host, port)
+        if info is None:
+            raise HomeError(f"No Roku answered at {host}: is it on this Wi-Fi?")
+        device = {"id": f"roku:{host}", "driver": "roku", "host": host, "kind": "tv", "name": name or info["name"],
+                  "room": room, "model": info["model"], "apps": lan.roku_apps(host, port), "paired": True}
+        if port != lan.ROKU_PORT:
+            device["port"] = port
+        return [device]
+
     def remove(self, device_id: str) -> bool:
         with self.lock:
             data = self.load()
@@ -905,9 +988,10 @@ class Home:
                 return False
             data["devices"] = kept
             self.save(data)
-        if device_id.startswith("samsung:"):
+        secret = {"samsung": "home.samsung.", "hue": "home.hue.", "webhook": "home.webhook."}.get(device_id.split(":")[0])
+        if secret and "/" not in device_id:
             try:
-                self.keep_secret("home.samsung." + device_id.split(":", 1)[1], None)
+                self.keep_secret(secret + device_id.split(":", 1)[1], None)
             except HomeError:
                 pass
         return True
@@ -920,11 +1004,34 @@ class Home:
                     d.update(changes)
             self.save(data)
 
+    @staticmethod
+    def _can(d: dict[str, Any]) -> list[str]:
+        from . import lan
+
+        driver = d.get("driver")
+        if driver == "samsung":
+            return _SAMSUNG_CAN
+        if driver == "android":
+            return _ANDROID_CAN
+        if driver == "roku":
+            return lan.ROKU_CAN
+        if driver == "webhook":
+            return ["run"]
+        if driver == "hue":
+            return []
+        if driver == "wled":
+            return _LIGHT_CAN + ["set_color", "preset"]
+        if driver == "tasmota" and d.get("kind") == "light":
+            return _LIGHT_CAN + (["set_color"] if d.get("colour") else [])
+        if driver == "shelly" and d.get("kind") == "light":
+            return _LIGHT_CAN
+        return _PLUG_CAN
+
     def describe(self, d: dict[str, Any]) -> dict[str, Any]:
         out = {"id": d["id"], "name": d.get("name", ""), "room": d.get("room", ""), "kind": d.get("kind", "tv"),
-               "source": {"samsung": "Samsung TV", "android": "Android"}.get(d.get("driver", ""), ""),
-               "paired": bool(d.get("paired")), "asksFirst": False,
-               "can": _SAMSUNG_CAN if d.get("driver") == "samsung" else _ANDROID_CAN,
+               "source": _SOURCE.get(d.get("driver", ""), ""),
+               "paired": bool(d.get("paired")), "asksFirst": d.get("kind") in ("switch", "button"),
+               "can": self._can(d),
                "apps": [a["name"] for a in d.get("apps", [])][:30]}
         if d.get("model"):
             out["model"] = d["model"]
@@ -940,6 +1047,13 @@ class Home:
                     if state is not None:
                         device["state"] = state
         out: dict[str, Any] = {"devices": devices}
+        for bridge in [d for d in data["devices"] if d.get("driver") == "hue" and d.get("paired")]:
+            try:
+                devices.extend(self._hue_entities(bridge))
+            except HomeError as e:
+                for device in devices:
+                    if device["id"] == bridge["id"]:
+                        device["problem"] = str(e)
         assistant = data.get("assistant")
         if assistant:
             out["homeAssistant"] = {"url": assistant.get("url", "")}
@@ -952,7 +1066,23 @@ class Home:
                 out["homeAssistant"]["problem"] = str(e)
         return out
 
+    def _hue_key(self, bridge: dict[str, Any]) -> str:
+        key = self.secret("home.hue." + bridge["host"])
+        if not key:
+            raise HomeError("The Hue bridge's key is missing: pair it again (press its button).")
+        return key
+
+    def _hue_entities(self, bridge: dict[str, Any]) -> list[dict[str, Any]]:
+        from . import lan
+
+        return lan.hue_entities(bridge["host"], self._hue_key(bridge))
+
     def _quick_state(self, d: dict[str, Any]) -> Optional[dict[str, Any]]:
+        if d.get("driver") in ("shelly", "tasmota", "wled", "roku"):
+            try:
+                return self._lan_state(d, quick=True)
+            except Exception:
+                return {"online": False}
         if d.get("driver") == "samsung":
             try:
                 info = samsung_info(d["host"], d.get("restPort", SAMSUNG_REST), timeout=1.5)
@@ -975,6 +1105,10 @@ class Home:
         d = self._find(data, device_id)
         if d is None:
             raise HomeError("No such device.")
+        if d["driver"] == "hue":
+            return self._hue_pair(d)
+        if d["driver"] in LAN_DRIVERS:
+            return {"ok": True, "message": "Added."}
         with self._device_lock(d["id"]):
             if d["driver"] == "samsung":
                 token = self.secret("home.samsung." + d["host"]) if d.get("secure") else None
@@ -1000,6 +1134,23 @@ class Home:
                          name=name or "Android TV")
             return {"ok": True, "message": "The device allowed this iPhone.", "apps": len(apps)}
 
+    def _hue_pair(self, d: dict[str, Any]) -> dict[str, Any]:
+        """The bridge gives a key in the 30 seconds after its round button is pressed: asked every two seconds."""
+        from . import lan
+
+        deadline = time.time() + HUE_PAIR_WAIT
+        while True:
+            key = lan.hue_pair(d["host"])
+            if key:
+                self.keep_secret("home.hue." + d["host"], key)
+                self._update(d["id"], paired=True)
+                count = len(lan.hue_entities(d["host"], key))
+                return {"ok": True, "message": f"The Hue bridge allowed AXYON: {count} lights, rooms and scenes."}
+            if time.time() > deadline:
+                raise HomeError("The bridge's button was not pressed: press the round button on top of the Hue "
+                                "bridge, then Pair again within 30 seconds.")
+            time.sleep(2.0)
+
     def _adb_key(self, make: bool) -> Optional[AdbKey]:
         key = AdbKey.from_secret(self.secret("home.adb-key"))
         if key is None and make:
@@ -1021,20 +1172,126 @@ class Home:
         data = self.load()
         if wanted.startswith("ha:"):
             return self._ha_act(data, wanted[3:], action, value, confirm)
+        if wanted.startswith("hue:") and "/" in wanted:
+            return self._hue_act(data, wanted, action, value)
         d = self._find(data, wanted)
         if d is None:
+            light = self._hue_find(data, wanted)
+            if light:
+                return self._hue_act(data, light, action, value)
             entity = self._ha_find(data, wanted)
             if entity:
                 return self._ha_act(data, entity, action, value, confirm)
             raise HomeError(f"No device called {wanted} on this iPhone (home_devices lists them).")
         if action == "state":
             return {"ok": True, "device": d["name"], "state": self._state(d)}
-        can = _SAMSUNG_CAN if d["driver"] == "samsung" else _ANDROID_CAN
+        can = self._can(d)
         if action not in can:
-            raise HomeError(f"{d['name']} cannot do {action} (it can: {', '.join(can)}).")
+            raise HomeError(f"{d['name']} cannot do {action} (it can: {', '.join(can) or 'nothing by itself'}).")
+        if d.get("kind") in ("switch", "button") and confirm is not None and not confirm(
+                f"{action.replace('_', ' ')}: {d['name']}"):
+            return {"ok": False, "reason": "declined", "message": "The owner did not confirm on the iPhone."}
         with self._device_lock(d["id"]):
-            did = self._samsung_act(d, action, value) if d["driver"] == "samsung" else self._android_act(d, action, value)
+            if d["driver"] == "samsung":
+                did = self._samsung_act(d, action, value)
+            elif d["driver"] == "android":
+                did = self._android_act(d, action, value)
+            else:
+                did = self._lan_act(d, action, value)
         return {"ok": True, "device": d["name"], "did": did}
+
+    def _hue_find(self, data: dict[str, Any], wanted: str) -> Optional[str]:
+        """A Hue light, room or scene by the name the user says."""
+        folded = _fold(wanted)
+        if not folded:
+            return None
+        found: list[dict[str, Any]] = []
+        for bridge in [d for d in data["devices"] if d.get("driver") == "hue" and d.get("paired")]:
+            try:
+                found.extend(self._hue_entities(bridge))
+            except HomeError:
+                continue
+        exact = [e for e in found if _fold(e["name"]) == folded or _fold(f"{e['name']} {e['room']}") == folded]
+        if exact:
+            return exact[0]["id"]
+        close = [e for e in found if folded in _fold(f"{e['name']} {e['room']}")]
+        return close[0]["id"] if len(close) == 1 else None
+
+    def _hue_act(self, data: dict[str, Any], entity: str, action: str, value: Any) -> dict[str, Any]:
+        from . import lan
+
+        host, _, path = entity[4:].partition("/")
+        bridge = next((d for d in data["devices"] if d.get("driver") == "hue" and d.get("host") == host), None)
+        if bridge is None:
+            raise HomeError("That Hue bridge is no longer in AXYON's home.")
+        with self._device_lock(bridge["id"]):
+            did = lan.hue_act(host, self._hue_key(bridge), path, action, value)
+        if action == "state":
+            return {"ok": True, "device": entity, "state": json.loads(did)}
+        return {"ok": True, "device": entity, "did": did}
+
+    def _lan_act(self, d: dict[str, Any], action: str, value: Any) -> str:
+        from . import lan
+
+        driver, host = d["driver"], d.get("host", "")
+        if driver == "webhook":
+            url = self.secret("home.webhook." + d["id"].split(":", 1)[1])
+            if not url:
+                raise HomeError("The webhook's address is missing: add it again in the Home tab.")
+            return lan.webhook_call(url, d.get("method", "GET"), d.get("body", ""))
+        if driver == "shelly":
+            return lan.shelly_act(host, int(d.get("gen") or 1), d.get("output", "switch"), int(d.get("channel") or 0),
+                                  action, value)
+        if driver == "tasmota":
+            return lan.tasmota_act(host, action, value)
+        if driver == "wled":
+            return lan.wled_act(host, action, value)
+        if driver == "roku":
+            port = int(d.get("port") or lan.ROKU_PORT)
+            if action == "open_app":
+                apps = d.get("apps") or []
+                if not apps:
+                    apps = lan.roku_apps(host, port)
+                    self._update(d["id"], apps=apps)
+                app = self._app({**d, "apps": apps}, value)
+                lan.roku_launch(host, app["id"], port)
+                return f"Opened {app['name']}."
+            if action == "key":
+                key = lan.ROKU_KEYS.get(_fold(str(value or "")).replace(" ", "_"))
+                if not key:
+                    raise HomeError(f"No key {value} (keys: home, back, ok, up, down, left, right, play_pause, menu, "
+                                    "source).")
+                lan.roku_key(host, key, port)
+                return f"Pressed {value}."
+            if action in ("volume_up", "volume_down", "channel_up", "channel_down"):
+                lan.roku_key(host, lan.ROKU_KEYS[action], port, times=self._steps(value))
+                return "Done."
+            if action in ("turn_on", "turn_off", "mute", "play_pause"):
+                lan.roku_key(host, lan.ROKU_KEYS[action], port)
+                return {"turn_on": "On.", "turn_off": "Off."}.get(action, "Done.")
+        raise HomeError(f"{d['name']} cannot do {action}.")
+
+    def _lan_state(self, d: dict[str, Any], quick: bool = False) -> dict[str, Any]:
+        from . import lan
+
+        driver, host = d["driver"], d.get("host", "")
+        if driver == "roku":
+            info = lan.roku_info(host, int(d.get("port") or lan.ROKU_PORT), timeout=1.5 if quick else 3.0)
+            if info is None:
+                return {"online": False}
+            return {"online": True, "on": info["power"] in ("PowerOn", "")}
+        if driver == "webhook":
+            return {}
+        state: dict[str, Any] = {"online": True}
+        if driver == "shelly":
+            said = lan.shelly_act(host, int(d.get("gen") or 1), d.get("output", "switch"), int(d.get("channel") or 0),
+                                  "state", None)
+        elif driver == "tasmota":
+            said = lan.tasmota_act(host, "state", None)
+        else:
+            said = lan.wled_act(host, "state", None)
+        state.update(json.loads(said))
+        return state
 
     def _steps(self, value: Any) -> int:
         return max(1, min(15, int(_number(value, 1))))
@@ -1175,6 +1432,10 @@ class Home:
     def _state(self, d: dict[str, Any]) -> dict[str, Any]:
         if d["driver"] == "samsung":
             return self._quick_state(d) or {}
+        if d["driver"] == "hue":
+            return {"online": True, "lights": len(self._hue_entities(d))}
+        if d["driver"] in LAN_DRIVERS:
+            return self._lan_state(d)
         with self._device_lock(d["id"]):
             adb = self._android(d)
             try:
@@ -1256,13 +1517,13 @@ class Home:
     # ── Looking for devices ──────────────────────────────────────────────────
 
     def scan(self, address: str, prefix: int = 24) -> dict[str, Any]:
-        """The Samsung TVs, ADB devices and Home Assistants on the iPhone's Wi-Fi (`address`/`prefix`, which the app
+        """The Samsung TVs, ADB devices, Home Assistants, Hue bridges, Shelly, Tasmota, WLED and Roku on the iPhone's Wi-Fi (`address`/`prefix`, which the app
         gives: the Wi-Fi's own address, so a cellular one is never scanned)."""
         if not is_local(address):
             return {"error": "Connect the iPhone to your home's Wi-Fi to look for devices.", "found": []}
         network = ipaddress.ip_network(f"{address}/{max(22, min(30, int(prefix)))}", strict=False)
         hosts = [str(h) for h in network.hosts() if str(h) != address][:1022]
-        ports = (SAMSUNG_REST, ADB_PORT, 8123)
+        ports = (SAMSUNG_REST, ADB_PORT, 8123, 80, 8060)
         refused_by_ios = [0]
 
         def probe(target: tuple[str, int]) -> Optional[tuple[str, int]]:
@@ -1278,6 +1539,14 @@ class Home:
             open_ports = [t for t in pool.map(probe, [(h, p) for h in hosts for p in ports]) if t]
         known = {d["id"] for d in self.load()["devices"]}
         found = []
+        # What answers on port 80 or 8060 is asked what it is (a Hue bridge, a Shelly, WLED, Tasmota, a Roku).
+        web = [(h, p) for h, p in open_ports if p in (80, 8060)]
+        with ThreadPoolExecutor(max_workers=16) as pool:
+            for item in pool.map(lambda t: self._identify(*t), web):
+                if item:
+                    item["added"] = any(k == f"{item['driver']}:{item['host']}" or k.startswith(
+                        f"{item['driver']}:{item['host']}:") for k in known)
+                    found.append(item)
         for host, port in sorted(open_ports, key=lambda t: (ipaddress.ip_address(t[0]), t[1])):
             if port == SAMSUNG_REST:
                 try:
@@ -1299,6 +1568,24 @@ class Home:
                             "Local Network → AXYON.")
         return out
 
+    @staticmethod
+    def _identify(host: str, port: int) -> Optional[dict[str, Any]]:
+        from . import lan
+
+        if port == 8060:
+            info = lan.roku_info(host, timeout=1.5)
+            return {"driver": "roku", "host": host, "name": info["name"], "model": info["model"]} if info else None
+        for driver, ask in (("hue", lan.hue_config), ("shelly", lan.shelly_info), ("wled", lan.wled_info),
+                            ("tasmota", lan.tasmota_info)):
+            try:
+                info = ask(host, timeout=1.5)
+            except HomeError:
+                info = None
+            if info:
+                return {"driver": driver, "host": host, "name": info.get("name") or driver,
+                        "model": info.get("model") or ""}
+        return None
+
     # ── Hermes' tools ────────────────────────────────────────────────────────
 
     def tool_devices(self, args: dict[str, Any], **_kw) -> str:
@@ -1308,7 +1595,8 @@ class Home:
             return json.dumps({"error": str(e)}, ensure_ascii=False)
         if not out["devices"]:
             out["note"] = ("No device on this iPhone yet: the user adds them in AXYON's Home tab (Samsung TV, Android "
-                           "TV, Home Assistant). A paired computer's home is in coucou_home.")
+                           "TV, Roku TV, Philips Hue, Shelly, Tasmota, WLED, webhooks, Home Assistant). A paired "
+                           "computer's home is in coucou_home.")
         return json.dumps(out, ensure_ascii=False)
 
     def tool_control(self, args: dict[str, Any], **_kw) -> str:
@@ -1332,20 +1620,23 @@ class Home:
             name="home_devices", toolset=TOOLSET, handler=self.tool_devices, emoji="🏠",
             schema={"name": "home_devices",
                     "description": "The user's devices this iPhone drives itself on the home's Wi-Fi, with no computer: "
-                                   "Samsung TVs, Android TVs and boxes, and the entities of their Home Assistant "
-                                   "(lights, switches, media players, covers, scenes, scripts), each with its id, "
-                                   "room, what it can do (`can`), its apps and its state when it answers.",
+                                   "Samsung, Android and Roku TVs and boxes, Philips Hue lights, rooms and scenes, "
+                                   "Shelly and Tasmota plugs and lights, WLED strips, the user's webhooks (an Alexa "
+                                   "routine, IFTTT…: action run), and the entities of their Home Assistant (lights, "
+                                   "switches, media players, covers, scenes, scripts), each with its id, room, what it "
+                                   "can do (`can`), its apps and its state when it answers.",
                     "parameters": {"type": "object", "properties": {}}})
         registry.register(
             name="home_control", toolset=TOOLSET, handler=self.tool_control, emoji="🏠",
             schema={"name": "home_control",
                     "description": "Acts on one of the devices of home_devices, from this iPhone: turn_on, turn_off, "
-                                   "volume_up / volume_down / channel_up / channel_down (value: how many steps), mute, "
-                                   "open_app (value: the app's name), key (value: home, back, ok, up, down, left, "
-                                   "right, play_pause, menu, source), state; for Home Assistant also toggle, "
-                                   "set_brightness (0-100), set_volume (0-100), unmute, play_pause, next, previous, "
-                                   "open, close, stop, run (a scene or script), set_temperature. A switch asks the "
-                                   "owner's Face ID first.",
+                                   "toggle, volume_up / volume_down / channel_up / channel_down (value: how many "
+                                   "steps), mute, open_app (value: the app's name), key (value: home, back, ok, up, "
+                                   "down, left, right, play_pause, menu, source), set_brightness (0-100), set_color "
+                                   "(a colour's name like azul, quente, or #RRGGBB), preset (WLED), run (a scene, a "
+                                   "script or a webhook), state; for Home Assistant also set_volume (0-100), unmute, "
+                                   "next, previous, open, close, stop, set_temperature. Only what the device lists in "
+                                   "`can`. A plug, a switch or a webhook asks the owner's Face ID first.",
                     "parameters": {"type": "object", "properties": {
                         "device": {"type": "string", "description": "The device's id from home_devices, or its name"},
                         "action": {"type": "string"},

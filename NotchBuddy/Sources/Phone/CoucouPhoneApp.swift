@@ -12,6 +12,15 @@ struct CoucouPhoneApp: App {
     @UIApplicationDelegateAdaptor(PhoneAppDelegate.self) var delegate
     @Environment(\.scenePhase) private var scenePhase
 
+    init() {
+        #if HERMES
+        // AXYON speaks Portuguese whatever the iPhone's own language (Hermes/Swift/AXYONInvest.swift).
+        AXYONLanguage.portugueseOnce()
+        // A routine's place iOS woke AXYON for is heard from the launch on (Hermes/Swift/AXYONRoutines.swift).
+        AXYONPlaces.shared.wake()
+        #endif
+    }
+
     var body: some Scene {
         WindowGroup {
             HomeView(link: PhoneLink.shared)
